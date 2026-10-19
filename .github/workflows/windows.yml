@@ -145,6 +145,24 @@ jobs:
           }
           Get-ChildItem dist | Format-Table Name, Length
 
+      - name: Sign the portable exe
+        # tauri patches target/release/autoflow-desktop.exe with bundle-type info for each bundle after signing it,
+        # which drops the signature on the copy we ship as the portable build — sign that copy again.
+        if: steps.mode.outputs.signed == 'true'
+        shell: pwsh
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_SIGN_ENDPOINT: ${{ vars.AZURE_SIGN_ENDPOINT || 'https://krc.codesigning.azure.net/' }}
+          AZURE_SIGN_ACCOUNT: ${{ vars.AZURE_SIGN_ACCOUNT }}
+          AZURE_SIGN_PROFILE: ${{ vars.AZURE_SIGN_PROFILE }}
+        run: |
+          foreach ($f in Get-ChildItem dist -Filter '*-portable.exe') {
+            powershell -NoProfile -ExecutionPolicy Bypass -File C:\afsign\sign.ps1 $f.FullName
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
       - name: Signature verification gate
         if: steps.mode.outputs.signed == 'true'
         shell: pwsh
