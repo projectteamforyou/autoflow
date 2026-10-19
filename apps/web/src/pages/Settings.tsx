@@ -23,6 +23,17 @@ export function SettingsPage() {
   return (
     <Shell title={<h2>{t("nav.settings")}</h2>}>
       <div className="page" style={{ maxWidth: 860 }}>
+        {/* Phones have no sidebar, so this is the way to the permissions page (and the Accessibility disclosure). */}
+        {hasNativeBridge && (
+          <Link to="/fleet" className="card hover row" style={{ textDecoration: "none", color: "inherit" }}>
+            <Icon name="Lock" size={18} />
+            <div className="grow" style={{ minWidth: 0 }}>
+              <b>{t("fleet.permissions")}</b>
+              <div className="small muted">{t("fleet.sub")}</div>
+            </div>
+            <Icon name="ChevronRight" size={16} />
+          </Link>
+        )}
         <section className="card stack">
           <h3><Icon name="Palette" size={16} /> {t("settings.appearance")}</h3>
           <Field label={t("settings.language")}>
