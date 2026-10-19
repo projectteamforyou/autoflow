@@ -1,3 +1,4 @@
+import { SITE_URL } from "../lib/site";
 import { useEffect, useState } from "react";
 import type { DeviceInfo, PermissionStatus } from "@autoflow/core";
 import { Shell } from "../components/Shell";
@@ -98,7 +99,7 @@ export function FleetPage() {
             {browserCaps.map((c) => (
               <div key={c.k} className="row small"><Icon name={c.ok ? "Check" : "X"} size={15} /> {t(c.k)}</div>
             ))}
-            <div className="callout info small"><Icon name="Download" size={16} /> {t("fleet.getNative")} <a href="../download/" target="_blank" rel="noopener">{t("home.getApps")}</a></div>
+            <div className="callout info small"><Icon name="Download" size={16} /> {t("fleet.getNative")} <a href={`${SITE_URL}/download/`} target="_blank" rel="noopener">{t("home.getApps")}</a></div>
           </div>
         )}
       </div>

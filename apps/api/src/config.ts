@@ -15,7 +15,7 @@ function readPackageVersion(): string {
 }
 
 export const DEFAULT_APP_ORIGINS = [
-  "https://autoflow.pages.dev",
+  "https://autoflow-651.pages.dev",
   "http://localhost:5173",
   "tauri://localhost",
   "http://tauri.localhost",
@@ -87,7 +87,7 @@ const EnvSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(8080),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   APP_ORIGINS: z.string().optional(),
-  PUBLIC_APP_URL: z.string().url().default("https://autoflow.pages.dev"),
+  PUBLIC_APP_URL: z.string().url().default("https://autoflow-651.pages.dev"),
   MAIL_FROM: z.string().min(3).default("AutoFlow <no-reply@autoflow.app>"),
   RESEND_API_KEY: z.string().min(1).optional(),
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),

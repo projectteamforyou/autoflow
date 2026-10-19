@@ -1009,5 +1009,8 @@
   "onboard.easyBody": "Guiado: elige qué repetir, cuán rápido y cuánto tiempo.",
   "onboard.proBody": "Editor completo: disparadores, lógica, variables, depurador.",
   "onboard.switchLater": "Cámbialo después en Ajustes.",
-  "onboard.skip": "Omitir introducción"
+  "onboard.skip": "Omitir introducción",
+  "links.verified": "Correo verificado. ¡Gracias!",
+  "links.resetTitle": "Elige una nueva contraseña",
+  "links.resetDone": "Contraseña cambiada. Inicia sesión con tu nueva contraseña."
 }

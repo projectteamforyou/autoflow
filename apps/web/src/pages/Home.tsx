@@ -1,3 +1,4 @@
+import { SITE_URL } from "../lib/site";
 import { Link, useNavigate } from "react-router-dom";
 import { TEMPLATES, describeTrigger } from "@autoflow/core";
 import { Shell } from "../components/Shell";
@@ -56,7 +57,7 @@ export function Home() {
               <Icon name="Info" />
               <div className="grow small">
                 {t("home.browserNote")}{" "}
-                <a href="../download/" target="_blank" rel="noopener">{t("home.getApps")}</a>
+                <a href={`${SITE_URL}/download/`} target="_blank" rel="noopener">{t("home.getApps")}</a>
               </div>
             </div>
           )}

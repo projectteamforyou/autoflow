@@ -37,8 +37,8 @@ Migrations in `migrations/*.sql` are applied automatically at startup inside one
 | `DATABASE_URL` | — (required) | PostgreSQL connection string |
 | `PORT` | `8080` | Railway injects it |
 | `NODE_ENV` | `development` | `production` hides error details and disables console email |
-| `APP_ORIGINS` | `https://autoflow.pages.dev,http://localhost:5173,tauri://localhost,http://tauri.localhost,https://localhost` | Strict CORS allowlist (comma list, `*` rejected) |
-| `PUBLIC_APP_URL` | `https://autoflow.pages.dev` | Base for email and share links |
+| `APP_ORIGINS` | `https://autoflow-651.pages.dev,http://localhost:5173,tauri://localhost,http://tauri.localhost,https://localhost` | Strict CORS allowlist (comma list, `*` rejected) |
+| `PUBLIC_APP_URL` | `https://autoflow-651.pages.dev` | Base for email and share links |
 | `RESEND_API_KEY` | — | Enables email via Resend; otherwise console (dev) / disabled (prod) |
 | `MAIL_FROM` | `AutoFlow <no-reply@autoflow.app>` | Sender (must be a verified Resend domain) |
 | `TRUST_PROXY_HOPS` | `1` | Trusted proxies for `X-Forwarded-For` (Railway edge = 1) |

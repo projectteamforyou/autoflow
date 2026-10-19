@@ -25,7 +25,7 @@ export function Onboarding() {
   return (
     <div className="onboard">
       <div className="panel">
-        <img src="./favicon.svg" alt="AutoFlow" width={72} height={72} style={{ borderRadius: 20 }} />
+        <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="AutoFlow" width={72} height={72} style={{ borderRadius: 20 }} />
         {!last ? (
           <>
             <div className="tile-icon" style={{ width: 56, height: 56, background: "var(--af-gradient)" }}><Icon name={SLIDES[i]!.icon} size={28} /></div>

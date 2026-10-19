@@ -9,7 +9,8 @@ const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), 
 // Relative base: the same build is served at https://<site>/app/ and loaded from disk by the
 // Tauri (Windows) and Capacitor (Android) shells. Routing uses the URL hash.
 export default defineConfig({
-  base: "./",
+  // "./" for the native shells (loaded from disk); the website build sets VITE_BASE=/app/.
+  base: process.env.VITE_BASE ?? "./",
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   plugins: [
     react(),

@@ -1,3 +1,4 @@
+import { SITE_URL } from "../lib/site";
 import { useEffect, useState } from "react";
 import { LOCALES, type LocaleCode } from "@autoflow/core";
 import { Shell } from "../components/Shell";
@@ -83,8 +84,8 @@ export function SettingsPage() {
           <h3><Icon name="Info" size={16} /> {t("settings.about")}</h3>
           <div className="small muted">AutoFlow {__APP_VERSION__} · {t("settings.madeBy")}</div>
           <div className="row wrap small">
-            <a href={`../${loc}/privacy/`} target="_blank" rel="noopener">{t("settings.privacy")}</a>
-            <a href={`../${loc}/terms/`} target="_blank" rel="noopener">{t("settings.terms")}</a>
+            <a href={`${SITE_URL}/${loc}/privacy/`} target="_blank" rel="noopener">{t("settings.privacy")}</a>
+            <a href={`${SITE_URL}/${loc}/terms/`} target="_blank" rel="noopener">{t("settings.terms")}</a>
             <a href="mailto:projectteamforyou@gmail.com">projectteamforyou@gmail.com</a>
           </div>
         </section>

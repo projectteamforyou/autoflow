@@ -1009,5 +1009,8 @@
   "onboard.easyBody": "ガイド付き：繰り返す内容・速度・回数を選ぶだけ。",
   "onboard.proBody": "フルエディタ：トリガー、ロジック、変数、デバッガ対応。",
   "onboard.switchLater": "設定で後から変更できます。",
-  "onboard.skip": "イントロをスキップ"
+  "onboard.skip": "イントロをスキップ",
+  "links.verified": "メールが認証されました。ありがとうございます！",
+  "links.resetTitle": "新しいパスワードを選択",
+  "links.resetDone": "パスワードが変更されました。新しいパスワードでサインインしてください。"
 }

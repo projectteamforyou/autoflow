@@ -1009,5 +1009,8 @@
   "onboard.easyBody": "引導式：選擇重複內容、速度與時長。",
   "onboard.proBody": "完整編輯器：觸發、邏輯、變數、除錯。",
   "onboard.switchLater": "預設可於設定中更改。",
-  "onboard.skip": "跳過介紹"
+  "onboard.skip": "跳過介紹",
+  "links.verified": "電子郵件已驗證，感謝您！",
+  "links.resetTitle": "請設定新密碼",
+  "links.resetDone": "密碼已變更，請使用新密碼登入。"
 }

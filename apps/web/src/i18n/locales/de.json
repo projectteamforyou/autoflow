@@ -1009,5 +1009,8 @@
   "onboard.easyBody": "Geführt: auswählen, was, wie schnell und wie lange wiederholt wird.",
   "onboard.proBody": "Der volle Editor: Auslöser, Logik, Variablen, Debugger.",
   "onboard.switchLater": "Standard später in den Einstellungen ändern.",
-  "onboard.skip": "Intro überspringen"
+  "onboard.skip": "Intro überspringen",
+  "links.verified": "E-Mail verifiziert. Vielen Dank!",
+  "links.resetTitle": "Neues Passwort wählen",
+  "links.resetDone": "Passwort geändert. Melden Sie sich mit Ihrem neuen Passwort an."
 }

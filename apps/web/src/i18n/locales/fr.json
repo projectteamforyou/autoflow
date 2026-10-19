@@ -1009,5 +1009,8 @@
   "onboard.easyBody": "Guidé : choisissez quoi répéter, à quelle vitesse et combien de temps.",
   "onboard.proBody": "L’éditeur complet : déclencheurs, logique, variables, débogueur.",
   "onboard.switchLater": "Modifiez le mode par défaut plus tard dans les paramètres.",
-  "onboard.skip": "Passer l’intro"
+  "onboard.skip": "Passer l’intro",
+  "links.verified": "E-mail vérifié. Merci !",
+  "links.resetTitle": "Choisissez un nouveau mot de passe",
+  "links.resetDone": "Mot de passe modifié. Connectez-vous avec votre nouveau mot de passe."
 }

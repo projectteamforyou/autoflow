@@ -85,7 +85,7 @@ export function makeApp(db: TestDb, opts: AppOptions = {}) {
     port: 0,
     databaseUrl: db.url,
     appOrigins: opts.appOrigins ?? [...DEFAULT_APP_ORIGINS],
-    publicAppUrl: "https://autoflow.pages.dev",
+    publicAppUrl: "https://autoflow-651.pages.dev",
     mailFrom: "AutoFlow <test@example.com>",
     trustProxyHops: 1,
     logLevel: "silent",

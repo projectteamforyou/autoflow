@@ -1009,5 +1009,8 @@
   "onboard.easyBody": "Dipandu: pilih apa yang diulang, seberapa cepat, dan berapa lama.",
   "onboard.proBody": "Editor lengkap: pemicu, logika, variabel, debugger.",
   "onboard.switchLater": "Ubah default nanti di Pengaturan.",
-  "onboard.skip": "Lewati intro"
+  "onboard.skip": "Lewati intro",
+  "links.verified": "Email terverifikasi. Terima kasih!",
+  "links.resetTitle": "Pilih kata sandi baru",
+  "links.resetDone": "Kata sandi berhasil diubah. Masuk dengan kata sandi baru Anda."
 }

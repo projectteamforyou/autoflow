@@ -43,7 +43,7 @@ export function Shell({ children, flush, title, actions }: { children: ReactNode
       <a href="#main" className="sr-only">{t("a11y.skip")}</a>
       <aside className="sidebar" aria-label={t("a11y.mainNav")}>
         <NavLink to="/" className="brand">
-          <img src="./favicon.svg" alt="" />
+          <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" />
           <b>AutoFlow</b>
         </NavLink>
         {NAV.map((n) => (

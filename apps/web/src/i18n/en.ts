@@ -964,4 +964,8 @@ export const en = {
   "onboard.proBody": "The full editor: triggers, logic, variables, debugger.",
   "onboard.switchLater": "Change the default later in Settings.",
   "onboard.skip": "Skip intro",
+
+  "links.verified": "Email verified. Thank you!",
+  "links.resetTitle": "Choose a new password",
+  "links.resetDone": "Password changed. Sign in with your new password.",
 } as const;

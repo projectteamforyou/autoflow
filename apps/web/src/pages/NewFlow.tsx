@@ -1,3 +1,4 @@
+import { SITE_URL } from "../lib/site";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { createFlow, eventsToSteps, newId } from "@autoflow/core";
@@ -35,7 +36,7 @@ function RecordIntro() {
           <p className="muted">{t("record.webBody")}</p>
           <div className="row wrap">
             <button className="btn primary" onClick={() => navigate("/canvas")}><Icon name="Target" size={16} /> {t("record.openCanvas")}</button>
-            <a className="btn" href="../download/" target="_blank" rel="noopener"><Icon name="Download" size={16} /> {t("home.getApps")}</a>
+            <a className="btn" href={`${SITE_URL}/download/`} target="_blank" rel="noopener"><Icon name="Download" size={16} /> {t("home.getApps")}</a>
           </div>
         </div>
       </div>

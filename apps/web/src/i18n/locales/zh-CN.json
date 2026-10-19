@@ -1009,5 +1009,8 @@
   "onboard.easyBody": "引导式：选择重复内容、速度和时长。",
   "onboard.proBody": "完整编辑器：触发器、逻辑、变量、调试。",
   "onboard.switchLater": "稍后可在设置中更改默认模式。",
-  "onboard.skip": "跳过介绍"
+  "onboard.skip": "跳过介绍",
+  "links.verified": "邮箱已验证，感谢！",
+  "links.resetTitle": "设置新密码",
+  "links.resetDone": "密码已更改，请使用新密码登录。"
 }

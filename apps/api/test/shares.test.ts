@@ -11,7 +11,7 @@ describe("share links", () => {
     expect(r.status).toBe(201);
     const s = r.json.share;
     expect(s.id).toMatch(/^[0-9A-Za-z]{10}$/);
-    expect(s.url).toBe(`https://autoflow.pages.dev/s/${s.id}`);
+    expect(s.url).toBe(`https://autoflow-651.pages.dev/s/${s.id}`);
     expect(s.flow.folder).toBeUndefined();
     expect(s.flow.favorite).toBe(false);
     expect(s.risk.level).toBe("low");

@@ -1009,5 +1009,8 @@
   "onboard.easyBody": "가이드: 반복할 작업, 속도, 기간 선택",
   "onboard.proBody": "전체 편집기: 트리거, 논리, 변수, 디버거",
   "onboard.switchLater": "설정에서 기본값을 나중에 변경할 수 있습니다.",
-  "onboard.skip": "소개 건너뛰기"
+  "onboard.skip": "소개 건너뛰기",
+  "links.verified": "이메일이 인증되었습니다. 감사합니다!",
+  "links.resetTitle": "새 비밀번호 선택",
+  "links.resetDone": "비밀번호가 변경되었습니다. 새 비밀번호로 로그인하세요."
 }

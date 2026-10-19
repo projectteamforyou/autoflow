@@ -1009,5 +1009,8 @@
   "onboard.easyBody": "Hướng dẫn: chọn thao tác lặp lại, tốc độ và thời gian.",
   "onboard.proBody": "Trình chỉnh sửa đầy đủ: kích hoạt, logic, biến, gỡ lỗi.",
   "onboard.switchLater": "Có thể đổi mặc định sau trong Cài đặt.",
-  "onboard.skip": "Bỏ qua giới thiệu"
+  "onboard.skip": "Bỏ qua giới thiệu",
+  "links.verified": "Đã xác minh email. Cảm ơn bạn!",
+  "links.resetTitle": "Chọn mật khẩu mới",
+  "links.resetDone": "Đã đổi mật khẩu. Đăng nhập bằng mật khẩu mới."
 }
