@@ -141,11 +141,11 @@ export async function copyPublic() {
 export async function buildCloudflare(opts: { scriptHashes: string[]; styleHashes: string[]; apiOrigin: string }) {
   const csp = [
     "default-src 'self'",
-    `script-src 'self' ${opts.scriptHashes.join(" ")}`,
+    `script-src 'self' ${opts.scriptHashes.join(" ")} https://static.cloudflareinsights.com`,
     `style-src 'self' ${opts.styleHashes.join(" ")}`,
     "img-src 'self' data:",
     "font-src 'self'",
-    `connect-src 'self' ${opts.apiOrigin}`,
+    `connect-src 'self' ${opts.apiOrigin} https://cloudflareinsights.com`,
     "manifest-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
@@ -156,11 +156,11 @@ export async function buildCloudflare(opts: { scriptHashes: string[]; styleHashe
   // The SPA under /app/ needs a different policy (its own bundles, BYO-AI provider calls, workers).
   const appCsp = [
     "default-src 'self'",
-    "script-src 'self' 'wasm-unsafe-eval'",
+    "script-src 'self' 'wasm-unsafe-eval' https://static.cloudflareinsights.com",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self' data:",
-    `connect-src 'self' ${opts.apiOrigin} ${aiConnectSources()}`,
+    `connect-src 'self' ${opts.apiOrigin} https://cloudflareinsights.com ${aiConnectSources()}`,
     "worker-src 'self' blob:",
     "manifest-src 'self'",
     "object-src 'none'",
@@ -217,7 +217,11 @@ export async function buildCloudflare(opts: { scriptHashes: string[]; styleHashe
     "/privacy-policy /en/privacy/ 301",
     "/tos /en/terms/ 301",
     "/terms-of-service /en/terms/ 301",
-    "/app/* /app/ 200",
+    // SPA routes use the URL hash; only links that arrive on real paths (emails, share links) need a rewrite.
+    // A catch-all /app/* rewrite would shadow /app/assets/* on Cloudflare Pages.
+    "/app/verify-email /app/ 200",
+    "/app/reset-password /app/ 200",
+    "/app/s/* /app/ 200",
   ].join("\n");
   await writeFile(out("_redirects"), `${redirects}\n`);
 }
