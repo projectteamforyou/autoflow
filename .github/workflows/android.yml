@@ -1,0 +1,233 @@
+name: Android build
+# Web app → Capacitor Android → signed AAB/APK → store images → Google Play, in one run (docs/PLAY_RELEASE.md).
+# Adapted from the proven Play kit. AutoFlow ships no ads at all: there is no ads input, and the merged manifest is
+# checked to carry no advertising ID or ad SDK.
+on:
+  workflow_dispatch:
+    inputs:
+      track:
+        description: 'Google Play track to upload the signed AAB to (none = build only)'
+        type: choice
+        options: [none, internal, alpha, beta, production]
+        default: none
+      status:
+        description: 'Release status on Play (completed | draft | inProgress | halted). A never-published app is downgraded to draft automatically.'
+        type: choice
+        options: [completed, draft, inProgress, halted]
+        default: completed
+      smoke:
+        description: 'Install the debug APK on an Android emulator (API 35) and check it starts. Runs after the build, never blocks the Play upload.'
+        type: boolean
+        default: true
+  push:
+    tags: ['v*']
+# least-privilege GITHUB_TOKEN (read-only checkout; nothing here writes to the repo)
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    outputs:
+      # Only the version-run suffix: a job output that contains a secret's value is dropped by Actions, and the key
+      # alias secret ('autoflow') is a substring of the artifact name and the package name. The smoke job assembles the
+      # artifact name with format() instead (a hard-won fix from the kit).
+      apk_tag: ${{ steps.ver.outputs.name }}-${{ github.run_number }}
+    env:
+      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+      HAS_PLAY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+      # Tag pushes (v*) go to the internal track; manual runs use the chosen input.
+      PLAY_TRACK: ${{ github.event_name == 'push' && 'internal' || inputs.track || 'none' }}
+      PLAY_STATUS: ${{ inputs.status || 'completed' }}
+      # Play never forgets a version code; raise this repo variable if codes were spent elsewhere (publish.mjs --check says so).
+      VERSION_CODE_OFFSET: ${{ vars.VERSION_CODE_OFFSET || '0' }}
+      VITE_SITE_URL: ${{ vars.SITE_URL || 'https://autoflow-651.pages.dev' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with: { node-version: 22 }
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with: { distribution: temurin, java-version: 21 }
+      - name: Enable pnpm (packageManager in package.json)
+        run: corepack enable && pnpm --version
+      - name: Resolve app version
+        id: ver
+        run: |
+          set -euo pipefail
+          VERSION_NAME=$(node -p "require('./apps/android/package.json').version")
+          PACKAGE_NAME=$(node -p "require('./apps/android/capacitor.config.json').appId")
+          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME#v}" != "$VERSION_NAME" ]; then
+            echo "::warning::Tag ${GITHUB_REF_NAME} does not match apps/android/package.json version ${VERSION_NAME}"
+          fi
+          VERSION_CODE=$(( ${{ github.run_number }} + VERSION_CODE_OFFSET ))
+          echo "name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "package=$PACKAGE_NAME" >> "$GITHUB_OUTPUT"
+          echo "versionName=$VERSION_NAME versionCode=$VERSION_CODE track=$PLAY_TRACK status=$PLAY_STATUS"
+      # Fails in seconds instead of after a 10-minute build: credentials, the app existing on Play, the service account's
+      # access, all 12 listings accepted, graphics sizes, and the version code still unused (scripts/play/publish.mjs).
+      - name: Play pre-flight check
+        if: env.HAS_PLAY == 'true' && env.PLAY_TRACK != 'none'
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          node scripts/tools/check-listing.mjs
+          node scripts/play/publish.mjs --package ${{ steps.ver.outputs.package }} --check --version-code ${{ steps.ver.outputs.code }}
+      - name: Install dependencies
+        # The lockfile is shared by every workspace package; fall back to a fresh resolve if a branch changed packages.
+        run: pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
+      - name: Build core + web app
+        run: |
+          set -euo pipefail
+          pnpm --filter @autoflow/core build
+          pnpm --filter @autoflow/web build
+          test -f apps/web/dist/index.html || { echo "::error::apps/web/dist/index.html missing — the web build is the Android app"; exit 1; }
+          du -sh apps/web/dist
+      - name: Capacitor sync
+        working-directory: apps/android
+        run: pnpm exec cap sync android
+      - name: Target SDK, version
+        working-directory: apps/android/android
+        env:
+          # Google Play: new apps and updates must target the latest major Android API within a year (API 36 from
+          # 2026-08-31). Override with the repo variable ANDROID_TARGET_SDK when the requirement moves.
+          TARGET_SDK: ${{ vars.ANDROID_TARGET_SDK || '36' }}
+        run: |
+          set -euo pipefail
+          sed -i -E "s/compileSdkVersion = [0-9]+/compileSdkVersion = ${TARGET_SDK}/; s/targetSdkVersion = [0-9]+/targetSdkVersion = ${TARGET_SDK}/" variables.gradle
+          grep -q suppressUnsupportedCompileSdk gradle.properties || echo "android.suppressUnsupportedCompileSdk=${TARGET_SDK}" >> gradle.properties
+          sed -i -E "s/versionCode [0-9]+/versionCode ${{ steps.ver.outputs.code }}/" app/build.gradle
+          sed -i -E "s/versionName \"[^\"]*\"/versionName \"${{ steps.ver.outputs.name }}\"/" app/build.gradle
+          grep -E 'compileSdkVersion|targetSdkVersion|minSdkVersion' variables.gradle
+          grep -E 'versionCode|versionName' app/build.gradle
+      - name: Unit tests, lint and debug APK
+        working-directory: apps/android/android
+        # testDebugUnitTest also runs the engine's JVM tests against packages/core/fixtures
+        run: ./gradlew testDebugUnitTest lintDebug assembleDebug --no-daemon
+      - name: Upload test and lint reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: android-reports-${{ github.run_number }}
+          path: |
+            apps/android/android/engine/build/reports/tests
+            apps/android/android/app/build/reports
+          if-no-files-found: ignore
+      # Proof, not intent: what ships is the merged manifest.
+      - name: Check the merged manifest (no ads, least privilege)
+        run: |
+          set -euo pipefail
+          merged=$(find apps/android/android/app/build/intermediates -name AndroidManifest.xml -path '*merged_manifest*' | head -1)
+          [ -n "$merged" ] || { echo "::error::no merged manifest found"; exit 1; }
+          count() { grep -c "$1" "$merged" || true; }
+          echo "AD_ID=$(count gms.permission.AD_ID) MobileAds=$(count MobileAdsInitProvider) QUERY_ALL_PACKAGES=$(count QUERY_ALL_PACKAGES) LOCATION=$(count _LOCATION) specialUse=$(count specialUse)"
+          [ "$(count com.google.android.gms.permission.AD_ID)" = 0 ] || { echo "::error::the advertising ID permission is in the merged manifest"; exit 1; }
+          [ "$(count 'com.google.android.gms.ads')" = 0 ] || { echo "::error::an ad SDK is in the merged manifest"; exit 1; }
+          [ "$(count QUERY_ALL_PACKAGES)" = 0 ] || { echo "::error::QUERY_ALL_PACKAGES needs a Play declaration; use <queries> instead"; exit 1; }
+          [ "$(count 'android.permission.ACCESS_.*LOCATION')" = 0 ] || { echo "::error::location permissions are not declared in Play"; exit 1; }
+          [ "$(count 'foregroundServiceType="specialUse"')" = 1 ] || { echo "::error::RunService must be the only (specialUse) foreground service"; exit 1; }
+          grep -q 'android.permission.BIND_ACCESSIBILITY_SERVICE' "$merged" || { echo "::error::accessibility service missing"; exit 1; }
+          grep -nE 'uses-permission|android:exported="true"' "$merged"
+      - name: Signed release (AAB + APK)
+        if: env.HAS_KEYSTORE == 'true'
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        working-directory: apps/android/android
+        run: |
+          # Secrets set from Windows PowerShell 5.1 by piping (`$v | gh secret set`) carry a trailing CRLF (and the
+          # base64 may carry a BOM), so normalise before use: base64 loses all whitespace/BOM, the others lose CR/LF.
+          KS_PASS=$(printf '%s' "$KS_PASS" | tr -d '\r\n')
+          KEY_ALIAS=$(printf '%s' "$KEY_ALIAS" | tr -d '\r\n')
+          KEY_PASS=$(printf '%s' "$KEY_PASS" | tr -d '\r\n')
+          printf '%s' "$KEYSTORE_B64" | sed '1s/^\xEF\xBB\xBF//' | tr -d ' \t\r\n' | base64 -d > release.jks
+          echo "keystore: $(wc -c < release.jks) bytes, sha256 $(sha256sum release.jks | cut -c1-12), alias length ${#KEY_ALIAS}, password length ${#KS_PASS}"
+          if ! out=$(keytool -list -keystore release.jks -storepass "$KS_PASS" -alias "$KEY_ALIAS" 2>&1); then
+            echo "$out" | grep -iv 'storepass' | tail -5
+            echo "::error::keystore secrets do not open: re-set them with scripts/windows/set-android-secrets.ps1 (checks the password locally first)"
+            rm -f release.jks; exit 1
+          fi
+          ./gradlew bundleRelease assembleRelease --no-daemon \
+            -Pandroid.injected.signing.store.file=$PWD/release.jks \
+            -Pandroid.injected.signing.store.password="$KS_PASS" \
+            -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$KEY_PASS"
+          rm -f release.jks
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          # built with format() from the tag only — see the apk_tag comment above
+          name: ${{ format('autoflow-android-{0}-{1}', steps.ver.outputs.name, github.run_number) }}
+          path: |
+            apps/android/android/app/build/outputs/apk/**/*.apk
+            apps/android/android/app/build/outputs/bundle/**/*.aab
+      # Store screenshots (phone 1080×1920, 7" tablet 1200×1920, 10" tablet 1600×2560) + feature graphics for all 12
+      # languages from scripts/store/templates (~230 PNGs, too big to commit — only en-US/ko-KR phone shots are in git).
+      - name: Render store screenshots
+        if: env.HAS_PLAY == 'true' && env.HAS_KEYSTORE == 'true' && env.PLAY_TRACK != 'none'
+        # never blocks a release: without it Play keeps the committed en-US/ko-KR shots as the fallback for every language
+        continue-on-error: true
+        run: |
+          npm i -g playwright@1.56.1 >/dev/null
+          npx playwright install --with-deps chromium
+          sudo apt-get install -y --no-install-recommends fonts-noto-core fonts-noto-cjk fonts-noto-color-emoji fonts-inter >/dev/null || true
+          node scripts/store/screens.mjs --jobs=4
+          find store/screens -name '*.png' | sort | head -40
+      - name: Upload to Google Play
+        if: env.HAS_PLAY == 'true' && env.HAS_KEYSTORE == 'true' && env.PLAY_TRACK != 'none'
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          RELEASE_NAME: ${{ steps.ver.outputs.name }} (${{ steps.ver.outputs.code }})
+        # bundle + 12 listings + release notes + icon/feature/screenshots in one edit; a never-published app gets a draft
+        run: >-
+          node scripts/play/publish.mjs --package ${{ steps.ver.outputs.package }}
+          --aab apps/android/android/app/build/outputs/bundle/release/app-release.aab
+          --track "$PLAY_TRACK" --status "$PLAY_STATUS"
+      - name: Play upload skipped
+        if: env.PLAY_TRACK != 'none' && (env.HAS_PLAY != 'true' || env.HAS_KEYSTORE != 'true')
+        run: echo "::notice::Play upload skipped (track=$PLAY_TRACK) - needs ANDROID_KEYSTORE_BASE64 (+ password/alias secrets) and PLAY_SERVICE_ACCOUNT_JSON. See docs/PLAY_RELEASE.md."
+
+  # Installs the debug APK on an emulator and proves it starts. Informational: a red smoke job never blocks a release,
+  # but read it before pressing "release" in Play Console.
+  smoke:
+    needs: android
+    if: github.event_name == 'push' || inputs.smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ format('autoflow-android-{0}', needs.android.outputs.apk_tag) }}
+          path: apk
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - name: Launch on API 35 emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          # the runner executes each line in its own shell: keep every command self-contained
+          script: |
+            adb install -r "$(find apk -name '*debug*.apk' | head -1)"
+            adb shell am start -W -n com.projectteamforyou.autoflow/.MainActivity
+            sleep 8
+            adb shell pidof com.projectteamforyou.autoflow || { adb logcat -d | tail -200; exit 1; }
+            adb exec-out screencap -p > smoke.png
+            adb logcat -d > logcat.txt
+            ! grep -E 'FATAL EXCEPTION.*|AndroidRuntime: Process: com.projectteamforyou' logcat.txt
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: android-smoke-${{ github.run_number }}
+          path: |
+            smoke.png
+            logcat.txt
+          if-no-files-found: ignore

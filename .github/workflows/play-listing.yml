@@ -1,0 +1,39 @@
+name: Play store listing (no build)
+# Store-page (ASO) update between releases: the 12 listings + optional promo video links from store/listing/*.json and,
+# with images on, freshly rendered phone/7"/10" screenshots + feature graphics (scripts/store/screens.mjs).
+# No bundle, no track change — Play reviews the listing change on its own. Needs only PLAY_SERVICE_ACCOUNT_JSON.
+on:
+  workflow_dispatch:
+    inputs:
+      images:
+        description: 'Render and upload screenshots + feature graphics too (off = text and video links only, ~1 min)'
+        type: choice
+        options: ['on', 'off']
+        default: 'on'
+permissions:
+  contents: read
+jobs:
+  listing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with: { node-version: 22 }
+      - name: Check listing text
+        run: node scripts/tools/check-listing.mjs
+      - name: Render store screenshots
+        if: inputs.images == 'on'
+        run: |
+          npm i -g playwright@1.56.1 >/dev/null
+          npx playwright install --with-deps chromium
+          sudo apt-get install -y --no-install-recommends fonts-noto-core fonts-noto-cjk fonts-noto-color-emoji fonts-inter >/dev/null || true
+          node scripts/store/screens.mjs --jobs=4
+          find store/screens -name '*.png' | sort | head -40
+      - name: Upload listing to Google Play
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          IMAGES: ${{ inputs.images }}
+        run: |
+          PKG=$(node -p "require('./apps/android/capacitor.config.json').appId")
+          node scripts/play/publish.mjs --package "$PKG" --listing-only $([ "$IMAGES" = off ] && echo --no-images)

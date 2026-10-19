@@ -1,0 +1,215 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<!--
+  Store screenshot compositor (scripts/store/screens.mjs). Self-contained: brand tokens are inlined from
+  packages/brand/tokens.css and the scene data (captions + in-app strings for one locale) is injected as window.__DATA.
+  The "app" inside the device frame is a faithful mock of AutoFlow's screens drawn with the same tokens.
+-->
+<style>
+/*__TOKENS__*/
+* { box-sizing: border-box; }
+html, body { margin: 0; overflow: hidden; }
+body {
+  font-family: var(--font-stack), var(--af-font);
+  color: var(--af-text);
+  background: var(--af-bg);
+  position: relative;
+}
+.bg { position: absolute; inset: 0; background:
+  radial-gradient(60% 40% at 20% 10%, rgba(124, 92, 255, .45), transparent 70%),
+  radial-gradient(55% 35% at 90% 30%, rgba(34, 195, 166, .30), transparent 70%),
+  linear-gradient(180deg, #0B0B1A 0%, #101032 100%); }
+.flowline { position: absolute; left: -5%; right: -5%; opacity: .35; }
+.cap { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.cap h1 { margin: 0; font-weight: 800; letter-spacing: -0.02em; line-height: 1.08; text-wrap: balance; word-break: keep-all; overflow-wrap: anywhere;
+  background: linear-gradient(100deg, #FFFFFF 0%, #E9E4FF 45%, #B9F3E6 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.cap p { margin: .45em 0 0; font-weight: 500; color: #C9C9E4; line-height: 1.25; text-wrap: balance; word-break: keep-all; }
+:lang(ja) .cap h1, :lang(zh) .cap h1 { line-break: strict; word-break: normal; }
+.device { position: absolute; background: #05050F; box-shadow: 0 40px 90px rgba(0,0,0,.55), inset 0 0 0 3px rgba(255,255,255,.10); }
+.screen { position: relative; overflow: hidden; background: var(--af-bg); }
+.app { position: absolute; left: 0; top: 0; transform-origin: 0 0; background: var(--af-bg); color: var(--af-text); }
+.badge { position: absolute; z-index: 3; transform: rotate(5deg); padding: .35em 1em; border-radius: 999px; font-weight: 800;
+  background: var(--af-gradient); color: #fff; border: 4px solid #fff; box-shadow: 0 14px 30px rgba(0,0,0,.4); white-space: nowrap; }
+
+/* ---------- in-app UI (CSS px at app width) ---------- */
+.status { height: 34px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; font-size: 13px; color: var(--af-muted); font-weight: 600; }
+.top { display: flex; align-items: center; gap: 10px; padding: 6px 18px 12px; }
+.top img { width: 30px; height: 30px; border-radius: 8px; }
+.top b { font-size: 19px; }
+.top .grow { flex: 1; }
+.seg { display: inline-flex; background: var(--af-surface-2); border-radius: 999px; padding: 3px; font-size: 13px; font-weight: 700; }
+.seg span { padding: 6px 12px; border-radius: 999px; color: var(--af-muted); }
+.seg span.on { background: var(--af-primary); color: #fff; }
+.pad { padding: 0 16px; }
+.h2 { font-size: 20px; font-weight: 800; margin: 8px 2px 12px; }
+.card { background: var(--af-surface); border: 1px solid var(--af-border); border-radius: 18px; padding: 14px; margin-bottom: 12px; }
+.row { display: flex; align-items: center; gap: 12px; }
+.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.opt { border: 1px solid var(--af-border-strong); border-radius: 14px; padding: 12px 6px; text-align: center; font-size: 13px; font-weight: 700; color: var(--af-muted); }
+.opt.on { border-color: var(--af-primary); background: rgba(124,92,255,.16); color: #fff; }
+.opt i { display: block; font-style: normal; font-size: 22px; margin-bottom: 4px; }
+.label { font-size: 12px; font-weight: 700; color: var(--af-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+.pill { display: inline-block; padding: 7px 12px; border-radius: 999px; background: var(--af-surface-2); font-size: 13px; font-weight: 700; color: var(--af-muted); margin: 0 6px 6px 0; }
+.pill.on { background: rgba(34,195,166,.18); color: var(--af-accent); }
+.btn { display: block; text-align: center; padding: 15px; border-radius: 16px; font-size: 17px; font-weight: 800; background: var(--af-gradient); color: #fff; box-shadow: 0 10px 24px rgba(124,92,255,.35); }
+.btn.danger { background: var(--af-danger); box-shadow: 0 10px 24px rgba(239,68,68,.35); }
+.btn.ghost { background: var(--af-surface-2); box-shadow: none; color: var(--af-text); }
+.mini { position: relative; height: 210px; border-radius: 14px; overflow: hidden; background: linear-gradient(160deg, #1B1B36, #101024); border: 1px solid var(--af-border); }
+.mini .bar { position: absolute; left: 12px; right: 12px; height: 12px; border-radius: 6px; background: rgba(255,255,255,.07); }
+.target { position: absolute; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; border: 3px solid var(--af-accent); box-shadow: 0 0 0 10px rgba(34,195,166,.18), 0 0 30px rgba(34,195,166,.6); }
+.target::after { content: ""; position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px; border-radius: 50%; background: var(--af-accent); }
+.target b { position: absolute; left: 50%; top: -30px; transform: translateX(-50%); font-size: 12px; background: var(--af-accent); color: #04221C; border-radius: 8px; padding: 2px 7px; }
+.step { display: flex; align-items: center; gap: 12px; background: var(--af-surface); border: 1px solid var(--af-border); border-radius: 14px; padding: 11px 12px; margin-bottom: 8px; font-size: 15px; font-weight: 600; }
+.step .ic { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; font-size: 16px; flex: none; }
+.step small { display: block; color: var(--af-muted); font-weight: 500; font-size: 12.5px; margin-top: 2px; }
+.step.live { border-color: var(--af-primary); box-shadow: 0 0 0 3px rgba(124,92,255,.25); }
+.nest { margin-left: 22px; padding-left: 12px; border-left: 2px dashed rgba(124,92,255,.45); }
+.c1 { background: rgba(124,92,255,.2); } .c2 { background: rgba(34,195,166,.2); } .c3 { background: rgba(245,158,11,.2); } .c4 { background: rgba(79,139,255,.22); } .c5 { background: rgba(239,68,68,.2); }
+.pulse { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 15px; color: var(--af-accent); }
+.dot { width: 12px; height: 12px; border-radius: 50%; background: var(--af-accent); box-shadow: 0 0 0 6px rgba(34,195,166,.2); }
+.progress { height: 10px; border-radius: 6px; background: var(--af-surface-2); overflow: hidden; margin: 12px 0 6px; }
+.progress div { height: 100%; width: 62%; background: var(--af-gradient); }
+.halt { position: absolute; width: 64px; height: 64px; border-radius: 50%; background: var(--af-danger); border: 4px solid #fff; display: grid; place-items: center; color: #fff; font-size: 24px; box-shadow: 0 12px 30px rgba(239,68,68,.55); }
+.tpl { display: flex; gap: 12px; align-items: center; }
+.tpl .art { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; font-size: 24px; flex: none; }
+.tpl div.t { flex: 1; font-weight: 700; font-size: 15px; }
+.tpl small { display: block; color: var(--af-muted); font-weight: 500; font-size: 12.5px; margin-top: 3px; }
+.tpl .use { font-size: 13px; font-weight: 800; color: var(--af-primary); background: rgba(124,92,255,.15); padding: 7px 12px; border-radius: 999px; }
+.search { background: var(--af-surface-2); border-radius: 14px; padding: 12px 14px; color: var(--af-subtle); font-size: 14px; margin-bottom: 12px; }
+.score { display: flex; align-items: center; gap: 16px; }
+.ring { width: 92px; height: 92px; border-radius: 50%; display: grid; place-items: center; font-size: 30px; font-weight: 800;
+  background: conic-gradient(var(--af-accent) 0 12%, var(--af-surface-2) 12% 100%); position: relative; }
+.ring::before { content: ""; position: absolute; inset: 9px; border-radius: 50%; background: var(--af-surface); }
+.ring span { position: relative; }
+.check { display: flex; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--af-border); font-size: 15px; font-weight: 600; }
+.check:last-child { border-bottom: 0; }
+.check i { font-style: normal; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: rgba(34,197,94,.18); color: var(--af-success); font-size: 14px; flex: none; }
+.shield { width: 120px; height: 120px; margin: 10px auto 18px; border-radius: 36px; display: grid; place-items: center; background: var(--af-gradient); box-shadow: 0 18px 40px rgba(124,92,255,.45); font-size: 54px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<svg class="flowline" id="flow" viewBox="0 0 1000 200" preserveAspectRatio="none"><path d="M0 150 C 200 150, 260 40, 500 60 S 800 170, 1000 80" fill="none" stroke="url(#fg)" stroke-width="6"/><defs><linearGradient id="fg"><stop offset="0" stop-color="#7C5CFF"/><stop offset="1" stop-color="#22C3A6"/></linearGradient></defs></svg>
+<div class="cap" id="cap"><h1 id="t"></h1><p id="s"></p></div>
+<div class="device" id="device"><div class="screen" id="screen"><div class="app" id="app"></div></div></div>
+<div class="badge" id="badge" hidden></div>
+<script>
+(() => {
+const D = window.__DATA;
+const U = D.ui;
+const F = D.form;                       // { W, H, fw }  canvas px and app CSS width
+const k = Math.min(F.W / 1080, F.H / 1920);
+const wide = F.fw >= 600;
+document.documentElement.lang = D.lang;
+document.documentElement.dataset.theme = 'dark'; // brand-first dark UI regardless of the renderer's colour scheme
+document.body.style.width = F.W + 'px';
+document.body.style.height = F.H + 'px';
+document.body.style.setProperty('--font-stack', D.fontStack);
+
+// geometry: caption band on top, device below
+const top = Math.round(F.H * 0.205);
+const side = Math.round(F.W * (wide ? 0.07 : 0.1));
+const bez = Math.round(16 * k);
+const devW = F.W - 2 * side;
+const devH = F.H - top - Math.round(70 * k);
+const scale = (devW - 2 * bez) / F.fw;
+const appH = (devH - 2 * bez) / scale;
+const dev = document.getElementById('device');
+Object.assign(dev.style, { left: side + 'px', top: top + 'px', width: devW + 'px', height: devH + 'px', padding: bez + 'px', borderRadius: Math.round(70 * k) + 'px' });
+const scr = document.getElementById('screen');
+Object.assign(scr.style, { width: (devW - 2 * bez) + 'px', height: (devH - 2 * bez) + 'px', borderRadius: Math.round(56 * k) + 'px' });
+const app = document.getElementById('app');
+Object.assign(app.style, { width: F.fw + 'px', height: appH + 'px', transform: `scale(${scale})` });
+const flow = document.getElementById('flow');
+Object.assign(flow.style, { top: Math.round(top * 0.55) + 'px', height: Math.round(top * 0.5) + 'px' });
+
+const cap = document.getElementById('cap');
+Object.assign(cap.style, { left: Math.round(56 * k) + 'px', right: Math.round(56 * k) + 'px', top: Math.round(40 * k) + 'px', height: (top - Math.round(70 * k)) + 'px' });
+
+const head = (mode) => `
+  <div class="status"><span>9:41</span><span>▲ ● ▮</span></div>
+  <div class="top"><img src="${D.mark}" alt=""><b>AutoFlow</b><div class="grow"></div>
+    <div class="seg"><span class="${mode === 'easy' ? 'on' : ''}">${U.easy}</span><span class="${mode === 'pro' ? 'on' : ''}">${U.pro}</span></div></div>`;
+const step = (ic, cls, title, sub, live) => `<div class="step ${live ? 'live' : ''}"><div class="ic ${cls}">${ic}</div><div>${title}${sub ? `<small>${sub}</small>` : ''}</div></div>`;
+const tpl = (ic, cls, title, sub) => `<div class="card tpl"><div class="art ${cls}">${ic}</div><div class="t">${title}<small>${sub}</small></div><span class="use">${U.use}</span></div>`;
+
+const SCENES = {
+  easy: () => `${head('easy')}<div class="pad">
+    <div class="h2">${U.whatRepeat}</div>
+    <div class="grid4" style="margin-bottom:12px"><div class="opt on"><i>👆</i>${U.tap}</div><div class="opt"><i>✳️</i>${U.multi}</div><div class="opt"><i>⌨️</i>${U.key}</div><div class="opt"><i>✍️</i>${U.text}</div></div>
+    <div class="card"><div class="label">${U.position}</div>
+      <div class="mini" style="height:${Math.max(110, Math.round(appH - (wide ? 470 : 580)))}px"><div class="bar" style="top:18px;right:40%"></div><div class="bar" style="top:42px"></div><div class="bar" style="top:66px;right:25%"></div>
+        <div class="target" style="left:58%;top:62%"><b>0.58, 0.62</b></div></div></div>
+    <div class="${wide ? 'two' : ''}">
+      <div class="card"><div class="label">${U.interval}</div><span class="pill">${U.fast} · 50ms</span><span class="pill on">${U.normal} · 250ms</span><span class="pill">${U.slow} · 1s</span></div>
+      <div class="card"><div class="label">${U.repeat}</div><span class="pill on">${U.times}</span><span class="pill">∞</span></div>
+    </div>
+    <div class="btn">▶ ${U.start}</div></div>`,
+  flow: () => `${head('pro')}<div class="pad">
+    <div class="h2">${U.nightRoutine}</div>
+    ${step('🔁', 'c1', U.loop, '', false)}
+    <div class="nest">
+      ${step('👆', 'c2', U.tap, '0.50, 0.82', false)}
+      ${step('⏱️', 'c3', U.wait, '1.5 s', false)}
+      ${step('🔀', 'c4', U.if + ' <code style="color:#B9A8FF">hour() >= 22</code>', '', true)}
+      <div class="nest">${step('🔔', 'c5', U.notify, '“Wind down”', false)}${step('📱', 'c2', U.openApp, 'Clock', false)}</div>
+      ${step('↕️', 'c2', U.swipe, '0.50, 0.75 → 0.50, 0.30', false)}
+      ${step('✍️', 'c1', U.type, '{{name}}', false)}
+    </div></div>`,
+  run: () => `${head('pro')}<div class="pad">
+    <div class="card"><div class="pulse"><div class="dot"></div>${U.running} · ${U.autoClicker}</div>
+      <div class="progress"><div></div></div>
+      <div style="color:var(--af-muted);font-size:13px;font-weight:600">${U.step} 62 ${U.of} 100 · ${U.countdown}</div></div>
+    <div class="mini" style="height:${Math.max(200, Math.round(appH - 300))}px"><div class="bar" style="top:18px;right:40%"></div><div class="bar" style="top:42px"></div><div class="bar" style="top:66px;right:25%"></div><div class="bar" style="top:90px;right:55%"></div>
+      <div class="target" style="left:50%;top:55%"></div>
+      <div class="halt" style="right:14px;top:40%">■</div></div>
+    <div class="two" style="margin-top:14px"><div class="btn ghost">⏸ ${U.pause}</div><div class="btn danger">■ ${U.stop}</div></div></div>`,
+  atlas: () => `${head('easy')}<div class="pad">
+    <div class="h2">${U.templates}</div><div class="search">🔍 ${U.search}</div>
+    <div class="${wide ? 'two' : ''}">
+    ${tpl('👆', 'c1', U.autoClicker, U.tap + ' · ' + U.times)}
+    ${tpl('↕️', 'c2', U.swipeFeed, U.swipe + ' · 6 s')}
+    ${tpl('🌙', 'c4', U.nightRoutine, U.notify + ' · ' + U.openApp)}
+    ${tpl('☕', 'c3', U.breakReminder, U.notify + ' · 20 min')}
+    ${tpl('📝', 'c1', U.formFiller, U.type + ' · Tab · Enter')}
+    ${tpl('🌐', 'c5', U.statusCheck, 'HTTP · 10 min')}
+    </div></div>`,
+  safety: () => `${head('pro')}<div class="pad">
+    <div class="card score"><div class="ring"><span>12</span></div><div><div style="font-size:20px;font-weight:800">${U.safetyScore}</div><div style="color:var(--af-accent);font-weight:800;margin-top:4px">● ${U.low}</div></div></div>
+    <div class="card"><div class="label">${U.permissions}</div>
+      <div class="check"><i>✓</i>${U.permInput}</div><div class="check"><i>✓</i>${U.permNotify}</div><div class="check"><i>✓</i>${U.permApps}</div></div>
+    <div class="card"><div class="label">${U.limits}</div><span class="pill on">⏱ 10 min</span><span class="pill on">👆 100 000</span><span class="pill on">■ Halt</span></div>
+    <div class="btn">▶ ${U.approve}</div></div>`,
+  privacy: () => `${head('easy')}<div class="pad">
+    <div class="shield">🛡️</div>
+    <div class="card">
+      <div class="check"><i>✓</i>${U.local}</div><div class="check"><i>✓</i>${U.noAds}</div>
+      <div class="check"><i>✓</i>${U.e2e}</div><div class="check"><i>✓</i>${U.noSale}</div><div class="check"><i>✓</i>${U.noRoot}</div></div></div>`,
+};
+
+app.innerHTML = SCENES[D.scene]();
+
+// caption: biggest size that fits two lines in the band
+const h = document.getElementById('t'), p = document.getElementById('s');
+h.textContent = D.caption.title;
+p.textContent = D.caption.sub || '';
+let ps = 50 * k; p.style.fontSize = ps + 'px';
+while (ps > 32 * k && p.scrollHeight > ps * 1.3 * 2 + 2) { ps -= 2 * k; p.style.fontSize = ps + 'px'; }
+let fs = 112 * k; h.style.fontSize = fs + 'px';
+const over = () => h.offsetHeight + p.offsetHeight + 20 * k > cap.clientHeight || h.offsetHeight > fs * 1.08 * 2 + 4 || h.scrollWidth > h.clientWidth;
+while (fs > 52 * k && over()) { fs -= 4 * k; h.style.fontSize = fs + 'px'; }
+
+if (D.caption.badge) {
+  const b = document.getElementById('badge');
+  b.hidden = false;
+  b.textContent = D.caption.badge;
+  Object.assign(b.style, { fontSize: Math.round(40 * k) + 'px', right: Math.round(side - 20 * k) + 'px', top: Math.round(top - 34 * k) + 'px' });
+}
+window.__ready = true;
+})();
+</script>
+</body>
+</html>

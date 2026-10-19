@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">AutoFlow</string>
+    <string name="title_activity_main" translatable="false">AutoFlow</string>
+    <string name="package_name" translatable="false">com.projectteamforyou.autoflow</string>
+    <string name="custom_url_scheme" translatable="false">com.projectteamforyou.autoflow</string>
+    <string name="accessibility_service_label">AutoFlow automations</string>
+    <string name="accessibility_service_summary">Performs the taps, swipes and typing in flows you create and start.</string>
+    <string name="accessibility_service_description">AutoFlow uses this accessibility service only to perform the taps, swipes, long presses, scrolls, typing and system actions (such as Back or Home) that you put into your own flows, and to show a floating Stop button while a flow runs. It looks at the screen only to find the text field you type into or an element your flow targets. It does not collect, store or share what is on your screen, it never acts on lock, permission or Settings screens, and it acts only when you start a flow or a trigger you set up fires. You can stop any run at any time.</string>
+    <string name="notification_listener_label">AutoFlow notification triggers</string>
+    <string name="channel_runs">Running flows</string>
+    <string name="channel_runs_desc">Shows a flow while it runs, with Stop and Pause.</string>
+    <string name="channel_flow">Flow messages</string>
+    <string name="channel_flow_desc">Notifications sent by your flows\' notify steps.</string>
+    <string name="channel_confirm">Questions</string>
+    <string name="channel_confirm_desc">Yes/No questions asked by your flows\' confirm steps.</string>
+    <string name="run_notification_one" formatted="true">Running: %1$s</string>
+    <string name="run_notification_many" formatted="true">%1$d flows running</string>
+    <string name="run_state_countdown" formatted="true">Starting in %1$d s…</string>
+    <string name="run_state_paused">Paused</string>
+    <string name="run_state_running">Running — tap Stop to end</string>
+    <string name="action_stop">Stop</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_resume">Resume</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="confirm_title">AutoFlow asks</string>
+    <string name="confirm_yes">Yes</string>
+    <string name="confirm_no">No</string>
+    <string name="halt_button">Stop all flows (Halt)</string>
+    <string name="pick_point_hint">Tap the point to use</string>
+    <string name="recording_banner">● Recording — tap here to finish</string>
+</resources>

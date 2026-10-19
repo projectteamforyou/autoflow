@@ -1,0 +1,9 @@
+# Rendered store images (scripts/store/screens.mjs, ~230 PNGs): CI renders them right before upload.
+# Only the en-US / ko-KR phone shots and feature graphics are committed, as Play's fallback for every language.
+screens/*
+!screens/en-US/
+!screens/ko-KR/
+screens/en-US/tablet7/
+screens/en-US/tablet10/
+screens/ko-KR/tablet7/
+screens/ko-KR/tablet10/

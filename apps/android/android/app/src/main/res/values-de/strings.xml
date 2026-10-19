@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_service_label">AutoFlow-Automationen</string>
+    <string name="accessibility_service_summary">Führt das Tippen, Wischen und Schreiben in Abläufen aus, die du erstellst und startest.</string>
+    <string name="accessibility_service_description">AutoFlow nutzt diesen Bedienungshilfendienst ausschließlich, um die Tipp- und Wischgesten, langen Drücke, das Scrollen, Texteingaben und Systemaktionen (z. B. Zurück oder Startbildschirm) auszuführen, die du in deine eigenen Abläufe einbaust, und um während eines Ablaufs eine schwebende Stopp-Taste anzuzeigen. Den Bildschirm betrachtet AutoFlow nur, um das Textfeld zu finden, in das geschrieben wird, oder ein Element, auf das dein Ablauf zielt. Bildschirminhalte werden weder erfasst noch gespeichert oder weitergegeben. AutoFlow handelt nie auf Sperr-, Berechtigungs- oder Einstellungsbildschirmen und nur dann, wenn du einen Ablauf startest oder ein von dir eingerichteter Auslöser greift. Du kannst jeden Ablauf jederzeit stoppen.</string>
+    <string name="notification_listener_label">AutoFlow-Benachrichtigungsauslöser</string>
+    <string name="channel_runs">Laufende Abläufe</string>
+    <string name="channel_runs_desc">Zeigt einen laufenden Ablauf mit Stopp und Pause.</string>
+    <string name="channel_flow">Ablauf-Nachrichten</string>
+    <string name="channel_flow_desc">Benachrichtigungen aus den Benachrichtigungsschritten deiner Abläufe.</string>
+    <string name="channel_confirm">Rückfragen</string>
+    <string name="channel_confirm_desc">Ja/Nein-Fragen aus den Bestätigungsschritten deiner Abläufe.</string>
+    <string name="run_notification_one" formatted="true">Läuft: %1$s</string>
+    <string name="run_notification_many" formatted="true">%1$d Abläufe laufen</string>
+    <string name="run_state_countdown" formatted="true">Start in %1$d s …</string>
+    <string name="run_state_paused">Pausiert</string>
+    <string name="run_state_running">Läuft – zum Beenden auf Stopp tippen</string>
+    <string name="action_stop">Stopp</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_resume">Fortsetzen</string>
+    <string name="action_cancel">Abbrechen</string>
+    <string name="confirm_title">AutoFlow fragt</string>
+    <string name="confirm_yes">Ja</string>
+    <string name="confirm_no">Nein</string>
+    <string name="halt_button">Alle Abläufe stoppen (Halt)</string>
+    <string name="pick_point_hint">Tippe auf die gewünschte Stelle</string>
+    <string name="recording_banner">● Aufnahme läuft – zum Beenden hier tippen</string>
+</resources>

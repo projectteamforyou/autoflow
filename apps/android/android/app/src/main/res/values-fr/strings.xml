@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_service_label">Automatisations AutoFlow</string>
+    <string name="accessibility_service_summary">Effectue les appuis, balayages et saisies des flux que vous créez et lancez.</string>
+    <string name="accessibility_service_description">AutoFlow utilise ce service d\'accessibilité uniquement pour effectuer les appuis, balayages, appuis longs, défilements, saisies de texte et actions système (comme Retour ou Accueil) que vous placez dans vos propres flux, et pour afficher un bouton Arrêter flottant pendant l\'exécution d\'un flux. Il ne regarde l\'écran que pour trouver le champ de texte dans lequel vous écrivez ou l\'élément visé par votre flux. Il ne collecte, ne conserve ni ne partage le contenu de votre écran, n\'agit jamais sur l\'écran de verrouillage, les demandes d\'autorisation ou les Paramètres, et n\'agit que lorsque vous lancez un flux ou qu\'un déclencheur que vous avez configuré se déclenche. Vous pouvez arrêter une exécution à tout moment.</string>
+    <string name="notification_listener_label">Déclencheurs de notifications AutoFlow</string>
+    <string name="channel_runs">Flux en cours</string>
+    <string name="channel_runs_desc">Affiche le flux en cours avec Arrêter et Pause.</string>
+    <string name="channel_flow">Messages des flux</string>
+    <string name="channel_flow_desc">Notifications envoyées par les étapes « notifier » de vos flux.</string>
+    <string name="channel_confirm">Questions</string>
+    <string name="channel_confirm_desc">Questions oui/non posées par les étapes « confirmer » de vos flux.</string>
+    <string name="run_notification_one" formatted="true">En cours : %1$s</string>
+    <string name="run_notification_many" formatted="true">%1$d flux en cours</string>
+    <string name="run_state_countdown" formatted="true">Démarrage dans %1$d s…</string>
+    <string name="run_state_paused">En pause</string>
+    <string name="run_state_running">En cours — appuyez sur Arrêter pour terminer</string>
+    <string name="action_stop">Arrêter</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_resume">Reprendre</string>
+    <string name="action_cancel">Annuler</string>
+    <string name="confirm_title">AutoFlow demande</string>
+    <string name="confirm_yes">Oui</string>
+    <string name="confirm_no">Non</string>
+    <string name="halt_button">Arrêter tous les flux (Halt)</string>
+    <string name="pick_point_hint">Appuyez sur le point à utiliser</string>
+    <string name="recording_banner">● Enregistrement — appuyez ici pour terminer</string>
+</resources>

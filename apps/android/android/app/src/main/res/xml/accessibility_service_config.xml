@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  AutoFlow accessibility service. Event types are the minimum the features need:
+  - typeWindowStateChanged: which app is in front (protected-screen guard, app-event triggers, Keyforge profile rules);
+  - typeViewTextChanged: only used while the user is recording, to turn typed text into a type step (never passwords).
+  Key events are filtered only while hotkeys or key mappings exist (requested at runtime).
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:description="@string/accessibility_service_description"
+    android:summary="@string/accessibility_service_summary"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeViewTextChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagDefault|flagReportViewIds"
+    android:canPerformGestures="true"
+    android:canRetrieveWindowContent="true"
+    android:canRequestFilterKeyEvents="true"
+    android:isAccessibilityTool="false"
+    android:notificationTimeout="100"
+    tools:ignore="UnusedAttribute" />

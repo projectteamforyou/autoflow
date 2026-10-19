@@ -1,0 +1,230 @@
+{
+  "en": {
+    "easy": { "title": "Auto clicker in seconds", "sub": "Pick a spot, set the speed, press Start", "badge": "No root" },
+    "flow": { "title": "Build real macros", "sub": "Taps, swipes, text, waits, if and repeat" },
+    "run": { "title": "One tap stops it all", "sub": "Floating Stop button and run limits, always" },
+    "atlas": { "title": "Start from a template", "sub": "Clickers, routines, reminders and more" },
+    "safety": { "title": "See what a flow can do", "sub": "Safety score and permissions before every run" },
+    "privacy": { "title": "Private by design", "sub": "On your device first. No ads. No data sale." },
+    "feature": { "title": "AutoFlow", "tagline": "Auto clicker, macros and routines — safely" },
+    "ui": {
+      "easy": "Easy", "pro": "Pro", "whatRepeat": "What should repeat?", "tap": "Tap", "multi": "Several spots", "key": "Key", "text": "Text",
+      "position": "Position", "interval": "Interval", "fast": "Fast", "normal": "Normal", "slow": "Slow", "repeat": "Repeat", "times": "100 times",
+      "start": "Start", "stop": "Stop", "pause": "Pause", "running": "Running", "step": "Step", "of": "of", "countdown": "Stops after 10 min · Halt anytime",
+      "wait": "Wait", "swipe": "Swipe up", "type": "Type text", "if": "If", "else": "Otherwise", "notify": "Notify", "loop": "Repeat until stopped", "openApp": "Open app",
+      "templates": "Templates", "search": "Search templates", "autoClicker": "Auto clicker", "swipeFeed": "Swipe through a feed", "nightRoutine": "Charging night routine",
+      "breakReminder": "Break reminder", "formFiller": "Form filler", "statusCheck": "Website status check", "use": "Use",
+      "safetyScore": "Safety score", "low": "Low risk", "permissions": "Needs", "permInput": "Taps and swipes", "permNotify": "Notifications", "permApps": "Open apps",
+      "limits": "Limits", "approve": "Run", "local": "Flows stay on this device", "noAds": "No ads, ever", "e2e": "Optional sync is end-to-end encrypted", "noSale": "Your data is never sold", "noRoot": "No root needed"
+    }
+  },
+  "ko": {
+    "easy": { "title": "몇 초 만에 자동 클릭", "sub": "위치를 고르고 속도를 정한 뒤 시작", "badge": "루팅 불필요" },
+    "flow": { "title": "진짜 매크로를 만드세요", "sub": "탭·스와이프·입력·대기·조건·반복" },
+    "run": { "title": "탭 한 번으로 전부 정지", "sub": "떠 있는 정지 버튼과 실행 한도가 항상 함께" },
+    "atlas": { "title": "템플릿으로 바로 시작", "sub": "자동 클릭·루틴·알림까지" },
+    "safety": { "title": "실행 전에 미리 확인", "sub": "안전 점수와 필요한 권한을 매번 보여 줘요" },
+    "privacy": { "title": "처음부터 개인정보 보호", "sub": "기기 우선 저장 · 광고 없음 · 데이터 판매 없음" },
+    "feature": { "title": "AutoFlow", "tagline": "자동 클릭·매크로·루틴을 안전하게" },
+    "ui": {
+      "easy": "쉬운 모드", "pro": "프로", "whatRepeat": "무엇을 반복할까요?", "tap": "탭", "multi": "여러 위치", "key": "키", "text": "텍스트",
+      "position": "위치", "interval": "간격", "fast": "빠르게", "normal": "보통", "slow": "느리게", "repeat": "반복", "times": "100회",
+      "start": "시작", "stop": "정지", "pause": "일시정지", "running": "실행 중", "step": "단계", "of": "/", "countdown": "10분 후 자동 정지 · 언제든 Halt",
+      "wait": "대기", "swipe": "위로 스와이프", "type": "텍스트 입력", "if": "만약", "else": "아니면", "notify": "알림", "loop": "멈출 때까지 반복", "openApp": "앱 열기",
+      "templates": "템플릿", "search": "템플릿 검색", "autoClicker": "자동 클릭", "swipeFeed": "피드 넘기기", "nightRoutine": "충전 시 밤 루틴",
+      "breakReminder": "휴식 알림", "formFiller": "양식 자동 입력", "statusCheck": "웹사이트 상태 확인", "use": "사용",
+      "safetyScore": "안전 점수", "low": "낮은 위험", "permissions": "필요한 권한", "permInput": "탭과 스와이프", "permNotify": "알림", "permApps": "앱 열기",
+      "limits": "실행 한도", "approve": "실행", "local": "플로우는 이 기기에 저장", "noAds": "광고 없음", "e2e": "선택형 동기화는 종단간 암호화", "noSale": "데이터를 팔지 않아요", "noRoot": "루팅 필요 없음"
+    }
+  },
+  "ja": {
+    "easy": { "title": "数秒で自動クリック", "sub": "位置と速さを決めて開始するだけ", "badge": "root不要" },
+    "flow": { "title": "本格マクロを作成", "sub": "タップ・スワイプ・入力・待機・条件・繰り返し" },
+    "run": { "title": "ワンタップで全停止", "sub": "フローティング停止ボタンと実行上限をいつでも" },
+    "atlas": { "title": "テンプレートですぐ開始", "sub": "連打、ルーティン、リマインダーなど" },
+    "safety": { "title": "実行前に中身を確認", "sub": "安全スコアと必要な権限を毎回表示" },
+    "privacy": { "title": "プライバシー重視の設計", "sub": "端末内が基本・広告なし・データ販売なし" },
+    "feature": { "title": "AutoFlow", "tagline": "自動クリック・マクロ・ルーティンを安全に" },
+    "ui": {
+      "easy": "かんたん", "pro": "プロ", "whatRepeat": "何を繰り返しますか？", "tap": "タップ", "multi": "複数の位置", "key": "キー", "text": "テキスト",
+      "position": "位置", "interval": "間隔", "fast": "速い", "normal": "普通", "slow": "遅い", "repeat": "繰り返し", "times": "100回",
+      "start": "開始", "stop": "停止", "pause": "一時停止", "running": "実行中", "step": "ステップ", "of": "/", "countdown": "10分で自動停止・いつでも停止可",
+      "wait": "待機", "swipe": "上へスワイプ", "type": "文字を入力", "if": "もし", "else": "それ以外", "notify": "通知", "loop": "停止まで繰り返す", "openApp": "アプリを開く",
+      "templates": "テンプレート", "search": "テンプレートを検索", "autoClicker": "自動クリック", "swipeFeed": "フィードをスワイプ", "nightRoutine": "充電時のおやすみルーティン",
+      "breakReminder": "休憩リマインダー", "formFiller": "フォーム自動入力", "statusCheck": "サイトの稼働チェック", "use": "使う",
+      "safetyScore": "安全スコア", "low": "低リスク", "permissions": "必要な権限", "permInput": "タップとスワイプ", "permNotify": "通知", "permApps": "アプリを開く",
+      "limits": "実行上限", "approve": "実行", "local": "フローはこの端末に保存", "noAds": "広告なし", "e2e": "同期は任意・エンドツーエンド暗号化", "noSale": "データを販売しません", "noRoot": "root不要"
+    }
+  },
+  "zh-CN": {
+    "easy": { "title": "几秒设好自动点击", "sub": "选位置、定速度，点开始", "badge": "无需 root" },
+    "flow": { "title": "打造真正的宏", "sub": "点按、滑动、输入、等待、条件与重复" },
+    "run": { "title": "一点即可全部停止", "sub": "悬浮停止按钮与运行上限始终都在" },
+    "atlas": { "title": "从模板快速开始", "sub": "连点器、日常流程、提醒等" },
+    "safety": { "title": "运行前看清能做什么", "sub": "每次运行前显示安全评分和所需权限" },
+    "privacy": { "title": "隐私优先的设计", "sub": "数据优先存本机 · 无广告 · 不出售数据" },
+    "feature": { "title": "AutoFlow", "tagline": "安全的自动点击、宏与日常流程" },
+    "ui": {
+      "easy": "简易", "pro": "专业", "whatRepeat": "要重复什么？", "tap": "点按", "multi": "多个位置", "key": "按键", "text": "文字",
+      "position": "位置", "interval": "间隔", "fast": "快", "normal": "中", "slow": "慢", "repeat": "重复", "times": "100 次",
+      "start": "开始", "stop": "停止", "pause": "暂停", "running": "运行中", "step": "步骤", "of": "/", "countdown": "10 分钟后自动停止 · 随时可停",
+      "wait": "等待", "swipe": "向上滑动", "type": "输入文字", "if": "如果", "else": "否则", "notify": "通知", "loop": "重复直到停止", "openApp": "打开应用",
+      "templates": "模板", "search": "搜索模板", "autoClicker": "自动点击", "swipeFeed": "自动刷信息流", "nightRoutine": "充电晚间流程",
+      "breakReminder": "休息提醒", "formFiller": "表单自动填写", "statusCheck": "网站状态检查", "use": "使用",
+      "safetyScore": "安全评分", "low": "低风险", "permissions": "所需权限", "permInput": "点按与滑动", "permNotify": "通知", "permApps": "打开应用",
+      "limits": "运行上限", "approve": "运行", "local": "流程保存在本机", "noAds": "没有广告", "e2e": "可选同步，端到端加密", "noSale": "绝不出售数据", "noRoot": "无需 root"
+    }
+  },
+  "zh-TW": {
+    "easy": { "title": "幾秒設好自動點擊", "sub": "選位置、定速度，按下開始", "badge": "免 root" },
+    "flow": { "title": "打造真正的巨集", "sub": "輕觸、滑動、輸入、等待、條件與重複" },
+    "run": { "title": "一按即可全部停止", "sub": "浮動停止按鈕與執行上限隨時都在" },
+    "atlas": { "title": "從範本快速開始", "sub": "連點器、日常流程、提醒等" },
+    "safety": { "title": "執行前看清能做什麼", "sub": "每次執行前顯示安全分數與所需權限" },
+    "privacy": { "title": "隱私優先的設計", "sub": "資料優先存本機 · 無廣告 · 不販售資料" },
+    "feature": { "title": "AutoFlow", "tagline": "安全的自動點擊、巨集與日常流程" },
+    "ui": {
+      "easy": "簡易", "pro": "專業", "whatRepeat": "要重複什麼？", "tap": "輕觸", "multi": "多個位置", "key": "按鍵", "text": "文字",
+      "position": "位置", "interval": "間隔", "fast": "快", "normal": "中", "slow": "慢", "repeat": "重複", "times": "100 次",
+      "start": "開始", "stop": "停止", "pause": "暫停", "running": "執行中", "step": "步驟", "of": "/", "countdown": "10 分鐘後自動停止 · 隨時可停",
+      "wait": "等待", "swipe": "向上滑動", "type": "輸入文字", "if": "如果", "else": "否則", "notify": "通知", "loop": "重複直到停止", "openApp": "開啟應用程式",
+      "templates": "範本", "search": "搜尋範本", "autoClicker": "自動點擊", "swipeFeed": "自動滑動動態", "nightRoutine": "充電夜間流程",
+      "breakReminder": "休息提醒", "formFiller": "表單自動填寫", "statusCheck": "網站狀態檢查", "use": "使用",
+      "safetyScore": "安全分數", "low": "低風險", "permissions": "所需權限", "permInput": "輕觸與滑動", "permNotify": "通知", "permApps": "開啟應用程式",
+      "limits": "執行上限", "approve": "執行", "local": "流程儲存在本機", "noAds": "沒有廣告", "e2e": "可選同步，端對端加密", "noSale": "絕不販售資料", "noRoot": "免 root"
+    }
+  },
+  "es": {
+    "easy": { "title": "Autoclicker en segundos", "sub": "Elige el punto, la velocidad y pulsa Iniciar", "badge": "Sin root" },
+    "flow": { "title": "Crea macros de verdad", "sub": "Toques, deslizar, texto, esperas, si y repetir" },
+    "run": { "title": "Un toque lo detiene todo", "sub": "Botón flotante de Detener y límites en cada ejecución" },
+    "atlas": { "title": "Empieza con una plantilla", "sub": "Autoclickers, rutinas, recordatorios y más" },
+    "safety": { "title": "Mira qué puede hacer un flujo", "sub": "Nivel de seguridad y permisos antes de cada ejecución" },
+    "privacy": { "title": "Privado desde el diseño", "sub": "Primero en tu dispositivo. Sin anuncios. Sin venta de datos." },
+    "feature": { "title": "AutoFlow", "tagline": "Autoclicker, macros y rutinas, con seguridad" },
+    "ui": {
+      "easy": "Fácil", "pro": "Pro", "whatRepeat": "¿Qué quieres repetir?", "tap": "Toque", "multi": "Varios puntos", "key": "Tecla", "text": "Texto",
+      "position": "Posición", "interval": "Intervalo", "fast": "Rápido", "normal": "Normal", "slow": "Lento", "repeat": "Repetir", "times": "100 veces",
+      "start": "Iniciar", "stop": "Detener", "pause": "Pausar", "running": "En ejecución", "step": "Paso", "of": "de", "countdown": "Se detiene a los 10 min · Halt cuando quieras",
+      "wait": "Esperar", "swipe": "Deslizar arriba", "type": "Escribir texto", "if": "Si", "else": "Si no", "notify": "Notificar", "loop": "Repetir hasta detener", "openApp": "Abrir app",
+      "templates": "Plantillas", "search": "Buscar plantillas", "autoClicker": "Autoclicker", "swipeFeed": "Pasar un feed", "nightRoutine": "Rutina nocturna al cargar",
+      "breakReminder": "Recordatorio de descanso", "formFiller": "Rellenar formularios", "statusCheck": "Comprobar un sitio web", "use": "Usar",
+      "safetyScore": "Nivel de seguridad", "low": "Riesgo bajo", "permissions": "Necesita", "permInput": "Toques y deslizar", "permNotify": "Notificaciones", "permApps": "Abrir apps",
+      "limits": "Límites", "approve": "Ejecutar", "local": "Tus flujos se quedan en el dispositivo", "noAds": "Sin anuncios, nunca", "e2e": "Sincronización opcional cifrada de extremo a extremo", "noSale": "Nunca vendemos tus datos", "noRoot": "Sin root"
+    }
+  },
+  "fr": {
+    "easy": { "title": "Autoclicker en quelques secondes", "sub": "Choisissez le point, la vitesse, puis Démarrer", "badge": "Sans root" },
+    "flow": { "title": "Créez de vraies macros", "sub": "Appuis, balayages, texte, attentes, conditions, boucles" },
+    "run": { "title": "Un appui arrête tout", "sub": "Bouton Arrêter flottant et limites à chaque exécution" },
+    "atlas": { "title": "Partez d'un modèle", "sub": "Autoclickers, routines, rappels et plus" },
+    "safety": { "title": "Voyez ce qu'un flux peut faire", "sub": "Score de sécurité et autorisations avant chaque lancement" },
+    "privacy": { "title": "Confidentiel par conception", "sub": "Sur votre appareil d'abord. Sans pub. Sans revente." },
+    "feature": { "title": "AutoFlow", "tagline": "Autoclicker, macros et routines, en toute sécurité" },
+    "ui": {
+      "easy": "Simple", "pro": "Pro", "whatRepeat": "Que faut-il répéter ?", "tap": "Appui", "multi": "Plusieurs points", "key": "Touche", "text": "Texte",
+      "position": "Position", "interval": "Intervalle", "fast": "Rapide", "normal": "Normal", "slow": "Lent", "repeat": "Répéter", "times": "100 fois",
+      "start": "Démarrer", "stop": "Arrêter", "pause": "Pause", "running": "En cours", "step": "Étape", "of": "sur", "countdown": "Arrêt auto après 10 min · Halt à tout moment",
+      "wait": "Attendre", "swipe": "Balayer vers le haut", "type": "Saisir du texte", "if": "Si", "else": "Sinon", "notify": "Notifier", "loop": "Répéter jusqu'à l'arrêt", "openApp": "Ouvrir l'appli",
+      "templates": "Modèles", "search": "Chercher un modèle", "autoClicker": "Autoclicker", "swipeFeed": "Faire défiler un fil", "nightRoutine": "Routine du soir à la charge",
+      "breakReminder": "Rappel de pause", "formFiller": "Remplissage de formulaires", "statusCheck": "Vérifier un site web", "use": "Utiliser",
+      "safetyScore": "Score de sécurité", "low": "Risque faible", "permissions": "Nécessite", "permInput": "Appuis et balayages", "permNotify": "Notifications", "permApps": "Ouvrir des applis",
+      "limits": "Limites", "approve": "Lancer", "local": "Vos flux restent sur l'appareil", "noAds": "Aucune publicité", "e2e": "Synchro facultative chiffrée de bout en bout", "noSale": "Vos données ne sont jamais vendues", "noRoot": "Sans root"
+    }
+  },
+  "de": {
+    "easy": { "title": "Autoklicker in Sekunden", "sub": "Stelle wählen, Tempo festlegen, Start tippen", "badge": "Ohne Root" },
+    "flow": { "title": "Echte Makros bauen", "sub": "Tippen, Wischen, Text, Warten, Wenn und Wiederholen" },
+    "run": { "title": "Ein Tipp stoppt alles", "sub": "Schwebende Stopp-Taste und Laufzeitgrenzen, immer" },
+    "atlas": { "title": "Mit einer Vorlage starten", "sub": "Klicker, Routinen, Erinnerungen und mehr" },
+    "safety": { "title": "Sieh, was ein Ablauf darf", "sub": "Sicherheitswert und Berechtigungen vor jedem Start" },
+    "privacy": { "title": "Privat von Anfang an", "sub": "Zuerst auf deinem Gerät. Ohne Werbung. Kein Datenverkauf." },
+    "feature": { "title": "AutoFlow", "tagline": "Autoklicker, Makros und Routinen – sicher" },
+    "ui": {
+      "easy": "Einfach", "pro": "Profi", "whatRepeat": "Was soll sich wiederholen?", "tap": "Tippen", "multi": "Mehrere Stellen", "key": "Taste", "text": "Text",
+      "position": "Position", "interval": "Intervall", "fast": "Schnell", "normal": "Normal", "slow": "Langsam", "repeat": "Wiederholen", "times": "100-mal",
+      "start": "Start", "stop": "Stopp", "pause": "Pause", "running": "Läuft", "step": "Schritt", "of": "von", "countdown": "Stoppt nach 10 Min. · Halt jederzeit",
+      "wait": "Warten", "swipe": "Nach oben wischen", "type": "Text eingeben", "if": "Wenn", "else": "Sonst", "notify": "Benachrichtigen", "loop": "Wiederholen bis Stopp", "openApp": "App öffnen",
+      "templates": "Vorlagen", "search": "Vorlagen suchen", "autoClicker": "Autoklicker", "swipeFeed": "Durch einen Feed wischen", "nightRoutine": "Abendroutine beim Laden",
+      "breakReminder": "Pausen-Erinnerung", "formFiller": "Formulare ausfüllen", "statusCheck": "Website-Statusprüfung", "use": "Nutzen",
+      "safetyScore": "Sicherheitswert", "low": "Geringes Risiko", "permissions": "Benötigt", "permInput": "Tippen und Wischen", "permNotify": "Benachrichtigungen", "permApps": "Apps öffnen",
+      "limits": "Grenzen", "approve": "Ausführen", "local": "Abläufe bleiben auf dem Gerät", "noAds": "Keine Werbung", "e2e": "Optionale Synchronisierung mit Ende-zu-Ende-Verschlüsselung", "noSale": "Kein Verkauf deiner Daten", "noRoot": "Kein Root nötig"
+    }
+  },
+  "pt-BR": {
+    "easy": { "title": "Autoclicker em segundos", "sub": "Escolha o ponto, a velocidade e toque em Iniciar", "badge": "Sem root" },
+    "flow": { "title": "Crie macros de verdade", "sub": "Toques, deslizes, texto, esperas, se e repetir" },
+    "run": { "title": "Um toque para tudo", "sub": "Botão flutuante de Parar e limites em toda execução" },
+    "atlas": { "title": "Comece por um modelo", "sub": "Autoclickers, rotinas, lembretes e mais" },
+    "safety": { "title": "Veja o que um fluxo pode fazer", "sub": "Nota de segurança e permissões antes de cada execução" },
+    "privacy": { "title": "Privacidade desde o início", "sub": "Primeiro no seu aparelho. Sem anúncios. Sem venda de dados." },
+    "feature": { "title": "AutoFlow", "tagline": "Autoclicker, macros e rotinas com segurança" },
+    "ui": {
+      "easy": "Fácil", "pro": "Pro", "whatRepeat": "O que deve se repetir?", "tap": "Toque", "multi": "Vários pontos", "key": "Tecla", "text": "Texto",
+      "position": "Posição", "interval": "Intervalo", "fast": "Rápido", "normal": "Normal", "slow": "Lento", "repeat": "Repetir", "times": "100 vezes",
+      "start": "Iniciar", "stop": "Parar", "pause": "Pausar", "running": "Em execução", "step": "Etapa", "of": "de", "countdown": "Para após 10 min · Halt a qualquer hora",
+      "wait": "Esperar", "swipe": "Deslizar para cima", "type": "Digitar texto", "if": "Se", "else": "Senão", "notify": "Notificar", "loop": "Repetir até parar", "openApp": "Abrir app",
+      "templates": "Modelos", "search": "Buscar modelos", "autoClicker": "Autoclicker", "swipeFeed": "Rolar um feed", "nightRoutine": "Rotina noturna ao carregar",
+      "breakReminder": "Lembrete de pausa", "formFiller": "Preencher formulários", "statusCheck": "Verificar um site", "use": "Usar",
+      "safetyScore": "Nota de segurança", "low": "Risco baixo", "permissions": "Precisa de", "permInput": "Toques e deslizes", "permNotify": "Notificações", "permApps": "Abrir apps",
+      "limits": "Limites", "approve": "Executar", "local": "Seus fluxos ficam no aparelho", "noAds": "Sem anúncios", "e2e": "Sincronização opcional com criptografia de ponta a ponta", "noSale": "Seus dados nunca são vendidos", "noRoot": "Sem root"
+    }
+  },
+  "ru": {
+    "easy": { "title": "Автокликер за секунды", "sub": "Выберите точку и скорость — и нажмите «Старт»", "badge": "Без root" },
+    "flow": { "title": "Настоящие макросы", "sub": "Нажатия, свайпы, текст, паузы, условия и повторы" },
+    "run": { "title": "Одно нажатие — всё стоп", "sub": "Плавающая кнопка «Стоп» и лимиты при каждом запуске" },
+    "atlas": { "title": "Начните с шаблона", "sub": "Кликеры, рутины, напоминания и не только" },
+    "safety": { "title": "Видно, что может сценарий", "sub": "Оценка безопасности и разрешения перед каждым запуском" },
+    "privacy": { "title": "Приватность по умолчанию", "sub": "Сначала на устройстве. Без рекламы. Без продажи данных." },
+    "feature": { "title": "AutoFlow", "tagline": "Автокликер, макросы и рутины — безопасно" },
+    "ui": {
+      "easy": "Просто", "pro": "Про", "whatRepeat": "Что повторять?", "tap": "Нажатие", "multi": "Несколько точек", "key": "Клавиша", "text": "Текст",
+      "position": "Позиция", "interval": "Интервал", "fast": "Быстро", "normal": "Обычно", "slow": "Медленно", "repeat": "Повтор", "times": "100 раз",
+      "start": "Старт", "stop": "Стоп", "pause": "Пауза", "running": "Выполняется", "step": "Шаг", "of": "из", "countdown": "Остановится через 10 мин · Halt в любой момент",
+      "wait": "Ждать", "swipe": "Свайп вверх", "type": "Ввести текст", "if": "Если", "else": "Иначе", "notify": "Уведомить", "loop": "Повторять до остановки", "openApp": "Открыть приложение",
+      "templates": "Шаблоны", "search": "Поиск шаблонов", "autoClicker": "Автокликер", "swipeFeed": "Листать ленту", "nightRoutine": "Вечерняя рутина при зарядке",
+      "breakReminder": "Напоминание о перерыве", "formFiller": "Заполнение форм", "statusCheck": "Проверка сайта", "use": "Взять",
+      "safetyScore": "Оценка безопасности", "low": "Низкий риск", "permissions": "Нужно", "permInput": "Нажатия и свайпы", "permNotify": "Уведомления", "permApps": "Открытие приложений",
+      "limits": "Лимиты", "approve": "Запустить", "local": "Сценарии хранятся на устройстве", "noAds": "Без рекламы", "e2e": "Синхронизация по желанию, со сквозным шифрованием", "noSale": "Мы не продаём ваши данные", "noRoot": "Root не нужен"
+    }
+  },
+  "vi": {
+    "easy": { "title": "Tự động chạm trong vài giây", "sub": "Chọn vị trí, chỉnh tốc độ rồi nhấn Bắt đầu", "badge": "Không cần root" },
+    "flow": { "title": "Tạo macro thực thụ", "sub": "Chạm, vuốt, nhập chữ, chờ, điều kiện và lặp" },
+    "run": { "title": "Một chạm dừng tất cả", "sub": "Nút Dừng nổi và giới hạn chạy luôn sẵn sàng" },
+    "atlas": { "title": "Bắt đầu từ mẫu có sẵn", "sub": "Tự động chạm, thói quen, nhắc nhở và hơn thế" },
+    "safety": { "title": "Biết rõ luồng làm được gì", "sub": "Điểm an toàn và quyền cần dùng trước mỗi lần chạy" },
+    "privacy": { "title": "Riêng tư ngay từ thiết kế", "sub": "Ưu tiên lưu trên máy. Không quảng cáo. Không bán dữ liệu." },
+    "feature": { "title": "AutoFlow", "tagline": "Tự động chạm, macro và thói quen — an toàn" },
+    "ui": {
+      "easy": "Dễ", "pro": "Pro", "whatRepeat": "Bạn muốn lặp lại gì?", "tap": "Chạm", "multi": "Nhiều vị trí", "key": "Phím", "text": "Văn bản",
+      "position": "Vị trí", "interval": "Khoảng cách", "fast": "Nhanh", "normal": "Vừa", "slow": "Chậm", "repeat": "Lặp lại", "times": "100 lần",
+      "start": "Bắt đầu", "stop": "Dừng", "pause": "Tạm dừng", "running": "Đang chạy", "step": "Bước", "of": "/", "countdown": "Tự dừng sau 10 phút · Halt bất cứ lúc nào",
+      "wait": "Chờ", "swipe": "Vuốt lên", "type": "Nhập văn bản", "if": "Nếu", "else": "Nếu không", "notify": "Thông báo", "loop": "Lặp đến khi dừng", "openApp": "Mở ứng dụng",
+      "templates": "Mẫu", "search": "Tìm mẫu", "autoClicker": "Tự động chạm", "swipeFeed": "Lướt bảng tin", "nightRoutine": "Thói quen buổi tối khi sạc",
+      "breakReminder": "Nhắc nghỉ giải lao", "formFiller": "Điền biểu mẫu", "statusCheck": "Kiểm tra trang web", "use": "Dùng",
+      "safetyScore": "Điểm an toàn", "low": "Rủi ro thấp", "permissions": "Cần", "permInput": "Chạm và vuốt", "permNotify": "Thông báo", "permApps": "Mở ứng dụng",
+      "limits": "Giới hạn", "approve": "Chạy", "local": "Luồng được lưu trên máy này", "noAds": "Không quảng cáo", "e2e": "Đồng bộ tùy chọn, mã hóa đầu cuối", "noSale": "Không bao giờ bán dữ liệu", "noRoot": "Không cần root"
+    }
+  },
+  "id": {
+    "easy": { "title": "Auto clicker dalam detik", "sub": "Pilih titik, atur kecepatan, lalu ketuk Mulai", "badge": "Tanpa root" },
+    "flow": { "title": "Buat makro sungguhan", "sub": "Ketuk, geser, teks, jeda, kondisi, dan ulangi" },
+    "run": { "title": "Satu ketukan hentikan semua", "sub": "Tombol Berhenti mengambang dan batas jalan selalu ada" },
+    "atlas": { "title": "Mulai dari template", "sub": "Auto clicker, rutinitas, pengingat, dan lainnya" },
+    "safety": { "title": "Lihat yang bisa dilakukan alur", "sub": "Skor keamanan dan izin sebelum setiap proses" },
+    "privacy": { "title": "Privat sejak awal", "sub": "Utamakan perangkat Anda. Tanpa iklan. Tanpa jual data." },
+    "feature": { "title": "AutoFlow", "tagline": "Auto clicker, makro, dan rutinitas — dengan aman" },
+    "ui": {
+      "easy": "Mudah", "pro": "Pro", "whatRepeat": "Apa yang diulang?", "tap": "Ketuk", "multi": "Beberapa titik", "key": "Tombol", "text": "Teks",
+      "position": "Posisi", "interval": "Jeda", "fast": "Cepat", "normal": "Normal", "slow": "Lambat", "repeat": "Ulangi", "times": "100 kali",
+      "start": "Mulai", "stop": "Berhenti", "pause": "Jeda", "running": "Berjalan", "step": "Langkah", "of": "dari", "countdown": "Berhenti setelah 10 mnt · Halt kapan saja",
+      "wait": "Tunggu", "swipe": "Geser ke atas", "type": "Ketik teks", "if": "Jika", "else": "Jika tidak", "notify": "Beri tahu", "loop": "Ulangi sampai dihentikan", "openApp": "Buka aplikasi",
+      "templates": "Template", "search": "Cari template", "autoClicker": "Auto clicker", "swipeFeed": "Geser feed", "nightRoutine": "Rutinitas malam saat mengisi daya",
+      "breakReminder": "Pengingat istirahat", "formFiller": "Isi formulir otomatis", "statusCheck": "Cek status situs", "use": "Pakai",
+      "safetyScore": "Skor keamanan", "low": "Risiko rendah", "permissions": "Perlu", "permInput": "Ketuk dan geser", "permNotify": "Notifikasi", "permApps": "Buka aplikasi",
+      "limits": "Batas", "approve": "Jalankan", "local": "Alur tersimpan di perangkat ini", "noAds": "Tanpa iklan", "e2e": "Sinkronisasi opsional terenkripsi end-to-end", "noSale": "Data Anda tidak pernah dijual", "noRoot": "Tanpa root"
+    }
+  }
+}

@@ -1,0 +1,41 @@
+name: Play submit (no rebuild)
+# Releases a bundle that is already uploaded to Play (by version code) to a track, and prints every track's status.
+# ~1 minute; needs only PLAY_SERVICE_ACCOUNT_JSON. Build + upload stays in android.yml.
+on:
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: 'Version code already on Play (empty = highest uploaded)'
+        required: false
+        default: ''
+      track:
+        type: choice
+        options: [production, beta, alpha, internal]
+        default: production
+      status:
+        type: choice
+        options: [completed, inProgress, draft, halted]
+        default: completed
+permissions:
+  contents: read
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with: { node-version: 22 }
+      - name: Submit
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          VC: ${{ inputs.version_code }}
+          TRACK: ${{ inputs.track }}
+          STATUS: ${{ inputs.status }}
+        run: |
+          set -euo pipefail
+          PKG=$(node -p "require('./apps/android/capacitor.config.json').appId")
+          VERSION=$(node -p "require('./apps/android/package.json').version")
+          VC=$(printf '%s' "$VC" | tr -d ' \r\n')
+          RELEASE_NAME="$VERSION${VC:+ ($VC)}" node scripts/play/publish.mjs --package "$PKG" --submit \
+            ${VC:+--version-code "$VC"} --track "$TRACK" --status "$STATUS"
