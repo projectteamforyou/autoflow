@@ -196,7 +196,9 @@ if (-not $existing) {
 # 계정에 이미 Active 인증서 프로필이 있으면 그것을 쓰고 신원 확인 단계를 건너뜁니다.
 $existingProfile = ''
 if (-not $Profile) {
-    $existingProfile = Try-Az trustedsigning certificate-profile list --account-name $Account --resource-group $ResourceGroup --query "[?properties.status=='Active'] | [0].name" -o tsv
+    # az 버전에 따라 상태가 status 또는 properties.status 에 있습니다. Active 가 없으면 첫 프로필을 씁니다.
+    $existingProfile = Try-Az trustedsigning certificate-profile list --account-name $Account --resource-group $ResourceGroup --query "[?status=='Active' || properties.status=='Active'] | [0].name" -o tsv
+    if (-not $existingProfile) { $existingProfile = Try-Az trustedsigning certificate-profile list --account-name $Account --resource-group $ResourceGroup --query "[0].name" -o tsv }
     if ($existingProfile) { $Profile = $existingProfile; Info "기존 Active 프로필 '$Profile' 을 사용합니다." } else { $Profile = 'autoflow-public' }
 }
 $profileId = Try-Az trustedsigning certificate-profile show --account-name $Account --resource-group $ResourceGroup --name $Profile --query id -o tsv
