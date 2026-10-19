@@ -125,7 +125,9 @@ fn new_fields_validate_and_round_trip() {
     });
     let flow = parse_flow(&doc).expect("valid");
     let mut back = serde_json::to_value(&flow).unwrap();
-    for k in ["description", "tags", "icon", "color", "targets", "mode", "trigger", "hotkeys", "limits", "variables", "favorite", "revision"] {
+    for k in
+        ["description", "tags", "icon", "color", "targets", "mode", "trigger", "hotkeys", "limits", "variables", "favorite", "revision"]
+    {
         back.as_object_mut().unwrap().remove(k);
     }
     let (mut want, mut got) = (doc.clone(), back);
@@ -143,7 +145,9 @@ fn new_fields_validate_and_round_trip() {
     assert!(bad(json!({ "scenes": [{ "name": "a", "region": { "x": 0.5, "y": 0, "w": 0.6, "h": 1 }, "hash": "ffffffffffcfffff" }] })));
     assert!(bad(json!({ "scenes": [{ "name": "a", "region": { "x": 0, "y": 0, "w": 1, "h": 1 }, "hash": "nothex" }] })));
     let big = format!("data:image/png;base64,{}", "A".repeat(30_000));
-    assert!(bad(json!({ "scenes": [{ "name": "a", "region": { "x": 0, "y": 0, "w": 1, "h": 1 }, "hash": "ffffffffffcfffff", "thumb": big }] })));
+    assert!(bad(
+        json!({ "scenes": [{ "name": "a", "region": { "x": 0, "y": 0, "w": 1, "h": 1 }, "hash": "ffffffffffcfffff", "thumb": big }] })
+    ));
     let dup = json!({ "name": "a", "region": { "x": 0, "y": 0, "w": 1, "h": 1 }, "hash": "ffffffffffcfffff" });
     assert!(bad(json!({ "scenes": [dup.clone(), dup] })));
     assert!(bad(json!({ "stage": { "display": { "index": 40 } } })));

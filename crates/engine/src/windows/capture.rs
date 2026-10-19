@@ -91,7 +91,8 @@ pub fn scene_hash(x: i32, y: i32, w: i32, h: i32) -> Result<String, BackendError
 /// Scene capture for the Stage panel: dHash plus a PNG thumbnail data URL.
 pub fn scene_capture(x: i32, y: i32, w: i32, h: i32) -> Result<(String, String, u32, u32), BackendError> {
     let shot = capture(x, y, w, h)?;
-    let hash = crate::display::dhash(shot.w, shot.h, |px, py| shot.rgb(px, py)).ok_or_else(|| BackendError::action("scene region is empty"))?;
+    let hash =
+        crate::display::dhash(shot.w, shot.h, |px, py| shot.rgb(px, py)).ok_or_else(|| BackendError::action("scene region is empty"))?;
     let thumb = crate::display::thumbnail_data_url(shot.w, shot.h, |px, py| shot.rgb(px, py), 160)
         .ok_or_else(|| BackendError::action("cannot encode the scene preview"))?;
     Ok((hash, thumb, u32::try_from(shot.w).unwrap_or(0), u32::try_from(shot.h).unwrap_or(0)))

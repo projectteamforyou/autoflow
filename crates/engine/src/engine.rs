@@ -256,7 +256,9 @@ pub trait InputBackend: Send {
     /// Connected monitors in virtual-desktop px, any order (default: the primary screen only).
     fn displays(&mut self) -> Vec<DisplayInfo> {
         self.screen()
-            .map(|s| vec![DisplayInfo::new("primary", true, Rect { x: 0.0, y: 0.0, w: f64::from(s.width), h: f64::from(s.height) }, s.scale)])
+            .map(|s| {
+                vec![DisplayInfo::new("primary", true, Rect { x: 0.0, y: 0.0, w: f64::from(s.width), h: f64::from(s.height) }, s.scale)]
+            })
             .unwrap_or_default()
     }
     /// Current pointer position (Stage takeover detection); `None` when there is no pointer.
@@ -1173,14 +1175,22 @@ impl FlowRun {
     }
 
     fn scene(&self, name: &str) -> Flowing<Scene> {
-        self.flow.scenes.iter().flatten().find(|s| s.name == name).cloned().ok_or_else(|| {
-            Signal::Fail(RunError::new(ErrorCategory::Validation, format!("scene \"{name}\" is not defined in this flow")))
-        })
+        self.flow
+            .scenes
+            .iter()
+            .flatten()
+            .find(|s| s.name == name)
+            .cloned()
+            .ok_or_else(|| Signal::Fail(RunError::new(ErrorCategory::Validation, format!("scene \"{name}\" is not defined in this flow"))))
     }
 
     /// Similarity (0..1) between the live display region of a scene and its remembered hash.
     fn scene_similarity(&mut self, s: &Scene) -> Flowing<f64> {
-        let r = s.display.clone().or_else(|| self.flow.stage.as_ref().map(|st| st.display.clone())).unwrap_or(DisplayRef::Name("primary".into()));
+        let r = s
+            .display
+            .clone()
+            .or_else(|| self.flow.stage.as_ref().map(|st| st.display.clone()))
+            .unwrap_or(DisplayRef::Name("primary".into()));
         let b = self.display(&r)?.bounds;
         let mut rr = place_rect(&b, &s.region, "normalized");
         rr.w = rr.w.min(b.x + b.w - rr.x).max(1.0);

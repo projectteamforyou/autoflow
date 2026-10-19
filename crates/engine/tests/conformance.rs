@@ -32,7 +32,9 @@ fn point(t: &Target) -> Json {
 
 fn script(v: &Json) -> HashMap<String, Vec<String>> {
     v.as_object()
-        .map(|o| o.iter().map(|(k, seq)| (k.clone(), seq.as_array().unwrap().iter().map(|s| s.as_str().unwrap().to_owned()).collect())).collect())
+        .map(|o| {
+            o.iter().map(|(k, seq)| (k.clone(), seq.as_array().unwrap().iter().map(|s| s.as_str().unwrap().to_owned()).collect())).collect()
+        })
         .unwrap_or_default()
 }
 

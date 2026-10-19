@@ -101,7 +101,11 @@ fn step_findings(s: &Step) -> Vec<RiskFinding> {
             }
         }
         StepKind::Clipboard { op: crate::schema::ClipboardOp::Get, .. } => out.push(f("risk.clipboardRead", 8, false)),
-        StepKind::Ocr { .. } | StepKind::FindImage { .. } | StepKind::PixelCheck { .. } | StepKind::WaitForPixel { .. } | StepKind::MatchScene { .. } => {
+        StepKind::Ocr { .. }
+        | StepKind::FindImage { .. }
+        | StepKind::PixelCheck { .. }
+        | StepKind::WaitForPixel { .. }
+        | StepKind::MatchScene { .. } => {
             out.push(f("risk.screenRead", 8, false));
         }
         StepKind::Loop { mode: LoopMode::Forever, .. } => out.push(f("risk.foreverLoop", 5, false)),

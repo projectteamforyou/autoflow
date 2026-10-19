@@ -45,10 +45,10 @@ mod imp {
     use super::{safe_ref, AppHooks};
     use autoflow_engine::bridge::{DeviceInfo, SceneCaptured};
     use autoflow_engine::display::DisplayInfo;
-    use autoflow_engine::schema::Rect;
     use autoflow_engine::engine::{BackendError, ErrorCategory};
     use autoflow_engine::input_profile::InputProfile;
     use autoflow_engine::record::RecordedEvent;
+    use autoflow_engine::schema::Rect;
     use autoflow_engine::schema::{Hotkey, Platform};
     use autoflow_engine::windows::{self as win, keyforge, recorder};
     use autoflow_engine::{InputBackend, RunControl, ScreenInfo};
@@ -238,9 +238,9 @@ mod imp {
     use super::AppHooks;
     use autoflow_engine::bridge::{DeviceInfo, SceneCaptured};
     use autoflow_engine::display::DisplayInfo;
-    use autoflow_engine::schema::Rect;
     use autoflow_engine::input_profile::InputProfile;
     use autoflow_engine::record::RecordedEvent;
+    use autoflow_engine::schema::Rect;
     use autoflow_engine::schema::{Hotkey, Platform};
     use autoflow_engine::{InputBackend, RunControl, ScreenInfo};
     use std::collections::HashMap;

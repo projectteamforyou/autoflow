@@ -199,7 +199,8 @@ pub fn displays_identify(app: AppHandle, duration_ms: Option<u64>) -> Result<(),
             .build()
             .map_err(|e| format!("cannot show the monitor number: {e}"))?;
         let _sized = window.set_size(PhysicalSize::new(px(size).unsigned_abs(), px(size).unsigned_abs()));
-        let _moved = window.set_position(PhysicalPosition::new(px(d.bounds.x + (d.bounds.w - size) / 2.0), px(d.bounds.y + (d.bounds.h - size) / 2.0)));
+        let _moved = window
+            .set_position(PhysicalPosition::new(px(d.bounds.x + (d.bounds.w - size) / 2.0), px(d.bounds.y + (d.bounds.h - size) / 2.0)));
         let _shown = window.show();
         labels.push(label);
     }
@@ -219,7 +220,10 @@ pub fn displays_identify(app: AppHandle, duration_ms: Option<u64>) -> Result<(),
 /// `deck_pin` — moves the AutoFlow window onto a monitor (the "deck") and maximizes it there.
 #[tauri::command]
 pub fn deck_pin(app: AppHandle, display_id: String) -> Result<(), String> {
-    let d = platform::displays().into_iter().find(|d| d.id == display_id).ok_or_else(|| format!("display \"{display_id}\" is not connected"))?;
+    let d = platform::displays()
+        .into_iter()
+        .find(|d| d.id == display_id)
+        .ok_or_else(|| format!("display \"{display_id}\" is not connected"))?;
     let w = app.get_webview_window("main").ok_or("the AutoFlow window is not open")?;
     let wa = d.work_area;
     let _unmax = w.unmaximize();
@@ -237,7 +241,9 @@ pub async fn scene_capture(display_id: String, region: Rect) -> Result<SceneCapt
     if !(ok(region.x) && ok(region.y) && ok(region.w) && ok(region.h)) || region.w <= 0.0 || region.h <= 0.0 {
         return Err("the scene region must be a normalized rectangle inside the display".into());
     }
-    tauri::async_runtime::spawn_blocking(move || platform::scene_capture(&display_id, &region)).await.map_err(|e| format!("capture failed: {e}"))?
+    tauri::async_runtime::spawn_blocking(move || platform::scene_capture(&display_id, &region))
+        .await
+        .map_err(|e| format!("capture failed: {e}"))?
 }
 
 /// Emits `BridgeEvent::Displays` whenever monitors are added, removed, moved or rescaled.

@@ -251,7 +251,12 @@ mod tests {
 
     #[test]
     fn displays_event_and_picked_point_use_bridge_names() {
-        let d = crate::display::DisplayInfo::new("\\\\.\\DISPLAY2", false, crate::schema::Rect { x: 1920.0, y: 0.0, w: 1280.0, h: 1024.0 }, 1.25);
+        let d = crate::display::DisplayInfo::new(
+            "\\\\.\\DISPLAY2",
+            false,
+            crate::schema::Rect { x: 1920.0, y: 0.0, w: 1280.0, h: 1024.0 },
+            1.25,
+        );
         let v = serde_json::to_value(BridgeEvent::Displays { displays: vec![d] }).expect("serializes");
         assert_eq!(v["kind"], "displays");
         assert_eq!(v["displays"][0]["workArea"]["w"], 1280.0);

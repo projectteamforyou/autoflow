@@ -61,7 +61,13 @@ unsafe extern "system" fn collect_monitor(hmon: HMONITOR, _hdc: HDC, _rect: *mut
         let (mut dx, mut dy) = (96u32, 96u32);
         // SAFETY: out-params are valid u32s.
         let scale = if unsafe { GetDpiForMonitor(hmon, MDT_EFFECTIVE_DPI, &mut dx, &mut dy) }.is_ok() { f64::from(dx) / 96.0 } else { 1.0 };
-        out.push(Monitor { rect: info.rcMonitor, work: info.rcWork, primary: info.dwFlags & MONITORINFOF_PRIMARY != 0, scale, device: ex.szDevice });
+        out.push(Monitor {
+            rect: info.rcMonitor,
+            work: info.rcWork,
+            primary: info.dwFlags & MONITORINFOF_PRIMARY != 0,
+            scale,
+            device: ex.szDevice,
+        });
     }
     BOOL(1)
 }
