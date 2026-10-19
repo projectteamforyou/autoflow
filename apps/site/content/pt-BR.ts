@@ -57,7 +57,7 @@ export const ptBR: Content = {
     contact: "Contato",
     releases: "Notas de versão",
     rights: "© Copyright 2026, Projectteamforyou. All rights reserved.",
-    made: "Feito em Seul para quem tem coisa melhor a fazer do que clicar.",
+    made: "Feito na Coreia para quem tem coisas melhores a fazer do que clicar.",
   },
   labels: {
     platforms: { windows: "Windows", android: "Android", web: "Web" },

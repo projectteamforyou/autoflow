@@ -57,7 +57,7 @@ export const es: Content = {
     contact: "Contacto",
     releases: "Notas de versión",
     rights: "© Copyright 2026, Projectteamforyou. All rights reserved.",
-    made: "Hecho en Seúl para quien tiene cosas mejores que hacer que hacer clic.",
+    made: "Hecho en Corea para quienes tienen cosas mejores que hacer que hacer clic.",
   },
   labels: {
     platforms: { windows: "Windows", android: "Android", web: "Web" },

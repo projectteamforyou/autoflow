@@ -57,7 +57,7 @@ export const ru: Content = {
     contact: "Связаться",
     releases: "Список изменений",
     rights: "© Copyright 2026, Projectteamforyou. All rights reserved.",
-    made: "Сделано в Сеуле для всех, у кого есть дела поважнее кликов.",
+    made: "Сделано в Корее для всех, у кого есть дела поважнее, чем кликать.",
   },
   labels: {
     platforms: { windows: "Windows", android: "Android", web: "Веб" },

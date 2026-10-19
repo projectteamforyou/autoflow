@@ -62,7 +62,7 @@ export const en = {
     contact: "Contact",
     releases: "Release notes",
     rights: "© Copyright 2026, Projectteamforyou. All rights reserved.",
-    made: "Made in Seoul for everyone who has better things to do than click.",
+    made: "Made in Korea for everyone who has better things to do than click.",
   },
   labels: {
     platforms: { windows: "Windows", android: "Android", web: "Web" },

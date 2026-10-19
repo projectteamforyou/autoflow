@@ -11,7 +11,7 @@ export const privacy: Privacy = {
   sections: {
     controller: sec(
       "1. Verantwortlicher",
-      "Verantwortlich für die über AutoFlow verarbeiteten personenbezogenen Daten ist **ProjectTeamForYou** („wir“). Sie erreichen uns – auch unsere Ansprechperson für Datenschutz – unter {email}.",
+      "Der Verantwortliche für die Verarbeitung personenbezogener Daten über AutoFlow ist **ProjectTeamForYou** (프로젝트팀포유; Vertreter: Yusang Lee; Geschäftsanmeldungsnummer: 495-25-02209; Bericht über den Versandhandelsbetrieb Nr. 제2026-경북봉화-0037호; 1166-68 Yebong-ro, Sangun-myeon, Bonghwa-gun, Gyeongsangbuk-do, Republik Korea; Telefon: +82-70-7620-7256). Unser Datenschutzbeauftragter ist Yusang Lee (Vertreter). Sie können uns, einschließlich unseres Datenschutzbeauftragten, unter {email} erreichen.",
     ),
     summary: sec("2. Das Wichtigste in Kürze", [
       "Ihre Flows, Aufnahmen, Keyforge-Profile und Ausführungsprotokolle werden auf Ihrem Gerät gespeichert und verarbeitet.",

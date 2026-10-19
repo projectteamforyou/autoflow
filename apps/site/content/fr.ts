@@ -57,7 +57,7 @@ export const fr: Content = {
     contact: "Contact",
     releases: "Notes de version",
     rights: "© Copyright 2026, Projectteamforyou. All rights reserved.",
-    made: "Conçu à Séoul pour tous ceux qui ont mieux à faire que cliquer.",
+    made: "Conçu en Corée pour tous ceux qui ont mieux à faire que cliquer.",
   },
   labels: {
     platforms: { windows: "Windows", android: "Android", web: "Web" },

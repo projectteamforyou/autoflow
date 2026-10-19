@@ -11,7 +11,7 @@ export const privacy: Privacy = {
   sections: {
     controller: sec(
       "1. Controlador",
-      "O controlador dos dados pessoais tratados por meio do AutoFlow é a **ProjectTeamForYou** (“nós”). Você pode falar conosco, inclusive com nosso encarregado de proteção de dados, pelo e-mail {email}.",
+      "O controlador das informações pessoais processadas por meio do AutoFlow é **ProjectTeamForYou** (프로젝트팀포유; representante: Yusang Lee; número de registro comercial: 495-25-02209; número do relatório de comércio eletrônico: 제2026-경북봉화-0037호; 1166-68 Yebong-ro, Sangun-myeon, Bonghwa-gun, Gyeongsangbuk-do, República da Coreia; telefone: +82-70-7620-7256). O nosso encarregado de proteção de dados pessoais é Yusang Lee (representante). Você pode entrar em contato conosco, inclusive com o encarregado de proteção de dados, através do {email}.",
     ),
     summary: sec("2. Resumo", [
       "Seus fluxos, gravações, perfis do Keyforge e registros de execução são guardados e processados no seu aparelho.",

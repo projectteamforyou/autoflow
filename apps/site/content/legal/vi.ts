@@ -11,7 +11,7 @@ export const privacy: Privacy = {
   sections: {
     controller: sec(
       "1. Bên kiểm soát dữ liệu",
-      "Bên kiểm soát dữ liệu cá nhân được xử lý qua AutoFlow là **ProjectTeamForYou** (“chúng tôi”). Bạn có thể liên hệ chúng tôi, bao gồm người phụ trách quyền riêng tư, qua {email}.",
+      "Người kiểm soát thông tin cá nhân được xử lý thông qua **ProjectTeamForYou** (프로젝트팀포유; đại diện: Yusang Lee; số đăng ký kinh doanh: 495-25-02209; số báo cáo kinh doanh thương mại điện tử: 제2026-경북봉화-0037호; địa chỉ: 1166-68 Yebong-ro, Sangun-myeon, Bonghwa-gun, Gyeongsangbuk-do, Republic of Korea; điện thoại: +82-70-7620-7256). Nhân viên phụ trách bảo mật thông tin cá nhân của chúng tôi là ông Yusang Lee (đại diện). Quý khách có thể liên hệ với chúng tôi, bao gồm cả nhân viên phụ trách bảo mật thông tin cá nhân, qua địa chỉ {email}.",
     ),
     summary: sec("2. Tóm tắt", [
       "Luồng, bản ghi, hồ sơ Keyforge và nhật ký chạy được lưu và xử lý trên thiết bị của bạn.",

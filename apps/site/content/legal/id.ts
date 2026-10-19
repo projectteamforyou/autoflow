@@ -11,7 +11,7 @@ export const privacy: Privacy = {
   sections: {
     controller: sec(
       "1. Pengendali data",
-      "Pengendali data pribadi yang diproses melalui AutoFlow adalah **ProjectTeamForYou** (“kami”). Anda dapat menghubungi kami, termasuk petugas privasi kami, di {email}.",
+      "Pengendali data pribadi yang diproses melalui AutoFlow adalah **ProjectTeamForYou** (프로젝트팀포유; perwakilan: Yusang Lee; nomor registrasi bisnis: 495-25-02209; nomor laporan usaha perdagangan melalui media elektronik: 제2026-경북봉화-0037호; 1166-68 Yebong-ro, Sangun-myeon, Bonghwa-gun, Gyeongsangbuk-do, Republik Korea; telepon +82-70-7620-7256). Pejabat privasi kami adalah Yusang Lee (perwakilan). Anda dapat menghubungi kami, termasuk pejabat privasi kami, melalui {email}.",
     ),
     summary: sec("2. Ringkasan", [
       "Alur, rekaman, profil Keyforge, dan log eksekusi disimpan dan diproses di perangkat Anda.",

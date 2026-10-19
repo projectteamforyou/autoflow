@@ -57,7 +57,7 @@ export const ko: Content = {
     contact: "문의하기",
     releases: "릴리스 노트",
     rights: "© Copyright 2026, Projectteamforyou. All rights reserved.",
-    made: "클릭보다 더 중요한 일이 있는 모든 사람을 위해, 서울에서 만들었습니다.",
+    made: "클릭보다 더 중요한 일이 있는 모든 사람을 위해, 대한민국에서 만들었습니다.",
   },
   labels: {
     platforms: { windows: "Windows", android: "Android", web: "웹" },

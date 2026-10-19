@@ -57,7 +57,7 @@ export const vi: Content = {
     contact: "Liên hệ",
     releases: "Ghi chú phát hành",
     rights: "© Copyright 2026, Projectteamforyou. All rights reserved.",
-    made: "Làm ở Seoul, dành cho những ai có việc quan trọng hơn là ngồi nhấp chuột.",
+    made: "Được làm tại Hàn Quốc cho những ai có việc quan trọng hơn là nhấp chuột.",
   },
   labels: {
     platforms: { windows: "Windows", android: "Android", web: "Web" },

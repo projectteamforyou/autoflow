@@ -11,7 +11,7 @@ export const privacy: Privacy = {
   sections: {
     controller: sec(
       "1. 個人情報取扱事業者",
-      "AutoFlow を通じて取り扱われる個人情報の管理者は **ProjectTeamForYou**（以下「当方」）です。個人情報保護の責任者へのお問い合わせを含め、{email} までご連絡ください。",
+      "AutoFlowを通じて取り扱われる個人情報の管理者は、**ProjectTeamForYou**（プロジェクト팀포유；代表者：Yusang Lee；事業者登録番号：495-25-02209；通信販売業届出番号：제2026-경북봉화-0037호；所在地：1166-68 Yebong-ro, Sangun-myeon, Bonghwa-gun, Gyeongsangbuk-do, Republic of Korea；電話番号：+82-70-7620-7256）です。当社の個人情報保護管理責任者はYusang Lee（代表者）です。当社および個人情報保護管理責任者へのご連絡は、{email}までお願いいたします。",
     ),
     summary: sec("2. 要点", [
       "フロー、記録、Keyforge のプロファイル、実行ログは、あなたの端末に保存され、端末上で処理されます。",

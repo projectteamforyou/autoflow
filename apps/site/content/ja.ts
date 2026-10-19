@@ -57,7 +57,7 @@ export const ja: Content = {
     contact: "お問い合わせ",
     releases: "リリースノート",
     rights: "© Copyright 2026, Projectteamforyou. All rights reserved.",
-    made: "クリックより大切なことがあるすべての人のために、ソウルで開発しています。",
+    made: "クリックより大切なことがあるすべての人へ。韓国で作りました。",
   },
   labels: {
     platforms: { windows: "Windows", android: "Android", web: "Web" },

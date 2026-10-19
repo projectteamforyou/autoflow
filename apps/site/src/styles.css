@@ -445,10 +445,10 @@ ul { margin: 0; padding: 0; }
 }
 
 /* Live counters + business details (footer) */
-.foot-stats { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; margin-top: 28px; padding: 14px 18px; border: 1px solid var(--af-border); border-radius: 14px; background: var(--af-surface); }
-.foot-stats .stat { display: flex; align-items: baseline; gap: 8px; }
-.foot-stats .stat-n { font-size: 20px; font-weight: 750; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
-.foot-stats .stat-l { color: var(--af-muted); font-size: 13.5px; }
+.foot-stats { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 10px 26px; margin-top: 28px; padding: 10px 18px; border: 1px solid var(--af-border); border-radius: 14px; background: var(--af-surface); }
+.foot-stats .fs-item { display: flex; align-items: baseline; gap: 8px; }
+.foot-stats .fs-n { font-size: 20px; font-weight: 750; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.foot-stats .fs-l { color: var(--af-muted); font-size: 13.5px; }
 .live-dot { width: 9px; height: 9px; border-radius: 50%; background: #22c3a6; box-shadow: 0 0 0 0 rgba(34, 195, 166, .6); animation: livepulse 1.8s infinite; }
 @keyframes livepulse { 70% { box-shadow: 0 0 0 9px rgba(34, 195, 166, 0); } 100% { box-shadow: 0 0 0 0 rgba(34, 195, 166, 0); } }
 @media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }

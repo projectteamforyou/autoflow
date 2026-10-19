@@ -57,7 +57,7 @@ export const zhTW: Content = {
     contact: "聯絡我們",
     releases: "版本資訊",
     rights: "© Copyright 2026, Projectteamforyou. All rights reserved.",
-    made: "在首爾打造，獻給每個有比點滑鼠更重要的事要做的人。",
+    made: "為所有有比點擊更重要事情要做的人，在韓國打造。",
   },
   labels: {
     platforms: { windows: "Windows", android: "Android", web: "網頁" },

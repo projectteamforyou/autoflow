@@ -57,7 +57,7 @@ export const de: Content = {
     contact: "Kontakt",
     releases: "Versionshinweise",
     rights: "© Copyright 2026, Projectteamforyou. All rights reserved.",
-    made: "Gebaut in Seoul – für alle, die Besseres zu tun haben, als zu klicken.",
+    made: "Gemacht in Korea – für alle, die Besseres zu tun haben als zu klicken.",
   },
   labels: {
     platforms: { windows: "Windows", android: "Android", web: "Web" },

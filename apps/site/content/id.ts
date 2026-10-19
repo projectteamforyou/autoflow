@@ -57,7 +57,7 @@ export const id: Content = {
     contact: "Kontak",
     releases: "Catatan rilis",
     rights: "© Copyright 2026, Projectteamforyou. All rights reserved.",
-    made: "Dibuat di Seoul untuk siapa saja yang punya urusan lebih penting daripada mengeklik.",
+    made: "Dibuat di Korea untuk semua orang yang punya hal lebih penting daripada mengklik.",
   },
   labels: {
     platforms: { windows: "Windows", android: "Android", web: "Web" },

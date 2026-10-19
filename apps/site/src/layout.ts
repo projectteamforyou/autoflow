@@ -121,7 +121,7 @@ ${LOCALES.map((l) => `<li><a href="${pagePath(l.code, target)}" hreflang="${l.hr
 /** Live public counters, filled in by client.js from GET /v1/stats (hidden until loaded). */
 function statsBar(ctx: Ctx): string {
   const s = ctx.t.footer.stats;
-  const item = (key: string, label: string) => `<div class="stat"><span class="stat-n" data-stat="${key}">—</span><span class="stat-l">${esc(label)}</span></div>`;
+  const item = (key: string, label: string) => `<div class="fs-item"><span class="fs-n" data-stat="${key}">—</span><span class="fs-l">${esc(label)}</span></div>`;
   return `<section class="foot-stats" aria-label="${esc(s.statsTitle)}" data-api="${API_ORIGIN}" hidden><span class="live-dot" aria-hidden="true"></span>${item("visits", s.visits)}${item("online", s.online)}${item("downloads", s.downloads)}</section>`;
 }
 

@@ -57,7 +57,7 @@ export const zhCN: Content = {
     contact: "联系我们",
     releases: "版本说明",
     rights: "© Copyright 2026, Projectteamforyou. All rights reserved.",
-    made: "在首尔打造，献给每一个有比点击更重要的事要做的人。",
+    made: "为所有有比点击更重要事情要做的人，在韩国打造。",
   },
   labels: {
     platforms: { windows: "Windows", android: "Android", web: "网页" },
