@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_service_label">Automações do AutoFlow</string>
+    <string name="accessibility_service_summary">Executa os toques, deslizes e a digitação dos fluxos que você cria e inicia.</string>
+    <string name="accessibility_service_description">O AutoFlow usa este serviço de acessibilidade apenas para executar os toques, deslizes, toques longos, rolagens, a digitação e as ações do sistema (como Voltar ou Início) que você coloca nos seus próprios fluxos, e para mostrar um botão flutuante de Parar enquanto um fluxo é executado. Ele só olha a tela para encontrar o campo de texto em que você digita ou o elemento que o seu fluxo indica. Não coleta, armazena nem compartilha o que está na sua tela, nunca age nas telas de bloqueio, de permissões ou de Configurações e só age quando você inicia um fluxo ou quando um gatilho que você configurou é acionado. Você pode parar qualquer execução a qualquer momento.</string>
+    <string name="notification_listener_label">Gatilhos de notificação do AutoFlow</string>
+    <string name="channel_runs">Fluxos em execução</string>
+    <string name="channel_runs_desc">Mostra o fluxo em execução com Parar e Pausar.</string>
+    <string name="channel_flow">Mensagens dos fluxos</string>
+    <string name="channel_flow_desc">Notificações enviadas pelas etapas de notificação dos seus fluxos.</string>
+    <string name="channel_confirm">Perguntas</string>
+    <string name="channel_confirm_desc">Perguntas de sim ou não feitas pelas etapas de confirmação dos seus fluxos.</string>
+    <string name="run_notification_one" formatted="true">Em execução: %1$s</string>
+    <string name="run_notification_many" formatted="true">%1$d fluxos em execução</string>
+    <string name="run_state_countdown" formatted="true">Começa em %1$d s…</string>
+    <string name="run_state_paused">Pausado</string>
+    <string name="run_state_running">Em execução — toque em Parar para encerrar</string>
+    <string name="action_stop">Parar</string>
+    <string name="action_pause">Pausar</string>
+    <string name="action_resume">Retomar</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="confirm_title">O AutoFlow pergunta</string>
+    <string name="confirm_yes">Sim</string>
+    <string name="confirm_no">Não</string>
+    <string name="halt_button">Parar todos os fluxos (Halt)</string>
+    <string name="pick_point_hint">Toque no ponto que deseja usar</string>
+    <string name="recording_banner">● Gravando — toque aqui para terminar</string>
+</resources>

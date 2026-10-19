@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_service_label">AutoFlow 自动化</string>
+    <string name="accessibility_service_summary">执行您创建并启动的流程中的点按、滑动和输入。</string>
+    <string name="accessibility_service_description">AutoFlow 仅将此无障碍服务用于执行您在自己创建的流程中设置的点按、滑动、长按、滚动、文字输入和系统操作（如返回或主屏幕），并在流程运行时显示悬浮停止按钮。它只会为了找到要输入文字的输入框或流程指定的元素而查看屏幕。AutoFlow 不会收集、存储或分享屏幕上的内容，绝不会在锁屏、权限或设置界面上操作，并且只在您启动流程或您设置的触发器触发时才会运行。您可以随时停止任何运行。</string>
+    <string name="notification_listener_label">AutoFlow 通知触发器</string>
+    <string name="channel_runs">运行中的流程</string>
+    <string name="channel_runs_desc">显示正在运行的流程，并提供停止和暂停。</string>
+    <string name="channel_flow">流程消息</string>
+    <string name="channel_flow_desc">由流程中的通知步骤发送的通知。</string>
+    <string name="channel_confirm">确认问题</string>
+    <string name="channel_confirm_desc">由流程中的确认步骤提出的是/否问题。</string>
+    <string name="run_notification_one" formatted="true">正在运行：%1$s</string>
+    <string name="run_notification_many" formatted="true">%1$d 个流程正在运行</string>
+    <string name="run_state_countdown" formatted="true">%1$d 秒后开始…</string>
+    <string name="run_state_paused">已暂停</string>
+    <string name="run_state_running">运行中 — 点按停止即可结束</string>
+    <string name="action_stop">停止</string>
+    <string name="action_pause">暂停</string>
+    <string name="action_resume">继续</string>
+    <string name="action_cancel">取消</string>
+    <string name="confirm_title">AutoFlow 询问</string>
+    <string name="confirm_yes">是</string>
+    <string name="confirm_no">否</string>
+    <string name="halt_button">停止所有流程（Halt）</string>
+    <string name="pick_point_hint">点按要使用的位置</string>
+    <string name="recording_banner">● 正在录制 — 点按此处结束</string>
+</resources>

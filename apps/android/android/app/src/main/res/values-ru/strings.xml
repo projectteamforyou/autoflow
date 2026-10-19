@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_service_label">Автоматизации AutoFlow</string>
+    <string name="accessibility_service_summary">Выполняет нажатия, свайпы и ввод текста в сценариях, которые вы создали и запустили.</string>
+    <string name="accessibility_service_description">AutoFlow использует эту службу специальных возможностей только для того, чтобы выполнять нажатия, свайпы, долгие нажатия, прокрутку, ввод текста и системные действия (например, «Назад» или «Домой»), которые вы сами добавили в свои сценарии, а также чтобы показывать плавающую кнопку «Стоп» во время выполнения сценария. Экран анализируется только для того, чтобы найти поле, в которое вводится текст, или элемент, указанный в сценарии. AutoFlow не собирает, не хранит и не передаёт содержимое экрана, никогда не действует на экране блокировки, в запросах разрешений и в Настройках и работает только тогда, когда вы запускаете сценарий или срабатывает настроенный вами триггер. Любой запуск можно остановить в любой момент.</string>
+    <string name="notification_listener_label">Триггеры уведомлений AutoFlow</string>
+    <string name="channel_runs">Выполняемые сценарии</string>
+    <string name="channel_runs_desc">Показывает выполняемый сценарий с кнопками «Стоп» и «Пауза».</string>
+    <string name="channel_flow">Сообщения сценариев</string>
+    <string name="channel_flow_desc">Уведомления из шагов «Уведомить» ваших сценариев.</string>
+    <string name="channel_confirm">Вопросы</string>
+    <string name="channel_confirm_desc">Вопросы «да/нет» из шагов «Подтвердить» ваших сценариев.</string>
+    <string name="run_notification_one" formatted="true">Выполняется: %1$s</string>
+    <string name="run_notification_many" formatted="true">Выполняется сценариев: %1$d</string>
+    <string name="run_state_countdown" formatted="true">Старт через %1$d с…</string>
+    <string name="run_state_paused">Пауза</string>
+    <string name="run_state_running">Выполняется — нажмите «Стоп», чтобы завершить</string>
+    <string name="action_stop">Стоп</string>
+    <string name="action_pause">Пауза</string>
+    <string name="action_resume">Продолжить</string>
+    <string name="action_cancel">Отмена</string>
+    <string name="confirm_title">Вопрос от AutoFlow</string>
+    <string name="confirm_yes">Да</string>
+    <string name="confirm_no">Нет</string>
+    <string name="halt_button">Остановить все сценарии (Halt)</string>
+    <string name="pick_point_hint">Нажмите на нужную точку</string>
+    <string name="recording_banner">● Идёт запись — нажмите здесь, чтобы закончить</string>
+</resources>

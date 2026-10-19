@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_service_label">Tự động hóa AutoFlow</string>
+    <string name="accessibility_service_summary">Thực hiện các thao tác chạm, vuốt và nhập chữ trong luồng bạn tạo và khởi chạy.</string>
+    <string name="accessibility_service_description">AutoFlow chỉ dùng dịch vụ hỗ trợ tiếp cận này để thực hiện các thao tác chạm, vuốt, nhấn giữ, cuộn, nhập văn bản và hành động hệ thống (như Quay lại hoặc Màn hình chính) mà bạn đưa vào các luồng của chính mình, và để hiển thị nút Dừng nổi khi luồng đang chạy. Ứng dụng chỉ xem màn hình để tìm ô văn bản bạn nhập vào hoặc phần tử mà luồng nhắm tới. AutoFlow không thu thập, lưu trữ hay chia sẻ nội dung trên màn hình, không bao giờ thao tác trên màn hình khóa, màn hình cấp quyền hay Cài đặt, và chỉ hoạt động khi bạn khởi chạy một luồng hoặc khi trình kích hoạt bạn đã thiết lập được kích hoạt. Bạn có thể dừng bất kỳ lần chạy nào vào bất cứ lúc nào.</string>
+    <string name="notification_listener_label">Trình kích hoạt thông báo AutoFlow</string>
+    <string name="channel_runs">Luồng đang chạy</string>
+    <string name="channel_runs_desc">Hiển thị luồng đang chạy kèm nút Dừng và Tạm dừng.</string>
+    <string name="channel_flow">Tin nhắn của luồng</string>
+    <string name="channel_flow_desc">Thông báo do bước thông báo trong luồng của bạn gửi.</string>
+    <string name="channel_confirm">Câu hỏi</string>
+    <string name="channel_confirm_desc">Câu hỏi Có/Không từ bước xác nhận trong luồng của bạn.</string>
+    <string name="run_notification_one" formatted="true">Đang chạy: %1$s</string>
+    <string name="run_notification_many" formatted="true">%1$d luồng đang chạy</string>
+    <string name="run_state_countdown" formatted="true">Bắt đầu sau %1$d giây…</string>
+    <string name="run_state_paused">Đã tạm dừng</string>
+    <string name="run_state_running">Đang chạy — chạm Dừng để kết thúc</string>
+    <string name="action_stop">Dừng</string>
+    <string name="action_pause">Tạm dừng</string>
+    <string name="action_resume">Tiếp tục</string>
+    <string name="action_cancel">Hủy</string>
+    <string name="confirm_title">AutoFlow hỏi</string>
+    <string name="confirm_yes">Có</string>
+    <string name="confirm_no">Không</string>
+    <string name="halt_button">Dừng mọi luồng (Halt)</string>
+    <string name="pick_point_hint">Chạm vào vị trí cần dùng</string>
+    <string name="recording_banner">● Đang ghi — chạm vào đây để kết thúc</string>
+</resources>

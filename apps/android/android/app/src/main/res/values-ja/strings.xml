@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_service_label">AutoFlow 自動化</string>
+    <string name="accessibility_service_summary">作成して開始したフローのタップ・スワイプ・入力を実行します。</string>
+    <string name="accessibility_service_description">AutoFlow はこのユーザー補助サービスを、ご自身で作成したフローに含まれるタップ、スワイプ、長押し、スクロール、文字入力、システム操作（戻る・ホームなど）を実行し、フローの実行中に停止ボタンを画面に表示するためだけに使用します。画面の内容を確認するのは、入力先のテキスト欄やフローが指定した要素を見つけるときだけです。画面の内容を収集・保存・共有することはなく、ロック画面・権限画面・設定画面では一切操作せず、フローを開始したときや設定したトリガーが作動したときにだけ動作します。実行はいつでも停止できます。</string>
+    <string name="notification_listener_label">AutoFlow 通知トリガー</string>
+    <string name="channel_runs">実行中のフロー</string>
+    <string name="channel_runs_desc">実行中のフローを停止・一時停止ボタン付きで表示します。</string>
+    <string name="channel_flow">フローのメッセージ</string>
+    <string name="channel_flow_desc">フローの通知ステップが送る通知です。</string>
+    <string name="channel_confirm">確認</string>
+    <string name="channel_confirm_desc">フローの確認ステップが尋ねる「はい／いいえ」の質問です。</string>
+    <string name="run_notification_one" formatted="true">実行中: %1$s</string>
+    <string name="run_notification_many" formatted="true">%1$d 件のフローを実行中</string>
+    <string name="run_state_countdown" formatted="true">%1$d 秒後に開始…</string>
+    <string name="run_state_paused">一時停止中</string>
+    <string name="run_state_running">実行中 — 終了するには停止をタップ</string>
+    <string name="action_stop">停止</string>
+    <string name="action_pause">一時停止</string>
+    <string name="action_resume">再開</string>
+    <string name="action_cancel">キャンセル</string>
+    <string name="confirm_title">AutoFlow からの確認</string>
+    <string name="confirm_yes">はい</string>
+    <string name="confirm_no">いいえ</string>
+    <string name="halt_button">すべてのフローを停止（Halt）</string>
+    <string name="pick_point_hint">使用する位置をタップしてください</string>
+    <string name="recording_banner">● 記録中 — ここをタップして終了</string>
+</resources>

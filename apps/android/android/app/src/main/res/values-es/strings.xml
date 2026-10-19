@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_service_label">Automatizaciones de AutoFlow</string>
+    <string name="accessibility_service_summary">Realiza los toques, deslizamientos y la escritura de los flujos que creas e inicias.</string>
+    <string name="accessibility_service_description">AutoFlow usa este servicio de accesibilidad solo para realizar los toques, deslizamientos, pulsaciones largas, desplazamientos, la escritura y las acciones del sistema (como Atrás o Inicio) que incluyes en tus propios flujos, y para mostrar un botón flotante de Detener mientras se ejecuta un flujo. Solo mira la pantalla para encontrar el campo de texto en el que escribes o el elemento al que apunta tu flujo. No recopila, guarda ni comparte lo que hay en tu pantalla, nunca actúa en las pantallas de bloqueo, de permisos ni de Ajustes, y solo actúa cuando inicias un flujo o se activa un disparador que configuraste. Puedes detener cualquier ejecución en cualquier momento.</string>
+    <string name="notification_listener_label">Disparadores de notificaciones de AutoFlow</string>
+    <string name="channel_runs">Flujos en ejecución</string>
+    <string name="channel_runs_desc">Muestra el flujo en ejecución con Detener y Pausar.</string>
+    <string name="channel_flow">Mensajes de flujos</string>
+    <string name="channel_flow_desc">Notificaciones enviadas por los pasos «notificar» de tus flujos.</string>
+    <string name="channel_confirm">Preguntas</string>
+    <string name="channel_confirm_desc">Preguntas de sí o no de los pasos «confirmar» de tus flujos.</string>
+    <string name="run_notification_one" formatted="true">En ejecución: %1$s</string>
+    <string name="run_notification_many" formatted="true">%1$d flujos en ejecución</string>
+    <string name="run_state_countdown" formatted="true">Empieza en %1$d s…</string>
+    <string name="run_state_paused">En pausa</string>
+    <string name="run_state_running">En ejecución: toca Detener para terminar</string>
+    <string name="action_stop">Detener</string>
+    <string name="action_pause">Pausar</string>
+    <string name="action_resume">Reanudar</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="confirm_title">AutoFlow pregunta</string>
+    <string name="confirm_yes">Sí</string>
+    <string name="confirm_no">No</string>
+    <string name="halt_button">Detener todos los flujos (Halt)</string>
+    <string name="pick_point_hint">Toca el punto que quieres usar</string>
+    <string name="recording_banner">● Grabando: toca aquí para terminar</string>
+</resources>

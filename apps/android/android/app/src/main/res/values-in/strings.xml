@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_service_label">Otomatisasi AutoFlow</string>
+    <string name="accessibility_service_summary">Menjalankan ketukan, geser, dan pengetikan dalam alur yang Anda buat dan mulai.</string>
+    <string name="accessibility_service_description">AutoFlow menggunakan layanan aksesibilitas ini hanya untuk menjalankan ketukan, geser, tekan lama, gulir, pengetikan, dan tindakan sistem (seperti Kembali atau Beranda) yang Anda masukkan ke alur buatan Anda sendiri, serta untuk menampilkan tombol Berhenti mengambang saat alur berjalan. AutoFlow hanya melihat layar untuk menemukan kolom teks tempat Anda mengetik atau elemen yang dituju alur Anda. AutoFlow tidak mengumpulkan, menyimpan, atau membagikan isi layar Anda, tidak pernah bertindak di layar kunci, layar izin, atau Setelan, dan hanya bertindak saat Anda memulai alur atau saat pemicu yang Anda atur aktif. Anda dapat menghentikan setiap proses kapan saja.</string>
+    <string name="notification_listener_label">Pemicu notifikasi AutoFlow</string>
+    <string name="channel_runs">Alur yang berjalan</string>
+    <string name="channel_runs_desc">Menampilkan alur yang sedang berjalan dengan Berhenti dan Jeda.</string>
+    <string name="channel_flow">Pesan alur</string>
+    <string name="channel_flow_desc">Notifikasi yang dikirim oleh langkah notifikasi di alur Anda.</string>
+    <string name="channel_confirm">Pertanyaan</string>
+    <string name="channel_confirm_desc">Pertanyaan Ya/Tidak dari langkah konfirmasi di alur Anda.</string>
+    <string name="run_notification_one" formatted="true">Berjalan: %1$s</string>
+    <string name="run_notification_many" formatted="true">%1$d alur berjalan</string>
+    <string name="run_state_countdown" formatted="true">Mulai dalam %1$d dtk…</string>
+    <string name="run_state_paused">Dijeda</string>
+    <string name="run_state_running">Berjalan — ketuk Berhenti untuk mengakhiri</string>
+    <string name="action_stop">Berhenti</string>
+    <string name="action_pause">Jeda</string>
+    <string name="action_resume">Lanjutkan</string>
+    <string name="action_cancel">Batal</string>
+    <string name="confirm_title">AutoFlow bertanya</string>
+    <string name="confirm_yes">Ya</string>
+    <string name="confirm_no">Tidak</string>
+    <string name="halt_button">Hentikan semua alur (Halt)</string>
+    <string name="pick_point_hint">Ketuk titik yang ingin digunakan</string>
+    <string name="recording_banner">● Merekam — ketuk di sini untuk selesai</string>
+</resources>

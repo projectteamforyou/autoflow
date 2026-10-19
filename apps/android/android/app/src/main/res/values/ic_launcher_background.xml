@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- packages/brand/brand.json colors.bg -->
+    <color name="ic_launcher_background">#0B0B1A</color>
+    <color name="autoflow_bg">#0B0B1A</color>
+    <color name="autoflow_primary">#7C5CFF</color>
+    <color name="autoflow_accent">#22C3A6</color>
+</resources>

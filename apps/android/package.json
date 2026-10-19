@@ -2,7 +2,7 @@
   "name": "@autoflow/android",
   "version": "1.0.0",
   "private": true,
-  "description": "AutoFlow for Android — Capacitor shell around the web app (../web/dist) with the native Kotlin engine, accessibility gesture executor, triggers and Keystore secrets.",
+  "description": "AutoFlow for Android \u2014 Capacitor shell around the web app (../web/dist) with the native Kotlin engine, accessibility gesture executor, triggers and Keystore secrets.",
   "scripts": {
     "sync": "cap sync android",
     "open": "cap open android",
@@ -16,5 +16,17 @@
   },
   "devDependencies": {
     "@capacitor/cli": "8.5.3"
+  },
+  "exports": {
+    "./web-bridge": "./web-bridge.ts",
+    "./package.json": "./package.json"
+  },
+  "peerDependencies": {
+    "@autoflow/core": "*"
+  },
+  "peerDependenciesMeta": {
+    "@autoflow/core": {
+      "optional": true
+    }
   }
 }
