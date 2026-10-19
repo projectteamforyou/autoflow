@@ -1,0 +1,155 @@
+[
+  {
+    "id": "auto-clicker",
+    "category": "clicking",
+    "platforms": [
+      "windows",
+      "android",
+      "web"
+    ],
+    "explain": "When you press Run\n  Repeat 100 times:\n    Click left at 50% across, 50% down the screen\n    Wait 250ms\nStops automatically after 10m · emergency stop Ctrl+Alt+Escape"
+  },
+  {
+    "id": "multi-point",
+    "category": "clicking",
+    "platforms": [
+      "windows",
+      "android",
+      "web"
+    ],
+    "explain": "When you press Run\n  Repeat until stopped:\n    Click left at 30% across, 40% down the screen\n    Wait 500ms\n    Click left at 50% across, 40% down the screen\n    Wait 500ms\n    Click left at 70% across, 40% down the screen\n    Wait 500ms\nStops automatically after 10m · emergency stop Ctrl+Alt+Escape"
+  },
+  {
+    "id": "hold-to-repeat",
+    "category": "keyboard",
+    "platforms": [
+      "windows",
+      "android",
+      "web"
+    ],
+    "explain": "When you press Run\n  Set __easyStart = now()\n  Repeat while now() - __easyStart < 300000:\n    Press Space ×1\n    Wait 200ms\nStops automatically after 6m · emergency stop Ctrl+Alt+Escape"
+  },
+  {
+    "id": "signature",
+    "category": "office",
+    "platforms": [
+      "windows",
+      "android",
+      "web"
+    ],
+    "explain": "When you press Ctrl+Alt+S\n  Type “Best regards,\n{{name}}\n{{date()}}”\nStops automatically after 10m · emergency stop Ctrl+Alt+Escape"
+  },
+  {
+    "id": "form-filler",
+    "category": "office",
+    "platforms": [
+      "windows",
+      "android",
+      "web"
+    ],
+    "explain": "When you press Run\n  For each row in split(rows, \"|\"):\n    Set fields = split(row, \";\")\n    Type “{{fields[0]}}”\n    Press Tab ×1\n    Type “{{fields[1]}}”\n    Ask: “Submit {{fields[0]}}?”\n    If submit:\n      Press Enter ×1\n    Wait 1.5s\nStops automatically after 10m · emergency stop Ctrl+Alt+Escape"
+  },
+  {
+    "id": "break-reminder",
+    "category": "wellbeing",
+    "platforms": [
+      "windows",
+      "android",
+      "web"
+    ],
+    "explain": "Every 20m\n  Show notification “Eye break”\nStops automatically after 10m · emergency stop Ctrl+Alt+Escape"
+  },
+  {
+    "id": "anti-idle-test",
+    "category": "testing",
+    "platforms": [
+      "windows",
+      "web"
+    ],
+    "explain": "When you press Run\n  Repeat until stopped:\n    Move the pointer to 50% across, 50% down the screen\n    Move the pointer to 51% across, 50% down the screen\n    Wait 1m\nStops automatically after 2h · emergency stop Ctrl+Alt+Escape"
+  },
+  {
+    "id": "ui-smoke",
+    "category": "testing",
+    "platforms": [
+      "windows",
+      "android",
+      "web"
+    ],
+    "explain": "When you press Run\n  Write to the run log: Smoke test started at {{time()}}\n  Try:\n    Click left at 20% across, 10% down the screen\n    Wait 800ms\n    Click left at 50% across, 60% down the screen\n  If something fails:\n    Write to the run log: Failed: {{err}}\n    Show notification “Smoke test failed”\n  Write to the run log: Smoke test finished\nStops automatically after 10m · emergency stop Ctrl+Alt+Escape"
+  },
+  {
+    "id": "scroll-reader",
+    "category": "accessibility",
+    "platforms": [
+      "windows",
+      "android",
+      "web"
+    ],
+    "explain": "When you press Run\n  Repeat until stopped:\n    Scroll by (0, 120)\n    Wait 4s\nStops automatically after 1h · emergency stop Ctrl+Alt+Escape"
+  },
+  {
+    "id": "dwell-click",
+    "category": "accessibility",
+    "platforms": [
+      "windows",
+      "web"
+    ],
+    "explain": "When you press F8\n  Press and hold left at the current pointer position for 1000 ms\nStops automatically after 10m · emergency stop Ctrl+Alt+Escape"
+  },
+  {
+    "id": "android-swipe-feed",
+    "category": "mobile",
+    "platforms": [
+      "android",
+      "web"
+    ],
+    "explain": "When you press Run\n  Repeat until stopped:\n    Drag from 50% across, 75% down the screen to 50% across, 30% down the screen\n    Wait 6s\nStops automatically after 30m · emergency stop Ctrl+Alt+Escape"
+  },
+  {
+    "id": "android-night-routine",
+    "category": "mobile",
+    "platforms": [
+      "android"
+    ],
+    "explain": "When charging starts\n  If hour() >= 22 || hour() < 5:\n    Show notification “Wind down”\n    Open app com.google.android.deskclock\nStops automatically after 10m · emergency stop Ctrl+Alt+Escape"
+  },
+  {
+    "id": "window-layout",
+    "category": "developer",
+    "platforms": [
+      "windows"
+    ],
+    "explain": "When you press Run\n  Open app msedge.exe\n  Wait 1.5s\n  Move window msedge.exe\n  Open app code\n  Wait 2s\n  Move window Code.exe\n  Open app wt.exe\nStops automatically after 10m · emergency stop Ctrl+Alt+Escape"
+  },
+  {
+    "id": "status-check",
+    "category": "developer",
+    "platforms": [
+      "windows",
+      "android",
+      "web"
+    ],
+    "explain": "Every 10m\n  Try:\n    Send GET request to https://example.com\n  If something fails:\n    Show notification “Site check failed”\nStops automatically after 10m · emergency stop Ctrl+Alt+Escape"
+  },
+  {
+    "id": "copy-cleaner",
+    "category": "office",
+    "platforms": [
+      "windows",
+      "android",
+      "web"
+    ],
+    "explain": "When you press Ctrl+Alt+V\n  Read the clipboard into clip\n  Set clip = replace(replace(clip, \"\\n\", \" \"), \"  \", \" \")\n  Copy text to the clipboard\n  Show notification “Clipboard cleaned”\nStops automatically after 10m · emergency stop Ctrl+Alt+Escape"
+  },
+  {
+    "id": "countdown-timer",
+    "category": "wellbeing",
+    "platforms": [
+      "windows",
+      "android",
+      "web"
+    ],
+    "explain": "When you press Run\n  Show notification “Focus started”\n  Wait 25m\n  Show notification “Time for a break”\nStops automatically after 26m 40s · emergency stop Ctrl+Alt+Escape"
+  }
+]

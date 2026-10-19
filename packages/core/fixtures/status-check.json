@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "1.0",
+  "id": "tpl_status-check",
+  "name": "Website status check",
+  "description": "Every 10 minutes, checks a URL and notifies you if it does not answer.",
+  "tags": [],
+  "icon": "globe",
+  "color": "#EF4444",
+  "targets": [
+    "windows",
+    "android",
+    "web"
+  ],
+  "mode": "pro",
+  "trigger": {
+    "type": "schedule",
+    "everyMs": 600000
+  },
+  "hotkeys": {
+    "stop": {
+      "key": "Escape",
+      "modifiers": [
+        "ctrl",
+        "alt"
+      ]
+    }
+  },
+  "limits": {
+    "maxDurationMs": 600000,
+    "maxActions": 100000,
+    "maxIterations": 1000000,
+    "countdownMs": 0,
+    "preventOverlap": true,
+    "cooldownMs": 0
+  },
+  "variables": [
+    {
+      "name": "url",
+      "type": "string",
+      "initial": "https://example.com"
+    }
+  ],
+  "steps": [
+    {
+      "id": "try",
+      "type": "try",
+      "body": [
+        {
+          "id": "h",
+          "type": "http",
+          "method": "GET",
+          "url": "https://example.com",
+          "headers": {},
+          "resultVar": "res"
+        }
+      ],
+      "catch": [
+        {
+          "id": "n",
+          "type": "notify",
+          "title": "Site check failed",
+          "body": "{{err}}"
+        }
+      ],
+      "errorVar": "err"
+    }
+  ],
+  "favorite": false,
+  "createdAt": "2026-10-19T00:00:00.000Z",
+  "updatedAt": "2026-10-19T00:00:00.000Z",
+  "revision": 0
+}

@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "1.0",
+  "id": "tpl_scroll-reader",
+  "name": "Hands-free reader",
+  "description": "Scrolls down a little every 4 seconds so you can read long pages without touching the mouse.",
+  "tags": [],
+  "icon": "book",
+  "color": "#8B5CF6",
+  "targets": [
+    "windows",
+    "android",
+    "web"
+  ],
+  "mode": "pro",
+  "trigger": {
+    "type": "manual"
+  },
+  "hotkeys": {
+    "stop": {
+      "key": "Escape",
+      "modifiers": [
+        "ctrl",
+        "alt"
+      ]
+    }
+  },
+  "limits": {
+    "maxDurationMs": 3600000,
+    "maxActions": 100000,
+    "maxIterations": 1000000,
+    "countdownMs": 3000,
+    "preventOverlap": true,
+    "cooldownMs": 0
+  },
+  "variables": [],
+  "steps": [
+    {
+      "id": "loop",
+      "type": "loop",
+      "mode": "forever",
+      "body": [
+        {
+          "id": "s",
+          "type": "scroll",
+          "dx": 0,
+          "dy": 120
+        },
+        {
+          "id": "w",
+          "type": "wait",
+          "ms": 4000,
+          "jitterMs": 0
+        }
+      ]
+    }
+  ],
+  "favorite": false,
+  "createdAt": "2026-10-19T00:00:00.000Z",
+  "updatedAt": "2026-10-19T00:00:00.000Z",
+  "revision": 0
+}

@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "1.0",
+  "id": "tpl_hold-to-repeat",
+  "name": "Key repeater",
+  "description": "Press Space every 200 ms for 5 minutes — handy for testing or long presses you would otherwise hold.",
+  "tags": [],
+  "icon": "keyboard",
+  "color": "#F59E0B",
+  "targets": [
+    "windows",
+    "android",
+    "web"
+  ],
+  "mode": "easy",
+  "trigger": {
+    "type": "manual"
+  },
+  "hotkeys": {
+    "stop": {
+      "key": "Escape",
+      "modifiers": [
+        "ctrl",
+        "alt"
+      ]
+    }
+  },
+  "limits": {
+    "maxDurationMs": 360000,
+    "maxActions": 100000,
+    "maxIterations": 1000000,
+    "countdownMs": 3000,
+    "preventOverlap": true,
+    "cooldownMs": 0
+  },
+  "variables": [],
+  "steps": [
+    {
+      "id": "start",
+      "type": "setVar",
+      "name": "__easyStart",
+      "value": "now()"
+    },
+    {
+      "id": "loop",
+      "type": "loop",
+      "mode": "while",
+      "condition": {
+        "expr": "now() - __easyStart < 300000"
+      },
+      "body": [
+        {
+          "id": "k",
+          "type": "key",
+          "key": "Space",
+          "modifiers": [],
+          "action": "press",
+          "repeat": 1
+        },
+        {
+          "id": "w",
+          "type": "wait",
+          "ms": 200,
+          "jitterMs": 0
+        }
+      ]
+    }
+  ],
+  "favorite": false,
+  "createdAt": "2026-10-19T00:00:00.000Z",
+  "updatedAt": "2026-10-19T00:00:00.000Z",
+  "revision": 0
+}

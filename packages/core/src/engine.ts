@@ -1,0 +1,643 @@
+/**
+ * Deterministic flow interpreter.
+ *
+ * - Executes a validated Flow against a platform Backend (sandbox, Tauri bridge, Android bridge…).
+ * - Enforces limits (duration, actions, iterations), stop within one sleep slice, pause/resume,
+ *   breakpoints and single-stepping, per-step error policies, and pre-run checks
+ *   (unsupported steps, risky steps needing confirmation, screen-geometry drift).
+ * - Emits structured events so every surface can show live state and a run ledger.
+ */
+import type { Flow, Platform, Step, Target, Hotkey } from "./schema.js";
+import { walkSteps } from "./schema.js";
+import { evalExpr, interpolate, toStr, truthy, type ExprEnv, type Value } from "./expr.js";
+import { compatibility, type CompatIssue } from "./capabilities.js";
+import { analyzeRisk, type RiskReport } from "./risk.js";
+
+/* ----------------------------------------------------------------- backend */
+
+export type InputAction =
+  | { type: "click"; target: Target; button: string; clicks: number; holdMs: number; modifiers: string[] }
+  | { type: "move"; target: Target; durationMs: number }
+  | { type: "drag"; from: Target; to: Target; durationMs: number; button: string }
+  | { type: "scroll"; dx: number; dy: number; target?: Target }
+  | { type: "key"; key: string; modifiers: string[]; action: "press" | "down" | "up" }
+  | { type: "type"; text: string; perCharDelayMs: number }
+  | { type: "launchApp"; app: string; args: string[] }
+  | { type: "openUrl"; url: string }
+  | { type: "window"; op: string; match: { title?: string; app?: string }; rect?: { x: number; y: number; w: number; h: number } }
+  | { type: "androidGlobal"; action: string }
+  | { type: "clipboardSet"; value: string }
+  | { type: "clipboardGet" }
+  | { type: "notify"; title: string; body: string }
+  | { type: "http"; method: string; url: string; headers: Record<string, string>; body?: string }
+  | { type: "file"; op: string; path: string; dest?: string; content?: string }
+  | { type: "ocr"; region: { x: number; y: number; w: number; h: number } }
+  | { type: "findImage"; ref: string; confidence: number; timeoutMs: number }
+  | { type: "switchProfile"; profileId: string };
+
+export interface ScreenInfo {
+  width: number;
+  height: number;
+  scale: number;
+}
+
+export interface Backend {
+  readonly platform: Platform;
+  /** Performs one action. Must honour `signal` (stop) promptly. May return a value for get-style actions. */
+  perform(action: InputAction, signal: AbortSignal): Promise<Value | void>;
+  /** Asks the user a yes/no question (confirm step). */
+  confirm(message: string, signal: AbortSignal): Promise<boolean>;
+  screen?(): Promise<ScreenInfo | undefined>;
+}
+
+export interface Clock {
+  now(): number;
+  sleep(ms: number, signal: AbortSignal): Promise<void>;
+}
+
+export const realClock: Clock = {
+  now: () => Date.now(),
+  sleep: (ms, signal) =>
+    new Promise<void>((resolve, reject) => {
+      if (signal.aborted) return reject(signal.reason);
+      const t = setTimeout(() => {
+        signal.removeEventListener("abort", onAbort);
+        resolve();
+      }, ms);
+      const onAbort = () => {
+        clearTimeout(t);
+        reject(signal.reason);
+      };
+      signal.addEventListener("abort", onAbort, { once: true });
+    }),
+};
+
+/** Virtual clock for tests, previews and simulations: sleeping advances time instantly. */
+export function createVirtualClock(start = 0): Clock & { advance(ms: number): void } {
+  let t = start;
+  return {
+    now: () => t,
+    advance: (ms) => {
+      t += ms;
+    },
+    sleep: async (ms, signal) => {
+      if (signal.aborted) throw signal.reason;
+      t += ms;
+      await Promise.resolve();
+      if (signal.aborted) throw signal.reason;
+    },
+  };
+}
+
+/* ------------------------------------------------------------------ events */
+
+export type RunState = "idle" | "preflight" | "countdown" | "running" | "paused" | "stopped" | "completed" | "failed";
+
+export type ErrorCategory = "validation" | "unsupported" | "permission" | "environment" | "target" | "limit" | "expression" | "action" | "user" | "internal";
+
+export interface RunError {
+  stepId?: string;
+  path?: string;
+  message: string;
+  category: ErrorCategory;
+}
+
+export type RunEvent =
+  | { type: "state"; state: RunState; at: number }
+  | { type: "countdown"; remainingMs: number; at: number }
+  | { type: "stepStart"; stepId: string; stepType: Step["type"]; path: string; at: number }
+  | { type: "stepEnd"; stepId: string; ok: boolean; durationMs: number; at: number }
+  | { type: "breakpoint"; stepId: string; at: number }
+  | { type: "log"; level: "info" | "warn" | "error"; message: string; stepId?: string; at: number }
+  | { type: "var"; name: string; value: Value; at: number }
+  | { type: "retry"; stepId: string; attempt: number; at: number }
+  | { type: "error"; error: RunError; at: number };
+
+export interface RunResult {
+  status: "completed" | "stopped" | "failed";
+  reason?: string;
+  error?: RunError;
+  actions: number;
+  iterations: number;
+  durationMs: number;
+  vars: Record<string, Value>;
+  startedAt: number;
+  endedAt: number;
+}
+
+export interface RunOptions {
+  clock?: Clock;
+  random?: () => number;
+  onEvent?: (e: RunEvent) => void;
+  /** Values for variables that declare a `prompt`, collected by the UI before the run. */
+  inputs?: Record<string, Value>;
+  /** Secret resolver for {{secret:name}} — values come from the OS keystore, never from the flow. */
+  secret?: (name: string) => string | undefined;
+  /** Called once before the run when the flow contains steps that need explicit approval. */
+  confirmRisk?: (report: RiskReport) => Promise<boolean>;
+  /** Called when the recorded screen geometry differs from the live screen. */
+  confirmScreenChange?: (recorded: ScreenInfo, live: ScreenInfo) => Promise<boolean>;
+  /** Resolve flows for runFlow steps. */
+  resolveFlow?: (flowId: string) => Flow | undefined;
+  /** Honour step.breakpoint flags (Pro debugger). */
+  debug?: boolean;
+  /** Skip the pre-start countdown (tests / sandbox). */
+  skipCountdown?: boolean;
+  /** Max nesting of runFlow calls. */
+  maxCallDepth?: number;
+}
+
+/* ----------------------------------------------------------- control flow */
+
+class Interrupt {
+  constructor(public readonly kind: "break" | "continue" | "stop" | "goto", public readonly value?: string) {}
+}
+
+export class RunFailure extends Error {
+  constructor(public readonly runError: RunError) {
+    super(runError.message);
+    this.name = "RunFailure";
+  }
+}
+
+const STOP_REASON = Symbol("stop");
+const INPUT_TYPES = new Set<Step["type"]>(["click", "move", "drag", "scroll", "key", "type"]);
+/** Stop latency target is 500 ms; long waits are sliced so pause/stop/limits are observed quickly. */
+const SLICE_MS = 100;
+
+/* -------------------------------------------------------------------- run */
+
+export class FlowRun {
+  readonly id: string;
+  private state: RunState = "idle";
+  private ctrl = new AbortController();
+  private pauseGate: Promise<void> | null = null;
+  private releasePause: (() => void) | null = null;
+  private stepOnce = false;
+  private stopReason: string | undefined;
+  private vars: Record<string, Value> = {};
+  private actions = 0;
+  private iterations = 0;
+  private startedAt = 0;
+  private callDepth = 0;
+  private readonly clock: Clock;
+  private readonly env: ExprEnv;
+
+  constructor(private readonly flow: Flow, private readonly backend: Backend, private readonly opts: RunOptions = {}) {
+    this.id = `run_${Math.random().toString(36).slice(2, 10)}`;
+    this.clock = opts.clock ?? realClock;
+    this.env = { vars: this.vars, now: () => this.clock.now(), random: opts.random };
+  }
+
+  get currentState(): RunState {
+    return this.state;
+  }
+
+  /** Static pre-run checks shared by every surface. */
+  static preflight(flow: Flow, platform: Platform): { compat: CompatIssue[]; blocked: CompatIssue[]; risk: RiskReport } {
+    const compat = compatibility(flow.steps, platform);
+    return { compat, blocked: compat.filter((c) => c.support === "unsupported"), risk: analyzeRisk(flow) };
+  }
+
+  pause(): void {
+    if (this.state !== "running") return;
+    this.pauseGate = new Promise((r) => (this.releasePause = r));
+    this.setState("paused");
+  }
+
+  resume(): void {
+    if (this.state !== "paused") return;
+    this.setState("running");
+    const r = this.releasePause;
+    this.pauseGate = null;
+    this.releasePause = null;
+    r?.();
+  }
+
+  /** In debug mode while paused at a breakpoint: execute exactly one more step, then pause again. */
+  stepOver(): void {
+    if (this.state !== "paused") return;
+    this.stepOnce = true;
+    this.resume();
+  }
+
+  stop(reason = "user"): void {
+    if (this.state === "completed" || this.state === "failed" || this.state === "stopped") return;
+    this.stopReason = reason;
+    this.ctrl.abort(STOP_REASON);
+    const r = this.releasePause;
+    this.pauseGate = null;
+    this.releasePause = null;
+    r?.();
+  }
+
+  async start(): Promise<RunResult> {
+    if (this.state !== "idle") throw new Error("a FlowRun can only be started once");
+    this.startedAt = this.clock.now();
+    this.setState("preflight");
+    try {
+      await this.preflightChecks();
+      this.initVars();
+      if (!this.opts.skipCountdown && this.flow.limits.countdownMs > 0) {
+        this.setState("countdown");
+        let remaining = this.flow.limits.countdownMs;
+        while (remaining > 0) {
+          this.emit({ type: "countdown", remainingMs: remaining, at: this.clock.now() });
+          const slice = Math.min(remaining, 1000);
+          await this.clock.sleep(slice, this.ctrl.signal);
+          remaining -= slice;
+        }
+      }
+      this.startedAt = this.clock.now();
+      this.setState("running");
+      await this.runTopLevel(this.flow.steps);
+      return this.finish("completed");
+    } catch (e) {
+      return this.handleTerminal(e);
+    }
+  }
+
+  /* ------------------------------------------------------------ internals */
+
+  private async preflightChecks(): Promise<void> {
+    const { blocked, risk } = FlowRun.preflight(this.flow, this.backend.platform);
+    if (blocked.length) {
+      throw new RunFailure({
+        stepId: blocked[0]!.stepId,
+        message: `${blocked.length} step(s) are not supported on ${this.backend.platform}: ${blocked.map((b) => b.stepType).join(", ")}`,
+        category: "unsupported",
+      });
+    }
+    if (risk.needsConfirm) {
+      const ok = this.opts.confirmRisk ? await this.opts.confirmRisk(risk) : false;
+      if (!ok) throw new RunFailure({ message: "risky steps were not approved", category: "user" });
+    }
+    if (this.flow.screen && this.backend.screen) {
+      const live = await this.backend.screen();
+      const rec = { ...this.flow.screen, scale: this.flow.screen.scale ?? 1 };
+      if (live && (live.width !== rec.width || live.height !== rec.height || Math.abs(live.scale - rec.scale) > 0.01) && usesScreenCoordinates(this.flow.steps)) {
+        const ok = this.opts.confirmScreenChange ? await this.opts.confirmScreenChange(rec, live) : false;
+        if (!ok) throw new RunFailure({ message: `screen changed from ${rec.width}x${rec.height}@${rec.scale} to ${live.width}x${live.height}@${live.scale}`, category: "environment" });
+      }
+    }
+  }
+
+  private initVars(): void {
+    for (const v of this.flow.variables) {
+      const input = this.opts.inputs?.[v.name];
+      let val: Value = input ?? (v.initial as Value | undefined) ?? defaultFor(v.type);
+      if (v.type === "number") val = Number(val);
+      if (v.type === "boolean") val = val === true || val === "true";
+      this.vars[v.name] = val;
+    }
+  }
+
+  private async runTopLevel(steps: Step[]): Promise<void> {
+    let i = 0;
+    let gotos = 0;
+    while (i < steps.length) {
+      try {
+        await this.runStep(steps[i]!, `${i}`);
+        i++;
+      } catch (e) {
+        if (e instanceof Interrupt && e.kind === "goto") {
+          const idx = steps.findIndex((s) => s.id === e.value);
+          if (idx < 0) throw new RunFailure({ message: `goto target "${e.value}" not found at top level`, category: "validation" });
+          if (++gotos > this.flow.limits.maxIterations) throw new RunFailure({ message: "too many error jumps", category: "limit" });
+          i = idx;
+          continue;
+        }
+        if (e instanceof Interrupt && (e.kind === "break" || e.kind === "continue")) {
+          i++;
+          continue;
+        }
+        throw e;
+      }
+    }
+  }
+
+  private async runList(steps: Step[], path: string): Promise<void> {
+    for (let i = 0; i < steps.length; i++) await this.runStep(steps[i]!, `${path}.${i}`);
+  }
+
+  private async gate(): Promise<void> {
+    if (this.ctrl.signal.aborted) throw this.ctrl.signal.reason;
+    if (this.clock.now() - this.startedAt > this.flow.limits.maxDurationMs) {
+      throw new RunFailure({ message: `maximum run time reached (${Math.round(this.flow.limits.maxDurationMs / 1000)}s)`, category: "limit" });
+    }
+    while (this.pauseGate) await this.pauseGate;
+    if (this.ctrl.signal.aborted) throw this.ctrl.signal.reason;
+  }
+
+  private async sleep(ms: number): Promise<void> {
+    let remaining = Math.max(0, ms);
+    while (remaining > 0) {
+      await this.gate();
+      const slice = Math.min(remaining, SLICE_MS);
+      await this.clock.sleep(slice, this.ctrl.signal);
+      remaining -= slice;
+    }
+  }
+
+  private async runStep(step: Step, path: string): Promise<void> {
+    if (step.disabled) return;
+    await this.gate();
+    if (this.opts.debug && (step.breakpoint || this.stepOnce)) {
+      this.stepOnce = false;
+      this.emit({ type: "breakpoint", stepId: step.id, at: this.clock.now() });
+      this.pause();
+      await this.gate();
+    }
+    const t0 = this.clock.now();
+    this.emit({ type: "stepStart", stepId: step.id, stepType: step.type, path, at: t0 });
+    const policy = step.onError;
+    let attempt = 0;
+    for (;;) {
+      try {
+        await this.exec(step, path);
+        this.emit({ type: "stepEnd", stepId: step.id, ok: true, durationMs: this.clock.now() - t0, at: this.clock.now() });
+        return;
+      } catch (e) {
+        if (e instanceof Interrupt || e === STOP_REASON || this.ctrl.signal.aborted) throw e;
+        const err = toRunError(e, step.id, path);
+        if (err.category === "limit") throw new RunFailure(err);
+        if (policy?.strategy === "retry" && attempt < policy.retries) {
+          attempt++;
+          this.emit({ type: "retry", stepId: step.id, attempt, at: this.clock.now() });
+          await this.sleep(policy.backoffMs * attempt);
+          continue;
+        }
+        this.emit({ type: "stepEnd", stepId: step.id, ok: false, durationMs: this.clock.now() - t0, at: this.clock.now() });
+        if (policy?.strategy === "continue") {
+          this.emit({ type: "log", level: "warn", message: `step failed and was skipped: ${err.message}`, stepId: step.id, at: this.clock.now() });
+          return;
+        }
+        if (policy?.strategy === "goto" && policy.gotoStepId) {
+          this.emit({ type: "log", level: "warn", message: `step failed, jumping to ${policy.gotoStepId}: ${err.message}`, stepId: step.id, at: this.clock.now() });
+          throw new Interrupt("goto", policy.gotoStepId);
+        }
+        throw new RunFailure(err);
+      }
+    }
+  }
+
+  private countAction(): void {
+    if (++this.actions > this.flow.limits.maxActions) {
+      throw new RunFailure({ message: `maximum number of actions reached (${this.flow.limits.maxActions})`, category: "limit" });
+    }
+  }
+
+  private countIteration(): void {
+    if (++this.iterations > this.flow.limits.maxIterations) {
+      throw new RunFailure({ message: `maximum number of loop iterations reached (${this.flow.limits.maxIterations})`, category: "limit" });
+    }
+  }
+
+  private text(s: string): string {
+    return interpolate(s, this.env, this.opts.secret);
+  }
+
+  private setVar(name: string, value: Value): void {
+    this.vars[name] = value;
+    this.emit({ type: "var", name, value, at: this.clock.now() });
+  }
+
+  private async perform(action: InputAction): Promise<Value | void> {
+    return this.backend.perform(action, this.ctrl.signal);
+  }
+
+  private async exec(s: Step, path: string): Promise<void> {
+    if (INPUT_TYPES.has(s.type)) this.countAction();
+    switch (s.type) {
+      case "click":
+        await this.perform({ type: "click", target: s.target, button: s.button, clicks: s.clicks, holdMs: s.holdMs, modifiers: s.modifiers });
+        return;
+      case "move":
+        await this.perform({ type: "move", target: s.target, durationMs: s.durationMs });
+        return;
+      case "drag":
+        await this.perform({ type: "drag", from: s.from, to: s.to, durationMs: s.durationMs, button: s.button });
+        return;
+      case "scroll":
+        await this.perform({ type: "scroll", dx: s.dx, dy: s.dy, target: s.target });
+        return;
+      case "key":
+        for (let i = 0; i < s.repeat; i++) {
+          if (i > 0) {
+            await this.gate();
+            this.countAction();
+          }
+          await this.perform({ type: "key", key: s.key, modifiers: s.modifiers, action: s.action });
+        }
+        return;
+      case "type":
+        await this.perform({ type: "type", text: this.text(s.text), perCharDelayMs: s.perCharDelayMs });
+        return;
+      case "wait": {
+        const jitter = s.jitterMs > 0 ? Math.floor((this.opts.random ?? Math.random)() * (s.jitterMs + 1)) : 0;
+        await this.sleep(s.ms + jitter);
+        return;
+      }
+      case "waitFor": {
+        const deadline = this.clock.now() + s.timeoutMs;
+        for (;;) {
+          if (truthy(evalExpr(s.condition.expr, this.env))) return;
+          if (this.clock.now() >= deadline) throw new RunFailure({ stepId: s.id, path, message: `condition not met within ${s.timeoutMs} ms`, category: "target" });
+          await this.sleep(s.pollMs);
+        }
+      }
+      case "setVar":
+        this.setVar(s.name, evalExpr(s.value, this.env));
+        return;
+      case "log":
+        this.emit({ type: "log", level: s.level, message: this.text(s.message), stepId: s.id, at: this.clock.now() });
+        return;
+      case "notify":
+        await this.perform({ type: "notify", title: this.text(s.title), body: this.text(s.body) });
+        return;
+      case "confirm": {
+        const ok = await this.backend.confirm(this.text(s.message), this.ctrl.signal);
+        if (s.resultVar) this.setVar(s.resultVar, ok);
+        else if (!ok) throw new Interrupt("stop", "declined");
+        return;
+      }
+      case "clipboard":
+        if (s.op === "set") await this.perform({ type: "clipboardSet", value: this.text(s.value ?? "") });
+        else {
+          const v = await this.perform({ type: "clipboardGet" });
+          if (s.var) this.setVar(s.var, (v ?? "") as Value);
+        }
+        return;
+      case "launchApp":
+        await this.perform({ type: "launchApp", app: s.app, args: s.args });
+        return;
+      case "openUrl":
+        await this.perform({ type: "openUrl", url: this.text(s.url) });
+        return;
+      case "window":
+        await this.perform({ type: "window", op: s.op, match: s.match, rect: s.rect });
+        return;
+      case "androidGlobal":
+        await this.perform({ type: "androidGlobal", action: s.action });
+        return;
+      case "http": {
+        const headers: Record<string, string> = {};
+        for (const [k, v] of Object.entries(s.headers)) headers[k] = this.text(v);
+        const res = await this.perform({ type: "http", method: s.method, url: this.text(s.url), headers, body: s.body === undefined ? undefined : this.text(s.body) });
+        if (s.resultVar) this.setVar(s.resultVar, (res ?? null) as Value);
+        return;
+      }
+      case "file": {
+        const res = await this.perform({ type: "file", op: s.op, path: this.text(s.path), dest: s.dest && this.text(s.dest), content: s.content === undefined ? undefined : this.text(s.content) });
+        if (s.resultVar) this.setVar(s.resultVar, (res ?? null) as Value);
+        return;
+      }
+      case "ocr": {
+        const res = await this.perform({ type: "ocr", region: s.region });
+        this.setVar(s.resultVar, toStr((res ?? "") as Value));
+        return;
+      }
+      case "findImage": {
+        const res = await this.perform({ type: "findImage", ref: s.target.ref, confidence: s.target.confidence, timeoutMs: s.timeoutMs });
+        this.setVar(s.resultVar, (res ?? null) as Value);
+        return;
+      }
+      case "switchProfile":
+        await this.perform({ type: "switchProfile", profileId: s.profileId });
+        return;
+      case "runFlow": {
+        const max = this.opts.maxCallDepth ?? 8;
+        const target = this.opts.resolveFlow?.(s.flowId);
+        if (!target) throw new RunFailure({ stepId: s.id, path, message: `flow "${s.flowId}" not found`, category: "validation" });
+        if (this.callDepth >= max) throw new RunFailure({ stepId: s.id, path, message: "runFlow nesting too deep", category: "limit" });
+        this.callDepth++;
+        try {
+          await this.runList(target.steps, `${path}>${s.flowId}`);
+        } finally {
+          this.callDepth--;
+        }
+        return;
+      }
+      case "stop":
+        throw new Interrupt("stop", s.reason ?? "stop step");
+      case "break":
+        throw new Interrupt("break");
+      case "continue":
+        throw new Interrupt("continue");
+      case "group":
+        await this.runList(s.body, path);
+        return;
+      case "if":
+        if (truthy(evalExpr(s.condition.expr, this.env))) await this.runList(s.then, `${path}.then`);
+        else await this.runList(s.else, `${path}.else`);
+        return;
+      case "loop": {
+        let i = 0;
+        for (;;) {
+          if (s.mode === "count" && i >= (s.count ?? 0)) return;
+          if (s.mode === "while" && !truthy(evalExpr(s.condition!.expr, this.env))) return;
+          this.countIteration();
+          if (s.indexVar) this.setVar(s.indexVar, i);
+          try {
+            await this.runList(s.body, `${path}.body`);
+          } catch (e) {
+            if (e instanceof Interrupt && e.kind === "break") return;
+            if (!(e instanceof Interrupt && e.kind === "continue")) throw e;
+          }
+          i++;
+          // A loop whose body never waits would spin; always yield so stop/pause stay responsive.
+          await this.gate();
+          if (s.body.length === 0) await this.sleep(SLICE_MS);
+        }
+      }
+      case "forEach": {
+        const list = evalExpr(s.list, this.env);
+        const items = Array.isArray(list) ? list : [list];
+        for (const item of items) {
+          this.countIteration();
+          this.setVar(s.itemVar, item);
+          try {
+            await this.runList(s.body, `${path}.body`);
+          } catch (e) {
+            if (e instanceof Interrupt && e.kind === "break") return;
+            if (!(e instanceof Interrupt && e.kind === "continue")) throw e;
+          }
+          await this.gate();
+        }
+        return;
+      }
+      case "try":
+        try {
+          await this.runList(s.body, `${path}.body`);
+        } catch (e) {
+          if (e instanceof Interrupt || e === STOP_REASON || this.ctrl.signal.aborted) throw e;
+          const err = toRunError(e, s.id, path);
+          if (err.category === "limit") throw e;
+          if (s.errorVar) this.setVar(s.errorVar, err.message);
+          await this.runList(s.catch, `${path}.catch`);
+        }
+        return;
+    }
+  }
+
+  private handleTerminal(e: unknown): RunResult {
+    if (e === STOP_REASON || this.ctrl.signal.aborted) return this.finish("stopped", this.stopReason ?? "user");
+    if (e instanceof Interrupt && e.kind === "stop") return this.finish("stopped", e.value);
+    if (e instanceof Interrupt) return this.finish("completed");
+    const err = e instanceof RunFailure ? e.runError : toRunError(e);
+    this.emit({ type: "error", error: err, at: this.clock.now() });
+    return this.finish("failed", err.message, err);
+  }
+
+  private finish(status: RunResult["status"], reason?: string, error?: RunError): RunResult {
+    this.setState(status);
+    const endedAt = this.clock.now();
+    return { status, reason, error, actions: this.actions, iterations: this.iterations, durationMs: endedAt - this.startedAt, vars: { ...this.vars }, startedAt: this.startedAt, endedAt };
+  }
+
+  private setState(s: RunState): void {
+    this.state = s;
+    this.emit({ type: "state", state: s, at: this.clock.now() });
+  }
+
+  private emit(e: RunEvent): void {
+    try {
+      this.opts.onEvent?.(e);
+    } catch {
+      /* a broken listener must never break a run */
+    }
+  }
+}
+
+function defaultFor(t: string): Value {
+  return t === "number" ? 0 : t === "boolean" ? false : t === "list" ? [] : "";
+}
+
+function toRunError(e: unknown, stepId?: string, path?: string): RunError {
+  if (e instanceof RunFailure) return { stepId: e.runError.stepId ?? stepId, path: e.runError.path ?? path, message: e.runError.message, category: e.runError.category };
+  const err = e as { name?: string; message?: string; category?: ErrorCategory };
+  if (err?.name === "ExprError") return { stepId, path, message: err.message ?? "expression error", category: "expression" };
+  return { stepId, path, message: err?.message ?? String(e), category: err?.category ?? "action" };
+}
+
+function usesScreenCoordinates(steps: Step[]): boolean {
+  let uses = false;
+  walkSteps(steps, (s) => {
+    const ts: Target[] = [];
+    if ("target" in s && s.target) ts.push(s.target as Target);
+    if (s.type === "drag") ts.push(s.from, s.to);
+    if (ts.some((t) => (t.kind === "point" || t.kind === "region") && t.space === "screen")) uses = true;
+  });
+  return uses;
+}
+
+/** Convenience: run a flow to completion. */
+export function runFlow(flow: Flow, backend: Backend, opts?: RunOptions): { run: FlowRun; done: Promise<RunResult> } {
+  const run = new FlowRun(flow, backend, opts);
+  return { run, done: run.start() };
+}
+
+export function hotkeyToString(h: Hotkey): string {
+  const order = ["ctrl", "alt", "shift", "meta"];
+  return [...[...h.modifiers].sort((a, b) => order.indexOf(a) - order.indexOf(b)).map((m) => m[0]!.toUpperCase() + m.slice(1)), h.key.length === 1 ? h.key.toUpperCase() : h.key].join("+");
+}

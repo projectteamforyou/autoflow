@@ -1,0 +1,109 @@
+{
+  "schemaVersion": "1.0",
+  "id": "tpl_multi-point",
+  "name": "Three-point click cycle",
+  "description": "Click three positions in order, then repeat until you stop it.",
+  "tags": [],
+  "icon": "target",
+  "color": "#22C3A6",
+  "targets": [
+    "windows",
+    "android",
+    "web"
+  ],
+  "mode": "easy",
+  "trigger": {
+    "type": "manual"
+  },
+  "hotkeys": {
+    "stop": {
+      "key": "Escape",
+      "modifiers": [
+        "ctrl",
+        "alt"
+      ]
+    }
+  },
+  "limits": {
+    "maxDurationMs": 600000,
+    "maxActions": 100000,
+    "maxIterations": 1000000,
+    "countdownMs": 3000,
+    "preventOverlap": true,
+    "cooldownMs": 0
+  },
+  "variables": [],
+  "steps": [
+    {
+      "id": "loop",
+      "type": "loop",
+      "mode": "forever",
+      "body": [
+        {
+          "id": "c1",
+          "type": "click",
+          "target": {
+            "kind": "point",
+            "x": 0.3,
+            "y": 0.4,
+            "space": "normalized"
+          },
+          "button": "left",
+          "clicks": 1,
+          "holdMs": 0,
+          "modifiers": []
+        },
+        {
+          "id": "w1",
+          "type": "wait",
+          "ms": 500,
+          "jitterMs": 0
+        },
+        {
+          "id": "c2",
+          "type": "click",
+          "target": {
+            "kind": "point",
+            "x": 0.5,
+            "y": 0.4,
+            "space": "normalized"
+          },
+          "button": "left",
+          "clicks": 1,
+          "holdMs": 0,
+          "modifiers": []
+        },
+        {
+          "id": "w2",
+          "type": "wait",
+          "ms": 500,
+          "jitterMs": 0
+        },
+        {
+          "id": "c3",
+          "type": "click",
+          "target": {
+            "kind": "point",
+            "x": 0.7,
+            "y": 0.4,
+            "space": "normalized"
+          },
+          "button": "left",
+          "clicks": 1,
+          "holdMs": 0,
+          "modifiers": []
+        },
+        {
+          "id": "w3",
+          "type": "wait",
+          "ms": 500,
+          "jitterMs": 0
+        }
+      ]
+    }
+  ],
+  "favorite": false,
+  "createdAt": "2026-10-19T00:00:00.000Z",
+  "updatedAt": "2026-10-19T00:00:00.000Z",
+  "revision": 0
+}

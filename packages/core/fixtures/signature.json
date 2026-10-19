@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "1.0",
+  "id": "tpl_signature",
+  "name": "Email signature",
+  "description": "Types your signature with today's date. Bind it to a hotkey for one-press replies.",
+  "tags": [],
+  "icon": "pen",
+  "color": "#3B82F6",
+  "targets": [
+    "windows",
+    "android",
+    "web"
+  ],
+  "mode": "pro",
+  "trigger": {
+    "type": "hotkey",
+    "hotkey": {
+      "key": "S",
+      "modifiers": [
+        "ctrl",
+        "alt"
+      ]
+    },
+    "scope": "global"
+  },
+  "hotkeys": {
+    "stop": {
+      "key": "Escape",
+      "modifiers": [
+        "ctrl",
+        "alt"
+      ]
+    }
+  },
+  "limits": {
+    "maxDurationMs": 600000,
+    "maxActions": 100000,
+    "maxIterations": 1000000,
+    "countdownMs": 0,
+    "preventOverlap": true,
+    "cooldownMs": 0
+  },
+  "variables": [
+    {
+      "name": "name",
+      "type": "string",
+      "initial": "Your Name"
+    }
+  ],
+  "steps": [
+    {
+      "id": "t",
+      "type": "type",
+      "text": "Best regards,\n{{name}}\n{{date()}}",
+      "perCharDelayMs": 0
+    }
+  ],
+  "favorite": false,
+  "createdAt": "2026-10-19T00:00:00.000Z",
+  "updatedAt": "2026-10-19T00:00:00.000Z",
+  "revision": 0
+}

@@ -1,0 +1,98 @@
+{
+  "schemaVersion": "1.0",
+  "id": "tpl_window-layout",
+  "name": "Morning workspace",
+  "description": "Opens your browser, editor and terminal and arranges the windows side by side.",
+  "tags": [],
+  "icon": "layout",
+  "color": "#64748B",
+  "targets": [
+    "windows"
+  ],
+  "mode": "pro",
+  "trigger": {
+    "type": "manual"
+  },
+  "hotkeys": {
+    "stop": {
+      "key": "Escape",
+      "modifiers": [
+        "ctrl",
+        "alt"
+      ]
+    }
+  },
+  "limits": {
+    "maxDurationMs": 600000,
+    "maxActions": 100000,
+    "maxIterations": 1000000,
+    "countdownMs": 3000,
+    "preventOverlap": true,
+    "cooldownMs": 0
+  },
+  "variables": [],
+  "steps": [
+    {
+      "id": "a",
+      "type": "launchApp",
+      "app": "msedge.exe",
+      "args": []
+    },
+    {
+      "id": "w1",
+      "type": "wait",
+      "ms": 1500,
+      "jitterMs": 0
+    },
+    {
+      "id": "m1",
+      "type": "window",
+      "op": "move",
+      "match": {
+        "app": "msedge.exe"
+      },
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 960,
+        "h": 1040
+      }
+    },
+    {
+      "id": "b",
+      "type": "launchApp",
+      "app": "code",
+      "args": []
+    },
+    {
+      "id": "w2",
+      "type": "wait",
+      "ms": 2000,
+      "jitterMs": 0
+    },
+    {
+      "id": "m2",
+      "type": "window",
+      "op": "move",
+      "match": {
+        "app": "Code.exe"
+      },
+      "rect": {
+        "x": 960,
+        "y": 0,
+        "w": 960,
+        "h": 1040
+      }
+    },
+    {
+      "id": "c",
+      "type": "launchApp",
+      "app": "wt.exe",
+      "args": []
+    }
+  ],
+  "favorite": false,
+  "createdAt": "2026-10-19T00:00:00.000Z",
+  "updatedAt": "2026-10-19T00:00:00.000Z",
+  "revision": 0
+}

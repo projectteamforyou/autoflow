@@ -1,0 +1,113 @@
+{
+  "schemaVersion": "1.0",
+  "id": "tpl_form-filler",
+  "name": "CSV row form filler",
+  "description": "Fills a form once per row of a list: types each value, presses Tab between fields and Enter at the end, with a confirmation before each submit.",
+  "tags": [],
+  "icon": "table",
+  "color": "#10B981",
+  "targets": [
+    "windows",
+    "android",
+    "web"
+  ],
+  "mode": "pro",
+  "trigger": {
+    "type": "manual"
+  },
+  "hotkeys": {
+    "stop": {
+      "key": "Escape",
+      "modifiers": [
+        "ctrl",
+        "alt"
+      ]
+    }
+  },
+  "limits": {
+    "maxDurationMs": 600000,
+    "maxActions": 100000,
+    "maxIterations": 1000000,
+    "countdownMs": 3000,
+    "preventOverlap": true,
+    "cooldownMs": 0
+  },
+  "variables": [
+    {
+      "name": "rows",
+      "type": "string",
+      "initial": "Alice;alice@example.com|Bob;bob@example.com",
+      "prompt": "Rows (fields separated by ; and rows by |)"
+    }
+  ],
+  "steps": [
+    {
+      "id": "each",
+      "type": "forEach",
+      "list": "split(rows, \"|\")",
+      "itemVar": "row",
+      "body": [
+        {
+          "id": "f",
+          "type": "setVar",
+          "name": "fields",
+          "value": "split(row, \";\")"
+        },
+        {
+          "id": "n",
+          "type": "type",
+          "text": "{{fields[0]}}",
+          "perCharDelayMs": 10
+        },
+        {
+          "id": "tab",
+          "type": "key",
+          "key": "Tab",
+          "modifiers": [],
+          "action": "press",
+          "repeat": 1
+        },
+        {
+          "id": "e",
+          "type": "type",
+          "text": "{{fields[1]}}",
+          "perCharDelayMs": 10
+        },
+        {
+          "id": "ok",
+          "type": "confirm",
+          "message": "Submit {{fields[0]}}?",
+          "resultVar": "submit"
+        },
+        {
+          "id": "if",
+          "type": "if",
+          "condition": {
+            "expr": "submit"
+          },
+          "then": [
+            {
+              "id": "enter",
+              "type": "key",
+              "key": "Enter",
+              "modifiers": [],
+              "action": "press",
+              "repeat": 1
+            }
+          ],
+          "else": []
+        },
+        {
+          "id": "w",
+          "type": "wait",
+          "ms": 1500,
+          "jitterMs": 0
+        }
+      ]
+    }
+  ],
+  "favorite": false,
+  "createdAt": "2026-10-19T00:00:00.000Z",
+  "updatedAt": "2026-10-19T00:00:00.000Z",
+  "revision": 0
+}

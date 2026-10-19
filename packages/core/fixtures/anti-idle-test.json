@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "1.0",
+  "id": "tpl_anti-idle-test",
+  "name": "Session keep-alive check",
+  "description": "Moves the pointer slightly once a minute while a long upload or render finishes, then stops after 2 hours. Visible in the run bar at all times.",
+  "tags": [],
+  "icon": "pulse",
+  "color": "#6366F1",
+  "targets": [
+    "windows",
+    "web"
+  ],
+  "mode": "pro",
+  "trigger": {
+    "type": "manual"
+  },
+  "hotkeys": {
+    "stop": {
+      "key": "Escape",
+      "modifiers": [
+        "ctrl",
+        "alt"
+      ]
+    }
+  },
+  "limits": {
+    "maxDurationMs": 7200000,
+    "maxActions": 100000,
+    "maxIterations": 1000000,
+    "countdownMs": 3000,
+    "preventOverlap": true,
+    "cooldownMs": 0
+  },
+  "variables": [],
+  "steps": [
+    {
+      "id": "loop",
+      "type": "loop",
+      "mode": "forever",
+      "body": [
+        {
+          "id": "m1",
+          "type": "move",
+          "target": {
+            "kind": "point",
+            "x": 0.5,
+            "y": 0.5,
+            "space": "normalized"
+          },
+          "durationMs": 200
+        },
+        {
+          "id": "m2",
+          "type": "move",
+          "target": {
+            "kind": "point",
+            "x": 0.51,
+            "y": 0.5,
+            "space": "normalized"
+          },
+          "durationMs": 200
+        },
+        {
+          "id": "w",
+          "type": "wait",
+          "ms": 60000,
+          "jitterMs": 0
+        }
+      ]
+    }
+  ],
+  "favorite": false,
+  "createdAt": "2026-10-19T00:00:00.000Z",
+  "updatedAt": "2026-10-19T00:00:00.000Z",
+  "revision": 0
+}

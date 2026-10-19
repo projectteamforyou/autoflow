@@ -1,0 +1,119 @@
+{
+  "schemaVersion": "1.0",
+  "id": "tpl_ui-smoke",
+  "name": "UI smoke test with retries",
+  "description": "Clicks through a sequence, retries failed steps three times and logs each stage — a starting point for repeatable manual-test passes.",
+  "tags": [],
+  "icon": "flask",
+  "color": "#14B8A6",
+  "targets": [
+    "windows",
+    "android",
+    "web"
+  ],
+  "mode": "pro",
+  "trigger": {
+    "type": "manual"
+  },
+  "hotkeys": {
+    "stop": {
+      "key": "Escape",
+      "modifiers": [
+        "ctrl",
+        "alt"
+      ]
+    }
+  },
+  "limits": {
+    "maxDurationMs": 600000,
+    "maxActions": 100000,
+    "maxIterations": 1000000,
+    "countdownMs": 3000,
+    "preventOverlap": true,
+    "cooldownMs": 0
+  },
+  "variables": [],
+  "steps": [
+    {
+      "id": "l1",
+      "type": "log",
+      "message": "Smoke test started at {{time()}}",
+      "level": "info"
+    },
+    {
+      "id": "try",
+      "type": "try",
+      "body": [
+        {
+          "id": "c1",
+          "onError": {
+            "strategy": "retry",
+            "retries": 3,
+            "backoffMs": 500
+          },
+          "type": "click",
+          "target": {
+            "kind": "point",
+            "x": 0.2,
+            "y": 0.1,
+            "space": "normalized"
+          },
+          "button": "left",
+          "clicks": 1,
+          "holdMs": 0,
+          "modifiers": []
+        },
+        {
+          "id": "w1",
+          "type": "wait",
+          "ms": 800,
+          "jitterMs": 0
+        },
+        {
+          "id": "c2",
+          "onError": {
+            "strategy": "retry",
+            "retries": 3,
+            "backoffMs": 500
+          },
+          "type": "click",
+          "target": {
+            "kind": "point",
+            "x": 0.5,
+            "y": 0.6,
+            "space": "normalized"
+          },
+          "button": "left",
+          "clicks": 1,
+          "holdMs": 0,
+          "modifiers": []
+        }
+      ],
+      "catch": [
+        {
+          "id": "l2",
+          "type": "log",
+          "message": "Failed: {{err}}",
+          "level": "error"
+        },
+        {
+          "id": "n",
+          "type": "notify",
+          "title": "Smoke test failed",
+          "body": "{{err}}"
+        }
+      ],
+      "errorVar": "err"
+    },
+    {
+      "id": "l3",
+      "type": "log",
+      "message": "Smoke test finished",
+      "level": "info"
+    }
+  ],
+  "favorite": false,
+  "createdAt": "2026-10-19T00:00:00.000Z",
+  "updatedAt": "2026-10-19T00:00:00.000Z",
+  "revision": 0
+}

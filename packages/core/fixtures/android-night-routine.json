@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "1.0",
+  "id": "tpl_android-night-routine",
+  "name": "Charging night routine (Android)",
+  "description": "When charging starts after 22:00, shows a wind-down notification and opens your sleep app.",
+  "tags": [],
+  "icon": "moon",
+  "color": "#0EA5E9",
+  "targets": [
+    "android"
+  ],
+  "mode": "pro",
+  "trigger": {
+    "type": "deviceEvent",
+    "event": "charging"
+  },
+  "hotkeys": {
+    "stop": {
+      "key": "Escape",
+      "modifiers": [
+        "ctrl",
+        "alt"
+      ]
+    }
+  },
+  "limits": {
+    "maxDurationMs": 600000,
+    "maxActions": 100000,
+    "maxIterations": 1000000,
+    "countdownMs": 0,
+    "preventOverlap": true,
+    "cooldownMs": 0
+  },
+  "variables": [
+    {
+      "name": "sleepApp",
+      "type": "string",
+      "initial": "com.google.android.deskclock"
+    }
+  ],
+  "steps": [
+    {
+      "id": "if",
+      "type": "if",
+      "condition": {
+        "expr": "hour() >= 22 || hour() < 5"
+      },
+      "then": [
+        {
+          "id": "n",
+          "type": "notify",
+          "title": "Wind down",
+          "body": "Phone is charging — time to rest."
+        },
+        {
+          "id": "l",
+          "type": "launchApp",
+          "app": "com.google.android.deskclock",
+          "args": []
+        }
+      ],
+      "else": []
+    }
+  ],
+  "favorite": false,
+  "createdAt": "2026-10-19T00:00:00.000Z",
+  "updatedAt": "2026-10-19T00:00:00.000Z",
+  "revision": 0
+}

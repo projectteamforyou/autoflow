@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "1.0",
+  "id": "tpl_android-swipe-feed",
+  "name": "Swipe-up reader (Android)",
+  "description": "Swipes up every 6 seconds to advance a feed or e-book page; stops after 30 minutes.",
+  "tags": [],
+  "icon": "phone",
+  "color": "#22C55E",
+  "targets": [
+    "android",
+    "web"
+  ],
+  "mode": "pro",
+  "trigger": {
+    "type": "manual"
+  },
+  "hotkeys": {
+    "stop": {
+      "key": "Escape",
+      "modifiers": [
+        "ctrl",
+        "alt"
+      ]
+    }
+  },
+  "limits": {
+    "maxDurationMs": 1800000,
+    "maxActions": 100000,
+    "maxIterations": 1000000,
+    "countdownMs": 3000,
+    "preventOverlap": true,
+    "cooldownMs": 0
+  },
+  "variables": [],
+  "steps": [
+    {
+      "id": "loop",
+      "type": "loop",
+      "mode": "forever",
+      "body": [
+        {
+          "id": "d",
+          "type": "drag",
+          "from": {
+            "kind": "point",
+            "x": 0.5,
+            "y": 0.75,
+            "space": "normalized"
+          },
+          "to": {
+            "kind": "point",
+            "x": 0.5,
+            "y": 0.3,
+            "space": "normalized"
+          },
+          "durationMs": 350,
+          "button": "left"
+        },
+        {
+          "id": "w",
+          "type": "wait",
+          "ms": 6000,
+          "jitterMs": 0
+        }
+      ]
+    }
+  ],
+  "favorite": false,
+  "createdAt": "2026-10-19T00:00:00.000Z",
+  "updatedAt": "2026-10-19T00:00:00.000Z",
+  "revision": 0
+}

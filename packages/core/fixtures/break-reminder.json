@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0",
+  "id": "tpl_break-reminder",
+  "name": "20-20-20 eye break",
+  "description": "Every 20 minutes, reminds you to look 20 feet away for 20 seconds.",
+  "tags": [],
+  "icon": "eye",
+  "color": "#EC4899",
+  "targets": [
+    "windows",
+    "android",
+    "web"
+  ],
+  "mode": "pro",
+  "trigger": {
+    "type": "schedule",
+    "everyMs": 1200000
+  },
+  "hotkeys": {
+    "stop": {
+      "key": "Escape",
+      "modifiers": [
+        "ctrl",
+        "alt"
+      ]
+    }
+  },
+  "limits": {
+    "maxDurationMs": 600000,
+    "maxActions": 100000,
+    "maxIterations": 1000000,
+    "countdownMs": 0,
+    "preventOverlap": true,
+    "cooldownMs": 0
+  },
+  "variables": [],
+  "steps": [
+    {
+      "id": "n",
+      "type": "notify",
+      "title": "Eye break",
+      "body": "Look at something 20 feet (6 m) away for 20 seconds."
+    }
+  ],
+  "favorite": false,
+  "createdAt": "2026-10-19T00:00:00.000Z",
+  "updatedAt": "2026-10-19T00:00:00.000Z",
+  "revision": 0
+}

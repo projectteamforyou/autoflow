@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "1.0",
+  "id": "tpl_copy-cleaner",
+  "name": "Clean clipboard text",
+  "description": "Reads the clipboard, removes line breaks and double spaces, and puts the clean text back.",
+  "tags": [],
+  "icon": "clipboard",
+  "color": "#A855F7",
+  "targets": [
+    "windows",
+    "android",
+    "web"
+  ],
+  "mode": "pro",
+  "trigger": {
+    "type": "hotkey",
+    "hotkey": {
+      "key": "V",
+      "modifiers": [
+        "ctrl",
+        "alt"
+      ]
+    },
+    "scope": "global"
+  },
+  "hotkeys": {
+    "stop": {
+      "key": "Escape",
+      "modifiers": [
+        "ctrl",
+        "alt"
+      ]
+    }
+  },
+  "limits": {
+    "maxDurationMs": 600000,
+    "maxActions": 100000,
+    "maxIterations": 1000000,
+    "countdownMs": 0,
+    "preventOverlap": true,
+    "cooldownMs": 0
+  },
+  "variables": [],
+  "steps": [
+    {
+      "id": "g",
+      "type": "clipboard",
+      "op": "get",
+      "var": "clip"
+    },
+    {
+      "id": "s",
+      "type": "setVar",
+      "name": "clip",
+      "value": "replace(replace(clip, \"\\n\", \" \"), \"  \", \" \")"
+    },
+    {
+      "id": "p",
+      "type": "clipboard",
+      "op": "set",
+      "value": "{{clip}}"
+    },
+    {
+      "id": "n",
+      "type": "notify",
+      "title": "Clipboard cleaned",
+      "body": "{{len(clip)}} characters"
+    }
+  ],
+  "favorite": false,
+  "createdAt": "2026-10-19T00:00:00.000Z",
+  "updatedAt": "2026-10-19T00:00:00.000Z",
+  "revision": 0
+}

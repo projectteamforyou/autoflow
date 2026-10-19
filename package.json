@@ -1,0 +1,15 @@
+{
+  "name": "autoflow",
+  "private": true,
+  "version": "1.0.0",
+  "description": "AutoFlow — one automation library for Windows, Android and the web. Auto clicker, macros, hotkeys, key remapping and routines with Easy and Pro modes.",
+  "license": "UNLICENSED",
+  "packageManager": "pnpm@9.15.0",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "pnpm -r --workspace-concurrency=1 build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint"
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "1.0",
+  "id": "tpl_auto-clicker",
+  "name": "Classic auto clicker",
+  "description": "Left-click the centre of the screen 100 times, 4 times a second. Ctrl+Alt+Esc stops it.",
+  "tags": [],
+  "icon": "cursor",
+  "color": "#7C5CFF",
+  "targets": [
+    "windows",
+    "android",
+    "web"
+  ],
+  "mode": "easy",
+  "trigger": {
+    "type": "manual"
+  },
+  "hotkeys": {
+    "stop": {
+      "key": "Escape",
+      "modifiers": [
+        "ctrl",
+        "alt"
+      ]
+    }
+  },
+  "limits": {
+    "maxDurationMs": 600000,
+    "maxActions": 100000,
+    "maxIterations": 1000000,
+    "countdownMs": 3000,
+    "preventOverlap": true,
+    "cooldownMs": 0
+  },
+  "variables": [],
+  "steps": [
+    {
+      "id": "loop",
+      "type": "loop",
+      "mode": "count",
+      "count": 100,
+      "body": [
+        {
+          "id": "c",
+          "type": "click",
+          "target": {
+            "kind": "point",
+            "x": 0.5,
+            "y": 0.5,
+            "space": "normalized"
+          },
+          "button": "left",
+          "clicks": 1,
+          "holdMs": 0,
+          "modifiers": []
+        },
+        {
+          "id": "w",
+          "type": "wait",
+          "ms": 250,
+          "jitterMs": 0
+        }
+      ]
+    }
+  ],
+  "favorite": false,
+  "createdAt": "2026-10-19T00:00:00.000Z",
+  "updatedAt": "2026-10-19T00:00:00.000Z",
+  "revision": 0
+}

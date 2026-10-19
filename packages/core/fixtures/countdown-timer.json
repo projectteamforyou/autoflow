@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "1.0",
+  "id": "tpl_countdown-timer",
+  "name": "Focus timer",
+  "description": "A 25-minute focus session that ends with a notification — Pomodoro without another app.",
+  "tags": [],
+  "icon": "timer",
+  "color": "#F43F5E",
+  "targets": [
+    "windows",
+    "android",
+    "web"
+  ],
+  "mode": "pro",
+  "trigger": {
+    "type": "manual"
+  },
+  "hotkeys": {
+    "stop": {
+      "key": "Escape",
+      "modifiers": [
+        "ctrl",
+        "alt"
+      ]
+    }
+  },
+  "limits": {
+    "maxDurationMs": 1600000,
+    "maxActions": 100000,
+    "maxIterations": 1000000,
+    "countdownMs": 0,
+    "preventOverlap": true,
+    "cooldownMs": 0
+  },
+  "variables": [],
+  "steps": [
+    {
+      "id": "a",
+      "type": "notify",
+      "title": "Focus started",
+      "body": "25 minutes. You've got this."
+    },
+    {
+      "id": "w",
+      "type": "wait",
+      "ms": 1500000,
+      "jitterMs": 0
+    },
+    {
+      "id": "b",
+      "type": "notify",
+      "title": "Time for a break",
+      "body": "Stand up and stretch for 5 minutes."
+    }
+  ],
+  "favorite": false,
+  "createdAt": "2026-10-19T00:00:00.000Z",
+  "updatedAt": "2026-10-19T00:00:00.000Z",
+  "revision": 0
+}

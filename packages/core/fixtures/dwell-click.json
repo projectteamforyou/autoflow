@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "1.0",
+  "id": "tpl_dwell-click",
+  "name": "Long-press helper",
+  "description": "Turns one hotkey press into a 1-second press-and-hold at the pointer — useful when holding a button is tiring.",
+  "tags": [],
+  "icon": "hand",
+  "color": "#F97316",
+  "targets": [
+    "windows",
+    "web"
+  ],
+  "mode": "pro",
+  "trigger": {
+    "type": "hotkey",
+    "hotkey": {
+      "key": "F8",
+      "modifiers": []
+    },
+    "scope": "global"
+  },
+  "hotkeys": {
+    "stop": {
+      "key": "Escape",
+      "modifiers": [
+        "ctrl",
+        "alt"
+      ]
+    }
+  },
+  "limits": {
+    "maxDurationMs": 600000,
+    "maxActions": 100000,
+    "maxIterations": 1000000,
+    "countdownMs": 0,
+    "preventOverlap": true,
+    "cooldownMs": 0
+  },
+  "variables": [],
+  "steps": [
+    {
+      "id": "h",
+      "type": "click",
+      "target": {
+        "kind": "current"
+      },
+      "button": "left",
+      "clicks": 1,
+      "holdMs": 1000,
+      "modifiers": []
+    }
+  ],
+  "favorite": false,
+  "createdAt": "2026-10-19T00:00:00.000Z",
+  "updatedAt": "2026-10-19T00:00:00.000Z",
+  "revision": 0
+}

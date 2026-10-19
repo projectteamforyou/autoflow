@@ -1,0 +1,28 @@
+{
+  "name": "@autoflow/core",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared automation schema, safe expression language, deterministic flow engine, risk analysis and templates for AutoFlow.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./schema.json": "./dist/flow.schema.json"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node scripts/emit-json-schema.mjs && node scripts/emit-fixtures.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8",
+    "zod-to-json-schema": "^3.23.5"
+  }
+}
