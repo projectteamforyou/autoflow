@@ -20,7 +20,7 @@ export const REPO = join(ROOT, "..", "..");
 
 /** Download buttons go through the API so downloads are counted, then redirect to the official page. */
 export const DIRECT = {
-  windows: "https://github.com/work517/autoflow/releases/latest",
+  windows: "https://dl.autoflowmacro.com/windows/AutoFlow-Setup-x64.exe",
   android: "https://dl.autoflowmacro.com/android/AutoFlow.apk",
 };
 

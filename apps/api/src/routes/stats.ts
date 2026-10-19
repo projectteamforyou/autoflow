@@ -13,7 +13,7 @@ import { enforce, parseJson, parseParams } from "../lib/http.js";
 import * as stats from "../db/stats.js";
 
 export const DOWNLOAD_TARGETS: Record<stats.DownloadPlatform, string> = {
-  windows: "https://github.com/work517/autoflow/releases/latest",
+  windows: "https://dl.autoflowmacro.com/windows/AutoFlow-Setup-x64.exe",
   android: "https://dl.autoflowmacro.com/android/AutoFlow.apk",
 };
 
