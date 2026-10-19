@@ -15,6 +15,10 @@ on:
         type: choice
         options: [completed, draft, inProgress, halted]
         default: completed
+      version:
+        description: 'Attach the signed release APK to GitHub Release v<version> (e.g. 1.0.0). Empty = no release.'
+        type: string
+        default: ''
       smoke:
         description: 'Install the debug APK on an Android emulator (API 35) and check it starts. Runs after the build, never blocks the Play upload.'
         type: boolean
@@ -192,7 +196,7 @@ jobs:
   # scripts/release/publish-r2.mjs then mirrors the release to Cloudflare R2 (dl.autoflowmacro.com).
   release-apk:
     needs: android
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || inputs.version != ''
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -208,12 +212,16 @@ jobs:
         run: |
           apk=$(find out -path '*release*' -name '*.apk' ! -name '*unsigned*' | head -1)
           if [ -z "$apk" ]; then echo "::warning::no signed release APK (keystore secrets missing) - nothing attached"; exit 0; fi
-          cp "$apk" "AutoFlow-${GITHUB_REF_NAME#v}-android.apk"
+          V="${{ inputs.version }}"; [ -n "$V" ] || V="${GITHUB_REF_NAME#v}"
+          echo "tag=v$V" >> "$GITHUB_OUTPUT"
+          cp "$apk" "AutoFlow-$V-android.apk"
           sha256sum AutoFlow-*-android.apk > SHA256SUMS-android.txt
           echo "found=true" >> "$GITHUB_OUTPUT"
       - uses: softprops/action-gh-release@v2
         if: steps.apk.outputs.found == 'true'
         with:
+          tag_name: ${{ steps.apk.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           files: |
             AutoFlow-*-android.apk
             SHA256SUMS-android.txt

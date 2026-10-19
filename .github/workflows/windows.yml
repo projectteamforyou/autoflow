@@ -11,6 +11,11 @@ on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 1.0.0). Empty = dev build, artifacts only. Set = GitHub Release v<version> is created from this commit.'
+        type: string
+        default: ''
 
 permissions:
   contents: write
@@ -97,7 +102,9 @@ jobs:
         run: |
           $ref = '${{ github.ref_name }}'
           $cfg = Join-Path $env:RUNNER_TEMP 'tauri.version.json'
-          if ('${{ github.ref_type }}' -eq 'tag' -and $ref -match '^v(\d+\.\d+\.\d+)$') {
+          $inputVersion = '${{ inputs.version }}'
+          if ($inputVersion -match '^\d+\.\d+\.\d+$') { $ref = "v$inputVersion" }
+          if ((('${{ github.ref_type }}' -eq 'tag') -or $inputVersion) -and $ref -match '^v(\d+\.\d+\.\d+)$') {
             '{"version":"' + $Matches[1] + '"}' | Set-Content -Encoding ascii $cfg
             "args=--config `"$cfg`"" >> $env:GITHUB_OUTPUT
             "version=$($Matches[1])" >> $env:GITHUB_OUTPUT
@@ -188,18 +195,22 @@ jobs:
           if-no-files-found: error
 
       - name: GitHub Release (signed)
-        if: github.ref_type == 'tag' && steps.mode.outputs.signed == 'true'
+        if: (github.ref_type == 'tag' || inputs.version != '') && steps.mode.outputs.signed == 'true'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.version.outputs.version }}
+          target_commitish: ${{ github.sha }}
           files: dist/*
           generate_release_notes: true
           fail_on_unmatched_files: true
 
       - name: GitHub Release (UNSIGNED pre-release)
-        if: github.ref_type == 'tag' && steps.mode.outputs.signed != 'true'
+        if: (github.ref_type == 'tag' || inputs.version != '') && steps.mode.outputs.signed != 'true'
         uses: softprops/action-gh-release@v2
         with:
-          name: ${{ github.ref_name }} (UNSIGNED)
+          tag_name: v${{ steps.version.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: v${{ steps.version.outputs.version }} (UNSIGNED)
           prerelease: true
           body: |
             ⚠️ **UNSIGNED build** — Azure Artifact Signing was not configured when this release was built.
