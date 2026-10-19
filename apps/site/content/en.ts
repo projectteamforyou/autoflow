@@ -415,11 +415,13 @@ export const en = {
     },
     sync: {
       name: "Encrypted sync",
-      price: "$0",
-      period: "during launch",
+      price: "₩0",
+      period: "free during launch",
       desc: "Optional account that syncs flows between your devices, end-to-end encrypted.",
       items: ["Encrypted on your device before upload", "Conflicts keep both versions", "Delete your account and data at any time"],
       note: "Sync runs on servers that cost us money, so it may become a paid option later. If that happens we will announce it well in advance, and nothing already synced will be held hostage.",
+      policy: "Personal use is free. Non-personal (business) use is free until {date}.",
+      business: "After that, business use needs the Business plan: {month} a month or {year} a year — one-time payments, no auto-renewal.",
     },
     promises: {
       h2: "Promises that never change",

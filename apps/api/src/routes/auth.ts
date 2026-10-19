@@ -37,7 +37,7 @@ export function authRoutes() {
     await enforce(deps.limiters.authIp, `ip:${c.get("clientIp")}`);
     const body = await parseJson(c, SignupBody);
     const { user, session } = await auth.signup(deps, body, c.req.header("user-agent") ?? null);
-    return c.json({ user: auth.toPublicUser(user), session: sessionDto(session) }, 201);
+    return c.json({ user: auth.toPublicUser(user, deps.config.adminEmails), session: sessionDto(session) }, 201);
   });
 
   r.post("/login", async (c) => {
@@ -47,7 +47,7 @@ export function authRoutes() {
     // Per-account bucket stops distributed guessing against one account.
     await enforce(deps.limiters.authAccount, `login:${auth.normalizeEmail(body.email)}`);
     const { user, session } = await auth.login(deps, body, c.req.header("user-agent") ?? null);
-    return c.json({ user: auth.toPublicUser(user), session: sessionDto(session) });
+    return c.json({ user: auth.toPublicUser(user, deps.config.adminEmails), session: sessionDto(session) });
   });
 
   r.post("/logout", async (c) => {

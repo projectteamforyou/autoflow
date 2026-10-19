@@ -410,11 +410,13 @@ export const fr: Content = {
     },
     sync: {
       name: "Synchro chiffrée",
-      price: "0 €",
-      period: "pendant le lancement",
+      price: "₩0",
+      period: "gratuit pendant le lancement",
       desc: "Un compte facultatif pour synchroniser vos flux entre appareils, chiffrés de bout en bout.",
       items: ["Chiffrement sur l’appareil avant l’envoi", "En cas de conflit, les deux versions sont conservées", "Supprimez compte et données à tout moment"],
       note: "La synchro tourne sur des serveurs qui nous coûtent de l’argent ; elle pourrait donc devenir payante plus tard. Si c’est le cas, nous l’annoncerons longtemps à l’avance, et rien de ce que vous avez déjà synchronisé ne sera pris en otage.",
+      policy: "L’usage personnel est gratuit. L’usage non personnel (professionnel) est gratuit jusqu’au {date}.",
+      business: "Ensuite, l’usage professionnel nécessite l’offre Business : {month} par mois ou {year} par an, en paiement unique sans renouvellement automatique.",
     },
     promises: {
       h2: "Des promesses qui ne changent pas",

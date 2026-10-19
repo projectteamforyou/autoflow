@@ -410,11 +410,13 @@ export const vi: Content = {
     },
     sync: {
       name: "Đồng bộ mã hóa",
-      price: "0 ₫",
-      period: "giai đoạn ra mắt",
+      price: "₩0",
+      period: "miễn phí giai đoạn ra mắt",
       desc: "Tài khoản tùy chọn để đồng bộ luồng giữa các thiết bị, mã hóa đầu cuối.",
       items: ["Mã hóa trên thiết bị trước khi tải lên", "Khi xung đột, giữ cả hai phiên bản", "Xóa tài khoản và dữ liệu bất cứ lúc nào"],
       note: "Đồng bộ chạy trên máy chủ tốn chi phí, nên sau này có thể trở thành tùy chọn trả phí. Nếu vậy, chúng tôi sẽ báo trước rất lâu, và không dữ liệu nào bạn đã đồng bộ bị giữ làm con tin.",
+      policy: "Sử dụng cá nhân miễn phí. Sử dụng ngoài mục đích cá nhân (doanh nghiệp) miễn phí đến hết {date}.",
+      business: "Sau đó, sử dụng cho doanh nghiệp cần gói Business: {month}/tháng hoặc {year}/năm — thanh toán một lần, không tự động gia hạn.",
     },
     promises: {
       h2: "Những lời hứa không đổi",

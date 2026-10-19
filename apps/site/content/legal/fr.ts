@@ -73,7 +73,7 @@ export const privacy: Privacy = {
     processors: sec(
       "13. Sous-traitants",
       "Nous faisons appel à un petit nombre de prestataires qui traitent des données pour notre compte, sous obligations contractuelles de confidentialité et de sécurité :",
-      ["**Cloudflare, Inc.** — hébergement du site et de l’app web, diffusion de contenu et protection contre les attaques ;", "**Railway Corporation** — hébergement de l’API et de la base de données AutoFlow (données de compte, données de synchro chiffrées, Atlas).", "Les téléchargements passent par **GitHub** (Windows) et **Google Play** (Android), qui traitent vos données selon leurs propres politiques."],
+      ["**Cloudflare, Inc.** — hébergement du site et de l’app web, diffusion de contenu et protection contre les attaques ;", "**Railway Corporation** — hébergement de l’API et de la base de données AutoFlow (données de compte, données de synchro chiffrées, Atlas).", "Les téléchargements passent par **GitHub** (Windows) et **Google Play** (Android), qui traitent vos données selon leurs propres politiques.", "**PortOne** (Korea PortOne Inc.) et **NHN KCP Corp.** — paiements par carte en wons coréens pour l’offre Business ; **PayPal** — paiements dans d’autres devises. Ils reçoivent les informations de paiement que vous saisissez sur leurs pages ; nous ne recevons que le résultat du paiement (montant, statut, identifiant de paiement et e-mail du compte), jamais votre numéro de carte."],
     ),
     transfers: sec(
       "14. Transferts internationaux",
@@ -85,6 +85,7 @@ export const privacy: Privacy = {
       "Après suppression du compte : effacement immédiat des systèmes actifs et des sauvegardes sous 30 jours.",
       "Modèles Atlas : jusqu’à leur dépublication ou la suppression du compte ; signalements d’abus : un an maximum.",
       "Journaux de sécurité : 30 jours maximum, sauf besoin d’enquête sur un incident précis.",
+      "Données de paiement (commandes de l’offre Business) : 5 ans, comme l’exige la loi coréenne sur la protection des consommateurs dans le commerce électronique — y compris après la suppression du compte —, puis suppression.",
     ]),
     rights: sec(
       "16. Vos droits",
@@ -183,8 +184,12 @@ export const terms: Terms = {
       "La synchro chiffrée est facultative et actuellement gratuite pendant le lancement. Nous faisons en sorte que le Service reste disponible, mais il peut être interrompu pour maintenance, panne ou cause indépendante de notre volonté. La synchro étant chiffrée de bout en bout, nous ne pouvons pas récupérer vos données si vous perdez vos clés. Exportez les flux qui comptent pour vous.",
     ),
     fees: sec(
-      "10. Prix",
-      "Tout ce que propose aujourd’hui le Service est gratuit. Si nous introduisons un jour des fonctions payantes, nous les annoncerons à l’avance, elles ne s’appliqueront pas rétroactivement, et l’automatisation locale, Halt et l’export resteront gratuits.",
+      "10. Prix, offres payantes et remboursements",
+      "Les applications AutoFlow, l’automatisation locale, Halt et l’export sont gratuits. La synchronisation chiffrée est gratuite (₩0) pendant la période de lancement. L’usage personnel (individuel et non commercial) de la synchronisation est gratuit. L’usage non personnel — pour une entreprise, une organisation ou toute finalité commerciale — est gratuit jusqu’au 25 octobre 2026 à 23 h 59, heure de Corée ; ensuite, l’usage non personnel de la synchronisation nécessite l’offre payante Business. Vous choisissez votre type d’usage dans l’application et devez le maintenir exact.",
+      "L’offre Business est vendue en achat unique de 1 ou 12 mois, payé via PortOne (paiement par carte en wons coréens via KCP) ou PayPal (dollars américains). Le prix, taxes comprises, est affiché avant le paiement. Il n’y a pas de renouvellement automatique et nous ne conservons pas votre carte ; un nouvel achat prolonge votre période en cours.",
+      "Rétractation : en vertu de la loi coréenne sur la protection des consommateurs dans le commerce électronique, vous pouvez vous rétracter dans les 7 jours suivant le paiement et obtenir un remboursement intégral. L’offre Business étant un contenu numérique fourni dès le paiement, le droit de rétractation prend fin dès que vous commencez à l’utiliser après le paiement (par exemple en envoyant des données vers la synchronisation pour un usage professionnel), à condition que vous l’ayez accepté lors du paiement ; jusque-là, vous pouvez vous rétracter à tout moment. Si le service diffère de ce qui était affiché, annoncé ou convenu, vous pouvez vous rétracter dans les 3 mois suivant sa fourniture, ou dans les 30 jours suivant le moment où vous l’avez su ou auriez pu le savoir. Demandez vos remboursements à {email} ; nous remboursons par le moyen de paiement d’origine dans les 3 jours ouvrables suivant la confirmation de la rétractation.",
+      "Si nous ne pouvons pas fournir la synchronisation pour des raisons qui nous sont imputables, ou si nous arrêtons l’offre payante, nous remboursons au prorata la partie non utilisée de votre période. Ne pas payer ne bloque jamais vos données : la consultation, l’export et la suppression des données synchronisées restent toujours possibles. Si nous modifions les prix ou introduisons de nouvelles fonctions payantes, nous l’annoncerons à l’avance, cela ne s’appliquera pas aux périodes déjà payées, et l’automatisation locale, Halt et l’export resteront gratuits.",
+      "La section 14 (absence de compensation) s’applique aussi aux offres payantes, mais elle ne limite ni les remboursements décrits dans la présente section ni vos droits au titre du droit de la consommation.",
     ),
     ip: sec(
       "11. Notre propriété intellectuelle",

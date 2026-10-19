@@ -384,6 +384,7 @@ ul { margin: 0; padding: 0; }
 .price span { color: var(--af-muted); }
 .plan .list { margin-top: 22px; }
 .plan .note { margin-top: 22px; }
+.plan .policy { margin-top: 22px; }
 
 /* faq */
 .faq { display: grid; gap: 10px; max-width: 860px; }

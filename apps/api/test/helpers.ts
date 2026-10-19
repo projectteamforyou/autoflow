@@ -75,7 +75,12 @@ export interface AppOptions {
   env?: Config["env"];
   appOrigins?: string[];
   logger?: Logger;
+  adminEmails?: string[];
+  /** null = no key configured (production without SETTINGS_ENCRYPTION_KEY). */
+  settingsEncryptionKey?: string | null;
 }
+
+export const TEST_SETTINGS_KEY = "test-settings-encryption-key-0123456789abcdef";
 
 export function makeApp(db: TestDb, opts: AppOptions = {}) {
   const rateDefaults = Object.fromEntries(Object.keys(DEFAULT_LIMITS.rate).map((k) => [k, GENEROUS])) as unknown as Limits["rate"];
@@ -91,6 +96,9 @@ export function makeApp(db: TestDb, opts: AppOptions = {}) {
     logLevel: "silent",
     version: "test",
     limits,
+    adminEmails: opts.adminEmails ?? ["operator@example.com"],
+    settingsEncryptionKey: opts.settingsEncryptionKey === null ? undefined : (opts.settingsEncryptionKey ?? TEST_SETTINGS_KEY),
+    billingTimeoutMs: 5_000,
   };
   const mailer = new MemoryMailer();
   const deps: AppDeps = {

@@ -17,3 +17,4 @@ export * from "./sandbox.js";
 export * from "./bridge.js";
 export * from "./ai-providers.js";
 export * from "./promo.js";
+export * from "./plans.js";

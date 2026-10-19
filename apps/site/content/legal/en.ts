@@ -73,7 +73,7 @@ export const privacy: Privacy = {
     processors: sec(
       "13. Service providers",
       "We use a small number of providers that process data on our behalf under contractual confidentiality and security obligations:",
-      ["**Cloudflare, Inc.** — website and web app hosting, content delivery and attack protection;", "**Railway Corporation** — hosting of the AutoFlow API and database (account data, encrypted sync data, Atlas).", "Downloads are provided through **GitHub** (Windows) and **Google Play** (Android); those services process your data under their own privacy policies."],
+      ["**Cloudflare, Inc.** — website and web app hosting, content delivery and attack protection;", "**Railway Corporation** — hosting of the AutoFlow API and database (account data, encrypted sync data, Atlas).", "Downloads are provided through **GitHub** (Windows) and **Google Play** (Android); those services process your data under their own privacy policies.", "**PortOne** (Korea PortOne Inc.) and **NHN KCP Corp.** — card payments in Korean won for the Business plan; **PayPal** — payments in other currencies. They receive the payment details you enter on their pages; we receive only the payment result (amount, status, payment ID and your account email), never your card number."],
     ),
     transfers: sec(
       "14. International transfers",
@@ -85,6 +85,7 @@ export const privacy: Privacy = {
       "After account deletion: removed from active systems immediately and from backups within 30 days.",
       "Atlas templates: until you unpublish them or delete your account; abuse reports for up to one year.",
       "Security logs: up to 30 days, unless needed longer to investigate a specific incident.",
+      "Payment records (Business plan orders): 5 years, as required by the Korean Act on Consumer Protection in Electronic Commerce — also after account deletion — and then deleted.",
     ]),
     rights: sec(
       "16. Your rights",
@@ -183,8 +184,12 @@ export const terms: Terms = {
       "Encrypted sync is optional and currently free during launch. We work to keep the Service available, but it may be interrupted for maintenance, failures or reasons beyond our control. Because sync is end-to-end encrypted, we cannot recover data if you lose your keys. Keep exports of flows that matter to you.",
     ),
     fees: sec(
-      "10. Fees",
-      "Everything the Service offers today is free. If we introduce paid features in the future, we will announce them in advance, they will not apply retroactively, and local automation, Halt and export will remain free.",
+      "10. Fees, paid plans and refunds",
+      "The AutoFlow apps, local automation, Halt and export are free. Encrypted sync is free (₩0) during the launch period. Personal (individual, non-commercial) use of sync is free. Non-personal use — for a business, an organisation or any commercial purpose — is free until October 25, 2026, 23:59 Korea time; after that, non-personal use of sync requires a paid Business plan. You choose your usage type in the app and must keep it accurate.",
+      "The Business plan is sold as a one-time purchase of 1 or 12 months, paid through PortOne (KCP card payments in Korean won) or PayPal (US dollars). The price, including any taxes, is shown before you pay. There is no automatic renewal and we do not store your card; a new purchase extends your current period.",
+      "Withdrawal: under the Korean Act on Consumer Protection in Electronic Commerce, you may withdraw a purchase within 7 days of payment for a full refund. Because the Business plan is digital content that is provided from the moment of payment, the right of withdrawal ends once you start using it after payment (for example by uploading to sync for business use), provided you agreed to this at checkout; until then you can withdraw at any time. If the service differs from what was displayed, advertised or agreed, you may withdraw within 3 months of receiving it, or within 30 days of when you learned or could have learned of this. Request refunds at {email}; we refund through the original payment method within 3 business days of confirming the withdrawal.",
+      "If we cannot provide sync for reasons attributable to us, or we discontinue the paid plan, we refund the unused part of your period pro rata. Not paying never locks your data: reading, exporting and deleting synced data always remain available. If we change prices or introduce new paid features, we will announce it in advance, it will not apply to periods already paid for, and local automation, Halt and export will remain free.",
+      "Section 14 (no compensation) also applies to paid plans, but it does not limit the refunds described in this section or your rights under consumer-protection law.",
     ),
     ip: sec(
       "11. Our intellectual property",

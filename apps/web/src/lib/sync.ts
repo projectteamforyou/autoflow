@@ -135,11 +135,20 @@ export async function syncNow(): Promise<SyncReport> {
       }
     }
   };
-  for (const f of useStore.getState().flows) await push("flow", f.id, f);
-  for (const p of useStore.getState().profiles) await push("profile", p.id, p);
+  // Business use without a plan (after the free period) pauses uploads only: what was pulled above
+  // is still recorded, and the caller gets the 402 to explain why nothing went up.
+  let paused: ApiError | null = null;
+  try {
+    for (const f of useStore.getState().flows) await push("flow", f.id, f);
+    for (const p of useStore.getState().profiles) await push("profile", p.id, p);
+  } catch (e) {
+    if (!(e instanceof ApiError && e.code === "business_plan_required")) throw e;
+    paused = e;
+  }
 
   await kv.set(STATE, state);
   await useStore.getState().updateSettings({ sync: { ...useStore.getState().settings.sync, cursor, lastSyncAt: Date.now() } });
+  if (paused) throw paused;
   return report;
 }
 

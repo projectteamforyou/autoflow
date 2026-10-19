@@ -410,11 +410,13 @@ export const ptBR: Content = {
     },
     sync: {
       name: "Sincronização criptografada",
-      price: "R$ 0",
-      period: "durante o lançamento",
+      price: "₩0",
+      period: "grátis durante o lançamento",
       desc: "Conta opcional que sincroniza seus fluxos entre aparelhos, com criptografia de ponta a ponta.",
       items: ["Criptografado no seu aparelho antes do envio", "Em conflitos, as duas versões são mantidas", "Apague sua conta e seus dados quando quiser"],
       note: "A sincronização roda em servidores que custam dinheiro, então pode virar uma opção paga no futuro. Se isso acontecer, vamos avisar com bastante antecedência — e nada do que você já sincronizou vai virar refém.",
+      policy: "O uso pessoal é grátis. O uso não pessoal (empresarial) é grátis até {date}.",
+      business: "Depois disso, o uso empresarial precisa do plano Business: {month} por mês ou {year} por ano, em pagamento único sem renovação automática.",
     },
     promises: {
       h2: "Promessas que não mudam",

@@ -20,10 +20,21 @@ export interface PublicUser {
   displayName: string | null;
   locale: string;
   role: users.Role;
+  usageType: users.UsageType;
+  /** Operator of this deployment (billing settings, orders, entitlements). */
+  isAdmin: boolean;
   createdAt: string;
 }
 
-export function toPublicUser(u: User): PublicUser {
+/**
+ * Operators are the accounts whose email is listed in ADMIN_EMAILS — and only once that email is
+ * verified, so registering the address without controlling the inbox grants nothing.
+ */
+export function isOperator(u: User, adminEmails: readonly string[]): boolean {
+  return u.emailVerifiedAt !== null && adminEmails.includes(u.emailNormalized);
+}
+
+export function toPublicUser(u: User, adminEmails: readonly string[] = []): PublicUser {
   return {
     id: u.id,
     email: u.email,
@@ -31,6 +42,8 @@ export function toPublicUser(u: User): PublicUser {
     displayName: u.displayName,
     locale: u.locale,
     role: u.role,
+    usageType: u.usageType,
+    isAdmin: isOperator(u, adminEmails),
     createdAt: u.createdAt.toISOString(),
   };
 }

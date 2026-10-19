@@ -73,7 +73,7 @@ export const privacy: Privacy = {
     processors: sec(
       "13. Operadores",
       "Trabalhamos com poucos fornecedores que tratam dados em nosso nome, com obrigações contratuais de confidencialidade e segurança:",
-      ["**Cloudflare, Inc.** — hospedagem do site e do app web, entrega de conteúdo e proteção contra ataques;", "**Railway Corporation** — hospedagem da API e do banco de dados do AutoFlow (dados de conta, dados de sincronização criptografados, Atlas).", "Os downloads são oferecidos pelo **GitHub** (Windows) e pelo **Google Play** (Android), que tratam seus dados conforme as próprias políticas de privacidade."],
+      ["**Cloudflare, Inc.** — hospedagem do site e do app web, entrega de conteúdo e proteção contra ataques;", "**Railway Corporation** — hospedagem da API e do banco de dados do AutoFlow (dados de conta, dados de sincronização criptografados, Atlas).", "Os downloads são oferecidos pelo **GitHub** (Windows) e pelo **Google Play** (Android), que tratam seus dados conforme as próprias políticas de privacidade.", "**PortOne** (Korea PortOne Inc.) e **NHN KCP Corp.** — pagamentos com cartão em wons coreanos do plano Business; **PayPal** — pagamentos em outras moedas. Eles recebem os dados de pagamento que você informa nas páginas deles; nós recebemos apenas o resultado do pagamento (valor, status, ID do pagamento e o e-mail da sua conta), nunca o número do seu cartão."],
     ),
     transfers: sec(
       "14. Transferências internacionais",
@@ -85,6 +85,7 @@ export const privacy: Privacy = {
       "Após a exclusão da conta: removidos dos sistemas ativos imediatamente e dos backups em até 30 dias.",
       "Modelos do Atlas: até você despublicar ou excluir a conta; denúncias de abuso por até um ano.",
       "Registros de segurança: até 30 dias, salvo se forem necessários por mais tempo para investigar um incidente específico.",
+      "Registros de pagamento (pedidos do plano Business): 5 anos, conforme exige a Lei coreana de Proteção ao Consumidor no Comércio Eletrônico — inclusive após a exclusão da conta — e depois são excluídos.",
     ]),
     rights: sec(
       "16. Seus direitos",
@@ -183,8 +184,12 @@ export const terms: Terms = {
       "A sincronização criptografada é opcional e, por enquanto, gratuita durante o lançamento. Trabalhamos para manter o Serviço disponível, mas ele pode ser interrompido por manutenção, falhas ou motivos fora do nosso controle. Como a sincronização tem criptografia de ponta a ponta, não conseguimos recuperar dados se você perder suas chaves. Guarde exportações dos fluxos importantes.",
     ),
     fees: sec(
-      "10. Preço",
-      "Tudo o que o Serviço oferece hoje é gratuito. Se no futuro criarmos recursos pagos, vamos anunciá-los com antecedência, eles não terão efeito retroativo, e automação local, Halt e exportação continuarão grátis.",
+      "10. Preços, planos pagos e reembolsos",
+      "Os apps do AutoFlow, a automação local, o Halt e a exportação são gratuitos. A sincronização criptografada é gratuita (₩0) durante o lançamento. O uso pessoal (individual e não comercial) da sincronização é gratuito. O uso não pessoal — para uma empresa, uma organização ou qualquer finalidade comercial — é gratuito até 25 de outubro de 2026, às 23h59 no horário da Coreia; depois disso, o uso não pessoal da sincronização exige o plano pago Business. Você escolhe seu tipo de uso no app e deve mantê-lo correto.",
+      "O plano Business é vendido como compra única de 1 ou 12 meses, paga pelo PortOne (cartão em wons coreanos via KCP) ou pelo PayPal (dólares americanos). O preço, com os impostos aplicáveis, é exibido antes do pagamento. Não há renovação automática e não guardamos seu cartão; uma nova compra estende o seu período atual.",
+      "Arrependimento: pela Lei coreana de Proteção ao Consumidor no Comércio Eletrônico, você pode desistir de uma compra em até 7 dias após o pagamento e receber o reembolso integral. Como o plano Business é um conteúdo digital fornecido a partir do pagamento, o direito de arrependimento termina quando você começa a usá-lo após o pagamento (por exemplo, ao enviar dados para a sincronização para uso empresarial), desde que você tenha concordado com isso ao pagar; até lá, você pode desistir a qualquer momento. Se o serviço for diferente do que foi exibido, anunciado ou contratado, você pode desistir em até 3 meses após recebê-lo ou em até 30 dias a partir de quando soube ou poderia ter sabido disso. Solicite reembolsos em {email}; reembolsamos pelo meio de pagamento original em até 3 dias úteis após confirmar a desistência.",
+      "Se não pudermos fornecer a sincronização por motivos atribuíveis a nós, ou se encerrarmos o plano pago, reembolsamos proporcionalmente a parte não utilizada do seu período. Não pagar nunca bloqueia seus dados: ler, exportar e excluir os dados sincronizados continua sempre possível. Se mudarmos os preços ou lançarmos novos recursos pagos, avisaremos com antecedência, isso não se aplicará a períodos já pagos, e a automação local, o Halt e a exportação continuarão gratuitos.",
+      "A seção 14 (ausência de compensação) também se aplica aos planos pagos, mas não limita os reembolsos descritos nesta seção nem seus direitos pela legislação de defesa do consumidor.",
     ),
     ip: sec(
       "11. Nossa propriedade intelectual",

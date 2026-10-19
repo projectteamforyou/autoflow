@@ -7,7 +7,24 @@ import { shell } from "./platform";
 import { installExternalLinks } from "./lib/site";
 import "./styles/app.css";
 
+/**
+ * Payment providers return to /billing/return?… (PortOne mobile redirect: paymentId, code, message;
+ * PayPal: provider, token, PayerID, cancelled). Move the query onto the hash route before the
+ * router mounts; that page asks the server to verify — nothing here is trusted.
+ */
+function routeBillingReturn() {
+  if (!/\/billing\/return\/?$/.test(location.pathname)) return;
+  const from = new URLSearchParams(location.search);
+  const q = new URLSearchParams();
+  for (const k of ["provider", "paymentId", "code", "message", "token", "cancelled"]) {
+    const v = from.get(k);
+    if (v) q.set(k, v.slice(0, 300));
+  }
+  history.replaceState(null, "", `${location.pathname.replace(/billing\/return\/?$/, "")}#/billing/return?${q.toString()}`);
+}
+
 async function boot() {
+  routeBillingReturn();
   await Promise.all([setLocale(initialLocale()), useStore.getState().init()]);
   // Email links (verify / reset) and server share links arrive on real paths.
   if (!/\/(index\.html)?$/.test(location.pathname)) void import("./lib/links").then((m) => m.handleIncomingLink());

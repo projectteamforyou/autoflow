@@ -1,4 +1,4 @@
-import { TEMPLATES, analyzeRisk, type Template, type TemplateCategory } from "@autoflow/core";
+import { BUSINESS_FREE_UNTIL, BUSINESS_PRICES, TEMPLATES, analyzeRisk, formatPolicyDate, formatPrice, preferredProvider, PROVIDER_CURRENCY, type Template, type TemplateCategory } from "@autoflow/core";
 import type { Content, Section } from "../content/types.js";
 import { LINKS, pagePath, type PageId } from "./config.js";
 import { brand, icon, mark } from "./icons.js";
@@ -329,11 +329,16 @@ ${shareSection(ctx, d.seo.title)}`;
 function pricing(ctx: Ctx): PageOut {
   const { t } = ctx;
   const p = t.pricing;
+  // Policy date and Business prices come from @autoflow/core (plans.ts), the same source the app and API use.
+  const currency = PROVIDER_CURRENCY[preferredProvider(ctx.lang)];
+  const price = (period: "month" | "year") => formatPrice(BUSINESS_PRICES[period][currency], currency, ctx.lang);
+  const policy = p.sync.policy.replace("{date}", formatPolicyDate(BUSINESS_FREE_UNTIL, ctx.lang));
+  const business = p.sync.business.replace("{month}", price("month")).replace("{year}", price("year"));
   const main = html`${pageHero(ctx, "pricing", p.h1, p.lead)}
 <section class="section-tight"><div class="wrap">
 <div class="plans">
 <article class="card plan card-glow"><h2>${esc(p.free.name)}</h2><div class="price"><b>${esc(p.free.price)}</b><span>${esc(p.free.period)}</span></div><p>${esc(p.free.desc)}</p>${list(p.free.items)}${ctaRow(ctx)}</article>
-<article class="card plan"><h2>${esc(p.sync.name)}</h2><div class="price"><b>${esc(p.sync.price)}</b><span>${esc(p.sync.period)}</span></div><p>${esc(p.sync.desc)}</p>${list(p.sync.items)}<div class="note">${icon("alert", 18)}<span>${md(p.sync.note)}</span></div></article>
+<article class="card plan"><h2>${esc(p.sync.name)}</h2><div class="price"><b>${esc(p.sync.price)}</b><span>${esc(p.sync.period)}</span></div><p>${esc(p.sync.desc)}</p>${list(p.sync.items)}<p class="policy"><strong>${esc(policy)}</strong></p><p class="muted">${esc(business)}</p><div class="note">${icon("alert", 18)}<span>${md(p.sync.note)}</span></div></article>
 </div>
 <h2 class="h2 mt-l">${esc(p.promises.h2)}</h2>
 <div class="grid mt-l">${p.promises.items.map((x) => `<article class="card"><span class="tile">${icon("check", 20)}</span><h3>${esc(x.h3)}</h3><p>${esc(x.p)}</p></article>`)}</div>

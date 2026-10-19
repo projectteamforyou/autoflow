@@ -410,11 +410,13 @@ export const es: Content = {
     },
     sync: {
       name: "Sincronización cifrada",
-      price: "0 €",
-      period: "durante el lanzamiento",
+      price: "₩0",
+      period: "gratis durante el lanzamiento",
       desc: "Cuenta opcional que sincroniza tus flujos entre dispositivos, con cifrado de extremo a extremo.",
       items: ["Cifrado en tu dispositivo antes de subir", "Los conflictos conservan ambas versiones", "Borra tu cuenta y tus datos cuando quieras"],
       note: "La sincronización funciona en servidores que nos cuestan dinero, así que podría convertirse en una opción de pago más adelante. Si ocurre, lo anunciaremos con mucha antelación y nada de lo que ya sincronizaste quedará como rehén.",
+      policy: "El uso personal es gratis. El uso no personal (empresarial) es gratis hasta el {date}.",
+      business: "Después, el uso empresarial necesita el plan Business: {month} al mes o {year} al año, en pagos únicos sin renovación automática.",
     },
     promises: {
       h2: "Promesas que no cambian",

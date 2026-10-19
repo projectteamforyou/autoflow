@@ -25,6 +25,11 @@ export type ErrorCode =
   | "rate_limited"
   | "provider_not_allowed"
   | "upstream_error"
+  | "business_plan_required"
+  | "billing_disabled"
+  | "payment_not_completed"
+  | "payment_mismatch"
+  | "payment_failed"
   | "upstream_timeout"
   | "service_unavailable"
   | "internal_error";

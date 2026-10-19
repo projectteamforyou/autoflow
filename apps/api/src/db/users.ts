@@ -1,7 +1,9 @@
 /** Users, sessions and single-use email tokens. */
+import type { UsageType } from "@autoflow/core";
 import type { Db } from "./client.js";
 
 export type Role = "user" | "admin";
+export type { UsageType };
 
 export interface User {
   id: string;
@@ -12,6 +14,7 @@ export interface User {
   displayName: string | null;
   locale: string;
   role: Role;
+  usageType: UsageType;
   createdAt: Date;
   updatedAt: Date;
   passwordChangedAt: Date;
@@ -26,6 +29,7 @@ interface UserRow {
   display_name: string | null;
   locale: string;
   role: Role;
+  usage_type: UsageType;
   created_at: Date;
   updated_at: Date;
   password_changed_at: Date;
@@ -40,6 +44,7 @@ const mapUser = (r: UserRow): User => ({
   displayName: r.display_name,
   locale: r.locale,
   role: r.role,
+  usageType: r.usage_type,
   createdAt: r.created_at,
   updatedAt: r.updated_at,
   passwordChangedAt: r.password_changed_at,
@@ -84,6 +89,11 @@ export async function updateProfile(db: Db, id: string, p: { displayName?: strin
       updated_at = now()
     WHERE id = ${id}
     RETURNING *`;
+  return rows[0] ? mapUser(rows[0]) : null;
+}
+
+export async function updateUsageType(db: Db, id: string, usageType: UsageType): Promise<User | null> {
+  const rows = await db<UserRow[]>`UPDATE users SET usage_type = ${usageType}, updated_at = now() WHERE id = ${id} RETURNING *`;
   return rows[0] ? mapUser(rows[0]) : null;
 }
 

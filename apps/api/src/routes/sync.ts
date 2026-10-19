@@ -6,6 +6,7 @@ import { ApiError } from "../errors.js";
 import { parseJson, parseParams, parseQuery, requireAuth } from "../lib/http.js";
 import { ITEM_KINDS } from "../db/items.js";
 import * as sync from "../services/sync.js";
+import { assertSyncWriteAllowed } from "../services/billing.js";
 
 const Params = z.object({ kind: z.enum(ITEM_KINDS), id: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/) });
 
@@ -63,6 +64,8 @@ export function syncRoutes() {
     const { kind, id } = parseParams(c, Params);
     const base = ifMatchRevision(c);
     const body = await parseJson(c, PutBody);
+    // Only uploads can need a plan; reads, tombstones (deletes), export and account deletion never do.
+    await assertSyncWriteAllowed(c.get("deps"), a);
     const saved = await sync.putItem(c.get("deps"), a, kind, id, base, body);
     c.header("ETag", `"${saved.revision}"`);
     return c.json({ item: sync.toItemDto(saved, false) }, saved.revision === 1 ? 201 : 200);

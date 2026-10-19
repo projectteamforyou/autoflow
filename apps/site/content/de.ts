@@ -410,11 +410,13 @@ export const de: Content = {
     },
     sync: {
       name: "Verschlüsselter Sync",
-      price: "0 €",
-      period: "zum Start",
+      price: "₩0",
+      period: "kostenlos zum Start",
       desc: "Optionales Konto, das Flows Ende-zu-Ende-verschlüsselt zwischen deinen Geräten synchronisiert.",
       items: ["Verschlüsselung auf dem Gerät vor dem Upload", "Bei Konflikten bleiben beide Versionen erhalten", "Konto und Daten jederzeit löschen"],
       note: "Sync läuft auf Servern, die uns Geld kosten – er könnte daher später eine kostenpflichtige Option werden. Falls ja, kündigen wir das lange im Voraus an, und nichts, was du bereits synchronisiert hast, wird zur Geisel.",
+      policy: "Private Nutzung ist kostenlos. Nicht private (geschäftliche) Nutzung ist bis zum {date} kostenlos.",
+      business: "Danach braucht die geschäftliche Nutzung den Business-Tarif: {month} pro Monat oder {year} pro Jahr – als Einmalzahlung ohne automatische Verlängerung.",
     },
     promises: {
       h2: "Versprechen, die bleiben",

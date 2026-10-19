@@ -5,6 +5,7 @@ import { z, type ZodTypeAny } from "zod";
 import { ApiError, errors } from "../errors.js";
 import type { AppEnv, AuthContext } from "../deps.js";
 import type { RateLimiter } from "./rate-limit.js";
+import { isOperator } from "../services/auth.js";
 
 export function zodDetails(err: z.ZodError) {
   return err.issues.map((i) => ({ path: i.path.join("."), message: i.message }));
@@ -70,9 +71,17 @@ export function requireAuth(c: Context<AppEnv>): AuthContext {
   return auth;
 }
 
+/** Atlas moderators (role=admin) and deployment operators. */
 export function requireAdmin(c: Context<AppEnv>): AuthContext {
   const auth = requireAuth(c);
-  if (auth.user.role !== "admin") throw errors.forbidden("Administrator role required");
+  if (auth.user.role !== "admin" && !isOperator(auth.user, c.get("deps").config.adminEmails)) throw errors.forbidden("Administrator role required");
+  return auth;
+}
+
+/** Deployment operators only (ADMIN_EMAILS, verified): payment keys, orders, entitlements. */
+export function requireOperator(c: Context<AppEnv>): AuthContext {
+  const auth = requireAuth(c);
+  if (!isOperator(auth.user, c.get("deps").config.adminEmails)) throw errors.forbidden("Operator access required");
   return auth;
 }
 

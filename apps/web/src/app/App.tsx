@@ -20,6 +20,8 @@ import { SettingsPage } from "../pages/Settings";
 import { Onboarding } from "../pages/Onboarding";
 import { NewFlowPage } from "../pages/NewFlow";
 import { ImportFlowPage } from "../pages/ImportFlow";
+import { BillingReturnPage } from "../pages/Billing";
+import { AdminPage } from "../pages/Admin";
 
 function Guard({ children }: { children: JSX.Element }) {
   const onboarded = useStore((s) => s.settings.onboarded);
@@ -85,6 +87,8 @@ export function App() {
         <Route path="/studio" element={<Guard><StudioPage /></Guard>} />
         <Route path="/fleet" element={<Guard><FleetPage /></Guard>} />
         <Route path="/settings" element={<Guard><SettingsPage /></Guard>} />
+        <Route path="/billing/return" element={<BillingReturnPage />} />
+        <Route path="/admin" element={<Guard><AdminPage /></Guard>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <PulseBar />

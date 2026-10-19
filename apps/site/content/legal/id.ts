@@ -73,7 +73,7 @@ export const privacy: Privacy = {
     processors: sec(
       "13. Pemroses data",
       "Kami bekerja dengan sedikit penyedia yang memproses data atas nama kami dengan kewajiban kerahasiaan dan keamanan dalam kontrak:",
-      ["**Cloudflare, Inc.** — hosting situs dan aplikasi web, pengiriman konten, dan perlindungan serangan;", "**Railway Corporation** — hosting API dan basis data AutoFlow (data akun, data sinkronisasi terenkripsi, Atlas).", "Unduhan disediakan melalui **GitHub** (Windows) dan **Google Play** (Android), yang memproses data Anda sesuai kebijakan privasi masing-masing."],
+      ["**Cloudflare, Inc.** — hosting situs dan aplikasi web, pengiriman konten, dan perlindungan serangan;", "**Railway Corporation** — hosting API dan basis data AutoFlow (data akun, data sinkronisasi terenkripsi, Atlas).", "Unduhan disediakan melalui **GitHub** (Windows) dan **Google Play** (Android), yang memproses data Anda sesuai kebijakan privasi masing-masing.", "**PortOne** (Korea PortOne Inc.) dan **NHN KCP Corp.** — pembayaran kartu dalam won Korea untuk paket Business; **PayPal** — pembayaran dalam mata uang lain. Mereka menerima data pembayaran yang Anda masukkan di halaman mereka; kami hanya menerima hasil pembayaran (jumlah, status, ID pembayaran, dan email akun Anda), tidak pernah nomor kartu Anda."],
     ),
     transfers: sec(
       "14. Transfer internasional",
@@ -85,6 +85,7 @@ export const privacy: Privacy = {
       "Setelah akun dihapus: segera dihapus dari sistem aktif dan dari cadangan dalam 30 hari.",
       "Templat Atlas: sampai dibatalkan penerbitannya atau akun dihapus; laporan penyalahgunaan hingga satu tahun.",
       "Log keamanan: hingga 30 hari, kecuali diperlukan lebih lama untuk menyelidiki insiden tertentu.",
+      "Catatan pembayaran (pesanan paket Business): 5 tahun, sebagaimana diwajibkan Undang-Undang Perlindungan Konsumen dalam Perdagangan Elektronik Korea — juga setelah akun dihapus — lalu dihapus.",
     ]),
     rights: sec(
       "16. Hak Anda",
@@ -183,8 +184,12 @@ export const terms: Terms = {
       "Sinkronisasi terenkripsi bersifat opsional dan saat ini gratis selama peluncuran. Kami berupaya menjaga Layanan tetap tersedia, tetapi Layanan dapat terganggu karena pemeliharaan, kegagalan, atau hal di luar kendali kami. Karena sinkronisasi dienkripsi end-to-end, kami tak dapat memulihkan data jika Anda kehilangan kunci. Simpan ekspor alur yang penting bagi Anda.",
     ),
     fees: sec(
-      "10. Biaya",
-      "Semua yang ditawarkan Layanan saat ini gratis. Jika kelak kami memperkenalkan fitur berbayar, kami akan mengumumkannya lebih dulu, tidak berlaku surut, dan otomatisasi lokal, Halt, serta ekspor tetap gratis.",
+      "10. Biaya, paket berbayar, dan pengembalian dana",
+      "Aplikasi AutoFlow, otomatisasi lokal, Halt, dan ekspor gratis. Sinkronisasi terenkripsi gratis (₩0) selama masa peluncuran. Penggunaan sinkronisasi untuk keperluan pribadi (perorangan, non-komersial) gratis. Penggunaan non-pribadi — untuk bisnis, organisasi, atau tujuan komersial apa pun — gratis hingga 25 Oktober 2026 pukul 23.59 waktu Korea; setelah itu, penggunaan sinkronisasi non-pribadi memerlukan paket berbayar Business. Anda memilih jenis penggunaan di aplikasi dan wajib menjaganya tetap akurat.",
+      "Paket Business dijual sebagai pembelian sekali untuk 1 atau 12 bulan, dibayar melalui PortOne (kartu dalam won Korea melalui KCP) atau PayPal (dolar AS). Harga, termasuk pajak yang berlaku, ditampilkan sebelum Anda membayar. Tidak ada perpanjangan otomatis dan kami tidak menyimpan kartu Anda; pembelian baru memperpanjang periode Anda saat ini.",
+      "Pembatalan pembelian: berdasarkan Undang-Undang Perlindungan Konsumen dalam Perdagangan Elektronik Korea, Anda dapat membatalkan pembelian dalam 7 hari setelah pembayaran dan menerima pengembalian dana penuh. Karena paket Business adalah konten digital yang diberikan sejak pembayaran, hak pembatalan berakhir setelah Anda mulai menggunakannya setelah pembayaran (misalnya mengunggah data ke sinkronisasi untuk keperluan bisnis), asalkan Anda telah menyetujui hal ini saat membayar; sebelum itu Anda dapat membatalkan kapan saja. Jika layanan berbeda dari yang ditampilkan, diiklankan, atau disepakati, Anda dapat membatalkan dalam 3 bulan sejak menerimanya, atau dalam 30 hari sejak Anda mengetahui atau seharusnya dapat mengetahuinya. Ajukan pengembalian dana ke {email}; kami mengembalikan dana melalui metode pembayaran semula dalam 3 hari kerja setelah pembatalan dikonfirmasi.",
+      "Jika kami tidak dapat menyediakan sinkronisasi karena alasan yang menjadi tanggung jawab kami, atau kami menghentikan paket berbayar, kami mengembalikan bagian periode yang belum terpakai secara proporsional. Tidak membayar tidak pernah mengunci data Anda: membaca, mengekspor, dan menghapus data yang sudah disinkronkan selalu tetap tersedia. Jika kami mengubah harga atau memperkenalkan fitur berbayar baru, kami akan mengumumkannya terlebih dahulu, perubahan itu tidak berlaku untuk periode yang sudah dibayar, dan otomatisasi lokal, Halt, serta ekspor tetap gratis.",
+      "Bagian 14 (tidak ada kompensasi) juga berlaku untuk paket berbayar, tetapi tidak membatasi pengembalian dana yang dijelaskan dalam bagian ini maupun hak Anda menurut hukum perlindungan konsumen.",
     ),
     ip: sec(
       "11. Kekayaan intelektual kami",
