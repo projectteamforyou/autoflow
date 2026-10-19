@@ -67,7 +67,7 @@ body {
 }
 :lang(ko) body, :lang(ko) h1, :lang(ko) h2, :lang(ko) h3, :lang(ko) p, :lang(ko) li { word-break: keep-all; overflow-wrap: anywhere; }
 li, dd, dt, summary, figcaption, td, th, blockquote, label, .lead { text-wrap: pretty; }
-h4, .h2, .h3 { text-wrap: balance; }
+h4, .h2, .h3, .btn { text-wrap: balance; }
 :lang(ja) body, :lang(zh-CN) body, :lang(zh-TW) body { line-break: strict; }
 img, svg { display: block; max-width: 100%; }
 img { height: auto; }
@@ -477,3 +477,18 @@ ul { margin: 0; padding: 0; }
 .studio-band-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .studio-band-text strong { font-size: 16px; letter-spacing: -0.01em; }
 .studio-band-text span { color: var(--af-muted); font-size: 14.5px; }
+
+/* Very narrow phones (320–400px): long German/Russian/Indonesian words hyphenate instead of pushing the page sideways */
+@media (max-width: 400px) {
+  :lang(de), :lang(ru), :lang(es), :lang(fr), :lang(pt-BR), :lang(id), :lang(vi), :lang(en) { hyphens: auto; overflow-wrap: break-word; }
+  .display { font-size: clamp(2.1rem, 0.6rem + 8vw, 2.6rem); }
+  :lang(ru) .display, :lang(de) .display { font-size: 2rem; }
+  .h2 { font-size: clamp(1.6rem, 1rem + 3vw, 1.9rem); }
+  .page-hero h1 { font-size: clamp(1.9rem, 1rem + 4vw, 2.2rem); }
+}
+/* Grid tracks never grow past the viewport because of one long word */
+.rows, .row, .foot { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 881px) { .row { grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr); } }
+@media (min-width: 861px) { .foot { grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 860px) { .foot { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.row > *, .foot > * { min-width: 0; }
