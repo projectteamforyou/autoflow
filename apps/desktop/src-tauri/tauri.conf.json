@@ -33,7 +33,7 @@
         "style-src": "'self' 'unsafe-inline'",
         "img-src": "'self' data: blob:",
         "font-src": "'self' data:",
-        "connect-src": "'self' ipc: http://ipc.localhost https://*.up.railway.app https://api.openai.com https://api.anthropic.com http://localhost:11434 http://127.0.0.1:11434 http://localhost:1234 http://127.0.0.1:1234",
+        "connect-src": "'self' ipc: http://ipc.localhost https://*.up.railway.app https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.mistral.ai https://api.deepseek.com https://dashscope-intl.aliyuncs.com https://api.moonshot.ai https://api.z.ai https://api.cohere.ai https://api.perplexity.ai https://api.groq.com https://api.cerebras.ai https://api.together.xyz https://api.fireworks.ai https://api.sambanova.ai https://integrate.api.nvidia.com https://router.huggingface.co https://openrouter.ai https://api.upstage.ai https://clovastudio.stream.ntruss.com https://api.friendli.ai http://localhost:11434 http://127.0.0.1:11434 http://localhost:8000 http://127.0.0.1:8000 http://localhost:1234 http://127.0.0.1:1234 http://localhost:8080 http://127.0.0.1:8080 http://localhost:1337 http://127.0.0.1:1337",
         "media-src": "'self' blob:",
         "worker-src": "'self' blob:",
         "object-src": "'none'",
@@ -43,32 +43,52 @@
         "frame-ancestors": "'none'"
       },
       "freezePrototype": true,
-      "capabilities": ["main-window"]
+      "capabilities": [
+        "main-window"
+      ]
     }
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "msi"],
+    "targets": [
+      "nsis",
+      "msi"
+    ],
     "publisher": "Project Team For You",
     "copyright": "© 2026 Project Team For You",
     "category": "Productivity",
     "shortDescription": "Automate anything you repeat — safely.",
     "longDescription": "AutoFlow: auto clicker, macros, hotkeys, key remapping and routines for Windows with Easy and Pro modes, guardrails and an emergency stop (Ctrl+Alt+Esc).",
     "homepage": "https://github.com/projectteamforyou/autoflow",
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
     "createUpdaterArtifacts": false,
     "windows": {
       "signCommand": "powershell -NoProfile -ExecutionPolicy Bypass -File C:\\afsign\\sign.ps1 %1",
-      "webviewInstallMode": { "type": "downloadBootstrapper", "silent": true },
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper",
+        "silent": true
+      },
       "allowDowngrades": false,
       "nsis": {
         "installMode": "currentUser",
-        "languages": ["Korean", "English"],
+        "languages": [
+          "Korean",
+          "English"
+        ],
         "displayLanguageSelector": true,
         "installerIcon": "icons/icon.ico"
       },
       "wix": {
-        "language": ["en-US", "ko-KR"]
+        "language": [
+          "en-US",
+          "ko-KR"
+        ]
       }
     }
   },
