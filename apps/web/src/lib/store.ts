@@ -47,7 +47,7 @@ export interface Settings {
   ledgerRetentionDays: number;
 }
 
-export const DEFAULT_API_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? "https://autoflow-api.up.railway.app";
+export const DEFAULT_API_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? "https://api-production-1dc3.up.railway.app";
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: "system",

@@ -18,7 +18,7 @@ WORKDIR /repo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY packages/core/package.json packages/core/package.json
 COPY apps/api/package.json apps/api/package.json
-RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+RUN \
     pnpm install --frozen-lockfile --filter "@autoflow/api..." --config.store-dir=/pnpm/store
 
 COPY packages/core packages/core
