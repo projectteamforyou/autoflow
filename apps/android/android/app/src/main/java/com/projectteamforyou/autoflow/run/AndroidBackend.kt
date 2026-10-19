@@ -186,7 +186,17 @@ class AndroidBackend(private val context: Context) : Backend {
     /* ------------------------------------------------------------------ http */
 
     private suspend fun http(a: InputAction.Http): Value = runInterruptible(Dispatchers.IO) {
-        val conn = URL(a.url).openConnection() as HttpURLConnection
+        val url = try {
+            URL(a.url)
+        } catch (e: java.net.MalformedURLException) {
+            throw BackendException("invalid URL", ErrorCategory.VALIDATION)
+        }
+        // Only network requests: file:, jar: or content-like schemes must never reach app-private data.
+        if (url.protocol != "http" && url.protocol != "https") {
+            throw BackendException("only http and https URLs are allowed", ErrorCategory.VALIDATION)
+        }
+        val conn = url.openConnection() as? HttpURLConnection
+            ?: throw BackendException("only http and https URLs are allowed", ErrorCategory.VALIDATION)
         try {
             conn.requestMethod = a.method
             conn.connectTimeout = 15_000
@@ -230,7 +240,9 @@ class AndroidBackend(private val context: Context) : Backend {
         val root = File(context.getExternalFilesDir(null) ?: context.filesDir, "AutoFlow").apply { mkdirs() }
         val rel = path.removePrefix("/").removePrefix("AutoFlow/")
         val f = File(root, rel).canonicalFile
-        if (!f.path.startsWith(root.canonicalPath)) {
+        val base = root.canonicalPath
+        // Compare whole path segments: a plain prefix test would accept a sibling such as "AutoFlowOther".
+        if (f.path != base && !f.path.startsWith(base + File.separator)) {
             throw BackendException("on Android, flows can only use files inside AutoFlow's own folder", ErrorCategory.PERMISSION)
         }
         return f

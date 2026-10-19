@@ -10,7 +10,7 @@
     "beforeBuildCommand": ""
   },
   "app": {
-    "withGlobalTauri": true,
+    "withGlobalTauri": false,
     "windows": [
       {
         "label": "main",
@@ -33,7 +33,7 @@
         "style-src": "'self' 'unsafe-inline'",
         "img-src": "'self' data: blob:",
         "font-src": "'self' data:",
-        "connect-src": "'self' ipc: http://ipc.localhost https://api.autoflowmacro.com https://*.up.railway.app https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.mistral.ai https://api.deepseek.com https://dashscope-intl.aliyuncs.com https://api.moonshot.ai https://api.z.ai https://api.cohere.ai https://api.perplexity.ai https://api.groq.com https://api.cerebras.ai https://api.together.xyz https://api.fireworks.ai https://api.sambanova.ai https://integrate.api.nvidia.com https://router.huggingface.co https://openrouter.ai https://api.upstage.ai https://clovastudio.stream.ntruss.com https://api.friendli.ai http://localhost:11434 http://127.0.0.1:11434 http://localhost:8000 http://127.0.0.1:8000 http://localhost:1234 http://127.0.0.1:1234 http://localhost:8080 http://127.0.0.1:8080 http://localhost:1337 http://127.0.0.1:1337",
+        "connect-src": "'self' ipc: http://ipc.localhost https://api.autoflowmacro.com https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.x.ai https://api.mistral.ai https://api.deepseek.com https://dashscope-intl.aliyuncs.com https://api.moonshot.ai https://api.z.ai https://api.cohere.ai https://api.perplexity.ai https://api.groq.com https://api.cerebras.ai https://api.together.xyz https://api.fireworks.ai https://api.sambanova.ai https://integrate.api.nvidia.com https://router.huggingface.co https://openrouter.ai https://api.upstage.ai https://clovastudio.stream.ntruss.com https://api.friendli.ai http://localhost:11434 http://127.0.0.1:11434 http://localhost:8000 http://127.0.0.1:8000 http://localhost:1234 http://127.0.0.1:1234 http://localhost:8080 http://127.0.0.1:8080 http://localhost:1337 http://127.0.0.1:1337",
         "media-src": "'self' blob:",
         "worker-src": "'self' blob:",
         "object-src": "'none'",

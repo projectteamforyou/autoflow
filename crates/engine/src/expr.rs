@@ -679,7 +679,15 @@ fn call(name: &str, a: &[Value], env: &ExprEnv<'_>) -> Result<Value, ExprError> 
         }
         "replace" => {
             arity(name, a, 3, 3)?;
-            Value::Str(js_split(&s(0), &s(1)).join(&s(2)))
+            let (src, from, to) = (s(0), s(1), s(2));
+            // Size the result first: replace(s, "", s) would otherwise square the input in memory.
+            let (n, from_len, to_len) = (utf16_len(&src), utf16_len(&from), utf16_len(&to));
+            let pieces = if from.is_empty() { n } else { src.matches(from.as_str()).count() + 1 };
+            let out = n - if from.is_empty() { 0 } else { (pieces - 1) * from_len } + pieces.saturating_sub(1).saturating_mul(to_len);
+            if out > MAX_STRING {
+                return Err(ExprError::new("string too large"));
+            }
+            Value::Str(js_split(&src, &from).join(&to))
         }
         "substr" => {
             arity(name, a, 2, 3)?;
@@ -1029,6 +1037,14 @@ pub type SecretLookup<'a> = Option<&'a dyn Fn(&str) -> Option<String>>;
 
 /// Replaces `{{ expr }}` in text. `{{secret:name}}` is resolved through `secret` and never logged.
 pub fn interpolate(text: &str, env: &ExprEnv<'_>, secret: SecretLookup<'_>) -> Result<String, ExprError> {
+    interpolate_with(text, env, secret, false)
+}
+
+/// Shown instead of a secret's value in logged text (`SECRET_MASK` in expr.ts).
+pub const SECRET_MASK: &str = "\u{2022}\u{2022}\u{2022}\u{2022}";
+
+/// Like [`interpolate`]; with `mask_secrets`, secrets must exist but render as [`SECRET_MASK`].
+pub fn interpolate_with(text: &str, env: &ExprEnv<'_>, secret: SecretLookup<'_>, mask_secrets: bool) -> Result<String, ExprError> {
     let re = placeholder();
     let mut out = String::with_capacity(text.len());
     let mut last = 0;
@@ -1039,6 +1055,7 @@ pub fn interpolate(text: &str, env: &ExprEnv<'_>, secret: SecretLookup<'_>) -> R
         if let Some(rest) = inner.strip_prefix("secret:") {
             let name = js_trim(rest);
             match secret.and_then(|f| f(name)) {
+                Some(_) if mask_secrets => out.push_str(SECRET_MASK),
                 Some(v) => out.push_str(&v),
                 None => return Err(ExprError::new(format!("secret \"{name}\" is not available on this device"))),
             }

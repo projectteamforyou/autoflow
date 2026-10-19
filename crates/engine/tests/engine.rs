@@ -378,7 +378,7 @@ fn events_and_results_serialize_like_typescript() {
     let res = serde_json::to_value(&r.result).unwrap();
     assert_eq!(
         res,
-        json!({ "status": "completed", "actions": 0, "iterations": 0, "durationMs": 0, "vars": { "n": 2 }, "startedAt": 1_000_000, "endedAt": 1_000_000 })
+        json!({ "status": "completed", "actions": 0, "iterations": 0, "steps": 1, "durationMs": 0, "vars": { "n": 2 }, "startedAt": 1_000_000, "endedAt": 1_000_000 })
     );
 
     let failed = run(mk(json!([{ "id": "x", "type": "setVar", "name": "n", "value": "1/0" }])));

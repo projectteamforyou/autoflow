@@ -31,12 +31,32 @@ export async function flowContentHash(flow: Flow): Promise<string> {
   return sha256Hex(stableStringify(rest));
 }
 
+/** Header names whose values are credentials. */
+const CREDENTIAL_HEADER = /^(authorization|proxy-authorization|cookie|x-api-key|api-key|x-auth-token|x-access-token)$|token|secret|apikey|api-key|password|session/i;
+/** A value that only references secrets (or is empty) carries nothing sensitive. */
+const SECRET_ONLY = /^\s*(?:[A-Za-z-]+\s+)?(?:\{\{\s*secret:[^}]+\}\}\s*)*$/;
+
+/** Secret name used in place of a literal credential header when sharing. */
+export function headerSecretName(header: string): string {
+  return `http_${header.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "")}`.slice(0, 64);
+}
+
 export function sanitizeForSharing(flow: Flow): Flow {
   const copy: Flow = JSON.parse(JSON.stringify(flow));
   copy.favorite = false;
   delete copy.folder;
   walkSteps(copy.steps, (s) => {
     s.breakpoint = undefined;
+    // Never publish literal credentials typed into http headers: turn them into secret references
+    // the recipient fills in from their own keystore.
+    if (s.type === "http") {
+      for (const [k, v] of Object.entries(s.headers)) {
+        if (CREDENTIAL_HEADER.test(k) && !SECRET_ONLY.test(v)) {
+          const scheme = /^(Bearer|Basic|Token|Digest)\s+/i.exec(v)?.[0] ?? "";
+          s.headers[k] = `${scheme}{{secret:${headerSecretName(k)}}}`;
+        }
+      }
+    }
     if (s.type === "findImage") s.target.ref = "";
     if ("target" in s && s.target && (s.target as { kind: string }).kind === "image") (s.target as { ref: string }).ref = "";
   });
@@ -98,9 +118,30 @@ function fromB64Url(s: string): Uint8Array {
   return Uint8Array.from(b, (c) => c.charCodeAt(0));
 }
 
-async function pipe(bytes: Uint8Array, stream: CompressionStream | DecompressionStream): Promise<Uint8Array> {
-  const out = new Response(new Blob([bytes as Uint8Array<ArrayBuffer>]).stream().pipeThrough(stream));
-  return new Uint8Array(await out.arrayBuffer());
+class TooLarge extends Error {}
+
+/** Runs bytes through a (de)compression stream, aborting as soon as the output exceeds `maxBytes`. */
+async function pipe(bytes: Uint8Array, stream: CompressionStream | DecompressionStream, maxBytes = Infinity): Promise<Uint8Array> {
+  const reader = new Blob([bytes as Uint8Array<ArrayBuffer>]).stream().pipeThrough(stream).getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel().catch(() => {});
+      throw new TooLarge();
+    }
+    chunks.push(value);
+  }
+  const out = new Uint8Array(total);
+  let at = 0;
+  for (const c of chunks) {
+    out.set(c, at);
+    at += c.byteLength;
+  }
+  return out;
 }
 
 /** Compact, URL-safe share code (deflate-raw + base64url). */
@@ -111,11 +152,12 @@ export async function encodeShareCode(flow: Flow): Promise<string> {
 
 export async function decodeShareCode(code: string): Promise<ImportResult> {
   if (code.length > 200_000) return { ok: false, issues: [{ path: "", message: "share code too large" }] };
+  let bytes: Uint8Array;
   try {
-    const bytes = await pipe(fromB64Url(code), new DecompressionStream("deflate-raw"));
-    if (bytes.length > MAX_IMPORT_BYTES) return { ok: false, issues: [{ path: "", message: "share code too large" }] };
-    return importFlow(new TextDecoder().decode(bytes));
-  } catch {
-    return { ok: false, issues: [{ path: "", message: "invalid share code" }] };
+    // Streamed with a cap: a small deflate "bomb" must not inflate into hundreds of MB first.
+    bytes = await pipe(fromB64Url(code), new DecompressionStream("deflate-raw"), MAX_IMPORT_BYTES);
+  } catch (e) {
+    return { ok: false, issues: [{ path: "", message: e instanceof TooLarge ? "share code too large" : "invalid share code" }] };
   }
+  return importFlow(new TextDecoder().decode(bytes));
 }

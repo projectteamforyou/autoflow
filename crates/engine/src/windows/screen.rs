@@ -176,8 +176,9 @@ pub fn resolve_basic(t: &Target, random: &dyn Fn() -> f64) -> Result<Option<(i32
 pub fn to_absolute(x: i32, y: i32) -> (i32, i32) {
     let v = virtual_screen();
     let norm = |p: i32, lo: i32, size: i32| -> i32 {
-        let span = f64::from((size - 1).max(1));
-        let n = (f64::from(p - lo) * 65535.0 / span).round();
+        let span = f64::from(size.saturating_sub(1).max(1));
+        // In f64: `p - lo` in i32 overflows for far-off points left of a negative desktop origin.
+        let n = ((f64::from(p) - f64::from(lo)) * 65535.0 / span).round();
         #[allow(clippy::cast_possible_truncation)]
         let out = n.clamp(0.0, 65535.0) as i32;
         out

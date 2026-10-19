@@ -74,10 +74,8 @@ pub fn quote_arg(a: &str) -> String {
 /// Launches an executable (path, name on PATH / App Paths) or a packaged app by AUMID
 /// (`Publisher.App_hash!App`).
 pub fn launch_app(app: &str, args: &[String]) -> Result<(), BackendError> {
+    crate::actions::check_launch_target(app)?;
     let app = app.trim();
-    if app.is_empty() {
-        return Err(BackendError::new(ErrorCategory::Validation, "app is empty"));
-    }
     let is_aumid = app.contains('!') && !app.contains(['\\', '/']);
     let file = if is_aumid { format!("shell:AppsFolder\\{app}") } else { app.to_owned() };
     let params = (!args.is_empty()).then(|| args.iter().map(|a| quote_arg(a)).collect::<Vec<_>>().join(" "));

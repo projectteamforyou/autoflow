@@ -107,8 +107,21 @@ export async function relay(deps: AppDeps, input: { provider: string; path: stri
     if (name === "TimeoutError" || name === "AbortError") throw new ApiError(504, "upstream_timeout", "The provider did not respond in time");
     throw new ApiError(502, "upstream_error", "Could not reach the provider");
   }
-  if (res.status >= 300 && res.status < 400) throw new ApiError(502, "upstream_error", "The provider answered with a redirect, which the relay does not follow");
-  const text = await readCapped(res, deps.config.limits.relay.maxResponseBytes);
+  if (res.status >= 300 && res.status < 400) {
+    await res.body?.cancel().catch(() => {});
+    throw new ApiError(502, "upstream_error", "The provider answered with a redirect, which the relay does not follow");
+  }
+  let text: string;
+  try {
+    // The timeout signal also covers the body: a provider that sends headers and then stalls is cut off.
+    text = await readCapped(res, deps.config.limits.relay.maxResponseBytes);
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    const name = (err as Error)?.name;
+    deps.logger.warn("relay.body_error", { provider: input.provider, userId, kind: name });
+    if (name === "TimeoutError" || name === "AbortError") throw new ApiError(504, "upstream_timeout", "The provider did not respond in time");
+    throw new ApiError(502, "upstream_error", "The provider response could not be read");
+  }
   let body: unknown = null;
   try {
     body = text ? JSON.parse(text) : null;

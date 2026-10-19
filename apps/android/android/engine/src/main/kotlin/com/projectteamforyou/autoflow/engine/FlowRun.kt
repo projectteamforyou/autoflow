@@ -5,6 +5,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.selects.select
 import java.time.ZoneId
@@ -16,7 +17,9 @@ import kotlin.random.Random
  * Same semantics: limits (duration, actions, iterations), countdown, pause/resume/stop with waits sliced to
  * [SLICE_MS], breakpoints and single-stepping, per-step error policies (stop/continue/retry/goto), try/catch,
  * if/loop/forEach/group/break/continue/stop, runFlow nesting, pre-run checks (unsupported steps, risk approval,
- * screen geometry drift) and the same RunEvent stream.
+ * screen geometry drift) and the same RunEvent stream. Engine v2 (opt-in schema fields, verified against the
+ * TypeScript engine by ConformanceTest): per-step `stepTimeoutMs`, retry backoff curves with cap and jitter,
+ * `limits.maxSteps` and seeded `humanize`.
  *
  * Threading: [start] suspends until the run ends and can run on any dispatcher; [pause], [resume], [stop] and
  * [stepOver] are thread-safe and may be called from any thread.
@@ -40,6 +43,15 @@ class FlowRun(
     private val vars = LinkedHashMap<String, Value>()
     private var actions = 0L
     private var iterations = 0L
+    private var stepCount = 0L
+
+    /** One active step timeout; the step times out once the clock is strictly past [at]. */
+    private class Deadline(val id: Long, val timeoutMs: Long, val at: Long)
+
+    private val deadlines = ArrayList<Deadline>()
+    private var nextDeadline = 0L
+    private val humanize: Humanize? = flow.humanize?.takeIf { it.offsetPx > 0 || it.delayMs > 0 }
+    private val humanRng: Mulberry32? = flow.humanize?.seed?.let { Mulberry32(it) }
     private var startedAt = 0L
     private var callDepth = 0
     private val clock = opts.clock
@@ -223,6 +235,7 @@ class FlowRun(
         if (clock.now() - startedAt > flow.limits.maxDurationMs) {
             throw RunFailure(RunError(message = "maximum run time reached (${Math.round(flow.limits.maxDurationMs / 1000.0)}s)", category = ErrorCategory.LIMIT))
         }
+        checkDeadlines()
         while (true) {
             val g = pauseGate ?: break
             select<Unit> {
@@ -237,11 +250,57 @@ class FlowRun(
         var remaining = maxOf(0L, ms)
         while (remaining > 0) {
             gate()
-            val slice = minOf(remaining, SLICE_MS)
+            val slice = minOf(remaining, SLICE_MS, untilDeadline())
             clock.sleep(slice, signal)
             remaining -= slice
         }
     }
+
+    /** The outermost expired deadline wins, so an enclosing step's timeout is never swallowed inside it. */
+    private fun checkDeadlines() {
+        val now = clock.now()
+        deadlines.firstOrNull { now > it.at }?.let { throw StepTimeoutSignal(it.id) }
+    }
+
+    /** Time until the nearest deadline expires (exclusive), so sleeps end exactly when it does. */
+    private fun untilDeadline(): Long {
+        val now = clock.now()
+        return maxOf(1L, deadlines.minOfOrNull { it.at + 1 - now } ?: Long.MAX_VALUE)
+    }
+
+    private fun countStep() {
+        stepCount++
+        val max = flow.limits.maxSteps
+        if (max != null && stepCount > max) {
+            throw RunFailure(RunError(message = "maximum number of steps reached ($max)", category = ErrorCategory.LIMIT))
+        }
+    }
+
+    /** One attempt of [step] under its optional deadline; returns the deadline it ran with. */
+    private suspend fun attempt(step: Step, path: String, own: Array<Deadline?>) {
+        countStep()
+        val timeoutMs = step.meta.stepTimeoutMs ?: return exec(step, path)
+        val d = Deadline(++nextDeadline, timeoutMs, clock.now() + timeoutMs)
+        own[0] = d
+        deadlines.add(d)
+        try {
+            exec(step, path)
+        } finally {
+            deadlines.remove(d)
+        }
+        // Work that ended after the deadline (an action that could not be interrupted) still timed out.
+        if (clock.now() > d.at) throw StepTimeoutSignal(d.id)
+    }
+
+    private fun humanRandom(): Double = humanRng?.next() ?: (opts.random ?: Math::random)()
+
+    /** Humanization: optional bounded random delay before an input action. */
+    private suspend fun humanDelay() {
+        val h = humanize ?: return
+        if (h.delayMs > 0) sleep(minOf(h.delayMs, Math.floor(humanRandom() * (h.delayMs + 1)).toLong()))
+    }
+
+    private fun target(t: Target): Target = humanize?.let { humanizeTarget(t, it.offsetPx, ::humanRandom) } ?: t
 
     private suspend fun runStep(step: Step, path: String) {
         if (step.meta.disabled) return
@@ -257,21 +316,31 @@ class FlowRun(
         val policy = step.meta.onError
         var attempt = 0
         while (true) {
+            val own = arrayOfNulls<Deadline>(1)
             try {
-                exec(step, path)
-                emit(RunEvent.StepEnd(step.id, true, clock.now() - t0, clock.now()))
+                attempt(step, path, own)
+                emit(RunEvent.StepEnd(step.id, true, clock.now() - t0, clock.now(), attempts = if (attempt > 0) attempt + 1 else null))
                 return
             } catch (e: Throwable) {
                 if (e is Interrupt || e is StopSignal || e is CancellationException || signal.aborted) throw e
-                val err = toRunError(e, step.id, path)
+                // Somebody else's deadline (an enclosing step): let it unwind to its owner.
+                val d = own[0]
+                if (e is StepTimeoutSignal && (d == null || e.deadlineId != d.id)) throw e
+                val err = if (e is StepTimeoutSignal && d != null) {
+                    emit(RunEvent.Timeout(step.id, d.timeoutMs, clock.now()))
+                    RunError(step.id, path, "step timed out after ${d.timeoutMs} ms", ErrorCategory.TIMEOUT)
+                } else {
+                    toRunError(e, step.id, path)
+                }
                 if (err.category == ErrorCategory.LIMIT || isFatal(e)) throw RunFailure(err, fatal = isFatal(e))
                 if (policy?.strategy == "retry" && attempt < policy.retries) {
                     attempt++
-                    emit(RunEvent.Retry(step.id, attempt, clock.now()))
-                    sleep(policy.backoffMs * attempt)
+                    val delayMs = retryDelayMs(policy, attempt, opts.random ?: Math::random)
+                    emit(RunEvent.Retry(step.id, attempt, clock.now(), delayMs, err.message))
+                    sleep(delayMs)
                     continue
                 }
-                emit(RunEvent.StepEnd(step.id, false, clock.now() - t0, clock.now()))
+                emit(RunEvent.StepEnd(step.id, false, clock.now() - t0, clock.now(), attempts = attempt + 1, error = err))
                 if (policy?.strategy == "continue") {
                     emit(RunEvent.Log("warn", "step failed and was skipped: ${err.message}", step.id, clock.now()))
                     return
@@ -297,7 +366,7 @@ class FlowRun(
         }
     }
 
-    private fun text(s: String): String = interpolate(s, env, opts.secret)
+    private fun text(s: String, maskSecrets: Boolean = false): String = interpolate(s, env, maskSecrets, opts.secret)
 
     private fun setVar(name: String, value: Value) {
         vars[name] = value
@@ -313,11 +382,16 @@ class FlowRun(
         // A standalone job (not a child of the caller): the caller never waits for it, and it is always cancelled
         // in `finally`, so a stopped or cancelled run cannot leak backend work.
         val job = Job()
-        val work = CoroutineScope(currentCoroutineContext().minusKey(Job) + job).async { block() }
+        val scope = CoroutineScope(currentCoroutineContext().minusKey(Job) + job)
+        val work = scope.async { block() }
+        // With the wall clock, a hanging action is preempted when the innermost step deadline passes.
+        val nearest = if (clock === RealClock) deadlines.minByOrNull { it.at } else null
+        val timer = nearest?.let { d -> scope.async { delay(maxOf(0L, d.at + 1 - clock.now())); d.id } }
         try {
             return select {
                 work.onAwait { it }
                 signal.onAbort { throw StopSignal }
+                if (timer != null) timer.onAwait { id -> throw StepTimeoutSignal(id) }
             }
         } finally {
             job.cancel()
@@ -327,17 +401,24 @@ class FlowRun(
     private suspend fun perform(action: InputAction): Value? = abortable { backend.perform(action) }
 
     private suspend fun exec(s: Step, path: String) {
-        if (s.type in INPUT_TYPES) countAction()
+        if (s.type in INPUT_TYPES) {
+            countAction()
+            if (s !is Step.Key) humanDelay()
+        }
         when (s) {
-            is Step.Click -> perform(InputAction.Click(s.target, s.button, s.clicks, s.holdMs, s.modifiers))
-            is Step.Move -> perform(InputAction.Move(s.target, s.durationMs))
-            is Step.Drag -> perform(InputAction.Drag(s.from, s.to, s.durationMs, s.button))
+            is Step.Click -> perform(InputAction.Click(target(s.target), s.button, s.clicks, s.holdMs, s.modifiers))
+            is Step.Move -> perform(InputAction.Move(target(s.target), s.durationMs))
+            is Step.Drag -> {
+                val from = target(s.from)
+                perform(InputAction.Drag(from, target(s.to), s.durationMs, s.button))
+            }
             is Step.Scroll -> perform(InputAction.Scroll(s.dx, s.dy, s.target))
             is Step.Key -> for (i in 0 until s.repeat) {
                 if (i > 0) {
                     gate()
                     countAction()
                 }
+                humanDelay()
                 perform(InputAction.Key(s.key, s.modifiers, s.action))
             }
             is Step.Type -> perform(InputAction.TypeText(text(s.text), s.perCharDelayMs))
@@ -354,7 +435,8 @@ class FlowRun(
                 }
             }
             is Step.SetVar -> setVar(s.name, evalExpr(s.value, env))
-            is Step.Log -> emit(RunEvent.Log(s.level, text(s.message), s.id, clock.now()))
+            // Log lines end up in the run ledger: secrets are verified but never written out.
+            is Step.Log -> emit(RunEvent.Log(s.level, text(s.message, maskSecrets = true), s.id, clock.now()))
             is Step.Notify -> perform(InputAction.Notify(text(s.title), text(s.body)))
             is Step.Confirm -> {
                 val message = text(s.message)
@@ -442,7 +524,7 @@ class FlowRun(
             is Step.Try -> try {
                 runList(s.body, "$path.body")
             } catch (e: Throwable) {
-                if (e is Interrupt || e is StopSignal || e is CancellationException || signal.aborted) throw e
+                if (e is Interrupt || e is StepTimeoutSignal || e is StopSignal || e is CancellationException || signal.aborted) throw e
                 val err = toRunError(e, s.id, path)
                 if (err.category == ErrorCategory.LIMIT || isFatal(e)) throw e
                 if (s.errorVar != null) setVar(s.errorVar, Value.Str(err.message))
@@ -460,6 +542,11 @@ class FlowRun(
         if (e is Interrupt && e.kind == Interrupt.Kind.STOP) return finish(RunStatus.STOPPED, e.value)
         if (e is Interrupt) return finish(RunStatus.COMPLETED)
         if (e is CancellationException) return finish(RunStatus.STOPPED, stopReason ?: "cancelled")
+        if (e is StepTimeoutSignal) {
+            val err = RunError(message = "step timed out", category = ErrorCategory.TIMEOUT)
+            emit(RunEvent.Error(err, clock.now()))
+            return finish(RunStatus.FAILED, err.message, err)
+        }
         val err = if (e is RunFailure) e.runError else toRunError(e)
         emit(RunEvent.Error(err, clock.now()))
         return finish(RunStatus.FAILED, err.message, err)
@@ -476,7 +563,8 @@ class FlowRun(
             )
         }
         val endedAt = clock.now()
-        return RunResult(status, reason, error, actions, iterations, endedAt - startedAt, LinkedHashMap(vars), startedAt, endedAt)
+        deadlines.clear()
+        return RunResult(status, reason, error, actions, iterations, endedAt - startedAt, LinkedHashMap(vars), startedAt, endedAt, stepCount)
     }
 
     private fun setState(s: RunState) {
@@ -517,6 +605,9 @@ class Interrupt(val kind: Kind, val value: String? = null) : Exception(kind.name
 }
 
 class RunFailure(val runError: RunError, val fatal: Boolean = false) : Exception(runError.message)
+
+/** A step deadline passed; only the step that owns [deadlineId] handles it. */
+class StepTimeoutSignal(val deadlineId: Long) : Exception("step timed out", null, false, false)
 
 private fun isFatal(e: Throwable) = (e is BackendException && e.fatal) || (e is RunFailure && e.fatal)
 

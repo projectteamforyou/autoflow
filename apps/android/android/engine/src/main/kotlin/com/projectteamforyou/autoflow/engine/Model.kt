@@ -54,7 +54,50 @@ data class OnError(
     val retries: Int = 0,
     val backoffMs: Long = 500,
     val gotoStepId: String? = null,
+    /** fixed | linear | exponential; null = linear (the legacy behaviour). */
+    val backoff: String? = null,
+    val maxBackoffMs: Long? = null,
+    /** 0..1: each delay is reduced by a random share of up to `jitter`. */
+    val jitter: Double? = null,
 )
+
+/** Delay before retry [attempt] (1-based) — `retryDelayMs` in engine.ts. Draws a random number only when jitter > 0. */
+fun retryDelayMs(policy: OnError, attempt: Int, random: () -> Double): Long {
+    val base = policy.backoffMs
+    var d = when (policy.backoff ?: "linear") {
+        "fixed" -> base
+        "exponential" -> base * (1L shl (attempt - 1).coerceIn(0, 32))
+        else -> base * attempt
+    }
+    policy.maxBackoffMs?.let { d = minOf(d, it) }
+    val j = policy.jitter ?: 0.0
+    if (j > 0) d -= Math.floor(d.toDouble() * j * random()).toLong()
+    return maxOf(0L, d)
+}
+
+/** mulberry32 — bit-identical to `mulberry32` in engine.ts and `Mulberry32` in the Rust engine. */
+class Mulberry32(seed: Long) {
+    private var a: Int = seed.toInt()
+
+    fun next(): Double {
+        a += 0x6D2B79F5
+        var t = (a xor (a ushr 15)) * (1 or a)
+        t = (t + (t xor (t ushr 7)) * (61 or t)) xor t
+        return ((t xor (t ushr 14)).toLong() and 0xFFFFFFFFL).toDouble() / 4294967296.0
+    }
+}
+
+/** Opt-in humanization of input actions (`humanize` in schema.ts). */
+data class Humanize(val offsetPx: Int = 0, val delayMs: Long = 0, val seed: Long? = null)
+
+/** Applies the humanize offset to pixel point targets (`humanizeTarget` in engine.ts). */
+fun humanizeTarget(t: Target, offsetPx: Int, rnd: () -> Double): Target {
+    if (offsetPx <= 0 || t !is Target.Point || t.space == "normalized") return t
+    fun off(): Double = minOf(2.0 * offsetPx, Math.floor(rnd() * (2 * offsetPx + 1))) - offsetPx
+    val dx = off()
+    val dy = off()
+    return t.copy(x = t.x + dx, y = t.y + dy)
+}
 
 /* -------------------------------------------------------------------- steps */
 
@@ -64,6 +107,8 @@ data class StepMeta(
     val disabled: Boolean = false,
     val breakpoint: Boolean = false,
     val onError: OnError? = null,
+    /** Per-attempt timeout (category timeout, subject to onError); apart from waitFor/findImage `timeoutMs`. */
+    val stepTimeoutMs: Long? = null,
 )
 
 data class Hotkey(val key: String, val modifiers: List<String> = emptyList())
@@ -237,6 +282,8 @@ data class Limits(
     val countdownMs: Long = 3000,
     val preventOverlap: Boolean = true,
     val cooldownMs: Long = 0,
+    /** Deterministic watchdog: maximum executed steps (attempts included); null = unlimited. */
+    val maxSteps: Long? = null,
 )
 
 data class VariableDef(val name: String, val type: String = "string", val initial: Value? = null, val prompt: String? = null)
@@ -260,6 +307,7 @@ data class Flow(
     val limits: Limits = Limits(),
     val variables: List<VariableDef> = emptyList(),
     val steps: List<Step>,
+    val humanize: Humanize? = null,
     val screen: ScreenRef? = null,
     val favorite: Boolean = false,
     val folder: String? = null,

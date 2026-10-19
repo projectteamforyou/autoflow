@@ -155,13 +155,15 @@ export async function myRating(deps: AppDeps, auth: AuthContext, id: string): Pr
 
 export async function report(deps: AppDeps, auth: AuthContext, id: string, reason: ReportReason, details: string): Promise<{ hidden: boolean }> {
   const t = await atlas.getTemplate(deps.sql, id);
-  if (!t || t.status === "removed") throw errors.notFound("Template");
+  // Only what the reporter can see: pending, hidden or removed templates answer 404 exactly like
+  // unknown ids, so reports cannot be used to probe for unpublished templates.
+  if (!t || t.status !== "published") throw errors.notFound("Template");
   if (t.authorId === auth.user.id) throw errors.forbidden("You cannot report your own template");
   const created = await atlas.insertReport(deps.sql, { templateId: id, reporterId: auth.user.id, reason, details });
   if (!created) throw new ApiError(409, "duplicate", "You already reported this template");
   const pending = await atlas.countPendingReports(deps.sql, id);
-  let hidden = t.status === "hidden";
-  if (t.status === "published" && pending >= deps.config.limits.atlas.reportHideThreshold) {
+  let hidden = false;
+  if (pending >= deps.config.limits.atlas.reportHideThreshold) {
     await atlas.setTemplateStatus(deps.sql, id, "hidden");
     hidden = true;
     deps.logger.warn("atlas.auto_hidden", { templateId: id, pendingReports: pending });
