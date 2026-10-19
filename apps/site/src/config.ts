@@ -5,9 +5,9 @@ import { LOCALES, type LocaleCode } from "@autoflow/core";
 const strip = (u: string) => u.replace(/\/+$/, "");
 
 /** Public origin of this site (no trailing slash). */
-export const SITE_URL = strip(process.env.SITE_URL || "https://autoflow-651.pages.dev");
+export const SITE_URL = strip(process.env.SITE_URL || "https://autoflowmacro.com");
 /** Origin of the AutoFlow API, allowed in the CSP connect-src. */
-export const API_ORIGIN = strip(process.env.API_ORIGIN || "https://api-production-1dc3.up.railway.app");
+export const API_ORIGIN = strip(process.env.API_ORIGIN || "https://api.autoflowmacro.com");
 /** Date used for sitemap <lastmod> (YYYY-MM-DD). */
 export const LASTMOD = process.env.SITE_LASTMOD || new Date().toISOString().slice(0, 10);
 /** Set SKIP_OG=1 to reuse previously rendered Open Graph images (faster local iterations). */

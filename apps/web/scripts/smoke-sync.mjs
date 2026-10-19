@@ -1,5 +1,5 @@
 // Live account + E2E sync check through the UI: sign up, unlock sync, sync a flow, delete the account.
-// Usage: node scripts/smoke-sync.mjs https://autoflow-651.pages.dev/app/
+// Usage: node scripts/smoke-sync.mjs https://autoflowmacro.com/app/
 import { chromium } from "playwright-core";
 import { existsSync } from "node:fs";
 const base = process.argv[2];

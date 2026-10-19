@@ -2,7 +2,7 @@
 
 작성 2026-10-19 KST · 대상 버전 1.0.0 (`apps/android/package.json`의 `version`)
 패키지 이름 `com.projectteamforyou.autoflow` (`apps/android/capacitor.config.json`의 `appId`, **한 번 올리면 영원히 못 바꿈**)
-웹사이트 https://autoflow-651.pages.dev · 개인정보처리방침 `https://autoflow-651.pages.dev/<언어>/privacy/` · 문의 projectteamforyou@gmail.com
+웹사이트 https://autoflowmacro.com · 개인정보처리방침 `https://autoflowmacro.com/<언어>/privacy/` · 문의 projectteamforyou@gmail.com
 
 > 이 문서에는 비밀값이 하나도 없습니다. 키·비밀번호·JSON은 GitHub 화면에 직접 넣고, 채팅·이슈·문서에 붙여 넣지 마세요.
 > 파이프라인은 실제로 Play 프로덕션 제출까지 끝낸 출시 키트를 AutoFlow에 맞게 옮긴 것입니다(키트의 시행착오 수정 사항 포함).
@@ -86,7 +86,7 @@
 |---|---|
 | `VERSION_CODE_OFFSET` | versionCode = `run_number + OFFSET`. 사전 점검이 "already used"를 알려 주면 올림 |
 | `ANDROID_TARGET_SDK` | 기본 36(2026-08-31부터 Play 요구 수준). 요건이 올라가면 변경 |
-| `SITE_URL` | 기본 `https://autoflow-651.pages.dev` |
+| `SITE_URL` | 기본 `https://autoflowmacro.com` |
 
 ### ⑧ 기본 브랜치에 머지
 `workflow_dispatch` 버튼은 **기본 브랜치에 있는 워크플로만** 보입니다.
@@ -178,8 +178,8 @@ AutoFlow 기준 답안(기능이 바뀌면 다시 확인):
 
 ### 2.9 기타
 - 뉴스 앱·코로나19·정부 앱·금융 기능·건강 앱: 모두 아니요
-- 스토어 설정: 카테고리 **도구(Tools)** 또는 **생산성**, 연락처 이메일 projectteamforyou@gmail.com, 웹사이트 https://autoflow-651.pages.dev
-- 개인정보처리방침 URL: **https://autoflow-651.pages.dev/en/privacy/** (언어별 `https://autoflow-651.pages.dev/<언어>/privacy/` — 각 언어 등록정보 본문에도 링크됨)
+- 스토어 설정: 카테고리 **도구(Tools)** 또는 **생산성**, 연락처 이메일 projectteamforyou@gmail.com, 웹사이트 https://autoflowmacro.com
+- 개인정보처리방침 URL: **https://autoflowmacro.com/en/privacy/** (언어별 `https://autoflowmacro.com/<언어>/privacy/` — 각 언어 등록정보 본문에도 링크됨)
 
 ---
 

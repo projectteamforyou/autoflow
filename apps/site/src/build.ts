@@ -1,7 +1,7 @@
 /**
  * AutoFlow static site generator. No framework: typed content → HTML strings → dist/.
  *
- *   SITE_URL=https://autoflow-651.pages.dev API_ORIGIN=https://… pnpm --filter @autoflow/site build
+ *   SITE_URL=https://autoflowmacro.com API_ORIGIN=https://… pnpm --filter @autoflow/site build
  */
 import { existsSync } from "node:fs";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";

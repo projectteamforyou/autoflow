@@ -7,7 +7,7 @@ const db = useTestDb();
 describe("CORS", () => {
   it("allows the configured app origins (web, Tauri, Capacitor, dev)", async () => {
     const t = makeApp(db);
-    for (const origin of ["https://autoflow-651.pages.dev", "http://localhost:5173", "tauri://localhost", "http://tauri.localhost", "https://localhost"]) {
+    for (const origin of ["https://autoflowmacro.com", "http://localhost:5173", "tauri://localhost", "http://tauri.localhost", "https://localhost"]) {
       const r = await t.call("GET", "/v1/meta", { headers: { Origin: origin } });
       expect(r.headers.get("access-control-allow-origin"), origin).toBe(origin);
       expect(r.headers.get("access-control-allow-credentials")).toBeNull();
@@ -18,10 +18,10 @@ describe("CORS", () => {
   it("answers preflights for allowed origins with the needed headers", async () => {
     const t = makeApp(db);
     const r = await t.call("OPTIONS", "/v1/sync/items/flow/x", {
-      headers: { Origin: "https://autoflow-651.pages.dev", "Access-Control-Request-Method": "PUT", "Access-Control-Request-Headers": "authorization,content-type,if-match" },
+      headers: { Origin: "https://autoflowmacro.com", "Access-Control-Request-Method": "PUT", "Access-Control-Request-Headers": "authorization,content-type,if-match" },
     });
     expect(r.status).toBe(204);
-    expect(r.headers.get("access-control-allow-origin")).toBe("https://autoflow-651.pages.dev");
+    expect(r.headers.get("access-control-allow-origin")).toBe("https://autoflowmacro.com");
     expect(r.headers.get("access-control-allow-methods")).toContain("PUT");
     const allowed = r.headers.get("access-control-allow-headers")!.toLowerCase();
     for (const h of ["authorization", "content-type", "if-match", "x-provider-key"]) expect(allowed).toContain(h);
@@ -30,7 +30,7 @@ describe("CORS", () => {
 
   it("does not grant other origins, including look-alikes", async () => {
     const t = makeApp(db);
-    for (const origin of ["https://evil.example.com", "https://autoflow-651.pages.dev.evil.com", "http://autoflow-651.pages.dev", "null"]) {
+    for (const origin of ["https://evil.example.com", "https://autoflowmacro.com.evil.com", "http://autoflowmacro.com", "null"]) {
       const r = await t.call("GET", "/v1/meta", { headers: { Origin: origin } });
       expect(r.headers.get("access-control-allow-origin"), origin).toBeNull();
       const pre = await t.call("OPTIONS", "/v1/me", { headers: { Origin: origin, "Access-Control-Request-Method": "GET" } });
@@ -40,16 +40,16 @@ describe("CORS", () => {
 
   it("keeps CORS headers on error responses so the app can read them", async () => {
     const t = makeApp(db);
-    const r = await t.call("GET", "/v1/me", { headers: { Origin: "https://autoflow-651.pages.dev" } });
+    const r = await t.call("GET", "/v1/me", { headers: { Origin: "https://autoflowmacro.com" } });
     expect(r.status).toBe(401);
-    expect(r.headers.get("access-control-allow-origin")).toBe("https://autoflow-651.pages.dev");
+    expect(r.headers.get("access-control-allow-origin")).toBe("https://autoflowmacro.com");
     expect(r.headers.get("access-control-expose-headers")).toContain("X-Request-Id");
   });
 
   it("honours a custom APP_ORIGINS allowlist", async () => {
     const t = makeApp(db, { appOrigins: ["https://app.example.org"] });
     expect((await t.call("GET", "/v1/meta", { headers: { Origin: "https://app.example.org" } })).headers.get("access-control-allow-origin")).toBe("https://app.example.org");
-    expect((await t.call("GET", "/v1/meta", { headers: { Origin: "https://autoflow-651.pages.dev" } })).headers.get("access-control-allow-origin")).toBeNull();
+    expect((await t.call("GET", "/v1/meta", { headers: { Origin: "https://autoflowmacro.com" } })).headers.get("access-control-allow-origin")).toBeNull();
   });
 });
 

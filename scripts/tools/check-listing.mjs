@@ -5,7 +5,7 @@
 // Characters are counted as Unicode code points; the stricter UTF-16 length is used for the pass/fail check so that
 // emoji never push a field over the limit on Play Console.
 // AutoFlow extras: every full description links its own-language privacy policy
-// (https://autoflow-651.pages.dev/<lang>/privacy/) and the support e-mail, and mentions the Accessibility Service use.
+// (https://autoflowmacro.com/<lang>/privacy/) and the support e-mail, and mentions the Accessibility Service use.
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,7 +19,7 @@ const LOCALES = {
   'en-US': 'en', 'ko-KR': 'ko', 'ja-JP': 'ja', 'zh-CN': 'zh-CN', 'zh-TW': 'zh-TW', 'es-ES': 'es',
   'fr-FR': 'fr', 'de-DE': 'de', 'pt-BR': 'pt-BR', 'ru-RU': 'ru', vi: 'vi', id: 'id',
 };
-const SITE = 'https://autoflow-651.pages.dev';
+const SITE = 'https://autoflowmacro.com';
 const EMAIL = 'projectteamforyou@gmail.com';
 const LIMITS = { title: 30, shortDescription: 80, fullDescription: 4000, whatsNew: 500 };
 

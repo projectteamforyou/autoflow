@@ -29,8 +29,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SITE_URL: ${{ vars.SITE_URL || 'https://autoflow-651.pages.dev' }}
-  API_ORIGIN: ${{ vars.API_ORIGIN || 'https://api-production-1dc3.up.railway.app' }}
+  SITE_URL: ${{ vars.SITE_URL || 'https://autoflowmacro.com' }}
+  API_ORIGIN: ${{ vars.API_ORIGIN || 'https://api.autoflowmacro.com' }}
 
 jobs:
   build:
@@ -92,7 +92,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: ${{ vars.SITE_URL || 'https://autoflow-651.pages.dev' }}
+      url: ${{ vars.SITE_URL || 'https://autoflowmacro.com' }}
     steps:
       - uses: actions/download-artifact@v4
         with:

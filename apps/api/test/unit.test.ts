@@ -85,7 +85,7 @@ describe("config", () => {
   it("defaults CORS origins to the web, Tauri and Capacitor apps", () => {
     const c = loadConfig({ DATABASE_URL: "postgres://x/y" });
     expect(c.appOrigins).toEqual([...DEFAULT_APP_ORIGINS]);
-    expect(c.publicAppUrl).toBe("https://autoflow-651.pages.dev");
+    expect(c.publicAppUrl).toBe("https://autoflowmacro.com");
     expect(c.port).toBe(8080);
     expect(c.version).toMatch(/^\d+\.\d+\.\d+/);
   });

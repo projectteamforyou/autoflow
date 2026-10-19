@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { AI_PROVIDERS } from "../packages/core/dist/index.js";
 const file = new URL("../apps/desktop/src-tauri/tauri.conf.json", import.meta.url);
 const conf = JSON.parse(readFileSync(file, "utf8"));
-const origins = new Set(["'self'", "ipc:", "http://ipc.localhost", "https://*.up.railway.app"]);
+const origins = new Set(["'self'", "ipc:", "http://ipc.localhost", "https://api.autoflowmacro.com", "https://*.up.railway.app"]);
 for (const p of AI_PROVIDERS) {
   const u = new URL(p.baseUrl);
   origins.add(u.origin);

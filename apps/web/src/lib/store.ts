@@ -49,7 +49,7 @@ export interface Settings {
   ledgerRetentionDays: number;
 }
 
-export const DEFAULT_API_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? "https://api-production-1dc3.up.railway.app";
+export const DEFAULT_API_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? "https://api.autoflowmacro.com";
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: "system",
@@ -162,6 +162,8 @@ export const useStore = create<State>((set, get) => ({
       const r = InputProfileSchema.safeParse(p);
       if (r.success) profiles.push(r.data);
     }
+    // Move devices that saved the launch-era API address to the custom domain.
+    if (storedSettings?.apiUrl === "https://api-production-1dc3.up.railway.app") storedSettings.apiUrl = DEFAULT_API_URL;
     const settings: Settings = { ...DEFAULT_SETTINGS, ...storedSettings, sync: { ...DEFAULT_SETTINGS.sync, ...storedSettings?.sync }, ai: { ...DEFAULT_SETTINGS.ai, ...storedSettings?.ai } };
     const cutoff = Date.now() - settings.ledgerRetentionDays * 86_400_000;
     const kept = runs.filter((r) => r.startedAt >= cutoff).sort((a, b) => b.startedAt - a.startedAt);
