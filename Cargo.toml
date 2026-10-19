@@ -4,7 +4,7 @@
 # - apps/desktop/src-tauri : Tauri 2 shell for Windows (frontend = apps/web build)
 [workspace]
 resolver = "2"
-members = ["crates/engine"]
+members = ["crates/engine", "apps/desktop/src-tauri"]
 
 [workspace.package]
 version = "1.0.0"
