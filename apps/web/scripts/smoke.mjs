@@ -1,13 +1,25 @@
 // End-to-end smoke test of the built PWA in Chromium.
 // Usage: pnpm --filter @autoflow/web build && node scripts/smoke.mjs [--url http://localhost:4191/]
 // Verifies: onboarding, creating an Easy flow, running it on the Practice Canvas until completion,
-// the run landing in the Ledger, Pro mode editing, Atlas install, language switching, and no console errors.
+// the run landing in the Ledger, Pro mode editing, Atlas install, the Stage panel running a
+// two-monitor practice flow with scene conditions, language switching, and no console errors.
 import { chromium } from "playwright-core";
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
+import { createServer } from "node:net";
 
 const argUrl = process.argv.includes("--url") ? process.argv[process.argv.indexOf("--url") + 1] : null;
-const port = 4199;
+/** A free local port, so a leftover preview server on a fixed port can't serve a stale build. */
+const freePort = () =>
+  new Promise((resolve, reject) => {
+    const srv = createServer();
+    srv.once("error", reject);
+    srv.listen(0, "127.0.0.1", () => {
+      const { port: p } = srv.address();
+      srv.close(() => resolve(p));
+    });
+  });
+const port = argUrl ? 0 : await freePort();
 let server;
 if (!argUrl) {
   server = spawn("npx", ["vite", "preview", "--port", String(port), "--strictPort"], { cwd: new URL("..", import.meta.url).pathname, stdio: "ignore" });
@@ -66,6 +78,24 @@ try {
   await page.getByRole("button", { name: /^Notification Show a/ }).click();
   await page.locator(".node.selected", { hasText: "Notification" }).waitFor();
   step("Pro editor: step added from palette");
+
+  // Stage: the idle-game template plays on simulated monitor 2 and reacts to scenes (lobby / reward).
+  await page.goto(`${base}#/atlas/idle-collect`);
+  await page.getByRole("button", { name: "Try on Stage" }).click();
+  await page.waitForURL(/#\/stage\?flow=f_/);
+  await page.getByRole("heading", { name: "Stage — play on another monitor" }).waitFor();
+  const monitors = await page.locator(".monitor-map .monitor").count();
+  if (monitors !== 2) await fail(`expected 2 simulated monitors on /stage, got ${monitors}`);
+  if (!(await page.locator(".monitor-map .monitor.is-stage", { hasText: "2" }).count())) await fail("monitor 2 is not the stage");
+  if ((await page.locator(".scene-card").count()) !== 3) await fail("expected the template's 3 scenes on /stage");
+  await page.getByRole("button", { name: "Run on stage" }).click();
+  await page.getByText("Collected round 3 of 3").first().waitFor({ timeout: 30000 });
+  await page.locator("[data-testid=practice-coins]", { hasText: "30" }).waitFor({ timeout: 10000 });
+  step("Stage: two-monitor practice run with scene conditions collected 3 rewards");
+
+  await page.getByRole("button", { name: "Which scene is showing?" }).click();
+  await page.locator(".scene-card", { hasText: "lobby" }).getByText("100% match").waitFor();
+  step("Stage: live scene test recognizes the lobby");
 
   await page.goto(`${base}#/`);
   await page.locator("select[aria-label=Language]").first().selectOption("ko");

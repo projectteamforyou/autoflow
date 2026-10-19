@@ -144,6 +144,8 @@ class AndroidBackend(private val context: Context) : Backend {
             is InputAction.FileOp -> return file(action)
             is InputAction.Ocr -> throw BackendException("text recognition (OCR) is not available on Android yet", ErrorCategory.UNSUPPORTED)
             is InputAction.FindImage -> throw BackendException("image search is not available on Android yet", ErrorCategory.UNSUPPORTED)
+            is InputAction.Pixel, is InputAction.SceneHash ->
+                throw BackendException("pixel and scene checks need screen capture, which is not available on Android", ErrorCategory.UNSUPPORTED)
             is InputAction.SwitchProfile -> ProfileManager.activate(action.profileId)
             is InputAction.Window -> throw BackendException("Android has no desktop windows", ErrorCategory.UNSUPPORTED)
         }

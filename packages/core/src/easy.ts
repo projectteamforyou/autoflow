@@ -100,7 +100,7 @@ export function toEasy(flow: Flow): EasyModel | null {
   let durationMs: number | undefined;
   if (steps.length === 2 && steps[0]!.type === "setVar" && steps[0]!.name === START_VAR && steps[0]!.value === "now()") {
     const loop = steps[1]!;
-    if (loop.type !== "loop" || loop.mode !== "while") return null;
+    if (loop.type !== "loop" || loop.mode !== "while" || loop.condition?.scene || loop.condition?.pixel) return null;
     const m = new RegExp(`^now\\(\\) - ${START_VAR} < (\\d+)$`).exec(loop.condition?.expr ?? "");
     if (!m) return null;
     durationMs = Number(m[1]);
@@ -108,7 +108,7 @@ export function toEasy(flow: Flow): EasyModel | null {
   }
   if (steps.length !== 1) return null;
   const loop = steps[0]!;
-  if (loop.type !== "loop" || loop.indexVar) return null;
+  if (loop.type !== "loop" || loop.indexVar || loop.cooldownMs) return null;
   const body = loop.body.filter((s) => !s.disabled);
   if (body.length === 0 || body.length % 2 !== 0) return null;
 
@@ -125,7 +125,7 @@ export function toEasy(flow: Flow): EasyModel | null {
     if (interval === undefined) interval = w.ms;
     else if (interval !== w.ms) return null;
     if (a.type === "click") {
-      if (a.target.kind !== "point" || a.target.space !== "normalized" || a.modifiers.length) return null;
+      if (a.target.kind !== "point" || a.target.space !== "normalized" || a.target.display !== undefined || a.modifiers.length) return null;
       if (a.button !== "left" && a.button !== "right" && a.button !== "middle") return null;
       if (a.clicks !== 1 && a.clicks !== 2) return null;
       if (kind && kind !== "click" && kind !== "multiClick") return null;

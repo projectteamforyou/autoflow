@@ -23,6 +23,10 @@ const ms = z.number().int().min(0).max(86_400_000);
 const coord = z.number().min(-1_000_000).max(1_000_000);
 const extent = z.number().positive().max(1_000_000);
 const rect = z.object({ x: coord, y: coord, w: coord, h: coord });
+/** `#RRGGBB` color (pixel conditions). */
+const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, "color must be #RRGGBB");
+/** Scene names are referenced by conditions and matchScene steps. */
+const sceneName = z.string().min(1).max(48).regex(/^[A-Za-z0-9_-]+$/, "scene name must be [A-Za-z0-9_-]");
 
 /** Structural limits, enforced by parseFlow before and after schema validation. */
 export const MAX_STEP_DEPTH = 32;
@@ -31,16 +35,38 @@ export const MAX_TOTAL_STEPS = 10_000;
 export const MAX_JSON_DEPTH = 128;
 export const MAX_JSON_NODES = 500_000;
 
+/* ----------------------------------------------------------------- displays */
+
+/**
+ * A monitor reference (multi-monitor flows, see displays.ts): "primary", "secondary" (the second
+ * display in canonical order), a stable display id reported by the device, or `{ index }` into the
+ * canonical order (primary first, then left to right, top to bottom).
+ */
+export const DisplayRef = z.union([z.string().min(1).max(128), z.object({ index: z.number().int().min(0).max(15) })]);
+export type DisplayRef = z.infer<typeof DisplayRef>;
+
+/** What happens when a referenced display is not connected at run time. Never a silent fallback. */
+export const OnMissingDisplay = z.enum(["fail", "primary", "ask"]);
+export type OnMissingDisplay = z.infer<typeof OnMissingDisplay>;
+
 /* ------------------------------------------------------------------ targets */
+
+/**
+ * Coordinate spaces: screen = virtual-desktop px · window = relative to the matched window ·
+ * normalized = 0..1 of the screen (or of `display` when set) · display = px relative to `display`
+ * (the stage or primary display when no display is given).
+ */
+const Space = z.enum(["screen", "window", "normalized", "display"]);
 
 export const PointTarget = z.object({
   kind: z.literal("point"),
   x: coord,
   y: coord,
-  /** screen = physical screen px · window = relative to the matched window · normalized = 0..1 of screen */
-  space: z.enum(["screen", "window", "normalized"]).default("screen"),
+  space: Space.default("screen"),
   /** Optional monitor index for multi-monitor setups (Windows). */
   monitor: z.number().int().min(0).max(16).optional(),
+  /** Display the point belongs to; with space screen it is a guard (the point must lie on it). */
+  display: DisplayRef.optional(),
 });
 
 export const CurrentTarget = z.object({ kind: z.literal("current") });
@@ -51,9 +77,11 @@ export const RegionTarget = z.object({
   y: coord,
   w: extent,
   h: extent,
-  space: z.enum(["screen", "window", "normalized"]).default("screen"),
+  space: Space.default("screen"),
   /** pick = center | random point inside region (explicitly opted-in, for testing/accessibility). */
   pick: z.enum(["center", "random"]).default("center"),
+  /** Display the region belongs to (see PointTarget.display). */
+  display: DisplayRef.optional(),
 });
 
 export const ElementTarget = z.object({
@@ -75,7 +103,10 @@ export const ImageTarget = z.object({
   /** Reference to a locally stored template image (never inlined in shared templates). */
   ref: z.string().max(200),
   confidence: z.number().min(0.5).max(1).default(0.9),
+  /** Search area in px: virtual-desktop px, or relative to `display` when set. */
   region: rect.optional(),
+  /** Restricts the search to one display (the whole display when no region is given). */
+  display: DisplayRef.optional(),
 });
 
 export const Target = z.discriminatedUnion("kind", [PointTarget, CurrentTarget, RegionTarget, ElementTarget, ImageTarget]);
@@ -177,10 +208,36 @@ export const WaitStep = z.object({
   jitterMs: ms.default(0),
 });
 
+/** "Does this display region currently look like the remembered scene?" (perceptual hash, displays.ts). */
+export const SceneCondition = z.object({
+  name: sceneName,
+  /** 0..1 share of equal dHash bits required (0.9 ≈ at most 6 of 64 bits differ). */
+  minSimilarity: z.number().min(0).max(1).default(0.9),
+  /** True = the condition holds while the scene is NOT showing. */
+  not: z.boolean().optional(),
+});
+export type SceneCondition = z.infer<typeof SceneCondition>;
+
+/** "Does this pixel have that color?" — each RGB channel within `tolerance`. */
+export const PixelCondition = z.object({
+  at: PointTarget,
+  color: hexColor,
+  tolerance: z.number().int().min(0).max(255).default(24),
+  not: z.boolean().optional(),
+});
+export type PixelCondition = z.infer<typeof PixelCondition>;
+
+/**
+ * A condition holds when every present part holds, checked in this order: scene, pixel, expr.
+ * Old flows only have `expr`; probes (scene / pixel) read the screen through the backend.
+ */
 export const Condition = z.object({
   /** Safe expression evaluated by expr.ts — no eval, no I/O. */
-  expr,
+  expr: expr.default("true"),
+  scene: SceneCondition.optional(),
+  pixel: PixelCondition.optional(),
 });
+export type Condition = z.infer<typeof Condition>;
 
 export const WaitForStep = z.object({
   ...base,
@@ -268,8 +325,10 @@ export const FileStep = z.object({
 export const OcrStep = z.object({
   ...base,
   type: z.literal("ocr"),
+  /** Virtual-desktop px, or px relative to `display` when set. */
   region: rect,
   resultVar: varName,
+  display: DisplayRef.optional(),
 });
 
 export const FindImageStep = z.object({
@@ -278,6 +337,40 @@ export const FindImageStep = z.object({
   target: ImageTarget,
   resultVar: varName,
   timeoutMs: ms.default(5000),
+});
+
+/** Reads one pixel: `resultVar` = true/false when `color` is given, otherwise the color as "#rrggbb". */
+export const PixelCheckStep = z.object({
+  ...base,
+  type: z.literal("pixelCheck"),
+  at: PointTarget,
+  color: hexColor.optional(),
+  tolerance: z.number().int().min(0).max(255).default(24),
+  resultVar: varName,
+});
+
+/** Waits until a pixel shows (or, with `not`, stops showing) a color. No timeoutMs = only the run limits end it. */
+export const WaitForPixelStep = z.object({
+  ...base,
+  type: z.literal("waitForPixel"),
+  at: PointTarget,
+  color: hexColor,
+  tolerance: z.number().int().min(0).max(255).default(24),
+  not: z.boolean().optional(),
+  pollMs: z.number().int().min(50).max(60_000).default(250),
+  timeoutMs: ms.optional(),
+});
+
+/** Recognizes which remembered scene is showing: `resultVar` = best scene name at or above minSimilarity, else "". */
+export const MatchSceneStep = z.object({
+  ...base,
+  type: z.literal("matchScene"),
+  /** Candidate scenes (default: every scene of the flow, in order). */
+  scenes: z.array(sceneName).max(32).optional(),
+  minSimilarity: z.number().min(0).max(1).default(0.9),
+  resultVar: varName,
+  /** Receives the best similarity (0..1) even when below the threshold. */
+  similarityVar: varName.optional(),
 });
 
 export const RunFlowStep = z.object({ ...base, type: z.literal("runFlow"), flowId: id });
@@ -312,6 +405,9 @@ export type Step =
   | z.infer<typeof FileStep>
   | z.infer<typeof OcrStep>
   | z.infer<typeof FindImageStep>
+  | z.infer<typeof PixelCheckStep>
+  | z.infer<typeof WaitForPixelStep>
+  | z.infer<typeof MatchSceneStep>
   | z.infer<typeof RunFlowStep>
   | z.infer<typeof SwitchProfileStep>
   | z.infer<typeof StopStep>
@@ -331,7 +427,7 @@ export interface IfStep {
   onError?: OnError;
   stepTimeoutMs?: number;
   type: "if";
-  condition: { expr: string };
+  condition: Condition;
   then: Step[];
   else: Step[];
 }
@@ -346,9 +442,11 @@ export interface LoopStep {
   /** count = N times · while = until expr false · forever = until stopped or flow limits hit */
   mode: "count" | "while" | "forever";
   count?: number;
-  condition?: { expr: string };
+  condition?: Condition;
   /** Exposes the 0-based iteration index under this variable name. */
   indexVar?: string;
+  /** Minimum time between the starts of two rounds (the loop waits out the rest). */
+  cooldownMs?: number;
   body: Step[];
 }
 export interface ForEachStep {
@@ -427,7 +525,8 @@ export const StepSchema: z.ZodType<Step, z.ZodTypeDef, unknown> = z.lazy(
         z.discriminatedUnion("type", [
           ClickStep, MoveStep, DragStep, ScrollStep, KeyStep, TypeStep, WaitStep, WaitForStep, SetVarStep, LogStep,
           NotifyStep, ConfirmStep, ClipboardStep, LaunchAppStep, OpenUrlStep, WindowStep, AndroidGlobalStep, HttpStep,
-          FileStep, OcrStep, FindImageStep, RunFlowStep, SwitchProfileStep, StopStep, BreakStep, ContinueStep,
+          FileStep, OcrStep, FindImageStep, PixelCheckStep, WaitForPixelStep, MatchSceneStep, RunFlowStep, SwitchProfileStep,
+          StopStep, BreakStep, ContinueStep,
         ]),
         IfStepSchema,
         LoopStepSchema,
@@ -439,7 +538,7 @@ export const StepSchema: z.ZodType<Step, z.ZodTypeDef, unknown> = z.lazy(
         click: ClickStep, move: MoveStep, drag: DragStep, scroll: ScrollStep, key: KeyStep, type: TypeStep, wait: WaitStep, waitFor: WaitForStep,
         setVar: SetVarStep, log: LogStep, notify: NotifyStep, confirm: ConfirmStep, clipboard: ClipboardStep, launchApp: LaunchAppStep,
         openUrl: OpenUrlStep, window: WindowStep, androidGlobal: AndroidGlobalStep, http: HttpStep, file: FileStep, ocr: OcrStep,
-        findImage: FindImageStep, runFlow: RunFlowStep, switchProfile: SwitchProfileStep, stop: StopStep, break: BreakStep,
+        findImage: FindImageStep, pixelCheck: PixelCheckStep, waitForPixel: WaitForPixelStep, matchScene: MatchSceneStep, runFlow: RunFlowStep, switchProfile: SwitchProfileStep, stop: StopStep, break: BreakStep,
         continue: ContinueStep, if: IfStepSchema, loop: LoopStepSchema, forEach: ForEachStepSchema, try: TryStepSchema, group: GroupStepSchema,
       }),
     ),
@@ -456,6 +555,7 @@ const LoopStepSchema = z
     count: z.number().int().min(1).max(10_000_000).optional(),
     condition: Condition.optional(),
     indexVar: varName.optional(),
+    cooldownMs: ms.optional(),
     body: steps.default([]),
   })
   .refine((s) => s.mode !== "count" || typeof s.count === "number", { message: "loop.count required for mode=count" })
@@ -537,6 +637,46 @@ export const Humanize = z.object({
 });
 export type Humanize = z.infer<typeof Humanize>;
 
+/** Normalized (0..1) rectangle of a display. */
+const unitRect = z
+  .object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1), w: z.number().gt(0).max(1), h: z.number().gt(0).max(1) })
+  .refine((r) => r.x + r.w <= 1.000001 && r.y + r.h <= 1.000001, { message: "region must lie inside the display" });
+
+/** Largest inline scene thumbnail (data URL characters) so shared flows stay small. */
+export const MAX_SCENE_THUMB_CHARS = 24 * 1024;
+
+/**
+ * A remembered screen ("memory"): a region of a display plus its 64-bit perceptual hash (dHash).
+ * Conditions compare the live region with it, so a flow can react to which screen an app shows.
+ */
+export const Scene = z.object({
+  name: sceneName,
+  display: DisplayRef.optional(),
+  region: unitRect,
+  /** dHash as 16 lowercase hex digits. */
+  hash: z.string().regex(/^[0-9a-f]{16}$/, "hash must be 16 hex digits"),
+  /** Small preview shown in the editor (inline, capped). */
+  thumb: z
+    .string()
+    .max(MAX_SCENE_THUMB_CHARS)
+    .regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/, "thumb must be a base64 image data URL")
+    .optional(),
+});
+export type Scene = z.infer<typeof Scene>;
+
+/**
+ * Stage mode: the flow plays on one display (the stage) while AutoFlow stays on another (the deck).
+ * Normalized / display-space targets without their own display land on the stage. With
+ * `pauseOnTakeover` (default on) the run pauses as soon as the pointer leaves where AutoFlow put it.
+ */
+export const Stage = z.object({
+  display: DisplayRef,
+  pauseOnTakeover: z.boolean().optional(),
+  /** Pointer movement in px that counts as the user taking over (default 24). */
+  takeoverPx: z.number().int().min(4).max(500).optional(),
+});
+export type Stage = z.infer<typeof Stage>;
+
 export const FlowSchema = z.object({
   schemaVersion: z.literal(SCHEMA_VERSION),
   id,
@@ -555,6 +695,12 @@ export const FlowSchema = z.object({
   variables: z.array(VariableDef).max(200).default([]),
   steps,
   humanize: Humanize.optional(),
+  /** Multi-monitor: where the flow plays (see Stage). */
+  stage: Stage.optional(),
+  /** Missing referenced display: fail (default) · primary (use it, with a warning) · ask. */
+  onMissingDisplay: OnMissingDisplay.optional(),
+  /** Remembered screens referenced by scene conditions and matchScene steps. */
+  scenes: z.array(Scene).max(32).optional(),
   /** Reference coordinate space at recording time; executors pause if the live screen differs. */
   screen: z.object({ width: z.number().int().positive(), height: z.number().int().positive(), scale: z.number().positive().default(1) }).optional(),
   favorite: z.boolean().default(false),
@@ -616,6 +762,11 @@ export function parseFlow(data: unknown): { ok: true; flow: Flow } | { ok: false
     if (structure) return { ok: false, issues: [{ path: "steps", message: structure }] };
     const dup = findDuplicateIds(r.data.steps);
     if (dup.length) return { ok: false, issues: dup.map((d) => ({ path: "steps", message: `duplicate step id "${d}"` })) };
+    const names = new Set<string>();
+    for (const sc of r.data.scenes ?? []) {
+      if (names.has(sc.name)) return { ok: false, issues: [{ path: "scenes", message: `duplicate scene name "${sc.name}"` }] };
+      names.add(sc.name);
+    }
     return { ok: true, flow: r.data };
   }
   return { ok: false, issues: r.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })) };

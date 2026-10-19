@@ -51,6 +51,7 @@ pub fn step_capability(step_type: &str, platform: Platform) -> CapabilityNote {
         "file" => [S, l("cap.file.android"), u("cap.native")],
         "ocr" => [S, l("cap.ocr.android"), u("cap.native")],
         "findImage" => [S, l("cap.findImage.android"), u("cap.native")],
+        "pixelCheck" | "waitForPixel" | "matchScene" => [S, u("cap.screenProbe.android"), l("cap.sandbox")],
         "switchProfile" => [S, l("cap.switchProfile.android"), u("cap.native")],
         _ => [S, S, S],
     };
@@ -76,6 +77,15 @@ pub fn trigger_capability(trigger_type: &str, platform: Platform) -> CapabilityN
         Platform::Windows => row[0],
         Platform::Android => row[1],
         Platform::Web => row[2],
+    }
+}
+
+/// `CONDITION_PROBE_CAPABILITY`: scene / pixel conditions read the screen, which Android cannot.
+pub fn condition_probe_capability(platform: Platform) -> CapabilityNote {
+    match platform {
+        Platform::Windows => S,
+        Platform::Android => u("cap.screenProbe.android"),
+        Platform::Web => l("cap.sandbox"),
     }
 }
 
@@ -116,6 +126,12 @@ pub fn compatibility(steps: &[Step], platform: Platform) -> Vec<CompatIssue> {
             let tc = target_support(t, platform);
             if tc.support > worst.support {
                 worst = tc;
+            }
+        }
+        if s.condition().is_some_and(crate::schema::Condition::probes_screen) {
+            let pc = condition_probe_capability(platform);
+            if pc.support > worst.support {
+                worst = pc;
             }
         }
         if worst.support != Support::Supported {

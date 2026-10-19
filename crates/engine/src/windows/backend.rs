@@ -2,6 +2,7 @@
 
 use super::{capture, clipboard, input, ocr, screen, shell, uia, wide, window};
 use crate::actions::{file_action, http_action};
+use crate::display::DisplayInfo;
 use crate::engine::{BackendError, ErrorCategory, InputAction, InputBackend, RunControl, ScreenInfo};
 use crate::expr::default_random;
 use crate::schema::{KeyAction, Platform, Target};
@@ -136,6 +137,14 @@ impl InputBackend for WindowsBackend {
         Some(screen::primary_screen_info())
     }
 
+    fn displays(&mut self) -> Vec<DisplayInfo> {
+        screen::displays()
+    }
+
+    fn pointer_position(&mut self) -> Option<(f64, f64)> {
+        screen::cursor_pos().ok().map(|(x, y)| (f64::from(x), f64::from(y)))
+    }
+
     #[allow(clippy::too_many_lines)]
     fn perform(&mut self, action: &InputAction, control: &RunControl) -> Result<Value, BackendError> {
         if control.is_stopped() {
@@ -212,10 +221,19 @@ impl InputBackend for WindowsBackend {
                 let i = |v: f64| v.round() as i32;
                 return ocr::recognize(i(region.x), i(region.y), i(region.w), i(region.h)).map(Value::Str);
             }
-            InputAction::FindImage { reference, confidence, timeout_ms } => {
+            InputAction::FindImage { reference, confidence, timeout_ms, region } => {
                 let path = self.template(reference)?;
-                return Ok(capture::find_on_screen(&path, *confidence, None, *timeout_ms, control)?
+                #[allow(clippy::cast_possible_truncation)]
+                let region = region.map(|r| (r.x.round() as i32, r.y.round() as i32, r.w.round() as i32, r.h.round() as i32));
+                return Ok(capture::find_on_screen(&path, *confidence, region, *timeout_ms, control)?
                     .map_or(Value::Null, |(x, y)| Value::List(vec![Value::from(i64::from(x)), Value::from(i64::from(y))])));
+            }
+            #[allow(clippy::cast_possible_truncation)]
+            InputAction::Pixel { x, y } => return capture::pixel_hex(x.round() as i32, y.round() as i32).map(Value::Str),
+            #[allow(clippy::cast_possible_truncation)]
+            InputAction::SceneHash { region: r } => {
+                let i = |v: f64| v.round() as i32;
+                return capture::scene_hash(i(r.x), i(r.y), i(r.w), i(r.h)).map(Value::Str);
             }
             InputAction::SwitchProfile { profile_id } => self.host.switch_profile(profile_id)?,
         }

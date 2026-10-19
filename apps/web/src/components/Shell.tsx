@@ -14,6 +14,7 @@ const NAV = [
   { to: "/", icon: "Home", key: "nav.home", end: true },
   { to: "/flows", icon: "Workflow", key: "nav.flows" },
   { to: "/canvas", icon: "Target", key: "nav.canvas" },
+  { to: "/stage", icon: "MonitorPlay", key: "nav.stage" },
   { to: "/keyforge", icon: "Keyboard", key: "nav.keyforge" },
   { to: "/atlas", icon: "Map", key: "nav.atlas" },
   { to: "/ledger", icon: "History", key: "nav.ledger" },
@@ -80,7 +81,7 @@ export function Shell({ children, flush, title, actions }: { children: ReactNode
         <main id="main" className={`content${flush ? " flush" : ""}`}>{children}</main>
       </div>
       <nav className="mobile-nav" aria-label={t("a11y.mainNav")}>
-        {[NAV[0]!, NAV[1]!, NAV[2]!, NAV[4]!, NAV2[3]!].map((n) => (
+        {[NAV[0]!, NAV[1]!, NAV[2]!, NAV[5]!, NAV2[3]!].map((n) => (
           <NavLink key={n.to} to={n.to} end={"end" in n} className={({ isActive }) => (isActive ? "active" : "")}>
             <Icon name={n.icon} size={20} />
             {t(n.key)}

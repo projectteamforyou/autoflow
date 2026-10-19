@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "identify-overlay",
+  "description": "Transparent monitor-number overlays shown by displays_identify (Stage panel). They only render a number and are closed by the app; no IPC, events or plugin APIs.",
+  "windows": ["identify-*"],
+  "permissions": []
+}

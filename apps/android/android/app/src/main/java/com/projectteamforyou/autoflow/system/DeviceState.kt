@@ -38,6 +38,21 @@ object DeviceState {
         }
     }
 
+    /** The built-in display as a bridge `DisplayInfo` (id "primary", like the engine's default display). */
+    fun displayJson(context: Context): JsonObject {
+        val s = screen(context)
+        val bounds = buildJsonObject { put("x", 0); put("y", 0); put("w", s.width); put("h", s.height) }
+        return buildJsonObject {
+            put("id", "primary")
+            put("name", "Built-in display")
+            put("primary", true)
+            put("bounds", bounds)
+            put("workArea", bounds)
+            put("scale", s.scale)
+            put("orientation", if (s.width >= s.height) "landscape" else "portrait")
+        }
+    }
+
     fun accessibilityEnabled(context: Context): Boolean {
         val enabled = Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: return false
         val me = ComponentName(context, AutoFlowAccessibilityService::class.java)

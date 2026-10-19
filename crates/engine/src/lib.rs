@@ -22,6 +22,7 @@
 pub mod actions;
 pub mod bridge;
 pub mod capabilities;
+pub mod display;
 pub mod engine;
 pub mod expr;
 pub mod imagematch;

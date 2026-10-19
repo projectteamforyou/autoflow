@@ -234,6 +234,21 @@ class AutoFlowNativePlugin : Plugin() {
         }
     }
 
+    /** The built-in display only (Android has no extended desktop); ids match the engine's default display. */
+    @PluginMethod
+    fun displays_list(call: PluginCall) = async(call) { JsonArray(listOf(DeviceState.displayJson(context))) }
+
+    /** One display: nothing to tell apart. */
+    @PluginMethod
+    fun displays_identify(call: PluginCall) = ok(call)
+
+    @PluginMethod
+    fun deck_pin(call: PluginCall) = fail(call, "Android has a single display; Stage mode needs a second monitor on Windows", "unsupported")
+
+    /** Scenes need screen capture, which AutoFlow for Android does not use (no MediaProjection). */
+    @PluginMethod
+    fun scene_capture(call: PluginCall) = fail(call, "Scenes need screen capture, which is not available on Android; capture them in AutoFlow for Windows", "unsupported")
+
     @PluginMethod
     fun profiles_apply(call: PluginCall) = async(call) {
         val a = args(call)

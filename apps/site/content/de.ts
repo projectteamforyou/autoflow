@@ -70,6 +70,7 @@ export const de: Content = {
       mobile: "Mobil",
       developer: "Entwicklung",
       wellbeing: "Wohlbefinden",
+      gaming: "Spiele & Idle",
     },
     difficulty: { easy: "Einfach", pro: "Pro" },
     risk: { low: "Geringes Risiko", medium: "Mittleres Risiko", high: "Hohes Risiko" },
@@ -264,6 +265,15 @@ export const de: Content = {
           { icon: "stop", h3: "Halt", p: "Strg+Alt+Esc unter Windows, ein schwebender Button auf Android. Flows stoppen in unter 500 ms – Wartezeiten sind zerlegt, damit nichts blockiert." },
         ],
       },
+      {
+        h2: "Mehrere Monitore & Spiele",
+        items: [
+          { icon: "devices", h3: "Stage", p: "Richte einen Flow auf einem Monitor ein und lass ihn auf einem anderen laufen. Wähle die Bühne auf einer maßstabsgetreuen Karte deiner Monitore, lass ihre Nummern aufleuchten, behalte AutoFlow auf dem Deck und verfolge ein Live-HUD mit Minikarte des nächsten Klicks." },
+          { icon: "pause", h3: "Übernahmeschutz", p: "Sobald du die Maus berührst, pausiert ein Stage-Lauf von selbst. Ein fehlender Monitor schickt nie Klicks an den falschen Bildschirm: Der Flow stoppt, fragt nach oder nutzt den Hauptmonitor – du entscheidest." },
+          { icon: "image", h3: "Szenen", p: "AutoFlow merkt sich Bildschirme – eine Lobby, einen Belohnungsbildschirm – als kleine Fingerabdrücke und reagiert auf den, der gerade zu sehen ist. Pixelfarb-Prüfungen, Wartezeiten mit Limit und Schleifen-Abklingzeiten runden das ab." },
+          { icon: "shield", h3: "Fair Play", p: "AutoFlow klickt und tippt nur wie du. Es liest keinen Spielspeicher, schleust keinen Code ein und umgeht keinen Anti-Cheat – halte dich an die Nutzungsbedingungen jedes Spiels." },
+        ],
+      },
     ],
   },
   windows: {
@@ -280,6 +290,9 @@ export const de: Content = {
       { icon: "window", h3: "Fenster & Apps", p: "Apps starten, Fenster fokussieren, verschieben und skalieren – deinen ganzen Arbeitsplatz mit einer Taste einrichten." },
       { icon: "record", h3: "Recorder", p: "Eine Aufgabe einmal aufnehmen und in bearbeitbare Schritte verwandeln. Passwortfelder werden automatisch maskiert." },
       { icon: "pulse", h3: "Infobereich & Pulse", p: "AutoFlow wartet still im Infobereich; die Pulse-Leiste erscheint, sobald etwas läuft. Automatisierung ist nie unsichtbar." },
+      { icon: "devices", h3: "Stage auf einem zweiten Monitor", p: "Lass einen Flow auf einem Monitor laufen, während AutoFlow auf dem anderen bleibt. Monitore werden per Nummer erkannt, und der Lauf pausiert, sobald du die Maus übernimmst." },
+      { icon: "image", h3: "Szenen", p: "Nimm einen Bereich eines Monitors einmal auf; Bedingungen vergleichen dann den Live-Bildschirm damit, sodass ein Flow eine Lobby von einem Belohnungsbildschirm unterscheiden kann." },
+      { icon: "gauge", h3: "Pixelprüfungen", p: "Warte, bis eine Schaltfläche eine Farbe annimmt, oder lies ein Pixel in eine Variable – mit Toleranz und Zeitlimit, auf jedem Monitor." },
     ],
     req: {
       h2: "Systemvoraussetzungen",
@@ -473,6 +486,9 @@ export const de: Content = {
     "status-check": { n: "Website-Statusprüfung", d: "Prüft alle 10 Minuten eine URL und meldet sich, wenn sie nicht antwortet." },
     "copy-cleaner": { n: "Zwischenablage bereinigen", d: "Entfernt Zeilenumbrüche und doppelte Leerzeichen aus der Zwischenablage und legt den sauberen Text zurück." },
     "countdown-timer": { n: "Fokus-Timer", d: "Eine 25-minütige Fokus-Session mit Benachrichtigung am Ende – Pomodoro ohne weitere App." },
+    "idle-collect": { n: "Idle-Spiel: einsammeln & zurück zur Lobby", d: "Erkennt auf einem zweiten Monitor Lobby und Belohnungsbildschirm, startet eine Runde, sammelt die Belohnung ein und kehrt zurück – dreimal." },
+    "stage-ready-clicker": { n: "Zwei-Monitor-Bühne: klicken, wenn bereit", d: "Beobachtet eine Stelle auf deinem zweiten Monitor und klickt, sobald sie grün wird – höchstens zweimal pro Sekunde." },
+    "daily-check-in": { n: "Tägliche Check-in-Schleife", d: "Klickt auf eine tägliche Check-in-Taste und wartet dann 24 Stunden bis zur nächsten Runde. Läuft bis zu einer Woche." },
   },
   privacy,
   terms,

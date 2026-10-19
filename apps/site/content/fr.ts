@@ -70,6 +70,7 @@ export const fr: Content = {
       mobile: "Mobile",
       developer: "Développement",
       wellbeing: "Bien-être",
+      gaming: "Jeux & idle",
     },
     difficulty: { easy: "Facile", pro: "Pro" },
     risk: { low: "Risque faible", medium: "Risque moyen", high: "Risque élevé" },
@@ -264,6 +265,15 @@ export const fr: Content = {
           { icon: "stop", h3: "Halt", p: "Ctrl+Alt+Échap sur Windows, un bouton flottant sur Android. Les flux s’arrêtent en moins de 500 ms : les attentes sont découpées pour que rien ne bloque." },
         ],
       },
+      {
+        h2: "Multi-écran & jeux",
+        items: [
+          { icon: "devices", h3: "Scène", p: "Configurez un flux sur un écran et laissez-le tourner sur un autre. Choisissez la scène sur une carte à l’échelle de vos écrans, faites clignoter leurs numéros, gardez AutoFlow sur le pupitre et suivez un HUD en direct avec la mini-carte du prochain clic." },
+          { icon: "pause", h3: "Protection de reprise", p: "Touchez la souris et l’exécution sur scène se met en pause d’elle-même. Un écran absent n’envoie jamais de clics sur le mauvais écran : le flux s’arrête, vous demande ou utilise l’écran principal, à vous de choisir." },
+          { icon: "image", h3: "Scènes mémorisées", p: "AutoFlow mémorise des écrans — un lobby, un écran de récompense — sous forme de petites empreintes et réagit à celui qui est affiché. Vérification de couleur de pixel, attentes limitées dans le temps et délais entre tours complètent l’ensemble." },
+          { icon: "shield", h3: "Fair-play", p: "AutoFlow ne fait que cliquer et taper comme vous. Il ne lit jamais la mémoire d’un jeu, n’injecte pas de code et ne contourne aucun anti-triche : respectez les conditions d’utilisation de chaque jeu." },
+        ],
+      },
     ],
   },
   windows: {
@@ -280,6 +290,9 @@ export const fr: Content = {
       { icon: "window", h3: "Fenêtres et apps", p: "Lancez des apps, activez, déplacez et redimensionnez des fenêtres : installez tout votre espace de travail d’une seule touche." },
       { icon: "record", h3: "Enregistreur", p: "Capturez une tâche une fois et transformez-la en étapes modifiables. Les champs de mot de passe sont masqués automatiquement." },
       { icon: "pulse", h3: "Zone de notification et Pulse", p: "AutoFlow attend discrètement dans la zone de notification ; la barre Pulse apparaît dès qu’un flux tourne. L’automatisation n’est jamais invisible." },
+      { icon: "devices", h3: "Scène sur un second écran", p: "Exécutez un flux sur un écran pendant qu’AutoFlow reste sur l’autre. Les écrans sont identifiés par numéro et l’exécution se met en pause dès que vous reprenez la souris." },
+      { icon: "image", h3: "Scènes mémorisées", p: "Capturez une fois une zone d’un écran ; les conditions la comparent ensuite à l’écran en direct, pour qu’un flux distingue un lobby d’un écran de récompense." },
+      { icon: "gauge", h3: "Vérification de pixels", p: "Attendez qu’un bouton change de couleur ou lisez un pixel dans une variable, avec une tolérance et une limite de temps, sur n’importe quel écran." },
     ],
     req: {
       h2: "Configuration requise",
@@ -473,6 +486,9 @@ export const fr: Content = {
     "status-check": { n: "Surveillance de site web", d: "Toutes les 10 minutes, vérifie une URL et vous prévient si elle ne répond pas." },
     "copy-cleaner": { n: "Nettoyer le presse-papiers", d: "Supprime les retours à la ligne et les doubles espaces du presse-papiers, puis y remet le texte propre." },
     "countdown-timer": { n: "Minuteur de concentration", d: "Une session de 25 minutes qui se termine par une notification — le Pomodoro sans autre app." },
+    "idle-collect": { n: "Jeu idle : récolter et revenir au lobby", d: "Sur un deuxième écran, reconnaît le lobby et l’écran de récompense, lance une partie, récupère la récompense et revient — trois fois." },
+    "stage-ready-clicker": { n: "Scène à deux écrans : cliquer quand c’est prêt", d: "Surveille un point de votre deuxième écran et clique dès qu’il devient vert, au plus deux fois par seconde." },
+    "daily-check-in": { n: "Boucle de connexion quotidienne", d: "Clique sur un bouton de connexion quotidienne, puis attend 24 heures avant le tour suivant. Tourne jusqu’à une semaine." },
   },
   privacy,
   terms,

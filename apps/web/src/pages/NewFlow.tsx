@@ -75,9 +75,12 @@ function NativeRecorder() {
     try {
       const r = await invoke("record_stop", {});
       setRecording(false);
-      const steps = eventsToSteps(r.events, { screen: { width: r.screen.width, height: r.screen.height } });
+      // With several monitors, points are stored relative to the monitor they were recorded on.
+      const displays = await invoke("displays_list", {}).catch(() => []);
+      const multi = displays.length > 1;
+      const steps = eventsToSteps(r.events, multi ? { displays } : { screen: { width: r.screen.width, height: r.screen.height } });
       if (!steps.length) return toast("info", t("canvas.recordEmpty"));
-      const f = await save(createFlow({ name: t("canvas.recordedName", { date: new Date().toLocaleString() }), id: newId("f"), mode: "pro", icon: "sparkles", color: "#EF4444", steps, screen: r.screen }), { snapshot: false });
+      const f = await save(createFlow({ name: t("canvas.recordedName", { date: new Date().toLocaleString() }), id: newId("f"), mode: "pro", icon: "sparkles", color: "#EF4444", steps, ...(multi ? { onMissingDisplay: "ask" as const } : { screen: r.screen }) }), { snapshot: false });
       navigate(`/flows/${f.id}`, { replace: true });
     } catch (e) {
       toast("error", (e as Error).message);

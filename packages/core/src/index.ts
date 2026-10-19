@@ -14,6 +14,8 @@ export * from "./share.js";
 export * from "./locales.js";
 export * from "./templates.js";
 export * from "./sandbox.js";
+export * from "./displays.js";
+export * from "./practice.js";
 export * from "./bridge.js";
 export * from "./ai-providers.js";
 export * from "./promo.js";

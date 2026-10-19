@@ -75,6 +75,7 @@ export const en = {
       mobile: "Mobile",
       developer: "Developer",
       wellbeing: "Wellbeing",
+      gaming: "Games & idle",
     },
     difficulty: { easy: "Easy", pro: "Pro" },
     risk: { low: "Low risk", medium: "Medium risk", high: "High risk" },
@@ -269,6 +270,15 @@ export const en = {
           { icon: "stop", h3: "Halt", p: "Ctrl+Alt+Esc on Windows, a floating button on Android. Flows stop in under 500 ms — waits are sliced so nothing can block it." },
         ],
       },
+      {
+        h2: "Multi-monitor & games",
+        items: [
+          { icon: "devices", h3: "Stage", p: "Set a flow up on one monitor and let it play on another. Pick the stage on a to-scale map of your monitors, flash their numbers, keep AutoFlow on the deck and follow a live HUD with a minimap of the next click." },
+          { icon: "pause", h3: "Takeover guard", p: "Touch the mouse and a stage run pauses on its own. A missing monitor never sends clicks to the wrong screen: the flow stops, asks or uses the primary monitor — your choice." },
+          { icon: "image", h3: "Scenes", p: "AutoFlow remembers screens — a lobby, a reward screen — as small fingerprints and reacts to whichever one is showing. Pixel-color checks, waits with time limits and loop cooldowns round it off." },
+          { icon: "shield", h3: "Fair play", p: "AutoFlow only clicks and types like you would. It never reads game memory, injects code or bypasses anti-cheat — follow each game’s terms of service." },
+        ],
+      },
     ],
   },
   windows: {
@@ -285,6 +295,9 @@ export const en = {
       { icon: "window", h3: "Windows & apps", p: "Launch apps, focus, move and resize windows — set up your whole workspace with one key." },
       { icon: "record", h3: "Recorder", p: "Capture a task once and turn it into editable steps. Password fields are masked automatically." },
       { icon: "pulse", h3: "Tray & Pulse", p: "AutoFlow lives quietly in the tray; the Pulse bar appears whenever something runs, so automation is never invisible." },
+      { icon: "devices", h3: "Stage on a second monitor", p: "Run a flow on one monitor while AutoFlow stays on the other. Monitors are identified by number and the run pauses as soon as you take over the mouse." },
+      { icon: "image", h3: "Scenes", p: "Capture a region of a monitor once; conditions then compare the live screen with it, so a flow can tell a lobby from a reward screen." },
+      { icon: "gauge", h3: "Pixel checks", p: "Wait for a button to turn a color, or read one pixel into a variable — with a tolerance and a time limit, on any monitor." },
     ],
     req: {
       h2: "System requirements",
@@ -478,6 +491,9 @@ export const en = {
     "status-check": { n: "Website status check", d: "Every 10 minutes, checks a URL and notifies you if it doesn’t answer." },
     "copy-cleaner": { n: "Clean clipboard text", d: "Removes line breaks and double spaces from the clipboard and puts the clean text back." },
     "countdown-timer": { n: "Focus timer", d: "A 25-minute focus session that ends with a notification — Pomodoro without another app." },
+    "idle-collect": { n: "Idle game: collect & return to lobby", d: "On a second monitor, recognizes the lobby and reward screens, starts a round, collects the reward and returns — three times." },
+    "stage-ready-clicker": { n: "Two-monitor stage: click when ready", d: "Watches a spot on your second monitor and clicks it whenever it turns green, at most twice a second." },
+    "daily-check-in": { n: "Daily check-in loop", d: "Clicks a daily check-in button, then waits out a 24-hour cooldown before the next round. Runs for up to a week." },
   },
   privacy,
   terms,

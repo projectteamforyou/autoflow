@@ -151,5 +151,33 @@
       "web"
     ],
     "explain": "When you press Run\n  Show notification “Focus started”\n  Wait 25m\n  Show notification “Time for a break”\nStops automatically after 26m 40s · emergency stop Ctrl+Alt+Escape"
+  },
+  {
+    "id": "idle-collect",
+    "category": "gaming",
+    "platforms": [
+      "windows",
+      "web"
+    ],
+    "explain": "When you press Run\nPlays on the second display; pauses as soon as you move the mouse\n  Set collected = 0\n  Repeat while collected < rounds, at most once every 400ms:\n    In the lobby: start a round\n      Click left at 50% across, 68% down the screen\n    Reward screen: collect it\n      Click left at 50% across, 76% down the screen\n      Set collected = collected + 1\n      Write to the run log: Collected round {{collected}} of {{rounds}}\n  Show notification “Idle run finished”\nStops automatically after 30m · emergency stop Ctrl+Alt+Escape"
+  },
+  {
+    "id": "stage-ready-clicker",
+    "category": "gaming",
+    "platforms": [
+      "windows",
+      "web"
+    ],
+    "explain": "When you press Run\nPlays on the second display; pauses as soon as you move the mouse\n  Repeat until stopped, at most once every 500ms:\n    If 50% across, 68% down the screen shows #2ecc71:\n      Click left at 50% across, 68% down the screen\n      Write to the run log: Ready button clicked at {{time()}}\nStops automatically after 1h · emergency stop Ctrl+Alt+Escape"
+  },
+  {
+    "id": "daily-check-in",
+    "category": "gaming",
+    "platforms": [
+      "windows",
+      "android",
+      "web"
+    ],
+    "explain": "When you press Run\n  Repeat until stopped, at most once every 24h:\n    Click left at 50% across, 76% down the screen\n    Show notification “Daily check-in done”\n    Write to the run log: Checked in on {{date()}}\nStops automatically after 168h · emergency stop Ctrl+Alt+Escape"
   }
 ]

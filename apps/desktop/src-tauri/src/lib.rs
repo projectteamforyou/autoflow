@@ -50,6 +50,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         Err(e) => eprintln!("autoflow: Keyforge unavailable: {e}"),
     }
     triggers::spawn_watcher(handle.clone());
+    commands::spawn_display_watcher(handle.clone());
     tray::create(&handle)?;
 
     // Started by Windows at sign-in: stay in the tray.
@@ -113,6 +114,10 @@ pub fn run() {
             commands::open_settings,
             commands::autostart_set,
             commands::open_external,
+            commands::displays_list,
+            commands::displays_identify,
+            commands::deck_pin,
+            commands::scene_capture,
         ]);
     match builder.build(tauri::generate_context!()) {
         Ok(app) => app.run(|handle, event| {

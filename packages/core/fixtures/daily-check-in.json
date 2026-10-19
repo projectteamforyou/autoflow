@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "1.0",
+  "id": "tpl_daily-check-in",
+  "name": "Daily check-in loop",
+  "description": "Clicks a daily check-in button once, then waits out a 24-hour cooldown before the next round and tells you each time. Runs for up to a week.",
+  "tags": [],
+  "icon": "timer",
+  "color": "#F59E0B",
+  "targets": [
+    "windows",
+    "android",
+    "web"
+  ],
+  "mode": "pro",
+  "trigger": {
+    "type": "manual"
+  },
+  "hotkeys": {
+    "stop": {
+      "key": "Escape",
+      "modifiers": [
+        "ctrl",
+        "alt"
+      ]
+    }
+  },
+  "limits": {
+    "maxDurationMs": 604800000,
+    "maxActions": 100000,
+    "maxIterations": 1000000,
+    "countdownMs": 3000,
+    "preventOverlap": true,
+    "cooldownMs": 0
+  },
+  "variables": [],
+  "steps": [
+    {
+      "id": "daily",
+      "type": "loop",
+      "mode": "forever",
+      "cooldownMs": 86400000,
+      "body": [
+        {
+          "id": "check",
+          "type": "click",
+          "target": {
+            "kind": "point",
+            "x": 0.5,
+            "y": 0.76,
+            "space": "normalized"
+          },
+          "button": "left",
+          "clicks": 1,
+          "holdMs": 0,
+          "modifiers": []
+        },
+        {
+          "id": "n",
+          "type": "notify",
+          "title": "Daily check-in done",
+          "body": "Next one in 24 hours."
+        },
+        {
+          "id": "log",
+          "type": "log",
+          "message": "Checked in on {{date()}}",
+          "level": "info"
+        }
+      ]
+    }
+  ],
+  "favorite": false,
+  "createdAt": "2026-10-19T00:00:00.000Z",
+  "updatedAt": "2026-10-19T00:00:00.000Z",
+  "revision": 0
+}

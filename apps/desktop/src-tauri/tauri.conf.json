@@ -44,7 +44,8 @@
       },
       "freezePrototype": true,
       "capabilities": [
-        "main-window"
+        "main-window",
+        "identify-overlay"
       ]
     }
   },

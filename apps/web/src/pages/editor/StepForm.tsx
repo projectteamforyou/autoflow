@@ -6,10 +6,11 @@ import { STEP_BY_TYPE } from "../../lib/steps";
 import { useStore } from "../../lib/store";
 import { useT } from "../../i18n";
 import { hasNativeBridge, invoke, platform } from "../../platform";
+import { ConditionEditor, DisplayPicker, MatchSceneFields, PixelCheckFields, WaitForPixelFields } from "./MultiMonitorFields";
 
 type Props = { step: Step; flow: Flow; issues: LintIssue[]; onChange: (s: Step) => void; onDelete: () => void; onDuplicate: () => void; onClose: () => void };
 
-export function StepForm({ step, issues, onChange, onDelete, onDuplicate, onClose }: Props) {
+export function StepForm({ step, flow, issues, onChange, onDelete, onDuplicate, onClose }: Props) {
   const t = useT();
   const meta = STEP_BY_TYPE[step.type];
   const cap = STEP_CAPABILITIES[step.type][platform];
@@ -39,7 +40,7 @@ export function StepForm({ step, issues, onChange, onDelete, onDuplicate, onClos
         </div>
       ))}
 
-      <TypeFields step={step} set={set} />
+      <TypeFields step={step} set={set} flow={flow} />
 
       <div className="divider" />
       <Field label={t("editor.label")} hint={t("editor.labelHint")}>
@@ -109,7 +110,7 @@ function Num({ label, value, onChange, min = 0, max = 86_400_000, step = 1, suff
 
 const KEYS = ["Enter", "Tab", "Escape", "Space", "Backspace", "Delete", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "MediaPlayPause", "MediaTrackNext", "AudioVolumeUp", "AudioVolumeDown"];
 
-function TypeFields({ step, set }: { step: Step; set: (p: Record<string, unknown>) => void }) {
+function TypeFields({ step, set, flow }: { step: Step; set: (p: Record<string, unknown>) => void; flow: Flow }) {
   const t = useT();
   const flows = useStore((s) => s.flows);
   const profiles = useStore((s) => s.profiles);
@@ -190,7 +191,7 @@ function TypeFields({ step, set }: { step: Step; set: (p: Record<string, unknown
     case "waitFor":
       return (
         <>
-          <ExprInput label={t("editor.condition")} value={step.condition.expr} onChange={(expr) => set({ condition: { expr } })} />
+          <ConditionEditor value={step.condition} onChange={(condition) => set({ condition })} flow={flow} />
           <div className="grid cols-2">
             <Num label={t("editor.poll")} value={step.pollMs} min={50} max={60000} suffix="ms" onChange={(pollMs) => set({ pollMs })} />
             <Num label={t("editor.timeout")} value={step.timeoutMs} step={500} suffix="ms" onChange={(timeoutMs) => set({ timeoutMs })} />
@@ -310,15 +311,23 @@ function TypeFields({ step, set }: { step: Step; set: (p: Record<string, unknown
               <Num key={k} label={k} value={step.region[k]} min={0} max={20000} onChange={(v) => set({ region: { ...step.region, [k]: v } })} />
             ))}
           </div>
+          <DisplayPicker value={step.display} onChange={(display) => set({ display })} label={t("display.scope")} />
           <Field label={t("editor.resultVar")}><input className="input mono" value={step.resultVar} onChange={(e) => set({ resultVar: e.target.value.replace(/[^A-Za-z0-9_]/g, "") || "text" })} /></Field>
         </>
       );
+    case "pixelCheck":
+      return <PixelCheckFields step={step} set={set} />;
+    case "waitForPixel":
+      return <WaitForPixelFields step={step} set={set} />;
+    case "matchScene":
+      return <MatchSceneFields step={step} set={set} flow={flow} />;
     case "findImage":
       return (
         <>
           <Field label={t("editor.imageRef")} hint={t("editor.imageRefHint")}><input className="input mono" value={step.target.ref} onChange={(e) => set({ target: { ...step.target, ref: e.target.value } })} /></Field>
           <Num label={t("editor.confidence")} value={Math.round(step.target.confidence * 100)} min={50} max={100} suffix="%" onChange={(v) => set({ target: { ...step.target, confidence: v / 100 } })} />
           <Num label={t("editor.timeout")} value={step.timeoutMs} step={500} suffix="ms" onChange={(timeoutMs) => set({ timeoutMs })} />
+          <DisplayPicker value={step.target.display} onChange={(display) => set({ target: { ...step.target, display } })} label={t("display.scope")} />
           <Field label={t("editor.resultVar")}><input className="input mono" value={step.resultVar} onChange={(e) => set({ resultVar: e.target.value.replace(/[^A-Za-z0-9_]/g, "") || "found" })} /></Field>
         </>
       );
@@ -343,7 +352,7 @@ function TypeFields({ step, set }: { step: Step; set: (p: Record<string, unknown
     case "stop":
       return <Field label={t("editor.reason")}><input className="input" value={step.reason ?? ""} onChange={(e) => set({ reason: e.target.value || undefined })} /></Field>;
     case "if":
-      return <ExprInput label={t("editor.condition")} value={step.condition.expr} onChange={(expr) => set({ condition: { expr } })} />;
+      return <ConditionEditor value={step.condition} onChange={(condition) => set({ condition })} flow={flow} />;
     case "loop":
       return (
         <>
@@ -351,8 +360,14 @@ function TypeFields({ step, set }: { step: Step; set: (p: Record<string, unknown
             <Seg value={step.mode} onChange={(mode) => set({ mode, count: mode === "count" ? (step.count ?? 10) : step.count, condition: mode === "while" ? (step.condition ?? { expr: "true" }) : step.condition })} options={[{ value: "count", label: t("easy.repeat.count") }, { value: "while", label: t("editor.while") }, { value: "forever", label: t("easy.repeat.until") }]} />
           </Field>
           {step.mode === "count" && <Num label={t("easy.times")} value={step.count ?? 1} min={1} max={10_000_000} onChange={(count) => set({ count })} />}
-          {step.mode === "while" && <ExprInput label={t("editor.condition")} value={step.condition?.expr ?? ""} onChange={(expr) => set({ condition: { expr } })} />}
+          {step.mode === "while" && <ConditionEditor value={step.condition ?? { expr: "true" }} onChange={(condition) => set({ condition })} flow={flow} />}
           <Field label={t("editor.indexVar")} hint={t("editor.indexVarHint")}><input className="input mono" value={step.indexVar ?? ""} onChange={(e) => set({ indexVar: e.target.value.replace(/[^A-Za-z0-9_]/g, "") || undefined })} /></Field>
+          <Field label={t("editor.loopCooldown")} hint={t("editor.loopCooldownHint")}>
+            <div className="input-group">
+              <input className="input" type="number" min={0} max={86_400_000} step={500} value={step.cooldownMs ?? 0} onChange={(e) => set({ cooldownMs: Math.max(0, Math.min(86_400_000, Number(e.target.value) || 0)) || undefined })} />
+              <span className="small muted">ms</span>
+            </div>
+          </Field>
         </>
       );
     case "forEach":
@@ -409,7 +424,10 @@ export function TargetEditor({ target, onChange }: { target: Target; onChange: (
   const pick = async () => {
     try {
       const r = await invoke("pick_point", {});
-      onChange({ kind: "point", x: +(r.x / r.screen.width).toFixed(4), y: +(r.y / r.screen.height).toFixed(4), space: "normalized" });
+      // With a display id the point is stored relative to that monitor (it then replays there even if monitors move).
+      const d = r.displayId ? (await invoke("displays_list", {}).catch(() => [])).find((m) => m.id === r.displayId) : undefined;
+      if (d) onChange({ kind: "point", x: +((r.x - d.bounds.x) / d.bounds.w).toFixed(4), y: +((r.y - d.bounds.y) / d.bounds.h).toFixed(4), space: "normalized", display: d.primary ? "primary" : d.id });
+      else onChange({ kind: "point", x: +(r.x / r.screen.width).toFixed(4), y: +(r.y / r.screen.height).toFixed(4), space: "normalized" });
     } catch {
       /* cancelled */
     }
@@ -432,9 +450,10 @@ export function TargetEditor({ target, onChange }: { target: Target; onChange: (
             <Num label="y" value={target.space === "normalized" ? +(target.y * 100).toFixed(2) : target.y} min={target.space === "normalized" ? 0 : -20000} max={target.space === "normalized" ? 100 : 20000} step={target.space === "normalized" ? 0.5 : 1} suffix={target.space === "normalized" ? "%" : "px"} onChange={(v) => onChange({ ...target, y: target.space === "normalized" ? v / 100 : v })} />
           </div>
           <div className="row wrap">
-            <Seg value={target.space} onChange={(space) => onChange({ ...target, space, x: space === "normalized" ? 0.5 : 400, y: space === "normalized" ? 0.5 : 300 })} options={[{ value: "normalized", label: "%" }, { value: "screen", label: t("editor.space.screen") }, { value: "window", label: t("editor.space.window") }]} />
+            <Seg value={target.space} onChange={(space) => onChange({ ...target, space, x: space === "normalized" ? 0.5 : 400, y: space === "normalized" ? 0.5 : 300 })} options={[{ value: "normalized", label: "%" }, { value: "display", label: t("editor.space.display") }, { value: "screen", label: t("editor.space.screen") }, { value: "window", label: t("editor.space.window") }]} />
             {hasNativeBridge && <button className="btn sm" onClick={pick}><Icon name="Target" size={14} /> {t("easy.pickOnScreen")}</button>}
           </div>
+          {target.space !== "window" && <DisplayPicker value={target.display} onChange={(display) => onChange({ ...target, display })} />}
         </>
       )}
       {target.kind === "region" && (
@@ -445,6 +464,7 @@ export function TargetEditor({ target, onChange }: { target: Target; onChange: (
             ))}
           </div>
           <Seg value={target.pick} onChange={(pick) => onChange({ ...target, pick })} options={[{ value: "center", label: t("editor.center") }, { value: "random", label: t("editor.randomPoint") }]} />
+          {target.space !== "window" && <DisplayPicker value={target.display} onChange={(display) => onChange({ ...target, display })} />}
         </>
       )}
       {target.kind === "element" && (

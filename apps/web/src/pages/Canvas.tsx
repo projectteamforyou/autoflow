@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { createFlow, eventsToSteps, newId, walkSteps, type Flow, type RecordedEvent, type RunEvent, type SandboxEffect, type FlowRun } from "@autoflow/core";
+import { createFlow, eventsToSteps, newId, previewPoint, walkSteps, type Flow, type RecordedEvent, type RunEvent, type SandboxBackend, type SandboxEffect, type FlowRun } from "@autoflow/core";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
 import { Seg, Switch } from "../components/ui";
 import { useStore } from "../lib/store";
 import { liveEvents, runInCanvas, stepRun, stopRun } from "../lib/runner";
+import { practiceWorld, renderPractice, usePracticeCount } from "../lib/displays";
 import { collectInputs } from "../lib/actions";
 import { useT } from "../i18n";
 
-const W = 1600;
-const H = 1000;
+/** Classic single practice screen; with 2–4 simulated monitors each one is 1280×720 (see lib/displays). */
+const SINGLE = { w: 1600, h: 1000 };
 
 interface Fx {
   id: number;
@@ -35,6 +36,11 @@ export function CanvasPage() {
   const updateSettings = useStore((s) => s.updateSettings);
   const [flowId, setFlowId] = useState<string>(params.get("flow") ?? flows[0]?.id ?? "");
   const flow = flows.find((f) => f.id === flowId);
+  const monitors = usePracticeCount(1);
+  const world = monitors > 1 ? practiceWorld(monitors) : null;
+  const W = world ? monitors * 1280 : SINGLE.w;
+  const H = world ? 720 : SINGLE.h;
+  const backendRef = useRef<SandboxBackend | null>(null);
   const [cursor, setCursor] = useState({ x: W / 2, y: H / 2 });
   const [fx, setFx] = useState<Fx[]>([]);
   const [typed, setTyped] = useState("");
@@ -55,10 +61,14 @@ export function CanvasPage() {
     const pts: { x: number; y: number }[] = [];
     if (!flow) return pts;
     walkSteps(flow.steps, (s) => {
-      if (s.type === "click" && s.target.kind === "point") pts.push(s.target.space === "normalized" ? { x: s.target.x * W, y: s.target.y * H } : { x: s.target.x, y: s.target.y });
+      if (s.type !== "click" || s.target.kind !== "point") return;
+      if (world) {
+        const p = previewPoint(s.target, world.displays, flow.stage?.display);
+        if (p) pts.push({ x: p.x, y: p.y });
+      } else pts.push(s.target.space === "normalized" ? { x: s.target.x * W, y: s.target.y * H } : { x: s.target.x, y: s.target.y });
     });
     return pts.slice(0, 24);
-  }, [flow]);
+  }, [flow, world, W, H]);
 
   const onEffect = useCallback(
     (e: SandboxEffect) => {
@@ -94,9 +104,9 @@ export function CanvasPage() {
     setTyped("");
     setHits({});
     setNotif(null);
-    const { run, done } = await runInCanvas(flow, {
+    const { run, done, backend } = await runInCanvas(flow, {
       onEffect,
-      screen: { width: W, height: H, scale: 1 },
+      screen: world ? { width: 1280, height: 720, scale: 1 } : { width: W, height: H, scale: 1 },
       debug,
       speed,
       inputs,
@@ -104,10 +114,36 @@ export function CanvasPage() {
         setNotif({ title, body });
         setTimeout(() => setNotif(null), 3500);
       },
+      ...(world ? { world, displays: world.displays } : {}),
     });
     runRef.current = run;
-    void done.finally(() => (runRef.current = null));
-  }, [flow, myActive, onEffect, debug, speed]);
+    backendRef.current = backend;
+    void done.finally(() => {
+      runRef.current = null;
+      backendRef.current = null;
+    });
+  }, [flow, myActive, onEffect, debug, speed, world, W, H]);
+
+  /** Moves the virtual pointer onto monitor 1 as if you grabbed the mouse (Stage takeover guard). */
+  const simulateTakeover = () => {
+    if (backendRef.current) backendRef.current.pointer = { x: 200, y: 200 };
+  };
+
+  // Live pixels of the simulated monitors (the idle game on monitor 2).
+  const monitorCanvases = useRef<(HTMLCanvasElement | null)[]>([]);
+  useEffect(() => {
+    if (!world) return;
+    const draw = () => {
+      world.displays.forEach((d, i) => {
+        const c = monitorCanvases.current[i];
+        const ctx = c?.getContext("2d");
+        if (c && ctx) ctx.putImageData(renderPractice(world, d, c.width, c.height), 0, 0);
+      });
+    };
+    draw();
+    const id = setInterval(draw, 200);
+    return () => clearInterval(id);
+  }, [world]);
 
   const runs = useStore((s) => s.runs);
   useEffect(() => {
@@ -137,9 +173,9 @@ export function CanvasPage() {
   };
   const stopRecording = async () => {
     setRecording(false);
-    const steps = eventsToSteps(recEvents.current, { screen: { width: W, height: H } });
+    const steps = eventsToSteps(recEvents.current, world ? { displays: world.displays } : { screen: { width: W, height: H } });
     if (!steps.length) return useStore.getState().toast("info", t("canvas.recordEmpty"));
-    const f = createFlow({ name: t("canvas.recordedName", { date: new Date().toLocaleString() }), id: newId("f"), mode: "pro", icon: "sparkles", color: "#EF4444", steps: [{ id: newId(), type: "group", name: t("canvas.recording"), body: steps }], screen: { width: W, height: H, scale: 1 } });
+    const f = createFlow({ name: t("canvas.recordedName", { date: new Date().toLocaleString() }), id: newId("f"), mode: "pro", icon: "sparkles", color: "#EF4444", steps: [{ id: newId(), type: "group", name: t("canvas.recording"), body: steps }], ...(world ? {} : { screen: { width: W, height: H, scale: 1 } }) });
     const saved = await save(f, { snapshot: false });
     navigate(`/flows/${saved.id}`);
   };
@@ -198,6 +234,7 @@ export function CanvasPage() {
       }
       actions={
         <div className="row">
+          <Seg value={String(monitors)} onChange={(v) => void updateSettings({ practiceDisplays: Number(v) })} label={t("canvas.monitors")} options={["1", "2", "3", "4"].map((v) => ({ value: v, label: v === "1" ? t("canvas.oneScreen") : t("stage.nMonitors", { n: v }) }))} />
           <label className="row small muted">{t("canvas.debug")}<Switch checked={debug} onChange={setDebug} label={t("canvas.debug")} /></label>
           <Seg value={String(speed)} onChange={(v) => void updateSettings({ canvasSpeed: Number(v) })} label={t("canvas.speed")} options={["0.5", "1", "2", "4"].map((v) => ({ value: v, label: `${v}×` }))} />
           {flow && <button className="btn sm ghost" onClick={() => navigate(`/flows/${flow.id}`)}><Icon name="Pen" size={14} /> {t("common.edit")}</button>}
@@ -209,6 +246,7 @@ export function CanvasPage() {
           {myActive ? (
             <>
               {myActive.state === "paused" && debug && <button className="btn sm" onClick={() => stepRun(myActive.runId)}><Icon name="StepForward" size={14} /> {t("canvas.step")}</button>}
+              {world && flow?.stage && <button className="btn sm ghost" onClick={simulateTakeover}><Icon name="Hand" size={14} /> {t("stage.simulateTakeover")}</button>}
               <button className="btn sm danger" onClick={() => stopRun(myActive.runId)}><Icon name="Square" size={14} /> {t("pulse.stop")}</button>
             </>
           ) : (
@@ -224,10 +262,21 @@ export function CanvasPage() {
             className="stage"
             tabIndex={recording ? 0 : -1}
             aria-label={t("canvas.stageLabel")}
-            style={{ outline: recording ? "3px solid var(--af-danger)" : undefined, cursor: recording ? "crosshair" : "default" }}
+            style={{ outline: recording ? "3px solid var(--af-danger)" : undefined, cursor: recording ? "crosshair" : "default", ...(world ? { aspectRatio: `${W} / ${H}`, width: "min(100%, 1500px)" } : {}) }}
             {...recHandlers}
           >
-            <div className="grid-lines" />
+            {world ? (
+              <div className="practice-monitors" style={{ gridTemplateColumns: `repeat(${monitors}, 1fr)` }} aria-hidden="true">
+                {world.displays.map((d, i) => (
+                  <div key={d.id} className="pm">
+                    <canvas ref={(el) => { monitorCanvases.current[i] = el; }} width={160} height={90} />
+                    <span className="pm-num">{i + 1}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid-lines" />
+            )}
             <div className="hud">
               <span className="badge primary">{W}×{H}</span>
               {recording && <span className="badge err">● {t("canvas.recording")} · Ctrl+Alt+Esc</span>}
@@ -243,7 +292,7 @@ export function CanvasPage() {
               f.kind === "ripple" ? (
                 <div key={f.id} className={`ripple${f.right ? " right" : ""}`} style={{ left: `${(f.x / W) * 100}%`, top: `${(f.y / H) * 100}%` }} />
               ) : (
-                <TrailLine key={f.id} f={f} />
+                <TrailLine key={f.id} f={f} W={W} H={H} />
               ),
             )}
             <svg className="cursor" viewBox="0 0 24 24" style={{ left: `${(cursor.x / W) * 100}%`, top: `${(cursor.y / H) * 100}%` }} aria-hidden="true">
@@ -280,12 +329,12 @@ export function CanvasPage() {
   );
 }
 
-function TrailLine({ f }: { f: Fx }) {
+function TrailLine({ f, W, H }: { f: Fx; W: number; H: number }) {
   const dx = ((f.x2! - f.x) / W) * 100;
   const dy = ((f.y2! - f.y) / H) * 100;
-  // percent lengths differ per axis; compute in px via aspect ratio 16:10
-  const len = Math.hypot(dx * 16, dy * 10) / 16;
-  const ang = (Math.atan2(dy * 10, dx * 16) * 180) / Math.PI;
+  // percent lengths differ per axis; compute in px via the stage's aspect ratio
+  const len = Math.hypot(dx * W, dy * H) / W;
+  const ang = (Math.atan2(dy * H, dx * W) * 180) / Math.PI;
   return <div className="trail" style={{ left: `${(f.x / W) * 100}%`, top: `${(f.y / H) * 100}%`, width: `${len}%`, transform: `rotate(${ang}deg)` }} />;
 }
 

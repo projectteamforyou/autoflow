@@ -1,7 +1,8 @@
-import { PLATFORMS, TRIGGER_CAPABILITIES, analyzeRisk, type Flow, type Trigger, type VariableDef } from "@autoflow/core";
+import { useNavigate } from "react-router-dom";
+import { PLATFORMS, TRIGGER_CAPABILITIES, analyzeRisk, describeDisplay, type Flow, type OnMissingDisplay, type Trigger, type VariableDef } from "@autoflow/core";
 import { Icon } from "../../components/Icon";
 import { Field, HotkeyInput, Switch } from "../../components/ui";
-import { formatDuration, useT } from "../../i18n";
+import { formatDuration, tp, useT } from "../../i18n";
 import { platform } from "../../platform";
 
 const TRIGGERS: Trigger["type"][] = ["manual", "hotkey", "schedule", "appEvent", "deviceEvent", "location", "notification"];
@@ -21,6 +22,7 @@ function defaultTrigger(type: Trigger["type"]): Trigger {
 
 export function FlowSettings({ flow, onChange }: { flow: Flow; onChange: (f: Flow) => void }) {
   const t = useT();
+  const navigate = useNavigate();
   const tr = flow.trigger;
   const risk = analyzeRisk(flow);
   const setTrigger = (trigger: Trigger) => onChange({ ...flow, trigger });
@@ -142,6 +144,18 @@ export function FlowSettings({ flow, onChange }: { flow: Flow; onChange: (f: Flo
           {risk.permissions.length > 0 && <div className="muted">{risk.permissions.map((p) => t(p)).join(" · ")}</div>}
         </div>
       </div>
+
+      <div className="divider" />
+      <h3><Icon name="MonitorPlay" size={16} /> {t("stage.title")}</h3>
+      <p className="small muted">{flow.stage ? t("stage.current", { display: tp(describeDisplay(flow.stage.display)) }) : t("stage.none")}</p>
+      <Field label={t("stage.onMissing")}>
+        <select className="select" value={flow.onMissingDisplay ?? ""} onChange={(e) => onChange({ ...flow, onMissingDisplay: (e.target.value || undefined) as OnMissingDisplay | undefined })}>
+          <option value="">{t("stage.onMissing.default")}</option>
+          {(["ask", "fail", "primary"] as const).map((m) => <option key={m} value={m}>{t(`stage.onMissing.${m}`)}</option>)}
+        </select>
+      </Field>
+      {(flow.scenes?.length ?? 0) > 0 && <p className="small muted">{t("scene.count", { n: flow.scenes!.length })}</p>}
+      <button className="btn sm" onClick={() => navigate(`/stage?flow=${flow.id}`)}><Icon name="MonitorPlay" size={14} /> {t("stage.open")}</button>
 
       <div className="divider" />
       <h3><Icon name="Variable" size={16} /> {t("editor.variables")}</h3>

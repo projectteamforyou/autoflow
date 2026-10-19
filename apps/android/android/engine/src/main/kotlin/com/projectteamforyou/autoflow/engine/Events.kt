@@ -20,7 +20,7 @@ enum class RunState(val json: String) {
 
 enum class ErrorCategory(val json: String) {
     VALIDATION("validation"), UNSUPPORTED("unsupported"), PERMISSION("permission"), ENVIRONMENT("environment"), TARGET("target"),
-    LIMIT("limit"), EXPRESSION("expression"), ACTION("action"), USER("user"), INTERNAL("internal"), TIMEOUT("timeout");
+    LIMIT("limit"), EXPRESSION("expression"), ACTION("action"), USER("user"), INTERNAL("internal"), TIMEOUT("timeout"), DISPLAY("display");
 
     companion object {
         fun of(s: String?): ErrorCategory? = entries.firstOrNull { it.json == s }

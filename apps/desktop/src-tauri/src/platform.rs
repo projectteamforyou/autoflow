@@ -2,6 +2,8 @@
 //! inert fallbacks so the crate still builds (CI type-checks it on Linux) while real input stays
 //! Windows-only.
 
+use autoflow_engine::display::{place_rect, DisplayInfo};
+use autoflow_engine::schema::Rect;
 use std::path::PathBuf;
 
 /// Callbacks the platform layer needs from the app.
@@ -27,10 +29,23 @@ pub fn safe_ref(reference: &str) -> Option<&str> {
     ok.then_some(reference)
 }
 
+/// Resolves a normalized region of a display to virtual-desktop px with the engine's rounding
+/// (`placeRect`, clamped to the display) — the area `scene_capture` remembers.
+pub fn scene_rect(displays: &[DisplayInfo], display_id: &str, region: &Rect) -> Result<Rect, String> {
+    let d = displays.iter().find(|d| d.id == display_id).ok_or_else(|| format!("display \"{display_id}\" is not connected"))?;
+    let b = d.bounds;
+    let mut r = place_rect(&b, region, "normalized");
+    r.w = r.w.min(b.x + b.w - r.x).max(1.0);
+    r.h = r.h.min(b.y + b.h - r.y).max(1.0);
+    Ok(r)
+}
+
 #[cfg(windows)]
 mod imp {
     use super::{safe_ref, AppHooks};
-    use autoflow_engine::bridge::DeviceInfo;
+    use autoflow_engine::bridge::{DeviceInfo, SceneCaptured};
+    use autoflow_engine::display::DisplayInfo;
+    use autoflow_engine::schema::Rect;
     use autoflow_engine::engine::{BackendError, ErrorCategory};
     use autoflow_engine::input_profile::InputProfile;
     use autoflow_engine::record::RecordedEvent;
@@ -129,6 +144,20 @@ mod imp {
         win::picker::pick_point(Duration::from_secs(60)).map_err(|e| e.message)
     }
 
+    /// Connected monitors (same ids and order the engine uses).
+    pub fn displays() -> Vec<DisplayInfo> {
+        win::screen::displays()
+    }
+
+    /// Captures a normalized region of a display: dHash + PNG thumbnail.
+    pub fn scene_capture(display_id: &str, region: &Rect) -> Result<SceneCaptured, String> {
+        let r = super::scene_rect(&displays(), display_id, region)?;
+        #[allow(clippy::cast_possible_truncation)]
+        let i = |v: f64| v.round() as i32;
+        let (hash, thumb, width, height) = win::capture::scene_capture(i(r.x), i(r.y), i(r.w), i(r.h)).map_err(|e| e.message)?;
+        Ok(SceneCaptured { hash, thumb, width, height })
+    }
+
     /// Native yes/no dialog (used to approve risky hotkey-started runs).
     pub fn ask(message: &str, control: &RunControl) -> bool {
         win::backend::message_box_confirm(message, control).unwrap_or(false)
@@ -207,7 +236,9 @@ mod imp {
 #[cfg(not(windows))]
 mod imp {
     use super::AppHooks;
-    use autoflow_engine::bridge::DeviceInfo;
+    use autoflow_engine::bridge::{DeviceInfo, SceneCaptured};
+    use autoflow_engine::display::DisplayInfo;
+    use autoflow_engine::schema::Rect;
     use autoflow_engine::input_profile::InputProfile;
     use autoflow_engine::record::RecordedEvent;
     use autoflow_engine::schema::{Hotkey, Platform};
@@ -281,6 +312,14 @@ mod imp {
     }
     /// Unsupported.
     pub fn pick_point() -> Result<(i32, i32), String> {
+        Err(ONLY_WINDOWS.into())
+    }
+    /// No monitors outside the Windows build.
+    pub fn displays() -> Vec<DisplayInfo> {
+        Vec::new()
+    }
+    /// Unsupported.
+    pub fn scene_capture(_display_id: &str, _region: &Rect) -> Result<SceneCaptured, String> {
         Err(ONLY_WINDOWS.into())
     }
     /// No native dialog: never approves.

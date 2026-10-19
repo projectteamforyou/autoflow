@@ -12,6 +12,7 @@ import type { Flow, Hotkey, Platform } from "./schema.js";
 import type { RunEvent, RunResult, ScreenInfo } from "./engine.js";
 import type { InputProfile } from "./input-profile.js";
 import type { RecordedEvent } from "./record.js";
+import type { DisplayInfo, Rect } from "./displays.js";
 
 export const BRIDGE_EVENT = "autoflow://event" as const;
 
@@ -22,7 +23,9 @@ export type BridgeEvent =
   | { kind: "recording"; event: RecordedEvent }
   | { kind: "permission"; permission: NativePermission; granted: boolean }
   | { kind: "profileActivated"; profileId: string | null }
-  | { kind: "pointPicked"; x: number; y: number; screen: ScreenInfo };
+  | { kind: "pointPicked"; x: number; y: number; screen: ScreenInfo; displayId?: string }
+  /** Monitors were added, removed, moved or rescaled (Stage panel, display chips). */
+  | { kind: "displays"; displays: DisplayInfo[] };
 
 export type NativePermission = "accessibility" | "overlay" | "notifications" | "location" | "notificationListener" | "batteryOptimization" | "inputMonitoring";
 
@@ -63,7 +66,18 @@ export interface BridgeCommands {
   record_start: [{ maskSensitive: boolean }, void];
   record_stop: [Record<string, never>, { events: RecordedEvent[]; screen: ScreenInfo }];
   /** Shows a full-screen crosshair; resolves with the picked point (also emitted as pointPicked). */
-  pick_point: [Record<string, never>, { x: number; y: number; screen: ScreenInfo }];
+  pick_point: [Record<string, never>, { x: number; y: number; screen: ScreenInfo; displayId?: string }];
+  /** Connected monitors in virtual-desktop px (Android: the built-in display only). */
+  displays_list: [Record<string, never>, DisplayInfo[]];
+  /** Flashes a big number on every monitor (transparent overlay windows) so users can tell them apart. */
+  displays_identify: [{ durationMs?: number }, void];
+  /** Moves the AutoFlow window (the "deck") onto a monitor, away from the stage. */
+  deck_pin: [{ displayId: string }, void];
+  /**
+   * Captures a normalized region of a monitor as a Scene: its dHash and a small thumbnail
+   * (data URL ≤ MAX_SCENE_THUMB_CHARS). Android rejects it (no screen-capture integration).
+   */
+  scene_capture: [{ displayId: string; region: Rect }, { hash: string; thumb: string; width: number; height: number }];
   profiles_apply: [{ profiles: InputProfile[]; enabled: boolean }, { active: string | null; warnings: string[] }];
   secret_set: [{ name: string; value: string }, void];
   secret_delete: [{ name: string }, void];

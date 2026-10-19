@@ -146,7 +146,7 @@ export function swatchCss(): string {
 }
 function tplIcon(tpl: Template): string {
   const map: Record<string, string> = { cursor: "cursor", target: "cursor", keyboard: "keyboard", pen: "text", table: "ledger", eye: "clock", timer: "clock", scroll: "repeat" };
-  const byCat: Record<TemplateCategory, string> = { clicking: "cursor", keyboard: "keyboard", office: "text", accessibility: "tap", testing: "retry", mobile: "phone", developer: "code", wellbeing: "clock" };
+  const byCat: Record<TemplateCategory, string> = { clicking: "cursor", keyboard: "keyboard", office: "text", accessibility: "tap", testing: "retry", mobile: "phone", developer: "code", wellbeing: "clock", gaming: "play" };
   return map[tpl.flow.icon ?? ""] ?? byCat[tpl.category];
 }
 

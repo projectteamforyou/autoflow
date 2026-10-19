@@ -70,6 +70,7 @@ export const id: Content = {
       mobile: "Ponsel",
       developer: "Developer",
       wellbeing: "Kesejahteraan",
+      gaming: "Game & idle",
     },
     difficulty: { easy: "Mudah", pro: "Pro" },
     risk: { low: "Risiko rendah", medium: "Risiko sedang", high: "Risiko tinggi" },
@@ -264,6 +265,15 @@ export const id: Content = {
           { icon: "stop", h3: "Halt", p: "Ctrl+Alt+Esc di Windows, tombol melayang di Android. Alur berhenti dalam kurang dari 500 ms — jeda dipotong kecil agar tak ada yang menghalangi." },
         ],
       },
+      {
+        h2: "Multi-monitor & game",
+        items: [
+          { icon: "devices", h3: "Stage", p: "Atur alur di satu monitor dan jalankan di monitor lain. Pilih stage pada peta monitor sesuai skala, tampilkan nomornya, simpan AutoFlow di deck, dan pantau HUD langsung dengan peta mini klik berikutnya." },
+          { icon: "pause", h3: "Pengaman ambil alih", p: "Sentuh mouse dan proses stage langsung dijeda. Monitor yang hilang tidak pernah membuat klik salah layar: alur berhenti, bertanya, atau memakai monitor utama — Anda yang memilih." },
+          { icon: "image", h3: "Adegan", p: "AutoFlow mengingat layar — lobi, layar hadiah — sebagai sidik jari kecil dan bereaksi pada layar yang sedang tampil. Pemeriksaan warna piksel, penantian berbatas waktu, dan jeda antarputaran melengkapinya." },
+          { icon: "shield", h3: "Main adil", p: "AutoFlow hanya mengeklik dan mengetik seperti Anda. Tidak pernah membaca memori game, menyuntikkan kode, atau melewati anti-cheat — patuhi ketentuan layanan setiap game." },
+        ],
+      },
     ],
   },
   windows: {
@@ -280,6 +290,9 @@ export const id: Content = {
       { icon: "window", h3: "Jendela & aplikasi", p: "Buka aplikasi, fokuskan, pindahkan, dan ubah ukuran jendela — siapkan seluruh ruang kerja dengan satu tombol." },
       { icon: "record", h3: "Perekam", p: "Rekam tugas sekali dan ubah menjadi langkah yang bisa diedit. Kolom kata sandi disamarkan otomatis." },
       { icon: "pulse", h3: "Tray & Pulse", p: "AutoFlow diam di system tray; bilah Pulse muncul begitu ada yang berjalan. Otomatisasi tak pernah tak terlihat." },
+      { icon: "devices", h3: "Stage di monitor kedua", p: "Jalankan alur di satu monitor sementara AutoFlow tetap di monitor lain. Monitor dikenali lewat nomor, dan proses dijeda begitu Anda mengambil alih mouse." },
+      { icon: "image", h3: "Adegan", p: "Tangkap area monitor sekali; kondisi lalu membandingkan layar langsung dengannya sehingga alur bisa membedakan lobi dari layar hadiah." },
+      { icon: "gauge", h3: "Pemeriksaan piksel", p: "Tunggu tombol berubah warna atau baca satu piksel ke variabel — dengan toleransi dan batas waktu, di monitor mana pun." },
     ],
     req: {
       h2: "Persyaratan sistem",
@@ -473,6 +486,9 @@ export const id: Content = {
     "status-check": { n: "Cek status situs web", d: "Setiap 10 menit memeriksa URL dan memberi tahu Anda jika tidak merespons." },
     "copy-cleaner": { n: "Bersihkan teks clipboard", d: "Menghapus jeda baris dan spasi ganda dari clipboard, lalu mengembalikan teks yang rapi." },
     "countdown-timer": { n: "Timer fokus", d: "Sesi fokus 25 menit yang diakhiri notifikasi — Pomodoro tanpa aplikasi lain." },
+    "idle-collect": { n: "Game idle: kumpulkan & kembali ke lobi", d: "Di monitor kedua, mengenali lobi dan layar hadiah, memulai ronde, mengambil hadiah, lalu kembali — tiga kali." },
+    "stage-ready-clicker": { n: "Stage dua monitor: klik saat siap", d: "Memantau satu titik di monitor kedua dan mengekliknya setiap kali berubah hijau, paling banyak dua kali per detik." },
+    "daily-check-in": { n: "Perulangan check-in harian", d: "Mengeklik tombol check-in harian, lalu menunggu jeda 24 jam sebelum putaran berikutnya. Berjalan hingga seminggu." },
   },
   privacy,
   terms,

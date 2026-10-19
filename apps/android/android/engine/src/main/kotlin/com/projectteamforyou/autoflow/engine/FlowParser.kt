@@ -102,6 +102,10 @@ object FlowParser {
         checkStepStructure(flow.steps)?.let { throw FlowParseException(listOf(ValidationIssue("steps", it))) }
         val dup = duplicateIds(flow.steps)
         if (dup.isNotEmpty()) throw FlowParseException(dup.map { ValidationIssue("steps", "duplicate step id \"$it\"") })
+        val names = HashSet<String>()
+        for (sc in flow.scenes.orEmpty()) {
+            if (!names.add(sc.name)) throw FlowParseException(listOf(ValidationIssue("scenes", "duplicate scene name \"${sc.name}\"")))
+        }
         return flow
     }
 
@@ -124,6 +128,11 @@ private const val MS_MAX = 86_400_000L
 /** Coordinates are bounded to ±1 000 000 (`coord` in schema.ts). */
 private const val COORD = 1_000_000.0
 private val HEADER_RE = Regex("^[!#$%&'*+.^_`|~0-9A-Za-z-]{1,256}$")
+private val SCENE_RE = Regex("^[A-Za-z0-9_-]+$")
+private val HASH_RE = Regex("^[0-9a-f]{16}$")
+private val THUMB_RE = Regex("^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$")
+/** Largest inline scene thumbnail (`MAX_SCENE_THUMB_CHARS` in schema.ts). */
+const val MAX_SCENE_THUMB_CHARS = 24 * 1024
 
 private class Reader(val o: JsonObject, val path: String, val issues: MutableList<ValidationIssue>) {
     fun p(key: String) = if (path.isEmpty()) key else "$path.$key"
@@ -276,14 +285,39 @@ private class Reader(val o: JsonObject, val path: String, val issues: MutableLis
         return r.targetBody()
     }
 
+    /** `DisplayRef`: a string (1..128) or `{ index: 0..15 }`. */
+    fun displayRef(key: String): DisplayRef? {
+        val e = o[key] ?: return null
+        if (e is JsonNull) return null
+        if (e is JsonPrimitive && e.isString) {
+            val s = str(key, min = 1, max = 128) ?: return null
+            return DisplayRef.Name(s)
+        }
+        val r = child(key) ?: return null
+        val i = r.int("index", null, 0, 15) ?: return null
+        return DisplayRef.Index(i)
+    }
+
+    fun sceneName(key: String, required: Boolean = true) = str(key, required, 1, 48, SCENE_RE, "scene name must be [A-Za-z0-9_-]")
+
+    fun color(key: String, required: Boolean = true) = str(key, required, re = COLOR_RE, reMsg = "color must be #RRGGBB")
+
+    /** A probe position: must be a point target. */
+    fun point(key: String): Target.Point? {
+        val r = child(key) ?: run { if (!has(key)) fail(key, "Required"); return null }
+        if (r.enum("kind", listOf("point"), null) == null) return null
+        return r.targetBody() as? Target.Point
+    }
+
     fun targetBody(): Target? {
-        val spaces = listOf("screen", "window", "normalized")
+        val spaces = listOf("screen", "window", "normalized", "display")
         return when (enum("kind", listOf("point", "current", "region", "element", "image"), null)) {
             "point" -> {
                 val x = num("x", min = -COORD, max = COORD); val y = num("y", min = -COORD, max = COORD)
                 val space = enum("space", spaces, "screen")!!
                 val monitor = int("monitor", -1, 0, 16)?.takeIf { it >= 0 }
-                if (x != null && y != null) Target.Point(x, y, space, monitor) else null
+                val display = displayRef("display")
+                if (x != null && y != null) Target.Point(x, y, space, monitor, display) else null
             }
             "current" -> Target.Current
             "region" -> {
@@ -291,7 +325,8 @@ private class Reader(val o: JsonObject, val path: String, val issues: MutableLis
                 val w = num("w", positive = true, max = COORD); val h = num("h", positive = true, max = COORD)
                 val space = enum("space", spaces, "screen")!!
                 val pick = enum("pick", listOf("center", "random"), "center")!!
-                if (x != null && y != null && w != null && h != null) Target.Region(x, y, w, h, space, pick) else null
+                val display = displayRef("display")
+                if (x != null && y != null && w != null && h != null) Target.Region(x, y, w, h, space, pick, display) else null
             }
             "element" -> {
                 val s = child("selector") ?: run { fail("selector", "Required"); return null }
@@ -312,7 +347,7 @@ private class Reader(val o: JsonObject, val path: String, val issues: MutableLis
         val ref = str("ref", max = 200) ?: return null
         val conf = num("confidence", required = false, min = 0.5, max = 1.0) ?: 0.9
         val region = if (has("region")) rect("region") else null
-        return Target.Image(ref, conf, region)
+        return Target.Image(ref, conf, region, displayRef("display"))
     }
 
     fun onError(): OnError? {
@@ -405,7 +440,32 @@ private class Reader(val o: JsonObject, val path: String, val issues: MutableLis
                 meta, enum("op", listOf("read", "write", "append", "copy", "move", "delete", "exists"), null) ?: return null,
                 str("path", max = 1024) ?: return null, str("dest", false, max = 1024), str("content", false, max = 1_000_000), varName("resultVar", false),
             )
-            "ocr" -> Step.Ocr(meta, rect("region") ?: return null, varName("resultVar") ?: return null)
+            "ocr" -> Step.Ocr(meta, rect("region") ?: return null, varName("resultVar") ?: return null, displayRef("display"))
+            "pixelCheck" -> Step.PixelCheck(
+                meta, point("at") ?: return null, if (has("color")) color("color") else null, int("tolerance", 24, 0, 255)!!,
+                varName("resultVar") ?: return null,
+            )
+            "waitForPixel" -> Step.WaitForPixel(
+                meta, point("at") ?: return null, color("color") ?: return null, int("tolerance", 24, 0, 255)!!, bool("not", false)!!,
+                long("pollMs", 250, 50, 60_000)!!, if (has("timeoutMs")) ms("timeoutMs", null) else null,
+            )
+            "matchScene" -> {
+                val scenes = array("scenes", max = 32)?.let { a ->
+                    a.mapIndexedNotNull { i, e ->
+                        val s = (e as? JsonPrimitive)?.takeIf { it.isString }?.content
+                        if (s == null || s.isEmpty() || s.length > 48 || !SCENE_RE.matches(s)) {
+                            fail("scenes.$i", "scene name must be [A-Za-z0-9_-]")
+                            null
+                        } else {
+                            s
+                        }
+                    }
+                }
+                Step.MatchScene(
+                    meta, scenes, num("minSimilarity", required = false, min = 0.0, max = 1.0) ?: 0.9, varName("resultVar") ?: return null,
+                    varName("similarityVar", false),
+                )
+            }
             "findImage" -> {
                 val t = child("target") ?: run { fail("target", "Required"); return null }
                 if (t.enum("kind", listOf("image"), null) == null) return null
@@ -423,7 +483,8 @@ private class Reader(val o: JsonObject, val path: String, val issues: MutableLis
                 val cond = if (has("condition")) condition() else null
                 if (mode == "count" && count == null) fail("", "loop.count required for mode=count")
                 if (mode == "while" && cond == null) fail("", "loop.condition required for mode=while")
-                Step.Loop(meta, mode, count, cond, varName("indexVar", false), steps("body", false) ?: emptyList())
+                val cooldown = if (has("cooldownMs")) ms("cooldownMs", null) else null
+                Step.Loop(meta, mode, count, cond, varName("indexVar", false), steps("body", false) ?: emptyList(), cooldown)
             }
             "forEach" -> Step.ForEach(meta, expr("list") ?: return null, varName("itemVar") ?: return null, steps("body", false) ?: emptyList())
             "try" -> Step.Try(meta, steps("body", false) ?: emptyList(), steps("catch", false) ?: emptyList(), varName("errorVar", false))
@@ -432,9 +493,41 @@ private class Reader(val o: JsonObject, val path: String, val issues: MutableLis
         }
     }
 
-    fun condition(): String? {
+    /** `{ expr = "true", scene?, pixel? }` — every present part must hold. */
+    fun condition(): Condition? {
         val c = child("condition") ?: run { fail("condition", "Required"); return null }
-        return c.expr("expr")
+        val expr = c.expr("expr", required = false) ?: "true"
+        val scene = c.child("scene")?.let { s ->
+            val name = s.sceneName("name") ?: return null
+            SceneCondition(name, s.num("minSimilarity", required = false, min = 0.0, max = 1.0) ?: 0.9, s.bool("not", false)!!)
+        }
+        val pixel = c.child("pixel")?.let { px ->
+            val at = px.point("at") ?: return null
+            PixelCondition(at, px.color("color") ?: return null, px.int("tolerance", 24, 0, 255)!!, px.bool("not", false)!!)
+        }
+        return Condition(expr, scene, pixel)
+    }
+
+    fun stage(): Stage? {
+        val r = child("stage") ?: return null
+        val display = r.displayRef("display") ?: run { if (!r.has("display")) r.fail("display", "Required"); return null }
+        return Stage(display, if (r.has("pauseOnTakeover")) r.bool("pauseOnTakeover", null) else null, if (r.has("takeoverPx")) r.int("takeoverPx", null, 4, 500) else null)
+    }
+
+    fun scenes(): List<Scene>? {
+        val a = array("scenes", max = 32) ?: return null
+        return a.mapIndexedNotNull { i, e ->
+            val r = (e as? JsonObject)?.let { Reader(it, p("scenes.$i"), issues) } ?: run { fail("scenes.$i", "Expected object"); return@mapIndexedNotNull null }
+            val name = r.sceneName("name")
+            val reg = r.child("region") ?: run { r.fail("region", "Required"); return@mapIndexedNotNull null }
+            val x = reg.num("x", min = 0.0, max = 1.0); val y = reg.num("y", min = 0.0, max = 1.0)
+            val w = reg.num("w", min = 0.0, max = 1.0, positive = true); val h = reg.num("h", min = 0.0, max = 1.0, positive = true)
+            if (x != null && y != null && w != null && h != null && (x + w > 1.000001 || y + h > 1.000001)) r.fail("region", "region must lie inside the display")
+            val hash = r.str("hash", re = HASH_RE, reMsg = "hash must be 16 hex digits")
+            val thumb = r.str("thumb", false, max = MAX_SCENE_THUMB_CHARS, re = THUMB_RE, reMsg = "thumb must be a base64 image data URL")
+            if (name == null || x == null || y == null || w == null || h == null || hash == null) null
+            else Scene(name, r.displayRef("display"), Target.Rect(x, y, w, h), hash, thumb)
+        }
     }
 
     fun trigger(): Trigger {
@@ -518,6 +611,9 @@ private class Reader(val o: JsonObject, val path: String, val issues: MutableLis
             limits = limits(),
             variables = variables(),
             steps = steps ?: emptyList(),
+            stage = stage(),
+            onMissingDisplay = if (has("onMissingDisplay")) enum("onMissingDisplay", listOf("fail", "primary", "ask"), null) else null,
+            scenes = scenes(),
             humanize = child("humanize")?.let { h ->
                 Humanize(
                     offsetPx = h.int("offsetPx", 0, 0, 50)!!,

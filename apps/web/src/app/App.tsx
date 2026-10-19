@@ -22,6 +22,7 @@ import { NewFlowPage } from "../pages/NewFlow";
 import { ImportFlowPage } from "../pages/ImportFlow";
 import { BillingReturnPage } from "../pages/Billing";
 import { AdminPage } from "../pages/Admin";
+import { StagePage } from "../pages/Stage";
 
 function Guard({ children }: { children: JSX.Element }) {
   const onboarded = useStore((s) => s.settings.onboarded);
@@ -77,6 +78,7 @@ export function App() {
         <Route path="/flows/:id" element={<Guard><EditorPage /></Guard>} />
         <Route path="/new/:kind" element={<Guard><NewFlowPage /></Guard>} />
         <Route path="/canvas" element={<Guard><CanvasPage /></Guard>} />
+        <Route path="/stage" element={<Guard><StagePage /></Guard>} />
         <Route path="/ledger" element={<Guard><LedgerPage /></Guard>} />
         <Route path="/ledger/:id" element={<Guard><LedgerPage /></Guard>} />
         <Route path="/atlas" element={<Guard><AtlasPage /></Guard>} />

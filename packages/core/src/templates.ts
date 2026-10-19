@@ -5,8 +5,9 @@
  */
 import { FlowSchema, SCHEMA_VERSION, type Flow, type FlowInput, type Platform } from "./schema.js";
 import { analyzeRisk } from "./risk.js";
+import { PRACTICE_BUTTONS, PRACTICE_SCENE_REGION, practiceSceneHash } from "./practice.js";
 
-export type TemplateCategory = "clicking" | "keyboard" | "office" | "accessibility" | "testing" | "mobile" | "developer" | "wellbeing";
+export type TemplateCategory = "clicking" | "keyboard" | "office" | "accessibility" | "testing" | "mobile" | "developer" | "wellbeing" | "gaming";
 
 export interface Template {
   id: string;
@@ -28,6 +29,11 @@ function t(id: string, category: TemplateCategory, difficulty: "easy" | "pro", n
 }
 
 const center = { kind: "point", x: 0.5, y: 0.5, space: "normalized" } as const;
+
+/** Centre of a practice-game button (normalized on the stage display). */
+const buttonCenter = (b: { x: number; y: number; w: number; h: number }) => ({ kind: "point", x: +(b.x + b.w / 2).toFixed(4), y: +(b.y + b.h / 2).toFixed(4), space: "normalized" }) as const;
+/** Scenes of the Practice Canvas idle game, remembered over the area below its title bar. */
+const practiceScenes = (["lobby", "battle", "reward"] as const).map((name) => ({ name, region: PRACTICE_SCENE_REGION, hash: practiceSceneHash(name) }));
 
 export const TEMPLATES: Template[] = [
   t("auto-clicker", "clicking", "easy", "Classic auto clicker", "Left-click the centre of the screen 100 times, 4 times a second. Ctrl+Alt+Esc stops it.", {
@@ -258,6 +264,98 @@ export const TEMPLATES: Template[] = [
   }),
 ];
 
+// Stage-mode game templates. They follow the Practice Canvas idle game out of the box; for a real
+// game, re-capture the scenes in Stage. They automate only what the user could click themselves and
+// never touch game memory or anti-cheat — follow each game's terms of service.
+TEMPLATES.push(
+  t("idle-collect", "gaming", "pro", "Idle game: collect & return to lobby", "On your second monitor, recognizes the lobby and reward screens (Scenes), starts a round, collects the reward and returns to the lobby — three times. Pauses as soon as you touch the mouse.", {
+    icon: "gamepad",
+    color: "#22C3A6",
+    targets: ["windows", "web"],
+    mode: "pro",
+    stage: { display: "secondary", pauseOnTakeover: true },
+    onMissingDisplay: "ask",
+    scenes: practiceScenes,
+    variables: [{ name: "rounds", type: "number", initial: 3 }],
+    steps: [
+      { id: "zero", type: "setVar", name: "collected", value: "0" },
+      {
+        id: "play",
+        type: "loop",
+        mode: "while",
+        condition: { expr: "collected < rounds" },
+        cooldownMs: 400,
+        body: [
+          { id: "lobby", type: "if", label: "In the lobby: start a round", condition: { scene: { name: "lobby", minSimilarity: 0.85 } }, then: [{ id: "start", type: "click", target: buttonCenter(PRACTICE_BUTTONS.start), button: "left", clicks: 1, holdMs: 0, modifiers: [] }], else: [] },
+          {
+            id: "reward",
+            type: "if",
+            label: "Reward screen: collect it",
+            condition: { scene: { name: "reward", minSimilarity: 0.85 } },
+            then: [
+              { id: "collect", type: "click", target: buttonCenter(PRACTICE_BUTTONS.collect), button: "left", clicks: 1, holdMs: 0, modifiers: [] },
+              { id: "count", type: "setVar", name: "collected", value: "collected + 1" },
+              { id: "log", type: "log", message: "Collected round {{collected}} of {{rounds}}", level: "info" },
+            ],
+            else: [],
+          },
+        ],
+      },
+      { id: "done", type: "notify", title: "Idle run finished", body: "{{collected}} rewards collected." },
+    ],
+    humanize: { offsetPx: 3, delayMs: 120 },
+    limits: { maxDurationMs: 1_800_000 },
+  }),
+  t("stage-ready-clicker", "gaming", "easy", "Two-monitor stage: click when ready", "Watches one spot on your second monitor and clicks it whenever it turns green (a ready button), at most twice a second. AutoFlow stays on your main monitor and pauses if you take over the mouse.", {
+    icon: "target",
+    color: "#2ECC71",
+    targets: ["windows", "web"],
+    mode: "pro",
+    stage: { display: "secondary", pauseOnTakeover: true },
+    onMissingDisplay: "ask",
+    steps: [
+      {
+        id: "watch",
+        type: "loop",
+        mode: "forever",
+        cooldownMs: 500,
+        body: [
+          {
+            id: "ready",
+            type: "if",
+            condition: { pixel: { at: buttonCenter(PRACTICE_BUTTONS.start), color: PRACTICE_BUTTONS.start.color, tolerance: 24 } },
+            then: [
+              { id: "press", type: "click", target: buttonCenter(PRACTICE_BUTTONS.start), button: "left", clicks: 1, holdMs: 0, modifiers: [] },
+              { id: "log", type: "log", message: "Ready button clicked at {{time()}}", level: "info" },
+            ],
+            else: [],
+          },
+        ],
+      },
+    ],
+    limits: { maxDurationMs: 3_600_000 },
+  }),
+  t("daily-check-in", "gaming", "easy", "Daily check-in loop", "Clicks a daily check-in button once, then waits out a 24-hour cooldown before the next round and tells you each time. Runs for up to a week.", {
+    icon: "timer",
+    color: "#F59E0B",
+    mode: "pro",
+    steps: [
+      {
+        id: "daily",
+        type: "loop",
+        mode: "forever",
+        cooldownMs: 86_400_000,
+        body: [
+          { id: "check", type: "click", target: buttonCenter(PRACTICE_BUTTONS.collect), button: "left", clicks: 1, holdMs: 0, modifiers: [] },
+          { id: "n", type: "notify", title: "Daily check-in done", body: "Next one in 24 hours." },
+          { id: "log", type: "log", message: "Checked in on {{date()}}", level: "info" },
+        ],
+      },
+    ],
+    limits: { maxDurationMs: 604_800_000 },
+  }),
+);
+
 export function templatePermissions(tpl: Template): string[] {
   return analyzeRisk(tpl.flow).permissions;
 }
@@ -269,4 +367,4 @@ export function instantiateTemplate(tpl: Template, newFlowId: string): Flow {
   return { ...flow, id: newFlowId, createdAt: now, updatedAt: now, revision: 0, favorite: false };
 }
 
-export const TEMPLATE_CATEGORIES: TemplateCategory[] = ["clicking", "keyboard", "office", "accessibility", "testing", "mobile", "developer", "wellbeing"];
+export const TEMPLATE_CATEGORIES: TemplateCategory[] = ["clicking", "keyboard", "office", "accessibility", "testing", "mobile", "developer", "wellbeing", "gaming"];

@@ -39,6 +39,69 @@ impl Platform {
     }
 }
 
+/* ----------------------------------------------------------------- displays */
+
+/// A monitor reference (`DisplayRef` in schema.ts): `"primary"`, `"secondary"`, a stable display
+/// id, or `{ "index": n }` into the canonical order (see [`crate::display`]).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum DisplayRef {
+    /// Index into the canonical order (0 = primary).
+    Index {
+        /// 0..15.
+        index: u32,
+    },
+    /// `primary`, `secondary` or a display id.
+    Name(String),
+}
+
+/// What happens when a referenced display is not connected.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum OnMissingDisplay {
+    /// Fail with category `display` (the default).
+    #[default]
+    Fail,
+    /// Use the primary display and log a warning once.
+    Primary,
+    /// Ask once per display and run.
+    Ask,
+}
+
+/// Stage mode: the display a flow plays on (`Stage` in schema.ts).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Stage {
+    /// The stage display.
+    pub display: DisplayRef,
+    /// Pause when the user takes over the pointer (absent = true).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pause_on_takeover: Option<bool>,
+    /// Movement in px that counts as a takeover (absent = 24).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub takeover_px: Option<u32>,
+}
+
+/// A remembered screen region with its perceptual hash (`Scene` in schema.ts).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Scene {
+    /// Name referenced by conditions.
+    pub name: String,
+    /// Display (absent = stage, else primary).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub display: Option<DisplayRef>,
+    /// Normalized (0..1) region of the display.
+    pub region: Rect,
+    /// dHash, 16 lowercase hex digits.
+    pub hash: String,
+    /// Inline preview (data URL).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub thumb: Option<String>,
+}
+
+/// Largest inline scene thumbnail (`MAX_SCENE_THUMB_CHARS`).
+pub const MAX_SCENE_THUMB_CHARS: usize = 24 * 1024;
+
 /* ------------------------------------------------------------------ targets */
 
 /// Coordinate space of a point or region.
@@ -50,8 +113,22 @@ pub enum Space {
     Screen,
     /// Relative to the matched window.
     Window,
-    /// 0..1 of the screen.
+    /// 0..1 of the screen (or of `display`).
     Normalized,
+    /// Pixels relative to `display` (or the stage / primary display).
+    Display,
+}
+
+impl Space {
+    /// Lowercase name.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Space::Screen => "screen",
+            Space::Window => "window",
+            Space::Normalized => "normalized",
+            Space::Display => "display",
+        }
+    }
 }
 
 /// How a point is picked inside a region.
@@ -117,6 +194,9 @@ pub struct ImageTarget {
     /// Optional search region.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub region: Option<Rect>,
+    /// Restricts the search to one display.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub display: Option<DisplayRef>,
 }
 
 fn default_confidence() -> f64 {
@@ -139,6 +219,9 @@ pub enum Target {
         /// Monitor index (multi-monitor, Windows).
         #[serde(default, skip_serializing_if = "Option::is_none")]
         monitor: Option<u32>,
+        /// Display the point belongs to.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        display: Option<DisplayRef>,
     },
     /// The current pointer position.
     Current,
@@ -158,6 +241,9 @@ pub enum Target {
         /// Center or random point.
         #[serde(default)]
         pick: Pick,
+        /// Display the region belongs to.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        display: Option<DisplayRef>,
     },
     /// A UI element.
     Element {
@@ -459,11 +545,68 @@ pub enum LoopMode {
     Forever,
 }
 
-/// A safe expression wrapper (`{ "expr": "…" }`).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Scene probe of a condition (`SceneCondition` in schema.ts).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SceneCondition {
+    /// Scene name.
+    pub name: String,
+    /// Required similarity 0..1 (default 0.9).
+    #[serde(default = "default_similarity")]
+    pub min_similarity: f64,
+    /// Holds while the scene is NOT showing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub not: Option<bool>,
+}
+
+/// Pixel probe of a condition (`PixelCondition` in schema.ts).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PixelCondition {
+    /// Point target (`kind: "point"`).
+    pub at: Target,
+    /// `#rrggbb`.
+    pub color: String,
+    /// Per-channel tolerance 0..255 (default 24).
+    #[serde(default = "default_tolerance")]
+    pub tolerance: u32,
+    /// Holds while the pixel does NOT show the color.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub not: Option<bool>,
+}
+
+fn default_similarity() -> f64 {
+    0.9
+}
+fn default_tolerance() -> u32 {
+    24
+}
+fn default_true_expr() -> String {
+    "true".into()
+}
+
+/// A condition: every present part must hold, checked scene → pixel → expr.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Condition {
-    /// Expression source.
+    /// Expression source (default `"true"`).
+    #[serde(default = "default_true_expr")]
     pub expr: String,
+    /// Scene probe.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scene: Option<SceneCondition>,
+    /// Pixel probe.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pixel: Option<PixelCondition>,
+}
+
+impl Condition {
+    /// A plain expression condition.
+    pub fn expr(expr: impl Into<String>) -> Self {
+        Self { expr: expr.into(), scene: None, pixel: None }
+    }
+    /// True when the condition reads the screen (scene or pixel).
+    pub fn probes_screen(&self) -> bool {
+        self.scene.is_some() || self.pixel.is_some()
+    }
 }
 
 /// One step of a flow: common fields plus the type-specific payload.
@@ -511,6 +654,15 @@ impl Step {
             StepKind::Loop { body, .. } | StepKind::ForEach { body, .. } | StepKind::Group { body, .. } => vec![body],
             StepKind::Try { body, catch, .. } => vec![body, catch],
             _ => Vec::new(),
+        }
+    }
+
+    /// The step's own condition (if / waitFor / loop).
+    pub fn condition(&self) -> Option<&Condition> {
+        match &self.kind {
+            StepKind::If { condition, .. } | StepKind::WaitFor { condition, .. } => Some(condition),
+            StepKind::Loop { condition, .. } => condition.as_ref(),
+            _ => None,
         }
     }
 
@@ -656,12 +808,43 @@ pub enum StepKind {
     Ocr {
         region: Rect,
         result_var: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        display: Option<DisplayRef>,
     },
     FindImage {
         target: Target,
         result_var: String,
         #[serde(default = "default_find_timeout")]
         timeout_ms: u64,
+    },
+    PixelCheck {
+        at: Target,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        color: Option<String>,
+        #[serde(default = "default_tolerance")]
+        tolerance: u32,
+        result_var: String,
+    },
+    WaitForPixel {
+        at: Target,
+        color: String,
+        #[serde(default = "default_tolerance")]
+        tolerance: u32,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        not: Option<bool>,
+        #[serde(default = "default_poll_ms")]
+        poll_ms: u64,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        timeout_ms: Option<u64>,
+    },
+    MatchScene {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        scenes: Option<Vec<String>>,
+        #[serde(default = "default_similarity")]
+        min_similarity: f64,
+        result_var: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        similarity_var: Option<String>,
     },
     RunFlow {
         flow_id: String,
@@ -690,6 +873,8 @@ pub enum StepKind {
         condition: Option<Condition>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         index_var: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        cooldown_ms: Option<u64>,
         #[serde(default)]
         body: Vec<Step>,
     },
@@ -757,6 +942,9 @@ impl StepKind {
             StepKind::File { .. } => "file",
             StepKind::Ocr { .. } => "ocr",
             StepKind::FindImage { .. } => "findImage",
+            StepKind::PixelCheck { .. } => "pixelCheck",
+            StepKind::WaitForPixel { .. } => "waitForPixel",
+            StepKind::MatchScene { .. } => "matchScene",
             StepKind::RunFlow { .. } => "runFlow",
             StepKind::SwitchProfile { .. } => "switchProfile",
             StepKind::Stop { .. } => "stop",
@@ -1123,6 +1311,15 @@ pub struct Flow {
     /// Opt-in humanization.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub humanize: Option<Humanize>,
+    /// Stage mode (multi-monitor).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stage: Option<Stage>,
+    /// Missing referenced display policy (absent = fail).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub on_missing_display: Option<OnMissingDisplay>,
+    /// Remembered scenes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scenes: Option<Vec<Scene>>,
     /// Screen geometry at recording time.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub screen: Option<ScreenRef>,
@@ -1273,6 +1470,12 @@ pub fn parse_flow(data: &serde_json::Value) -> Result<Flow, Vec<ValidationIssue>
             .map(|d| ValidationIssue { path: "steps".into(), message: format!("duplicate step id \"{d}\"") })
             .collect());
     }
+    let mut names = HashSet::new();
+    for sc in flow.scenes.iter().flatten() {
+        if !names.insert(sc.name.as_str()) {
+            return Err(vec![ValidationIssue { path: "scenes".into(), message: format!("duplicate scene name \"{}\"", sc.name) }]);
+        }
+    }
     Ok(flow)
 }
 
@@ -1299,6 +1502,18 @@ fn var_re() -> &'static Regex {
 fn color_re() -> &'static Regex {
     static R: OnceLock<Regex> = OnceLock::new();
     re(r"^#[0-9a-fA-F]{6}$", &R)
+}
+fn color_hex_re() -> &'static Regex {
+    static R: OnceLock<Regex> = OnceLock::new();
+    re(r"^#[0-9a-fA-F]{6}$", &R)
+}
+fn hash_re() -> &'static Regex {
+    static R: OnceLock<Regex> = OnceLock::new();
+    re(r"^[0-9a-f]{16}$", &R)
+}
+fn thumb_re() -> &'static Regex {
+    static R: OnceLock<Regex> = OnceLock::new();
+    re(r"^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$", &R)
 }
 fn datetime_re() -> &'static Regex {
     static R: OnceLock<Regex> = OnceLock::new();
@@ -1427,17 +1642,63 @@ impl Validator {
         }
     }
 
+    fn display_ref(&mut self, path: &str, r: Option<&DisplayRef>) {
+        match r {
+            Some(DisplayRef::Index { index }) => self.range_u(&format!("{path}.index"), u64::from(*index), 0, 15),
+            Some(DisplayRef::Name(n)) => {
+                self.len(path, n, 1, 128);
+            }
+            None => {}
+        }
+    }
+
+    fn color(&mut self, path: &str, s: &str) {
+        if !color_hex_re().is_match(s) {
+            self.issue(path, "color must be #RRGGBB");
+        }
+    }
+
+    fn scene_name(&mut self, path: &str, s: &str) {
+        if self.len(path, s, 1, 48) && !id_re().is_match(s) {
+            self.issue(path, "scene name must be [A-Za-z0-9_-]");
+        }
+    }
+
+    /// A probe position must be a point target (`PointTarget` in schema.ts).
+    fn point(&mut self, path: &str, t: &Target) {
+        if matches!(t, Target::Point { .. }) {
+            self.target(path, t);
+        } else {
+            self.issue(&format!("{path}.kind"), "Invalid literal value, expected \"point\"");
+        }
+    }
+
+    fn condition(&mut self, path: &str, c: &Condition) {
+        self.expr(&format!("{path}.expr"), &c.expr);
+        if let Some(sc) = &c.scene {
+            self.scene_name(&format!("{path}.scene.name"), &sc.name);
+            self.range_f(&format!("{path}.scene.minSimilarity"), sc.min_similarity, 0.0, 1.0);
+        }
+        if let Some(px) = &c.pixel {
+            self.point(&format!("{path}.pixel.at"), &px.at);
+            self.color(&format!("{path}.pixel.color"), &px.color);
+            self.range_u(&format!("{path}.pixel.tolerance"), u64::from(px.tolerance), 0, 255);
+        }
+    }
+
     fn target(&mut self, path: &str, t: &Target) {
         match t {
-            Target::Point { x, y, monitor, .. } => {
+            Target::Point { x, y, monitor, display, .. } => {
                 self.coord(&format!("{path}.x"), *x);
                 self.coord(&format!("{path}.y"), *y);
                 if let Some(m) = monitor {
                     self.range_u(&format!("{path}.monitor"), u64::from(*m), 0, 16);
                 }
+                self.display_ref(&format!("{path}.display"), display.as_ref());
             }
             Target::Current => {}
-            Target::Region { x, y, w, h, .. } => {
+            Target::Region { x, y, w, h, display, .. } => {
+                self.display_ref(&format!("{path}.display"), display.as_ref());
                 self.coord(&format!("{path}.x"), *x);
                 self.coord(&format!("{path}.y"), *y);
                 self.positive(&format!("{path}.w"), *w);
@@ -1475,6 +1736,7 @@ impl Validator {
         if let Some(r) = &img.region {
             self.rect(&format!("{path}.region"), r);
         }
+        self.display_ref(&format!("{path}.display"), img.display.as_ref());
     }
 
     fn steps(&mut self, path: &str, list: &[Step]) {
@@ -1546,7 +1808,7 @@ impl Validator {
                 self.ms(&f("jitterMs"), *jitter_ms);
             }
             StepKind::WaitFor { condition, poll_ms, timeout_ms } => {
-                self.expr(&f("condition.expr"), &condition.expr);
+                self.condition(&f("condition"), condition);
                 self.range_u(&f("pollMs"), *poll_ms, 50, 60_000);
                 self.ms(&f("timeoutMs"), *timeout_ms);
             }
@@ -1605,9 +1867,38 @@ impl Validator {
                 self.opt_max(&f("content"), content.as_ref(), 1_000_000);
                 self.opt_var(&f("resultVar"), result_var.as_ref());
             }
-            StepKind::Ocr { region, result_var } => {
+            StepKind::Ocr { region, result_var, display } => {
                 self.rect(&f("region"), region);
                 self.var_name(&f("resultVar"), result_var);
+                self.display_ref(&f("display"), display.as_ref());
+            }
+            StepKind::PixelCheck { at, color, tolerance, result_var } => {
+                self.point(&f("at"), at);
+                if let Some(c) = color {
+                    self.color(&f("color"), c);
+                }
+                self.range_u(&f("tolerance"), u64::from(*tolerance), 0, 255);
+                self.var_name(&f("resultVar"), result_var);
+            }
+            StepKind::WaitForPixel { at, color, tolerance, poll_ms, timeout_ms, .. } => {
+                self.point(&f("at"), at);
+                self.color(&f("color"), color);
+                self.range_u(&f("tolerance"), u64::from(*tolerance), 0, 255);
+                self.range_u(&f("pollMs"), *poll_ms, 50, 60_000);
+                if let Some(t) = timeout_ms {
+                    self.ms(&f("timeoutMs"), *t);
+                }
+            }
+            StepKind::MatchScene { scenes, min_similarity, result_var, similarity_var } => {
+                if let Some(list) = scenes {
+                    self.arr_max(&f("scenes"), list.len(), 32);
+                    for (i, n) in list.iter().enumerate() {
+                        self.scene_name(&format!("{p}.scenes.{i}"), n);
+                    }
+                }
+                self.range_f(&f("minSimilarity"), *min_similarity, 0.0, 1.0);
+                self.var_name(&f("resultVar"), result_var);
+                self.opt_var(&f("similarityVar"), similarity_var.as_ref());
             }
             StepKind::FindImage { target, result_var, timeout_ms } => {
                 match target {
@@ -1621,16 +1912,19 @@ impl Validator {
             StepKind::SwitchProfile { profile_id } => self.id(&f("profileId"), profile_id),
             StepKind::Stop { reason } => self.opt_max(&f("reason"), reason.as_ref(), 200),
             StepKind::If { condition, then, else_ } => {
-                self.expr(&f("condition.expr"), &condition.expr);
+                self.condition(&f("condition"), condition);
                 self.steps(&f("then"), then);
                 self.steps(&f("else"), else_);
             }
-            StepKind::Loop { mode, count, condition, index_var, body } => {
+            StepKind::Loop { mode, count, condition, index_var, cooldown_ms, body } => {
                 if let Some(c) = count {
                     self.range_u(&f("count"), *c, 1, 10_000_000);
                 }
                 if let Some(c) = condition {
-                    self.expr(&f("condition.expr"), &c.expr);
+                    self.condition(&f("condition"), c);
+                }
+                if let Some(c) = cooldown_ms {
+                    self.ms(&f("cooldownMs"), *c);
                 }
                 self.opt_var(&f("indexVar"), index_var.as_ref());
                 self.steps(&f("body"), body);
@@ -1756,6 +2050,39 @@ pub fn validate_flow(flow: &Flow) -> Vec<ValidationIssue> {
     if let Some(h) = &flow.humanize {
         v.range_u("humanize.offsetPx", u64::from(h.offset_px), 0, 50);
         v.range_u("humanize.delayMs", h.delay_ms, 0, 5000);
+    }
+    if let Some(st) = &flow.stage {
+        v.display_ref("stage.display", Some(&st.display));
+        if let Some(px) = st.takeover_px {
+            v.range_u("stage.takeoverPx", u64::from(px), 4, 500);
+        }
+    }
+    if let Some(scenes) = &flow.scenes {
+        v.arr_max("scenes", scenes.len(), 32);
+        for (i, sc) in scenes.iter().enumerate() {
+            let p = format!("scenes.{i}");
+            v.scene_name(&format!("{p}.name"), &sc.name);
+            v.display_ref(&format!("{p}.display"), sc.display.as_ref());
+            let r = &sc.region;
+            for (k, val) in [("x", r.x), ("y", r.y), ("w", r.w), ("h", r.h)] {
+                v.range_f(&format!("{p}.region.{k}"), val, 0.0, 1.0);
+            }
+            if r.w <= 0.0 || r.h <= 0.0 {
+                v.issue(&format!("{p}.region"), "Number must be greater than 0");
+            } else if r.x + r.w > 1.000_001 || r.y + r.h > 1.000_001 {
+                v.issue(&format!("{p}.region"), "region must lie inside the display");
+            }
+            if !hash_re().is_match(&sc.hash) {
+                v.issue(&format!("{p}.hash"), "hash must be 16 hex digits");
+            }
+            if let Some(t) = &sc.thumb {
+                if utf16_len(t) > MAX_SCENE_THUMB_CHARS {
+                    v.issue(&format!("{p}.thumb"), format!("String must contain at most {MAX_SCENE_THUMB_CHARS} character(s)"));
+                } else if !thumb_re().is_match(t) {
+                    v.issue(&format!("{p}.thumb"), "thumb must be a base64 image data URL");
+                }
+            }
+        }
     }
     v.arr_max("variables", flow.variables.len(), 200);
     for (i, var) in flow.variables.iter().enumerate() {

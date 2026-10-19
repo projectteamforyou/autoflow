@@ -133,12 +133,13 @@ function TemplateDetail({ id, onClose }: { id: string; onClose: () => void }) {
       onClose={onClose}
       footer={
         <>
-          <button className="btn" onClick={async () => { const f = await install(tpl.id); if (f) navigate(`/canvas?flow=${f.id}&autorun=1`); }}><Icon name="Target" size={15} /> {t("atlas.tryInCanvas")}</button>
+          <button className="btn" onClick={async () => { const f = await install(tpl.id); if (f) navigate(tpl.flow.stage ? `/stage?flow=${f.id}` : `/canvas?flow=${f.id}&autorun=1`); }}><Icon name={tpl.flow.stage ? "MonitorPlay" : "Target"} size={15} /> {tpl.flow.stage ? t("atlas.tryOnStage") : t("atlas.tryInCanvas")}</button>
           <button className="btn primary" onClick={async () => { const f = await install(tpl.id); if (f) navigate(`/flows/${f.id}`); }}><Icon name="Download" size={15} /> {t("atlas.install")}</button>
         </>
       }
     >
       <p className="muted">{t(`tpl.${tpl.id}.desc`)}</p>
+      {tpl.category === "gaming" && <div className="callout warn small"><Icon name="ShieldAlert" size={16} /> <span>{t("stage.tos")}</span></div>}
       <div className="row wrap">
         <SafetyBadge flow={tpl.flow} />
         <span className="badge primary"><Icon name="BadgeCheck" size={12} /> {t("atlas.verified", { date: tpl.verifiedAt.slice(0, 10) })}</span>
