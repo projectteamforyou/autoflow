@@ -9,6 +9,8 @@ import { hotkeyToString } from "./engine.js";
 export interface Phrase {
   key: string;
   params: Record<string, string | number>;
+  /** Params that are themselves phrases (targets, button names) so every UI can localize them. */
+  nested?: Record<string, Phrase>;
 }
 
 export interface ExplainLine {
@@ -17,7 +19,8 @@ export interface ExplainLine {
   phrase: Phrase;
 }
 
-const p = (key: string, params: Record<string, string | number> = {}): Phrase => ({ key, params });
+const p = (key: string, params: Record<string, string | number> = {}, nested?: Record<string, Phrase>): Phrase => (nested ? { key, params, nested } : { key, params });
+const button = (b: string): Phrase => ({ key: `button.${b}`, params: {} });
 
 export function describeTarget(t: Target): Phrase {
   switch (t.kind) {
@@ -37,11 +40,11 @@ export function describeTarget(t: Target): Phrase {
 export function describeStep(s: Step): Phrase {
   switch (s.type) {
     case "click":
-      return p(s.holdMs > 0 ? "explain.hold" : s.clicks === 2 ? "explain.doubleClick" : "explain.click", { button: s.button, target: renderEn(describeTarget(s.target)), ms: s.holdMs });
+      return p(s.holdMs > 0 ? "explain.hold" : s.clicks === 2 ? "explain.doubleClick" : "explain.click", { ms: s.holdMs }, { button: button(s.button), target: describeTarget(s.target) });
     case "move":
-      return p("explain.move", { target: renderEn(describeTarget(s.target)) });
+      return p("explain.move", {}, { target: describeTarget(s.target) });
     case "drag":
-      return p("explain.drag", { from: renderEn(describeTarget(s.from)), to: renderEn(describeTarget(s.to)) });
+      return p("explain.drag", {}, { from: describeTarget(s.from), to: describeTarget(s.to) });
     case "scroll":
       return p("explain.scroll", { dx: s.dx, dy: s.dy });
     case "key":
@@ -247,8 +250,17 @@ export const EXPLAIN_EN: Record<string, string> = {
   "trigger.notification": "When {app} posts a notification",
 };
 
+export const BUTTON_EN: Record<string, string> = { "button.left": "left", "button.right": "right", "button.middle": "middle", "button.x1": "back side button", "button.x2": "forward side button" };
+
+/** Renders a phrase (and its nested phrases) with a dictionary lookup. */
+export function renderPhrase(ph: Phrase, lookup: (key: string) => string | undefined): string {
+  const params: Record<string, string | number> = { ...ph.params };
+  for (const [k, sub] of Object.entries(ph.nested ?? {})) params[k] = renderPhrase(sub, lookup);
+  return format(lookup(ph.key) ?? ph.key, params);
+}
+
 export function renderEn(ph: Phrase): string {
-  return format(EXPLAIN_EN[ph.key] ?? ph.key, ph.params);
+  return renderPhrase(ph, (k) => EXPLAIN_EN[k] ?? BUTTON_EN[k]);
 }
 
 export function format(template: string, params: Record<string, string | number>): string {
