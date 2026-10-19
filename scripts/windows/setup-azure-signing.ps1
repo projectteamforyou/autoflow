@@ -33,7 +33,11 @@ param(
     [string]$Location = 'koreacentral',
     [string]$Repo = 'work517/autoflow',
     [string]$ServicePrincipal = 'sp-autoflow-signing-ci',
-    [string]$Subscription = ''
+    [string]$Subscription = '',
+    # 확인 질문 없이 진행 (일부 터미널에서 Read-Host 프롬프트가 보이지 않는 문제 대응)
+    [switch]$Yes,
+    # 신원 확인 ID를 미리 넘길 때 (기존 Active 프로필이 없을 때만 필요)
+    [string]$ValidationId = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -41,6 +45,14 @@ $IdentityVerifierRoleId = '4339b7cf-9826-4e41-b4ed-c7f4505dac08'
 
 function Step([string]$Text) { Write-Host ''; Write-Host "==> $Text" -ForegroundColor Cyan }
 function Info([string]$Text) { Write-Host "    $Text" }
+# 질문을 먼저 Write-Host 로 출력하고 콘솔에서 한 줄을 읽습니다 (Read-Host 프롬프트가 안 보이는 터미널 대응).
+function Ask([string]$Text) {
+    Write-Host ''
+    Write-Host "$Text " -ForegroundColor Yellow -NoNewline
+    $line = [Console]::In.ReadLine()
+    if ($null -eq $line) { return '' }
+    return $line.Trim()
+}
 function Fail([string]$Text) { Write-Host "[오류] $Text" -ForegroundColor Red; exit 1 }
 
 function Get-DownloadsFolder {
@@ -137,8 +149,12 @@ if (-not $ghOk) {
     & gh auth login --web --scopes repo
     if ($LASTEXITCODE -ne 0) { Fail 'gh auth login 실패' }
 }
-$answer = Read-Host "구독 '$subName' 에 리소스를 만들고 저장소 '$Repo' 에 Secrets를 설정합니다. 계속할까요? (y/N)"
-if ($answer -notmatch '^(y|yes|예|ㅇ)$') { Fail '사용자가 취소했습니다.' }
+if ($Yes) {
+    Info "구독 '$subName' / 저장소 '$Repo' 로 진행합니다 (-Yes)."
+} else {
+    $answer = Ask "구독 '$subName' 에 리소스를 만들고 저장소 '$Repo' 에 Secrets를 설정합니다. 계속할까요? (y/N)"
+    if ($answer -notmatch '^(y|yes|예|ㅇ)$') { Fail '사용자가 취소했습니다.' }
+}
 
 # ---------------------------------------------------------------- 2. 공급자와 확장
 Step '2/8 Microsoft.CodeSigning 공급자 등록, trustedsigning 확장 설치'
@@ -195,10 +211,10 @@ if (-not $profileId) {
 } else {
     Step '5/8 신원 확인 — 기존 프로필이 있어 건너뜁니다'
 }
-$validationId = ''
+$validationId = $ValidationId
 if ($profileId) { Info '프로필이 이미 있으므로 신원 확인 입력을 건너뜁니다.'; $validationId = '00000000-0000-0000-0000-000000000000' }
 while ($validationId -notmatch '^[0-9a-fA-F-]{36}$') {
-    $validationId = (Read-Host 'Completed 된 Identity validation Id를 붙여 넣으세요 (나중에 하려면 Ctrl+C 후 이 스크립트를 다시 실행)').Trim()
+    $validationId = Ask 'Completed 된 Identity validation Id를 붙여 넣으세요 (나중에 하려면 Ctrl+C 후 이 스크립트를 다시 실행):'
 }
 
 # ---------------------------------------------------------------- 6. 인증서 프로필
