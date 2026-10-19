@@ -45,6 +45,7 @@ export interface Limits {
     shareIp: RateRule;
     relay: RateRule;
     install: RateRule;
+    stats: RateRule;
   };
 }
 
@@ -79,6 +80,7 @@ export const DEFAULT_LIMITS: Limits = {
     shareIp: { capacity: 30, refillPerMinute: 5 },
     relay: { capacity: 30, refillPerMinute: 30 },
     install: { capacity: 60, refillPerMinute: 30 },
+    stats: { capacity: 30, refillPerMinute: 20 },
   },
 };
 

@@ -99,4 +99,35 @@
       toast.hidden = false;
     }
   }
+
+  /* Live public counters: one anonymous visit per browser session, a heartbeat while the tab is
+     visible ("online now"), and totals from GET /v1/stats. No cookies, no IP, no personal data. */
+  var bar = d.querySelector(".foot-stats");
+  if (bar && window.fetch) {
+    var api = bar.getAttribute("data-api");
+    var sid = null;
+    try { sid = sessionStorage.getItem("af-sid"); } catch (e) { /* private mode */ }
+    var isNew = !sid;
+    if (!sid) {
+      var a = new Uint8Array(16); (window.crypto || window.msCrypto).getRandomValues(a);
+      sid = "s" + Array.prototype.map.call(a, function (b) { return ("0" + b.toString(16)).slice(-2); }).join("");
+      try { sessionStorage.setItem("af-sid", sid); } catch (e) { /* ignore */ }
+    }
+    var fmt = new Intl.NumberFormat(root.lang || "en");
+    var show = function (s) {
+      var set = function (k, v) { var el = bar.querySelector('[data-stat="' + k + '"]'); if (el) el.textContent = fmt.format(v); };
+      set("visits", s.visitsTotal); set("online", Math.max(1, s.onlineNow)); set("downloads", s.downloads.total);
+      bar.hidden = false;
+    };
+    var load = function () { fetch(api + "/v1/stats").then(function (r) { return r.ok ? r.json() : null; }).then(function (s) { if (s) show(s); }).catch(function () {}); };
+    var hit = function (first) {
+      return fetch(api + "/v1/stats/hit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sid: sid, surface: "site", newVisit: !!first }), keepalive: true }).catch(function () {});
+    };
+    hit(isNew).then(load);
+    setInterval(function () { if (d.visibilityState === "visible") { hit(false); load(); } }, 60000);
+    d.addEventListener("visibilitychange", function () {
+      if (d.visibilityState === "hidden" && navigator.sendBeacon) navigator.sendBeacon(api + "/v1/stats/leave", new Blob([JSON.stringify({ sid: sid })], { type: "text/plain" }));
+      else if (d.visibilityState === "visible") { hit(false); load(); }
+    });
+  }
 })();

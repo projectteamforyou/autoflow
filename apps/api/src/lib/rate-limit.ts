@@ -81,6 +81,7 @@ export interface Limiters {
   shareIp: RateLimiter;
   relay: RateLimiter;
   install: RateLimiter;
+  stats: RateLimiter;
 }
 
 export function createMemoryLimiters(rules: Record<keyof Limiters, RateRule>): Limiters {
@@ -92,5 +93,6 @@ export function createMemoryLimiters(rules: Record<keyof Limiters, RateRule>): L
     shareIp: new MemoryTokenBucket(rules.shareIp),
     relay: new MemoryTokenBucket(rules.relay),
     install: new MemoryTokenBucket(rules.install),
+    stats: new MemoryTokenBucket(rules.stats),
   };
 }

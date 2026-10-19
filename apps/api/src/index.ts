@@ -7,6 +7,7 @@ import { migrate } from "./db/migrate.js";
 import { purgeExpiredShares } from "./db/shares.js";
 import { purgeDeadSessions } from "./db/users.js";
 import { createMemoryLimiters } from "./lib/rate-limit.js";
+import { purgeStalePresence } from "./db/stats.js";
 import { createLogger } from "./logger.js";
 import { ConsoleMailer, DisabledMailer, ResendMailer, fireAndForget, type Mailer } from "./mail/mailer.js";
 
@@ -46,6 +47,7 @@ const housekeeping = setInterval(async () => {
     const now = new Date();
     const sessions = await purgeDeadSessions(sql, now);
     const shares = await purgeExpiredShares(sql, now);
+    await purgeStalePresence(sql);
     if (sessions || shares) logger.info("housekeeping.purged", { sessions, shares });
   } catch (err) {
     logger.warn("housekeeping.failed", { error: (err as Error).message });

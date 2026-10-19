@@ -47,6 +47,8 @@ export const de: Content = {
     text: "AutoFlow – automatisiere alles, was du wiederholst. Sicher. Kostenlos für Windows, Android und das Web.",
   },
   footer: {
+    stats: { statsTitle: "Live-Statistik", visits: "Besuche gesamt", online: "Jetzt online", downloads: "Downloads" },
+    biz: { bizTitle: "Impressum", company: "Firma", ceo: "Vertreten durch", regNo: "Unternehmensregisternummer", mailOrder: "Fernabsatz-Meldenummer", address: "Anschrift", phone: "Telefon", email: "E-Mail", website: "Unternehmenswebsite" },
     tagline: "Automatisiere alles, was du wiederholst – sicher.",
     product: "Produkt",
     platforms: "Plattformen",
@@ -54,7 +56,7 @@ export const de: Content = {
     languages: "Sprachen",
     contact: "Kontakt",
     releases: "Versionshinweise",
-    rights: "© 2026 ProjectTeamForYou. Alle Rechte vorbehalten.",
+    rights: "© Copyright 2026, Projectteamforyou. All rights reserved.",
     made: "Gebaut in Seoul – für alle, die Besseres zu tun haben, als zu klicken.",
   },
   labels: {

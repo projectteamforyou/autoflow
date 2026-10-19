@@ -47,6 +47,8 @@ export const ru: Content = {
     text: "AutoFlow — автоматизируйте всё, что повторяете, безопасно. Бесплатно для Windows, Android и веба.",
   },
   footer: {
+    stats: { statsTitle: "Статистика в реальном времени", visits: "Всего посещений", online: "Сейчас онлайн", downloads: "Загрузки" },
+    biz: { bizTitle: "Сведения о компании", company: "Компания", ceo: "Представитель", regNo: "Регистрационный номер", mailOrder: "Номер регистрации дистанционной торговли", address: "Адрес", phone: "Телефон", email: "Эл. почта", website: "Сайт компании" },
     tagline: "Автоматизируйте всё, что повторяете, — безопасно.",
     product: "Продукт",
     platforms: "Платформы",
@@ -54,7 +56,7 @@ export const ru: Content = {
     languages: "Языки",
     contact: "Связаться",
     releases: "Список изменений",
-    rights: "© 2026 ProjectTeamForYou. Все права защищены.",
+    rights: "© Copyright 2026, Projectteamforyou. All rights reserved.",
     made: "Сделано в Сеуле для всех, у кого есть дела поважнее кликов.",
   },
   labels: {

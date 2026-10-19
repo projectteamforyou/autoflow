@@ -380,3 +380,5 @@ kbd {
 .mouse-svg .zone { cursor: pointer; transition: fill .15s; }
 .mouse-svg .zone:hover { fill: rgba(124, 92, 255, .35); }
 .mouse-svg .zone.mapped { fill: rgba(124, 92, 255, .6); }
+
+.pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--af-accent); animation: beat 1.6s infinite; display: inline-block; }

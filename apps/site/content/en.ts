@@ -52,6 +52,8 @@ export const en = {
     text: "AutoFlow — automate anything you repeat, safely. Free on Windows, Android and the web.",
   },
   footer: {
+    stats: { statsTitle: "Live stats", visits: "Total visits", online: "Online now", downloads: "Downloads" },
+    biz: { bizTitle: "Business information", company: "Company", ceo: "Representative", regNo: "Business registration no.", mailOrder: "Mail-order business report no.", address: "Address", phone: "Phone", email: "Email", website: "Company website" },
     tagline: "Automate anything you repeat — safely.",
     product: "Product",
     platforms: "Platforms",
@@ -59,7 +61,7 @@ export const en = {
     languages: "Languages",
     contact: "Contact",
     releases: "Release notes",
-    rights: "© 2026 ProjectTeamForYou. All rights reserved.",
+    rights: "© Copyright 2026, Projectteamforyou. All rights reserved.",
     made: "Made in Seoul for everyone who has better things to do than click.",
   },
   labels: {

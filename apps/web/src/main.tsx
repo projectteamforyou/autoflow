@@ -10,6 +10,7 @@ async function boot() {
   await Promise.all([setLocale(initialLocale()), useStore.getState().init()]);
   // Email links (verify / reset) and server share links arrive on real paths.
   if (!/\/(index\.html)?$/.test(location.pathname)) void import("./lib/links").then((m) => m.handleIncomingLink());
+  void import("./lib/stats").then((m) => m.startPresence());
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
       <App />

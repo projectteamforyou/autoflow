@@ -9,7 +9,8 @@ import { auth, type User } from "../lib/api";
 import { deriveSyncKey, keyCheck } from "../lib/crypto";
 import { hasSyncKey, setSyncKey, syncNow } from "../lib/sync";
 import { confirmDialog, promptDialog } from "../lib/dialog";
-import { formatRelative, setLocale, useLocale, useT } from "../i18n";
+import { formatNumber, formatRelative, setLocale, useLocale, useT } from "../i18n";
+import { usePublicStats } from "../lib/stats";
 import { hasNativeBridge, invoke } from "../platform";
 
 export function SettingsPage() {
@@ -83,6 +84,8 @@ export function SettingsPage() {
         <section className="card stack-sm">
           <h3><Icon name="Info" size={16} /> {t("settings.about")}</h3>
           <div className="small muted">AutoFlow {__APP_VERSION__} · {t("settings.madeBy")}</div>
+          <LiveStats />
+          <BusinessInfo />
           <div className="row wrap small">
             <a href={`${SITE_URL}/${loc}/privacy/`} target="_blank" rel="noopener">{t("settings.privacy")}</a>
             <a href={`${SITE_URL}/${loc}/terms/`} target="_blank" rel="noopener">{t("settings.terms")}</a>
@@ -91,6 +94,50 @@ export function SettingsPage() {
         </section>
       </div>
     </Shell>
+  );
+}
+
+function LiveStats() {
+  const t = useT();
+  const s = usePublicStats();
+  if (!s) return null;
+  const f = (n: number) => formatNumber(n);
+  return (
+    <div className="row wrap" style={{ gap: 18, padding: "10px 0" }}>
+      <span className="row small"><span className="pulse-dot" /><b>{f(s.visitsTotal)}</b> <span className="muted">{t("stats.visits")}</span></span>
+      <span className="row small"><b>{f(Math.max(1, s.onlineNow))}</b> <span className="muted">{t("stats.online")}</span></span>
+      <span className="row small"><b>{f(s.downloads.total)}</b> <span className="muted">{t("stats.downloads")}</span></span>
+    </div>
+  );
+}
+
+/** 전자상거래법상 사업자 정보 표시. */
+function BusinessInfo() {
+  const t = useT();
+  const ko = useLocale() === "ko";
+  const rows: [string, React.ReactNode][] = [
+    [t("biz.company"), ko ? "프로젝트팀포유" : "ProjectTeamForYou (프로젝트팀포유)"],
+    [t("biz.ceo"), ko ? "이유상" : "Yusang Lee (이유상)"],
+    [t("biz.regNo"), "495-25-02209"],
+    [t("biz.mailOrder"), "제2026-경북봉화-0037호"],
+    [t("biz.address"), ko ? "경상북도 봉화군 상운면 예봉로 1166-68" : "1166-68 Yebong-ro, Sangun-myeon, Bonghwa-gun, Gyeongsangbuk-do, Republic of Korea"],
+    [t("biz.phone"), <a href="tel:+827076207256">{ko ? "070-7620-7256" : "+82-70-7620-7256"}</a>],
+    [t("biz.email"), <a href="mailto:projectteamforyou@gmail.com">projectteamforyou@gmail.com</a>],
+    [t("biz.website"), <a href="https://projectteamforyou.com" target="_blank" rel="noopener">projectteamforyou.com</a>],
+  ];
+  return (
+    <details className="small">
+      <summary className="label" style={{ cursor: "pointer" }}>{t("biz.title")}</summary>
+      <dl style={{ display: "grid", gridTemplateColumns: "max-content 1fr", gap: "4px 14px", margin: "8px 0 0" }}>
+        {rows.map(([k, v]) => (
+          <div key={k} style={{ display: "contents" }}>
+            <dt className="muted">{k}</dt>
+            <dd style={{ margin: 0 }}>{v}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="subtle" style={{ marginTop: 8 }}>© Copyright 2026, Projectteamforyou. All rights reserved.</p>
+    </details>
   );
 }
 

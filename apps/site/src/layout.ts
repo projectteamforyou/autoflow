@@ -1,6 +1,6 @@
 import { LOCALES, type LocaleCode } from "@autoflow/core";
 import type { Content } from "../content/types.js";
-import { BRAND, LINKS, LOCALE_BY_CODE, PAGES, SITE_URL, abs, pagePath, type PageId } from "./config.js";
+import { API_ORIGIN, BRAND, BUSINESS, LINKS, LOCALE_BY_CODE, PAGES, SITE_URL, abs, pagePath, type PageId } from "./config.js";
 import { brand, icon, mark } from "./icons.js";
 import { esc, html } from "./util.js";
 
@@ -118,6 +118,30 @@ ${LOCALES.map((l) => `<li><a href="${pagePath(l.code, target)}" hreflang="${l.hr
 </ul></div></details>`;
 }
 
+/** Live public counters, filled in by client.js from GET /v1/stats (hidden until loaded). */
+function statsBar(ctx: Ctx): string {
+  const s = ctx.t.footer.stats;
+  const item = (key: string, label: string) => `<div class="stat"><span class="stat-n" data-stat="${key}">—</span><span class="stat-l">${esc(label)}</span></div>`;
+  return `<section class="foot-stats" aria-label="${esc(s.statsTitle)}" data-api="${API_ORIGIN}" hidden><span class="live-dot" aria-hidden="true"></span>${item("visits", s.visits)}${item("online", s.online)}${item("downloads", s.downloads)}</section>`;
+}
+
+function businessInfo(ctx: Ctx): string {
+  const b = ctx.t.footer.biz;
+  const v = ctx.lang === "ko" ? BUSINESS.ko : BUSINESS.intl;
+  const phone = ctx.lang === "ko" ? BUSINESS.phone : BUSINESS.phoneIntl;
+  const row = (k: string, val: string) => `<div><dt>${esc(k)}</dt><dd>${val}</dd></div>`;
+  return `<section class="foot-biz" aria-label="${esc(b.bizTitle)}"><h2>${esc(b.bizTitle)}</h2><dl>${[
+    row(b.company, esc(v.company)),
+    row(b.ceo, esc(v.ceo)),
+    row(b.regNo, esc(BUSINESS.regNo)),
+    row(b.mailOrder, esc(BUSINESS.mailOrder)),
+    row(b.address, esc(v.address)),
+    row(b.phone, `<a href="tel:${BUSINESS.phoneIntl.replace(/-/g, "")}">${esc(phone)}</a>`),
+    row(b.email, `<a href="mailto:${BUSINESS.email}">${BUSINESS.email}</a>`),
+    row(b.website, `<a href="${BUSINESS.website}" rel="noopener" target="_blank">projectteamforyou.com</a>`),
+  ].join("")}</dl></section>`;
+}
+
 function footer(ctx: Ctx): string {
   const { t, lang } = ctx;
   const target: PageId = ctx.page === "404" ? "home" : ctx.page;
@@ -132,6 +156,8 @@ function footer(ctx: Ctx): string {
 <div><h2>${esc(t.footer.legal)}</h2><ul>${l("privacy")}${l("terms")}<li><a href="mailto:${LINKS.email}">${esc(t.footer.contact)}</a></li></ul></div>
 </nav>
 <div class="foot-langs">${LOCALES.map((x) => `<a href="${pagePath(x.code, target)}" hreflang="${x.hreflang}" lang="${x.code}" data-lang="${x.code}"${x.code === lang ? ' aria-current="true"' : ""}>${esc(x.name)}</a>`)}</div>
+${statsBar(ctx)}
+${businessInfo(ctx)}
 <div class="foot-bottom"><span>${esc(t.footer.rights)}</span><a href="mailto:${LINKS.email}">${LINKS.email}</a></div>
 </div>
 </footer>`;

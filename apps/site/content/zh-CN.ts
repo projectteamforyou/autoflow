@@ -47,6 +47,8 @@ export const zhCN: Content = {
     text: "AutoFlow——把重复的事交给自动化，安全可控。Windows、Android 和网页版均免费。",
   },
   footer: {
+    stats: { statsTitle: "实时统计", visits: "累计访问", online: "当前在线", downloads: "下载" },
+    biz: { bizTitle: "企业信息", company: "公司名称", ceo: "代表", regNo: "营业执照号", mailOrder: "通信销售业申报号", address: "地址", phone: "电话", email: "邮箱", website: "公司网站" },
     tagline: "重复的事，统统自动化——安全地。",
     product: "产品",
     platforms: "平台",
@@ -54,7 +56,7 @@ export const zhCN: Content = {
     languages: "语言",
     contact: "联系我们",
     releases: "版本说明",
-    rights: "© 2026 ProjectTeamForYou. 保留所有权利。",
+    rights: "© Copyright 2026, Projectteamforyou. All rights reserved.",
     made: "在首尔打造，献给每一个有比点击更重要的事要做的人。",
   },
   labels: {

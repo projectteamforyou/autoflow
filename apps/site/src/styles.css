@@ -443,3 +443,19 @@ ul { margin: 0; padding: 0; }
   .site-header, .site-footer, .share-wrap, .toc, .toast { display: none !important; }
   body { background: #fff; color: #000; }
 }
+
+/* Live counters + business details (footer) */
+.foot-stats { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; margin-top: 28px; padding: 14px 18px; border: 1px solid var(--af-border); border-radius: 14px; background: var(--af-surface); }
+.foot-stats .stat { display: flex; align-items: baseline; gap: 8px; }
+.foot-stats .stat-n { font-size: 20px; font-weight: 750; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.foot-stats .stat-l { color: var(--af-muted); font-size: 13.5px; }
+.live-dot { width: 9px; height: 9px; border-radius: 50%; background: #22c3a6; box-shadow: 0 0 0 0 rgba(34, 195, 166, .6); animation: livepulse 1.8s infinite; }
+@keyframes livepulse { 70% { box-shadow: 0 0 0 9px rgba(34, 195, 166, 0); } 100% { box-shadow: 0 0 0 0 rgba(34, 195, 166, 0); } }
+@media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
+.foot-biz { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--af-border); }
+.foot-biz h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--af-muted); margin-bottom: 10px; }
+.foot-biz dl { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 0; font-size: 13px; color: var(--af-muted); }
+.foot-biz dl > div { display: flex; gap: 6px; }
+.foot-biz dt { font-weight: 600; color: var(--af-text); opacity: .75; }
+.foot-biz dd { margin: 0; }
+.foot-biz a { color: inherit; }

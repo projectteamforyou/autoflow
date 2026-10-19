@@ -1,5 +1,5 @@
 import { LOCALES } from "@autoflow/core";
-import { BRAND, LINKS, LOCALE_BY_CODE, SITE_URL, abs, pagePath, type PageId } from "./config.js";
+import { BRAND, DIRECT, LINKS, LOCALE_BY_CODE, SITE_URL, abs, pagePath, type PageId } from "./config.js";
 import type { Ctx } from "./layout.js";
 import { plain } from "./util.js";
 
@@ -41,7 +41,7 @@ export function baseGraph(ctx: Ctx, title: string, description: string, crumbs: 
       operatingSystem: "Windows, Android, Web",
       applicationCategory: "UtilitiesApplication",
       applicationSubCategory: "Automation",
-      downloadUrl: [LINKS.windows, LINKS.android],
+      downloadUrl: [DIRECT.windows, DIRECT.android],
       installUrl: abs(LINKS.app),
       inLanguage: LOCALES.map((l) => l.hreflang),
       isAccessibleForFree: true,

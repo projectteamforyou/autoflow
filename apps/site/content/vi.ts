@@ -47,6 +47,8 @@ export const vi: Content = {
     text: "AutoFlow — tự động hóa mọi việc lặp lại, an toàn. Miễn phí trên Windows, Android và web.",
   },
   footer: {
+    stats: { statsTitle: "Thống kê trực tiếp", visits: "Tổng lượt truy cập", online: "Đang trực tuyến", downloads: "Lượt tải" },
+    biz: { bizTitle: "Thông tin doanh nghiệp", company: "Công ty", ceo: "Người đại diện", regNo: "Số đăng ký kinh doanh", mailOrder: "Số đăng ký bán hàng từ xa", address: "Địa chỉ", phone: "Điện thoại", email: "Email", website: "Trang web công ty" },
     tagline: "Tự động hóa mọi việc bạn lặp lại — an toàn.",
     product: "Sản phẩm",
     platforms: "Nền tảng",
@@ -54,7 +56,7 @@ export const vi: Content = {
     languages: "Ngôn ngữ",
     contact: "Liên hệ",
     releases: "Ghi chú phát hành",
-    rights: "© 2026 ProjectTeamForYou. Bảo lưu mọi quyền.",
+    rights: "© Copyright 2026, Projectteamforyou. All rights reserved.",
     made: "Làm ở Seoul, dành cho những ai có việc quan trọng hơn là ngồi nhấp chuột.",
   },
   labels: {

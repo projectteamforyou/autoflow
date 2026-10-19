@@ -14,6 +14,7 @@ import type { AppDeps, AppEnv } from "./deps.js";
 import { ApiError, type ErrorBody } from "./errors.js";
 import { enforce, resolveClientIp } from "./lib/http.js";
 import { sessionAuth } from "./middleware/auth.js";
+import { statsRoutes } from "./routes/stats.js";
 import { aiRoutes } from "./routes/ai.js";
 import { adminAtlasRoutes, atlasRoutes } from "./routes/atlas.js";
 import { authRoutes } from "./routes/auth.js";
@@ -125,6 +126,7 @@ export function createApp(deps: AppDeps): Hono<AppEnv> {
   app.route("/v1/admin/atlas", adminAtlasRoutes());
   app.route("/v1/shares", shareRoutes());
   app.route("/v1/ai", aiRoutes());
+  app.route("/v1/stats", statsRoutes());
 
   app.get("/", (c) => c.json({ name: "AutoFlow API", version: config.version, docs: "/v1/openapi.yaml" }));
 

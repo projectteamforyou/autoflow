@@ -47,6 +47,8 @@ export const ja: Content = {
     text: "AutoFlow — 繰り返しの作業を、安全に自動化。Windows・Android・Web で無料。",
   },
   footer: {
+    stats: { statsTitle: "リアルタイム統計", visits: "累計アクセス", online: "現在接続中", downloads: "ダウンロード" },
+    biz: { bizTitle: "事業者情報", company: "商号", ceo: "代表者", regNo: "事業者登録番号", mailOrder: "通信販売業届出番号", address: "所在地", phone: "電話", email: "メール", website: "会社ホームページ" },
     tagline: "繰り返しの作業を、すべて自動化。安全に。",
     product: "製品",
     platforms: "プラットフォーム",
@@ -54,7 +56,7 @@ export const ja: Content = {
     languages: "言語",
     contact: "お問い合わせ",
     releases: "リリースノート",
-    rights: "© 2026 ProjectTeamForYou. All rights reserved.",
+    rights: "© Copyright 2026, Projectteamforyou. All rights reserved.",
     made: "クリックより大切なことがあるすべての人のために、ソウルで開発しています。",
   },
   labels: {

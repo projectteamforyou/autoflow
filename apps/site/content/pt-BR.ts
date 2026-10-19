@@ -47,6 +47,8 @@ export const ptBR: Content = {
     text: "AutoFlow — automatize tudo o que você repete, com segurança. Grátis no Windows, Android e na web.",
   },
   footer: {
+    stats: { statsTitle: "Estatísticas ao vivo", visits: "Visitas totais", online: "Online agora", downloads: "Downloads" },
+    biz: { bizTitle: "Informações da empresa", company: "Empresa", ceo: "Representante", regNo: "Nº de registro empresarial", mailOrder: "Nº de registro de venda a distância", address: "Endereço", phone: "Telefone", email: "E-mail", website: "Site da empresa" },
     tagline: "Automatize tudo o que você repete — com segurança.",
     product: "Produto",
     platforms: "Plataformas",
@@ -54,7 +56,7 @@ export const ptBR: Content = {
     languages: "Idiomas",
     contact: "Contato",
     releases: "Notas de versão",
-    rights: "© 2026 ProjectTeamForYou. Todos os direitos reservados.",
+    rights: "© Copyright 2026, Projectteamforyou. All rights reserved.",
     made: "Feito em Seul para quem tem coisa melhor a fazer do que clicar.",
   },
   labels: {

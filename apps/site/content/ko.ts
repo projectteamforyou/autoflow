@@ -47,6 +47,8 @@ export const ko: Content = {
     text: "AutoFlow — 반복하는 일은 모두 자동으로, 안전하게. Windows·Android·웹에서 무료.",
   },
   footer: {
+    stats: { statsTitle: "실시간 현황", visits: "누적 접속", online: "지금 접속 중", downloads: "다운로드" },
+    biz: { bizTitle: "사업자 정보", company: "상호", ceo: "대표", regNo: "사업자등록번호", mailOrder: "통신판매업 신고번호", address: "주소", phone: "전화", email: "이메일", website: "회사 홈페이지" },
     tagline: "반복하는 일은 모두 자동으로, 안전하게.",
     product: "제품",
     platforms: "플랫폼",
@@ -54,7 +56,7 @@ export const ko: Content = {
     languages: "언어",
     contact: "문의하기",
     releases: "릴리스 노트",
-    rights: "© 2026 ProjectTeamForYou. All rights reserved.",
+    rights: "© Copyright 2026, Projectteamforyou. All rights reserved.",
     made: "클릭보다 더 중요한 일이 있는 모든 사람을 위해, 서울에서 만들었습니다.",
   },
   labels: {

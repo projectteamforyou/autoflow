@@ -47,6 +47,8 @@ export const id: Content = {
     text: "AutoFlow — otomatiskan semua yang Anda ulang, dengan aman. Gratis di Windows, Android, dan web.",
   },
   footer: {
+    stats: { statsTitle: "Statistik langsung", visits: "Total kunjungan", online: "Online sekarang", downloads: "Unduhan" },
+    biz: { bizTitle: "Informasi perusahaan", company: "Perusahaan", ceo: "Perwakilan", regNo: "No. registrasi usaha", mailOrder: "No. laporan usaha penjualan jarak jauh", address: "Alamat", phone: "Telepon", email: "Email", website: "Situs perusahaan" },
     tagline: "Otomatiskan semua yang Anda ulang — dengan aman.",
     product: "Produk",
     platforms: "Platform",
@@ -54,7 +56,7 @@ export const id: Content = {
     languages: "Bahasa",
     contact: "Kontak",
     releases: "Catatan rilis",
-    rights: "© 2026 ProjectTeamForYou. Hak cipta dilindungi.",
+    rights: "© Copyright 2026, Projectteamforyou. All rights reserved.",
     made: "Dibuat di Seoul untuk siapa saja yang punya urusan lebih penting daripada mengeklik.",
   },
   labels: {

@@ -18,10 +18,16 @@ export const DIST = join(ROOT, "dist");
 export const PUBLIC = join(ROOT, "public");
 export const REPO = join(ROOT, "..", "..");
 
-export const LINKS = {
+/** Download buttons go through the API so downloads are counted, then redirect to the official page. */
+export const DIRECT = {
   windows: "https://github.com/work517/autoflow/releases/latest",
-  releases: "https://github.com/work517/autoflow/releases",
   android: "https://play.google.com/store/apps/details?id=com.projectteamforyou.autoflow",
+};
+
+export const LINKS = {
+  windows: `${API_ORIGIN}/v1/stats/download/windows`,
+  releases: "https://github.com/work517/autoflow/releases",
+  android: `${API_ORIGIN}/v1/stats/download/android`,
   app: "/app/",
   atlas: (id: string) => `/app/#/atlas/${encodeURIComponent(id)}`,
   email: "projectteamforyou@gmail.com",
@@ -36,3 +42,23 @@ export const LOCALE_BY_CODE = Object.fromEntries(LOCALES.map((l) => [l.code, l])
 
 export const pagePath = (lang: LocaleCode, page: PageId) => `/${lang}/${page === "home" ? "" : `${page}/`}`;
 export const abs = (path: string) => `${SITE_URL}${path}`;
+
+/** Legal business details (전자상거래법 표시 의무). Korean values on /ko/, English elsewhere. */
+export const BUSINESS = {
+  ko: {
+    company: "프로젝트팀포유",
+    ceo: "이유상",
+    address: "경상북도 봉화군 상운면 예봉로 1166-68",
+  },
+  intl: {
+    company: "ProjectTeamForYou (프로젝트팀포유)",
+    ceo: "Yusang Lee (이유상)",
+    address: "1166-68 Yebong-ro, Sangun-myeon, Bonghwa-gun, Gyeongsangbuk-do, Republic of Korea",
+  },
+  regNo: "495-25-02209",
+  mailOrder: "제2026-경북봉화-0037호",
+  phone: "070-7620-7256",
+  phoneIntl: "+82-70-7620-7256",
+  email: "projectteamforyou@gmail.com",
+  website: "https://projectteamforyou.com",
+};

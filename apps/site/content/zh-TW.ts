@@ -47,6 +47,8 @@ export const zhTW: Content = {
     text: "AutoFlow——重複的事交給自動化，安全又安心。Windows、Android 與網頁版皆免費。",
   },
   footer: {
+    stats: { statsTitle: "即時統計", visits: "累計造訪", online: "目前在線", downloads: "下載" },
+    biz: { bizTitle: "企業資訊", company: "公司名稱", ceo: "代表人", regNo: "營業登記號碼", mailOrder: "通信販賣業申報號碼", address: "地址", phone: "電話", email: "電子郵件", website: "公司網站" },
     tagline: "重複的事，全部自動化——而且安全。",
     product: "產品",
     platforms: "平台",
@@ -54,7 +56,7 @@ export const zhTW: Content = {
     languages: "語言",
     contact: "聯絡我們",
     releases: "版本資訊",
-    rights: "© 2026 ProjectTeamForYou. 保留所有權利。",
+    rights: "© Copyright 2026, Projectteamforyou. All rights reserved.",
     made: "在首爾打造，獻給每個有比點滑鼠更重要的事要做的人。",
   },
   labels: {
