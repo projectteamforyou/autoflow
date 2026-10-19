@@ -55,7 +55,15 @@ export function minifyCss(css: string): string {
 }
 
 /** Remove insignificant whitespace between tags (keeps text nodes intact). */
-export const tidy = (h: string) => h.replace(/>\s*\n\s*</g, "><").replace(/\n\s*/g, " ").trim();
+/**
+ * Orphan control: the last two words of every text block are joined with a no-break space, so a block never ends
+ * with one lonely word (or Korean eojeol) on its own line. Only short pairs are joined, so narrow screens never
+ * overflow; CSS text-wrap: pretty/balance does the rest where the browser supports it.
+ */
+export const noOrphans = (h: string) =>
+  h.replace(/(^|[\s>])([^\s<>]{1,14}) ([^\s<>]{1,12})(<\/(?:p|li|h[1-6]|dd|dt|summary|figcaption|td|th|blockquote|label)>)/g, "$1$2&nbsp;$3$4");
+
+export const tidy = (h: string) => noOrphans(h.replace(/>\s*\n\s*</g, "><").replace(/\n\s*/g, " ").trim());
 
 /** Character count as a human would count it (one per code point, so CJK counts per character). */
 export const charLen = (s: string) => [...s].length;

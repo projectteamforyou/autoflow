@@ -389,3 +389,8 @@ kbd {
 .studio-promo:hover { border-color: color-mix(in oklab, var(--af-primary) 45%, var(--af-border)); }
 .studio-link { font-size: 13px; color: var(--af-muted); }
 .studio-link .truncate { flex: 1; min-width: 0; }
+
+/* Orphan control: no single word (or Korean eojeol) left alone on the last line */
+h1, h2, h3, h4, .page-head h1 { text-wrap: balance; }
+p, li, dd, label, .hint, .small, .callout, td { text-wrap: pretty; }
+:lang(ko) :is(h1, h2, h3, h4, p, li, dd, label, .hint, .small, .callout, td, button) { word-break: keep-all; overflow-wrap: anywhere; }

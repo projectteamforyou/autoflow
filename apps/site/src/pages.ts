@@ -53,7 +53,7 @@ function pageHero(ctx: Ctx, page: PageId, h1: string, lead: string, extra = "") 
   return html`<section class="page-hero"><div class="wrap">
 ${crumbs(ctx, page)}
 <h1>${esc(h1)}</h1>
-<p class="lead">${md(lead)}</p>
+<p class="lead${page === "pricing" || page === "faq" ? oneLine(ctx) : ""}">${md(lead)}</p>
 ${extra}
 </div></section>`;
 }

@@ -66,6 +66,8 @@ body {
   overflow-x: hidden;
 }
 :lang(ko) body, :lang(ko) h1, :lang(ko) h2, :lang(ko) h3, :lang(ko) p, :lang(ko) li { word-break: keep-all; overflow-wrap: anywhere; }
+li, dd, dt, summary, figcaption, td, th, blockquote, label, .lead { text-wrap: pretty; }
+h4, .h2, .h3 { text-wrap: balance; }
 :lang(ja) body, :lang(zh-CN) body, :lang(zh-TW) body { line-break: strict; }
 img, svg { display: block; max-width: 100%; }
 img { height: auto; }
