@@ -1,0 +1,30 @@
+{
+  "name": "@autoflow/site",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "AutoFlow public marketing, SEO and legal site — a zero-framework static site generator for 12 locales.",
+  "scripts": {
+    "build": "tsx src/build.ts",
+    "verify": "tsx scripts/verify-seo.ts",
+    "images": "tsx scripts/generate-images.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@autoflow/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@fontsource-variable/inter": "^5.2.8",
+    "@fontsource/noto-sans-jp": "^5.2.8",
+    "@fontsource/noto-sans-kr": "^5.2.8",
+    "@fontsource/noto-sans-sc": "^5.2.8",
+    "@fontsource/noto-sans-tc": "^5.2.8",
+    "@types/node": "^22.10.0",
+    "playwright-core": "1.56.1",
+    "sharp": "^0.34.4",
+    "simple-icons": "^16.35.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}
