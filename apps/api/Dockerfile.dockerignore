@@ -1,0 +1,13 @@
+# Used by BuildKit for `docker build -f apps/api/Dockerfile .` (context = repo root).
+**/node_modules
+**/dist
+**/.turbo
+**/coverage
+**/*.log
+**/.env
+**/.env.*
+!**/.env.example
+.git
+apps/*/android
+apps/desktop/src-tauri/target
+crates/*/target
