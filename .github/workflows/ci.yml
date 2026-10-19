@@ -39,7 +39,5 @@ jobs:
         run: pnpm --filter @autoflow/web build
       - name: Web — Chromium smoke test
         run: |
-          npx playwright install --with-deps chromium
-          CHROME_PATH=$(node -e "console.log(require('playwright-core').chromium.executablePath())" 2>/dev/null || true) node apps/web/scripts/smoke.mjs
-        env:
-          PLAYWRIGHT_BROWSERS_PATH: 0
+          pnpm --filter @autoflow/web exec playwright-core install --with-deps chromium
+          node apps/web/scripts/smoke.mjs

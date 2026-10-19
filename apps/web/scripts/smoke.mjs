@@ -15,7 +15,7 @@ if (!argUrl) {
 }
 const base = argUrl ?? `http://localhost:${port}/`;
 const exe = ["/opt/pw-browsers/chromium/chrome-linux/chrome", process.env.CHROME_PATH].find((p) => p && existsSync(p));
-const browser = await chromium.launch(exe ? { executablePath: exe } : { channel: "chromium" });
+const browser = await chromium.launch(exe ? { executablePath: exe } : {});
 const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
 const errors = [];
 page.on("pageerror", (e) => errors.push(String(e)));
