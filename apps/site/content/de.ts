@@ -124,8 +124,8 @@ export const de: Content = {
     h1b: "Sicher.",
     lead: "AutoFlow macht aus den Klicks, Tasten und Routinen deines Alltags Flows, die auf Windows, Android und im Web laufen – mit einer Halt-Taste, die immer gewinnt.",
     stats: [
-      { v: "31", l: "Schritttypen, vom Klick bis OCR" },
-      { v: "16", l: "geprüfte Vorlagen in Atlas" },
+      { v: "34", l: "Schritttypen, vom Klick bis OCR" },
+      { v: "19", l: "geprüfte Vorlagen in Atlas" },
       { v: "<0,5 s", l: "bis Halt jeden Flow stoppt" },
       { v: "12", l: "Sprachen, eine Bibliothek" },
     ],
@@ -155,7 +155,7 @@ export const de: Content = {
         id: "atlas",
         kicker: "Atlas",
         h2: "Starte auf einer Route, die schon jemand kartiert hat.",
-        p: "Sechzehn offizielle Vorlagen für Klicks, Büro, Barrierefreiheit, Tests, Smartphone und Fokus – alle geprüft und mit Sicherheitsbewertung. Mit einem Klick in der App öffnen.",
+        p: "Neunzehn offizielle Vorlagen für Klicks, Büro, Barrierefreiheit, Tests, Smartphone und Fokus – alle geprüft und mit Sicherheitsbewertung. Mit einem Klick in der App öffnen.",
         bullets: ["Klare Kategorie-, Plattform- und Risikolabels", "Community-Uploads werden auf dem Server erneut geprüft", "Jede Vorlage lässt sich frei anpassen"],
       },
       {
@@ -233,7 +233,7 @@ export const de: Content = {
         h2: "Erstellen",
         items: [
           { icon: "wand", h3: "Einfacher Modus", p: "Vier Fragen – was, wo, wie schnell, wie oft – und dein Flow steht. Intervalle ab 50 ms, Wiederholung nach Anzahl, Zeit oder bis zum Stopp." },
-          { icon: "code", h3: "Pro-Modus", p: "31 Schritttypen: Klicks, Ziehen, Tasten, Text, Warten, Bedingungen, Variablen, Zwischenablage, Fenster, HTTP, Dateien, OCR, Bildsuche und verschachtelte Flows." },
+          { icon: "code", h3: "Pro-Modus", p: "34 Schritttypen: Klicks, Ziehen, Tasten, Text, Warten, Bedingungen, Variablen, Zwischenablage, Fenster, HTTP, Dateien, OCR, Bildsuche und verschachtelte Flows." },
           { icon: "record", h3: "Recorder", p: "Maus und Tastatur einmal aufnehmen, dann jeden Schritt bearbeiten. Passwortfelder werden maskiert, aufgenommen wird nur, solange die Anzeige sichtbar ist." },
           { icon: "bolt", h3: "Auslöser & Hotkeys", p: "Flows per Hotkey, Zeitplan, App-Start oder (auf Android) Ladebeginn starten. Start-, Pause- und Stopp-Tasten pro Flow." },
         ],
@@ -251,7 +251,7 @@ export const de: Content = {
         h2: "Eingabe & Vorlagen",
         items: [
           { icon: "key", h3: "Keyforge", p: "Tasten und Maustasten neu belegen, Ebenen und Textbausteine anlegen, die Maus feinjustieren und Profile nach App, Uhrzeit oder Gerät wechseln." },
-          { icon: "map", h3: "Atlas", p: "Sechzehn geprüfte Vorlagen plus Community-Flows, die der Server vor der Veröffentlichung erneut validiert, prüft und kennzeichnet." },
+          { icon: "map", h3: "Atlas", p: "Neunzehn geprüfte Vorlagen plus Community-Flows, die der Server vor der Veröffentlichung erneut validiert, prüft und kennzeichnet." },
           { icon: "link", h3: "Teilen per Link", p: "Teile einen Flow als Link oder Datei. Importe werden per Hash geprüft und neu bewertet, damit sich nichts Gefährliches einschleicht." },
           { icon: "cloud", h3: "Verschlüsselter Sync", p: "Optional. Flows werden vor dem Upload auf deinem Gerät verschlüsselt – der Server speichert nur Chiffretext, den er nicht lesen kann." },
         ],
@@ -341,7 +341,7 @@ export const de: Content = {
   atlas: {
     seo: {
       title: "Atlas — kostenlose Automatisierungsvorlagen | AutoFlow",
-      description: "Sechzehn geprüfte Vorlagen für Klicks, Büro, Barrierefreiheit, Tests, Android und Fokus. Mit Sicherheitsbewertung und direkt in AutoFlow zu öffnen.",
+      description: "Neunzehn geprüfte Vorlagen für Klicks, Büro, Barrierefreiheit, Tests, Android und Fokus. Mit Sicherheitsbewertung und direkt in AutoFlow zu öffnen.",
     },
     h1: "Atlas: Vorlagen für die Wege, die du immer wieder gehst",
     lead: "Jede offizielle Vorlage ist ein vollständiger, validierter Flow mit Kategorie, Plattformen und Risikolabel. Öffnen, anpassen, starten.",
@@ -419,7 +419,7 @@ export const de: Content = {
       price: "0 €",
       period: "für immer",
       desc: "Alles, was AutoFlow heute kann, auf jeder Plattform.",
-      items: ["Einfach- und Pro-Modus mit allen 31 Schritttypen", "Recorder, Hotkeys und Auslöser", "Keyforge-Belegung, Ebenen und Textbausteine", "Practice Canvas und Ledger", "Atlas-Vorlagen und Teilen per Link", "Copilot mit eigenem Schlüssel oder lokalem Modell", "Guardrails, Sicherheitsbewertung und Halt"],
+      items: ["Einfach- und Pro-Modus mit allen 34 Schritttypen", "Recorder, Hotkeys und Auslöser", "Keyforge-Belegung, Ebenen und Textbausteine", "Practice Canvas und Ledger", "Atlas-Vorlagen und Teilen per Link", "Copilot mit eigenem Schlüssel oder lokalem Modell", "Guardrails, Sicherheitsbewertung und Halt"],
     },
     sync: {
       name: "Verschlüsselter Sync",

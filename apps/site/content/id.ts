@@ -124,8 +124,8 @@ export const id: Content = {
     h1b: "Dengan aman.",
     lead: "AutoFlow mengubah klik, ketikan, dan rutinitas harian menjadi alur yang berjalan di Windows, Android, dan web — dengan tombol Halt yang selalu bisa menghentikannya.",
     stats: [
-      { v: "31", l: "jenis langkah, dari klik sampai OCR" },
-      { v: "16", l: "templat terverifikasi di Atlas" },
+      { v: "34", l: "jenis langkah, dari klik sampai OCR" },
+      { v: "19", l: "templat terverifikasi di Atlas" },
       { v: "<0,5 dtk", l: "untuk menghentikan alur apa pun" },
       { v: "12", l: "bahasa, satu pustaka" },
     ],
@@ -155,7 +155,7 @@ export const id: Content = {
         id: "atlas",
         kicker: "Atlas",
         h2: "Berangkat dari rute yang sudah dipetakan orang lain.",
-        p: "Enam belas templat resmi untuk klik, kerja kantor, aksesibilitas, pengujian, ponsel, dan fokus — semuanya terverifikasi dan bernilai keamanan. Buka di aplikasi dengan satu klik.",
+        p: "Sembilan belas templat resmi untuk klik, kerja kantor, aksesibilitas, pengujian, ponsel, dan fokus — semuanya terverifikasi dan bernilai keamanan. Buka di aplikasi dengan satu klik.",
         bullets: ["Label kategori, platform, dan risiko yang jelas", "Unggahan komunitas diperiksa ulang di server", "Semua templat bisa diedit sesuka Anda"],
       },
       {
@@ -233,7 +233,7 @@ export const id: Content = {
         h2: "Membuat",
         items: [
           { icon: "wand", h3: "Mode Mudah", p: "Jawab empat pertanyaan — apa, di mana, secepat apa, berapa kali — dan alur pun siap. Interval mulai 50 ms; ulangi berdasarkan jumlah, waktu, atau sampai dihentikan." },
-          { icon: "code", h3: "Mode Pro", p: "31 jenis langkah: klik, seret, tombol, teks, tunggu, kondisi, variabel, clipboard, jendela, HTTP, file, OCR, pencarian gambar, dan alur bersarang." },
+          { icon: "code", h3: "Mode Pro", p: "34 jenis langkah: klik, seret, tombol, teks, tunggu, kondisi, variabel, clipboard, jendela, HTTP, file, OCR, pencarian gambar, dan alur bersarang." },
           { icon: "record", h3: "Perekam", p: "Rekam mouse dan keyboard sekali, lalu edit setiap langkah. Kolom kata sandi disamarkan dan perekaman hanya berlangsung saat indikator terlihat." },
           { icon: "bolt", h3: "Pemicu & pintasan", p: "Mulai alur dengan pintasan, jadwal, saat aplikasi dibuka, atau (di Android) saat mulai mengisi daya. Tombol mulai, jeda, dan berhenti untuk tiap alur." },
         ],
@@ -251,7 +251,7 @@ export const id: Content = {
         h2: "Input & templat",
         items: [
           { icon: "key", h3: "Keyforge", p: "Remap tombol keyboard dan mouse, tambah layer dan perluasan teks, atur mouse, dan ganti profil per aplikasi, waktu, atau perangkat." },
-          { icon: "map", h3: "Atlas", p: "Enam belas templat resmi terverifikasi plus alur komunitas yang divalidasi ulang, diperiksa, dan diberi label oleh server sebelum tampil." },
+          { icon: "map", h3: "Atlas", p: "Sembilan belas templat resmi terverifikasi plus alur komunitas yang divalidasi ulang, diperiksa, dan diberi label oleh server sebelum tampil." },
           { icon: "link", h3: "Tautan berbagi", p: "Bagikan alur lewat tautan atau file. Impor dicek hash-nya dan dinilai ulang, jadi tak ada yang berbahaya menyusup diam-diam." },
           { icon: "cloud", h3: "Sinkronisasi terenkripsi", p: "Opsional. Alur dienkripsi di perangkat Anda sebelum diunggah — server hanya menyimpan ciphertext yang tak bisa dibacanya." },
         ],
@@ -341,7 +341,7 @@ export const id: Content = {
   atlas: {
     seo: {
       title: "Atlas — templat otomatisasi gratis | AutoFlow",
-      description: "Enam belas templat otomatisasi terverifikasi untuk klik, kantor, aksesibilitas, pengujian, Android, dan fokus. Bernilai keamanan, siap dibuka.",
+      description: "Sembilan belas templat otomatisasi terverifikasi untuk klik, kantor, aksesibilitas, pengujian, Android, dan fokus. Bernilai keamanan, siap dibuka.",
     },
     h1: "Atlas: templat untuk rute yang Anda ulangi",
     lead: "Setiap templat resmi adalah alur lengkap yang tervalidasi, dengan kategori, platform, dan label risiko. Buka, sesuaikan, jalankan.",
@@ -419,7 +419,7 @@ export const id: Content = {
       price: "Rp0",
       period: "selamanya",
       desc: "Semua yang ada di AutoFlow saat ini, di setiap platform.",
-      items: ["Mode Mudah dan Pro dengan ke-31 jenis langkah", "Perekam, pintasan, dan pemicu", "Remap, layer, dan potongan teks Keyforge", "Practice Canvas dan Ledger", "Templat Atlas dan tautan berbagi", "Copilot dengan kunci sendiri atau model lokal", "Guardrails, nilai keamanan, dan Halt"],
+      items: ["Mode Mudah dan Pro dengan ke-34 jenis langkah", "Perekam, pintasan, dan pemicu", "Remap, layer, dan potongan teks Keyforge", "Practice Canvas dan Ledger", "Templat Atlas dan tautan berbagi", "Copilot dengan kunci sendiri atau model lokal", "Guardrails, nilai keamanan, dan Halt"],
     },
     sync: {
       name: "Sinkronisasi terenkripsi",

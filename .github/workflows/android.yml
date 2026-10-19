@@ -215,7 +215,9 @@ jobs:
           V="${{ inputs.version }}"; [ -n "$V" ] || V="${GITHUB_REF_NAME#v}"
           echo "tag=v$V" >> "$GITHUB_OUTPUT"
           cp "$apk" "AutoFlow-$V-android.apk"
-          sha256sum AutoFlow-*-android.apk > SHA256SUMS-android.txt
+          aab=$(find out -path '*release*' -name '*.aab' | head -1)
+          [ -n "$aab" ] && cp "$aab" "AutoFlow-$V-android.aab"
+          sha256sum AutoFlow-*-android.* > SHA256SUMS-android.txt
           echo "found=true" >> "$GITHUB_OUTPUT"
       - uses: softprops/action-gh-release@v2
         if: steps.apk.outputs.found == 'true'
@@ -224,6 +226,7 @@ jobs:
           target_commitish: ${{ github.sha }}
           files: |
             AutoFlow-*-android.apk
+            AutoFlow-*-android.aab
             SHA256SUMS-android.txt
 
   # Installs the debug APK on an emulator and proves it starts. Informational: a red smoke job never blocks a release,

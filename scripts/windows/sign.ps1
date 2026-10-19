@@ -35,6 +35,18 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+# Launched as Windows PowerShell 5.1 from PowerShell 7 (Tauri's signCommand inside a pwsh CI step), the inherited
+# PSModulePath points at PowerShell 7 modules and Microsoft.PowerShell.Security (Get-AuthenticodeSignature) fails to
+# load. Use the Windows PowerShell module paths and import it explicitly.
+if ($PSVersionTable.PSEdition -eq 'Desktop') {
+    $env:PSModulePath = @(
+        (Join-Path $env:USERPROFILE 'Documents\WindowsPowerShell\Modules'),
+        (Join-Path $env:ProgramFiles 'WindowsPowerShell\Modules'),
+        (Join-Path $PSHOME 'Modules')
+    ) -join ';'
+}
+Import-Module Microsoft.PowerShell.Security -ErrorAction Stop
 Set-StrictMode -Version 2.0
 
 $Root = 'C:\afsign'

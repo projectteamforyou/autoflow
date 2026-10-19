@@ -124,8 +124,8 @@ export const ptBR: Content = {
     h1b: "Com segurança.",
     lead: "O AutoFlow transforma os cliques, teclas e rotinas do seu dia em fluxos que rodam no Windows, no Android e na web — com uma tecla Halt que sempre tem a palavra final.",
     stats: [
-      { v: "31", l: "tipos de passo, do clique ao OCR" },
-      { v: "16", l: "modelos verificados no Atlas" },
+      { v: "34", l: "tipos de passo, do clique ao OCR" },
+      { v: "19", l: "modelos verificados no Atlas" },
       { v: "<0,5 s", l: "para parar qualquer fluxo" },
       { v: "12", l: "idiomas, uma biblioteca só" },
     ],
@@ -155,7 +155,7 @@ export const ptBR: Content = {
         id: "atlas",
         kicker: "Atlas",
         h2: "Comece por uma rota que alguém já traçou.",
-        p: "Dezesseis modelos oficiais para cliques, escritório, acessibilidade, testes, celular e foco — todos verificados e com pontuação de segurança. Abra qualquer um no app com um clique.",
+        p: "Dezenove modelos oficiais para cliques, escritório, acessibilidade, testes, celular e foco — todos verificados e com pontuação de segurança. Abra qualquer um no app com um clique.",
         bullets: ["Rótulos claros de categoria, plataforma e risco", "Envios da comunidade são verificados de novo no servidor", "Deixe do seu jeito: todo modelo é editável"],
       },
       {
@@ -233,7 +233,7 @@ export const ptBR: Content = {
         h2: "Criar",
         items: [
           { icon: "wand", h3: "Modo fácil", p: "Responda quatro perguntas — o quê, onde, com que velocidade, quantas vezes — e o fluxo está pronto. Intervalos a partir de 50 ms; repita por quantidade, por tempo ou até parar." },
-          { icon: "code", h3: "Modo Pro", p: "31 tipos de passo: cliques, arrastar, teclas, texto, esperas, condições, variáveis, área de transferência, janelas, HTTP, arquivos, OCR, busca de imagem e fluxos aninhados." },
+          { icon: "code", h3: "Modo Pro", p: "34 tipos de passo: cliques, arrastar, teclas, texto, esperas, condições, variáveis, área de transferência, janelas, HTTP, arquivos, OCR, busca de imagem e fluxos aninhados." },
           { icon: "record", h3: "Gravador", p: "Grave mouse e teclado uma vez e edite cada passo. Campos de senha são mascarados e a gravação só acontece com o indicador visível." },
           { icon: "bolt", h3: "Gatilhos e atalhos", p: "Inicie fluxos por atalho, agendamento, abertura de app ou (no Android) ao começar a carregar. Teclas de iniciar, pausar e parar para cada fluxo." },
         ],
@@ -251,7 +251,7 @@ export const ptBR: Content = {
         h2: "Entrada e modelos",
         items: [
           { icon: "key", h3: "Keyforge", p: "Remapeie teclas e botões do mouse, adicione camadas e expansão de texto, ajuste o mouse e troque de perfil por app, horário ou dispositivo." },
-          { icon: "map", h3: "Atlas", p: "Dezesseis modelos oficiais verificados e fluxos da comunidade que o servidor valida, revisa e rotula de novo antes de publicar." },
+          { icon: "map", h3: "Atlas", p: "Dezenove modelos oficiais verificados e fluxos da comunidade que o servidor valida, revisa e rotula de novo antes de publicar." },
           { icon: "link", h3: "Links de compartilhamento", p: "Compartilhe um fluxo por link ou arquivo. Importações são conferidas por hash e reavaliadas, então nada perigoso entra escondido." },
           { icon: "cloud", h3: "Sincronização criptografada", p: "Opcional. Os fluxos são criptografados no seu aparelho antes do envio — o servidor guarda um texto cifrado que não consegue ler." },
         ],
@@ -341,7 +341,7 @@ export const ptBR: Content = {
   atlas: {
     seo: {
       title: "Atlas — modelos de automação grátis | AutoFlow",
-      description: "Dezesseis modelos de automação verificados para cliques, escritório, acessibilidade, testes, Android e foco. Com pontuação de segurança.",
+      description: "Dezenove modelos de automação verificados para cliques, escritório, acessibilidade, testes, Android e foco. Com pontuação de segurança.",
     },
     h1: "Atlas: modelos para os caminhos que você repete",
     lead: "Cada modelo oficial é um fluxo completo e validado, com categoria, plataformas e rótulo de risco. Abra, ajuste e execute.",
@@ -419,7 +419,7 @@ export const ptBR: Content = {
       price: "R$ 0",
       period: "para sempre",
       desc: "Tudo o que existe hoje no AutoFlow, em todas as plataformas.",
-      items: ["Modos fácil e Pro com os 31 tipos de passo", "Gravador, atalhos e gatilhos", "Remapeamento, camadas e trechos do Keyforge", "Practice Canvas e Ledger", "Modelos do Atlas e links de compartilhamento", "Copilot com sua chave ou um modelo local", "Guardrails, pontuação de segurança e Halt"],
+      items: ["Modos fácil e Pro com os 34 tipos de passo", "Gravador, atalhos e gatilhos", "Remapeamento, camadas e trechos do Keyforge", "Practice Canvas e Ledger", "Modelos do Atlas e links de compartilhamento", "Copilot com sua chave ou um modelo local", "Guardrails, pontuação de segurança e Halt"],
     },
     sync: {
       name: "Sincronização criptografada",

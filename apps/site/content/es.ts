@@ -124,8 +124,8 @@ export const es: Content = {
     h1b: "Con seguridad.",
     lead: "AutoFlow convierte los clics, las teclas y las rutinas de cada día en flujos que funcionan en Windows, Android y la web, con una tecla Halt que siempre tiene la última palabra.",
     stats: [
-      { v: "31", l: "tipos de pasos, de clics a OCR" },
-      { v: "16", l: "plantillas verificadas en Atlas" },
+      { v: "34", l: "tipos de pasos, de clics a OCR" },
+      { v: "19", l: "plantillas verificadas en Atlas" },
       { v: "<0,5 s", l: "para detener cualquier flujo" },
       { v: "12", l: "idiomas, una sola biblioteca" },
     ],
@@ -155,7 +155,7 @@ export const es: Content = {
         id: "atlas",
         kicker: "Atlas",
         h2: "Parte de una ruta que alguien ya trazó.",
-        p: "Dieciséis plantillas oficiales para clics, oficina, accesibilidad, pruebas, móvil y concentración, todas verificadas y con puntuación de seguridad. Ábrelas en la app con un solo clic.",
+        p: "Diecinueve plantillas oficiales para clics, oficina, accesibilidad, pruebas, móvil y concentración, todas verificadas y con puntuación de seguridad. Ábrelas en la app con un solo clic.",
         bullets: ["Etiquetas claras de categoría, plataforma y riesgo", "Lo que sube la comunidad se vuelve a revisar en el servidor", "Hazla tuya: todas las plantillas son editables"],
       },
       {
@@ -233,7 +233,7 @@ export const es: Content = {
         h2: "Crear",
         items: [
           { icon: "wand", h3: "Modo fácil", p: "Responde cuatro preguntas —qué, dónde, a qué velocidad y cuántas veces— y tendrás un flujo listo. Intervalos desde 50 ms; repite por número, por tiempo o hasta detenerlo." },
-          { icon: "code", h3: "Modo Pro", p: "31 tipos de pasos: clics, arrastres, teclas, texto, esperas, condiciones, variables, portapapeles, ventanas, HTTP, archivos, OCR, búsqueda de imágenes y flujos anidados." },
+          { icon: "code", h3: "Modo Pro", p: "34 tipos de pasos: clics, arrastres, teclas, texto, esperas, condiciones, variables, portapapeles, ventanas, HTTP, archivos, OCR, búsqueda de imágenes y flujos anidados." },
           { icon: "record", h3: "Grabadora", p: "Graba ratón y teclado una vez y edita cada paso. Los campos de contraseña se ocultan y solo se graba mientras el indicador está visible." },
           { icon: "bolt", h3: "Disparadores y atajos", p: "Inicia flujos con un atajo, una programación, al abrir una app o (en Android) al empezar a cargar. Teclas de inicio, pausa y parada por flujo." },
         ],
@@ -251,7 +251,7 @@ export const es: Content = {
         h2: "Entrada y plantillas",
         items: [
           { icon: "key", h3: "Keyforge", p: "Reasigna teclas y botones del ratón, añade capas y expansión de texto, ajusta el ratón y cambia de perfil por app, hora o dispositivo." },
-          { icon: "map", h3: "Atlas", p: "Dieciséis plantillas verificadas y flujos de la comunidad que el servidor vuelve a validar, revisar y etiquetar antes de publicarlos." },
+          { icon: "map", h3: "Atlas", p: "Diecinueve plantillas verificadas y flujos de la comunidad que el servidor vuelve a validar, revisar y etiquetar antes de publicarlos." },
           { icon: "link", h3: "Enlaces para compartir", p: "Comparte un flujo como enlace o archivo. Las importaciones se comprueban por hash y se reevalúan, así que nada peligroso se cuela sin avisar." },
           { icon: "cloud", h3: "Sincronización cifrada", p: "Opcional. Los flujos se cifran en tu dispositivo antes de subirse: el servidor guarda un texto cifrado que no puede leer." },
         ],
@@ -341,7 +341,7 @@ export const es: Content = {
   atlas: {
     seo: {
       title: "Atlas — plantillas de automatización gratis | AutoFlow",
-      description: "Dieciséis plantillas de automatización verificadas para clics, oficina, accesibilidad, pruebas, Android y concentración. Con puntuación de seguridad.",
+      description: "Diecinueve plantillas de automatización verificadas para clics, oficina, accesibilidad, pruebas, Android y concentración. Con puntuación de seguridad.",
     },
     h1: "Atlas: plantillas para las rutas que repites",
     lead: "Cada plantilla oficial es un flujo completo y validado, con categoría, plataformas y etiqueta de riesgo. Ábrela, ajústala y ejecútala.",
@@ -419,7 +419,7 @@ export const es: Content = {
       price: "0 €",
       period: "para siempre",
       desc: "Todo lo que hay hoy en AutoFlow, en todas las plataformas.",
-      items: ["Modos fácil y Pro con los 31 tipos de pasos", "Grabadora, atajos y disparadores", "Reasignación, capas y fragmentos con Keyforge", "Practice Canvas y Ledger", "Plantillas de Atlas y enlaces para compartir", "Copilot con tu clave o un modelo local", "Guardrails, puntuación de seguridad y Halt"],
+      items: ["Modos fácil y Pro con los 34 tipos de pasos", "Grabadora, atajos y disparadores", "Reasignación, capas y fragmentos con Keyforge", "Practice Canvas y Ledger", "Plantillas de Atlas y enlaces para compartir", "Copilot con tu clave o un modelo local", "Guardrails, puntuación de seguridad y Halt"],
     },
     sync: {
       name: "Sincronización cifrada",

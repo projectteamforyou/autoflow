@@ -129,8 +129,8 @@ export const en = {
     h1b: "Safely.",
     lead: "AutoFlow turns the clicks, keys and routines you do every day into flows that run on Windows, Android and the web — with a Halt key that always wins.",
     stats: [
-      { v: "31", l: "step types, from clicks to OCR" },
-      { v: "16", l: "verified templates in Atlas" },
+      { v: "34", l: "step types, from clicks to OCR" },
+      { v: "19", l: "verified templates in Atlas" },
       { v: "<0.5 s", l: "to stop any flow with Halt" },
       { v: "12", l: "languages, one library" },
     ],
@@ -160,7 +160,7 @@ export const en = {
         id: "atlas",
         kicker: "Atlas",
         h2: "Start from a route someone already mapped.",
-        p: "Sixteen official templates for clicking, office work, accessibility, testing, phones and focus — each one verified and safety-scored. Open any of them in the app with one click.",
+        p: "Nineteen official templates for clicking, office work, accessibility, testing, phones and focus — each one verified and safety-scored. Open any of them in the app with one click.",
         bullets: ["Clear category, platform and risk labels", "Community uploads are re-checked on the server", "Make it yours: every template is fully editable"],
       },
       {
@@ -238,7 +238,7 @@ export const en = {
         h2: "Build",
         items: [
           { icon: "wand", h3: "Easy mode", p: "Answer four questions — what, where, how fast, how often — and you have a working flow. Intervals from 50 ms, repeat by count, time or until stopped." },
-          { icon: "code", h3: "Pro mode", p: "31 step types: clicks, drags, keys, text, waits, conditions, variables, clipboard, windows, HTTP, files, OCR, image search and nested flows." },
+          { icon: "code", h3: "Pro mode", p: "34 step types: clicks, drags, keys, text, waits, conditions, variables, clipboard, windows, HTTP, files, OCR, image search and nested flows." },
           { icon: "record", h3: "Recorder", p: "Record mouse and keyboard once, then edit each step. Password fields are masked and recording only runs while the indicator is visible." },
           { icon: "bolt", h3: "Triggers & hotkeys", p: "Start flows from a hotkey, a schedule, an app opening or (on Android) starting to charge. Start, pause and stop keys per flow." },
         ],
@@ -256,7 +256,7 @@ export const en = {
         h2: "Input & templates",
         items: [
           { icon: "key", h3: "Keyforge", p: "Remap keys and mouse buttons, add layers and text expansion, tune the mouse and switch profiles by app, time or device." },
-          { icon: "map", h3: "Atlas", p: "Sixteen verified templates plus community flows that the server re-validates, lints and labels before anyone sees them." },
+          { icon: "map", h3: "Atlas", p: "Nineteen verified templates plus community flows that the server re-validates, lints and labels before anyone sees them." },
           { icon: "link", h3: "Share links", p: "Share a flow as a link or file. Imports are hash-checked and re-scanned for risk, so nothing dangerous slips in quietly." },
           { icon: "cloud", h3: "Encrypted sync", p: "Optional. Flows are encrypted on your device before upload — the server stores ciphertext it cannot read." },
         ],
@@ -346,7 +346,7 @@ export const en = {
   atlas: {
     seo: {
       title: "Atlas — free automation templates | AutoFlow",
-      description: "Sixteen verified automation templates for clicking, office work, accessibility, testing, Android and focus. Safety-scored and ready to open in AutoFlow.",
+      description: "Nineteen verified automation templates for clicking, office work, accessibility, testing, Android and focus. Safety-scored and ready to open in AutoFlow.",
     },
     h1: "Atlas: templates for the routes you repeat",
     lead: "Every official template is a complete, validated flow with category, platforms and a risk label. Open one, adjust it, run it.",
@@ -424,7 +424,7 @@ export const en = {
       price: "$0",
       period: "forever",
       desc: "Everything currently in AutoFlow, on every platform.",
-      items: ["Easy and Pro modes with all 31 step types", "Recorder, hotkeys and triggers", "Keyforge remapping, layers and snippets", "Practice Canvas and Ledger", "Atlas templates and share links", "Copilot with your own key or a local model", "Guardrails, Safety Score and Halt"],
+      items: ["Easy and Pro modes with all 34 step types", "Recorder, hotkeys and triggers", "Keyforge remapping, layers and snippets", "Practice Canvas and Ledger", "Atlas templates and share links", "Copilot with your own key or a local model", "Guardrails, Safety Score and Halt"],
     },
     sync: {
       name: "Encrypted sync",

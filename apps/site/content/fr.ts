@@ -124,8 +124,8 @@ export const fr: Content = {
     h1b: "En toute sécurité.",
     lead: "AutoFlow transforme les clics, les frappes et les routines de chaque jour en flux qui tournent sur Windows, Android et le web — avec une touche Halt qui a toujours le dernier mot.",
     stats: [
-      { v: "31", l: "types d’étapes, du clic à l’OCR" },
-      { v: "16", l: "modèles vérifiés dans Atlas" },
+      { v: "34", l: "types d’étapes, du clic à l’OCR" },
+      { v: "19", l: "modèles vérifiés dans Atlas" },
       { v: "<0,5 s", l: "pour arrêter n’importe quel flux" },
       { v: "12", l: "langues, une seule bibliothèque" },
     ],
@@ -155,7 +155,7 @@ export const fr: Content = {
         id: "atlas",
         kicker: "Atlas",
         h2: "Partez d’un itinéraire déjà tracé.",
-        p: "Seize modèles officiels pour les clics, la bureautique, l’accessibilité, les tests, le mobile et la concentration — tous vérifiés et notés en sécurité. Ouvrez-les dans l’app en un clic.",
+        p: "Dix-neuf modèles officiels pour les clics, la bureautique, l’accessibilité, les tests, le mobile et la concentration — tous vérifiés et notés en sécurité. Ouvrez-les dans l’app en un clic.",
         bullets: ["Catégorie, plateforme et risque clairement indiqués", "Les envois de la communauté sont revérifiés côté serveur", "Chaque modèle est entièrement modifiable"],
       },
       {
@@ -233,7 +233,7 @@ export const fr: Content = {
         h2: "Créer",
         items: [
           { icon: "wand", h3: "Mode facile", p: "Répondez à quatre questions — quoi, où, à quelle vitesse, combien de fois — et votre flux est prêt. Intervalles dès 50 ms ; répétition par nombre, par durée ou jusqu’à l’arrêt." },
-          { icon: "code", h3: "Mode Pro", p: "31 types d’étapes : clics, glisser, touches, texte, attentes, conditions, variables, presse-papiers, fenêtres, HTTP, fichiers, OCR, recherche d’image et flux imbriqués." },
+          { icon: "code", h3: "Mode Pro", p: "34 types d’étapes : clics, glisser, touches, texte, attentes, conditions, variables, presse-papiers, fenêtres, HTTP, fichiers, OCR, recherche d’image et flux imbriqués." },
           { icon: "record", h3: "Enregistreur", p: "Enregistrez souris et clavier une fois, puis modifiez chaque étape. Les champs de mot de passe sont masqués et l’enregistrement n’a lieu que tant que l’indicateur est visible." },
           { icon: "bolt", h3: "Déclencheurs et raccourcis", p: "Lancez un flux par raccourci, planning, ouverture d’une app ou (sur Android) au début de la charge. Touches de démarrage, pause et arrêt pour chaque flux." },
         ],
@@ -251,7 +251,7 @@ export const fr: Content = {
         h2: "Saisie et modèles",
         items: [
           { icon: "key", h3: "Keyforge", p: "Remappez touches et boutons de souris, ajoutez couches et expansion de texte, réglez la souris et changez de profil selon l’app, l’heure ou l’appareil." },
-          { icon: "map", h3: "Atlas", p: "Seize modèles officiels vérifiés et des flux communautaires que le serveur revalide, analyse et étiquette avant publication." },
+          { icon: "map", h3: "Atlas", p: "Dix-neuf modèles officiels vérifiés et des flux communautaires que le serveur revalide, analyse et étiquette avant publication." },
           { icon: "link", h3: "Liens de partage", p: "Partagez un flux par lien ou fichier. Les imports sont contrôlés par empreinte et réévalués : rien de dangereux ne se glisse en douce." },
           { icon: "cloud", h3: "Synchro chiffrée", p: "En option. Les flux sont chiffrés sur votre appareil avant l’envoi : le serveur ne stocke qu’un texte chiffré illisible pour lui." },
         ],
@@ -341,7 +341,7 @@ export const fr: Content = {
   atlas: {
     seo: {
       title: "Atlas — modèles d’automatisation gratuits | AutoFlow",
-      description: "Seize modèles d’automatisation vérifiés pour les clics, la bureautique, l’accessibilité, les tests, Android et la concentration. Notés en sécurité.",
+      description: "Dix-neuf modèles d’automatisation vérifiés pour les clics, la bureautique, l’accessibilité, les tests, Android et la concentration. Notés en sécurité.",
     },
     h1: "Atlas : des modèles pour vos trajets répétitifs",
     lead: "Chaque modèle officiel est un flux complet et validé, avec catégorie, plateformes et étiquette de risque. Ouvrez, ajustez, lancez.",
@@ -419,7 +419,7 @@ export const fr: Content = {
       price: "0 €",
       period: "pour toujours",
       desc: "Tout ce qu’offre AutoFlow aujourd’hui, sur toutes les plateformes.",
-      items: ["Modes facile et Pro avec les 31 types d’étapes", "Enregistreur, raccourcis et déclencheurs", "Remappage, couches et extraits Keyforge", "Practice Canvas et Ledger", "Modèles Atlas et liens de partage", "Copilot avec votre clé ou un modèle local", "Guardrails, score de sécurité et Halt"],
+      items: ["Modes facile et Pro avec les 34 types d’étapes", "Enregistreur, raccourcis et déclencheurs", "Remappage, couches et extraits Keyforge", "Practice Canvas et Ledger", "Modèles Atlas et liens de partage", "Copilot avec votre clé ou un modèle local", "Guardrails, score de sécurité et Halt"],
     },
     sync: {
       name: "Synchro chiffrée",

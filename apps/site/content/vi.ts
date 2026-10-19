@@ -124,8 +124,8 @@ export const vi: Content = {
     h1b: "Một cách an toàn.",
     lead: "AutoFlow biến những cú nhấp, phím bấm và thói quen hằng ngày thành các luồng chạy trên Windows, Android và web — kèm phím Halt luôn dừng được mọi thứ.",
     stats: [
-      { v: "31", l: "loại bước, từ nhấp chuột đến OCR" },
-      { v: "16", l: "mẫu đã kiểm chứng trong Atlas" },
+      { v: "34", l: "loại bước, từ nhấp chuột đến OCR" },
+      { v: "19", l: "mẫu đã kiểm chứng trong Atlas" },
       { v: "<0,5 giây", l: "để Halt dừng mọi luồng" },
       { v: "12", l: "ngôn ngữ, một thư viện" },
     ],
@@ -155,7 +155,7 @@ export const vi: Content = {
         id: "atlas",
         kicker: "Atlas",
         h2: "Xuất phát từ lối đi đã có người vẽ sẵn.",
-        p: "Mười sáu mẫu chính thức cho nhấp chuột, văn phòng, trợ năng, kiểm thử, điện thoại và tập trung — tất cả đều đã được kiểm chứng và chấm điểm an toàn. Mở trong ứng dụng chỉ với một cú nhấp.",
+        p: "Mười chín mẫu chính thức cho nhấp chuột, văn phòng, trợ năng, kiểm thử, điện thoại và tập trung — tất cả đều đã được kiểm chứng và chấm điểm an toàn. Mở trong ứng dụng chỉ với một cú nhấp.",
         bullets: ["Nhãn danh mục, nền tảng và rủi ro rõ ràng", "Mẫu cộng đồng được máy chủ kiểm tra lại", "Mọi mẫu đều chỉnh sửa được theo ý bạn"],
       },
       {
@@ -233,7 +233,7 @@ export const vi: Content = {
         h2: "Tạo",
         items: [
           { icon: "wand", h3: "Chế độ Dễ", p: "Trả lời bốn câu — làm gì, ở đâu, nhanh cỡ nào, bao nhiêu lần — là có luồng. Khoảng cách từ 50 ms, lặp theo số lần, thời gian hoặc đến khi dừng." },
-          { icon: "code", h3: "Chế độ Pro", p: "31 loại bước: nhấp, kéo thả, phím, văn bản, chờ, điều kiện, biến, bộ nhớ tạm, cửa sổ, HTTP, tệp, OCR, tìm hình ảnh và luồng lồng nhau." },
+          { icon: "code", h3: "Chế độ Pro", p: "34 loại bước: nhấp, kéo thả, phím, văn bản, chờ, điều kiện, biến, bộ nhớ tạm, cửa sổ, HTTP, tệp, OCR, tìm hình ảnh và luồng lồng nhau." },
           { icon: "record", h3: "Ghi thao tác", p: "Ghi chuột và bàn phím một lần rồi chỉnh từng bước. Ô mật khẩu được che, và chỉ ghi khi đèn báo đang hiển thị." },
           { icon: "bolt", h3: "Kích hoạt và phím tắt", p: "Bắt đầu luồng bằng phím tắt, lịch, khi mở ứng dụng hoặc (trên Android) khi bắt đầu sạc. Mỗi luồng có phím bắt đầu, tạm dừng và dừng riêng." },
         ],
@@ -251,7 +251,7 @@ export const vi: Content = {
         h2: "Nhập liệu và mẫu",
         items: [
           { icon: "key", h3: "Keyforge", p: "Đổi phím và nút chuột, thêm lớp và bung văn bản, tinh chỉnh chuột và tự đổi hồ sơ theo ứng dụng, thời gian hay thiết bị." },
-          { icon: "map", h3: "Atlas", p: "Mười sáu mẫu chính thức đã kiểm chứng cùng các luồng cộng đồng được máy chủ kiểm tra lại, rà lỗi và gắn nhãn trước khi công khai." },
+          { icon: "map", h3: "Atlas", p: "Mười chín mẫu chính thức đã kiểm chứng cùng các luồng cộng đồng được máy chủ kiểm tra lại, rà lỗi và gắn nhãn trước khi công khai." },
           { icon: "link", h3: "Liên kết chia sẻ", p: "Chia sẻ luồng bằng liên kết hoặc tệp. Khi nhập, mã băm được đối chiếu và rủi ro được đánh giá lại nên không có gì nguy hiểm lọt vào." },
           { icon: "cloud", h3: "Đồng bộ mã hóa", p: "Tùy chọn. Luồng được mã hóa trên thiết bị trước khi tải lên — máy chủ chỉ giữ bản mã mà nó không đọc được." },
         ],
@@ -341,7 +341,7 @@ export const vi: Content = {
   atlas: {
     seo: {
       title: "Atlas — mẫu tự động hóa miễn phí | AutoFlow",
-      description: "Mười sáu mẫu tự động hóa đã kiểm chứng cho nhấp chuột, văn phòng, trợ năng, kiểm thử, Android và tập trung. Có điểm an toàn, mở ngay trong AutoFlow.",
+      description: "Mười chín mẫu tự động hóa đã kiểm chứng cho nhấp chuột, văn phòng, trợ năng, kiểm thử, Android và tập trung. Có điểm an toàn, mở ngay trong AutoFlow.",
     },
     h1: "Atlas: mẫu cho những lối đi bạn lặp lại",
     lead: "Mỗi mẫu chính thức là một luồng hoàn chỉnh đã kiểm tra, có danh mục, nền tảng và nhãn rủi ro. Mở, chỉnh, chạy.",
@@ -419,7 +419,7 @@ export const vi: Content = {
       price: "0 ₫",
       period: "mãi mãi",
       desc: "Mọi tính năng hiện có của AutoFlow, trên mọi nền tảng.",
-      items: ["Chế độ Dễ và Pro với đủ 31 loại bước", "Ghi thao tác, phím tắt và kích hoạt", "Đổi phím, lớp và đoạn văn bản Keyforge", "Practice Canvas và Ledger", "Mẫu Atlas và liên kết chia sẻ", "Copilot dùng khóa riêng hoặc mô hình cục bộ", "Guardrails, điểm an toàn và Halt"],
+      items: ["Chế độ Dễ và Pro với đủ 34 loại bước", "Ghi thao tác, phím tắt và kích hoạt", "Đổi phím, lớp và đoạn văn bản Keyforge", "Practice Canvas và Ledger", "Mẫu Atlas và liên kết chia sẻ", "Copilot dùng khóa riêng hoặc mô hình cục bộ", "Guardrails, điểm an toàn và Halt"],
     },
     sync: {
       name: "Đồng bộ mã hóa",
