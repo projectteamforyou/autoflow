@@ -255,10 +255,10 @@ export const CAPTIONS = {
   ko: {
     introTitle: "AutoFlow\n접근성 API 사용",
     introSub: "Android 15 (API 35) 에뮬레이터에서 AutoFlow 앱(디버그 빌드)을 녹화한 화면",
-    open: "사용자가 AutoFlow ▸ 설정 ▸ 권한을 엽니다",
+    open: "사용자가 AutoFlow → 설정 → 권한을 엽니다",
     disclosure: "1. Android 설정을 열기 전에 AutoFlow가 접근성 서비스 사용 방식을 안내합니다",
-    enableUi: "2. 사용자가 Android 설정 ▸ 접근성에서 AutoFlow를 켭니다",
-    enableAdb: "2. Android 설정 ▸ 접근성에서 AutoFlow가 켜집니다 (이 녹화에서는 adb로 전환)",
+    enableUi: "2. 사용자가 Android 설정 → 접근성에서 AutoFlow를 켭니다",
+    enableAdb: "2. Android 설정 → 접근성에서 AutoFlow가 켜집니다 (이 녹화에서는 adb로 전환)",
     granted: "AutoFlow로 돌아오면 접근성 서비스가 허용됨으로 표시됩니다",
     create: "3. 사용자가 Easy 자동 클릭 플로우를 만듭니다 (느리게, 멈출 때까지, 탭 위치 1곳)",
     run: "4. 플로우를 실행하면 AutoFlow가 접근성 서비스로 화면을 탭합니다 (탭 궤적: Android 포인터 위치 표시)",
