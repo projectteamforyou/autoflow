@@ -241,7 +241,7 @@ try {
   fail("site.webmanifest", `invalid: ${(e as Error).message}`);
 }
 for (const f of ["favicon.ico", "favicon.svg", "icons/apple-touch-icon.png", "_headers", "_redirects", "404.html"]) if (!existsSync(join(DIST, f))) fail(f, "missing");
-if (existsSync(join(DIST, "_redirects")) && !readFileSync(join(DIST, "_redirects"), "utf8").includes("/app/* /app/index.html 200")) fail("_redirects", "missing SPA fallback for /app/*");
+if (existsSync(join(DIST, "_redirects")) && !readFileSync(join(DIST, "_redirects"), "utf8").includes("/app/* /app/ 200")) fail("_redirects", "missing SPA fallback for /app/*");
 if (existsSync(join(DIST, "_headers")) && !/Content-Security-Policy:.*frame-ancestors 'none'/.test(readFileSync(join(DIST, "_headers"), "utf8"))) fail("_headers", "missing strict CSP");
 
 /* ---------------------------------------------------------------- report */

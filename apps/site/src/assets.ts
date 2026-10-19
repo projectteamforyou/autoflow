@@ -4,6 +4,18 @@ import { createRequire } from "node:module";
 import sharp from "sharp";
 import { BRAND, DIST, LINKS, PUBLIC, REPO } from "./config.js";
 import { hash } from "./util.js";
+import { AI_PROVIDERS } from "@autoflow/core";
+
+/** Every provider in the shared Copilot catalog: cloud origins plus local servers on localhost/127.0.0.1. */
+function aiConnectSources(): string {
+  const out = new Set<string>();
+  for (const p of AI_PROVIDERS) {
+    const u = new URL(p.baseUrl);
+    out.add(u.origin);
+    if (u.hostname === "localhost") out.add(`${u.protocol}//127.0.0.1:${u.port}`);
+  }
+  return [...out].join(" ");
+}
 
 const require = createRequire(import.meta.url);
 const out = (...p: string[]) => join(DIST, ...p);
@@ -148,7 +160,7 @@ export async function buildCloudflare(opts: { scriptHashes: string[]; styleHashe
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self' data:",
-    `connect-src 'self' ${opts.apiOrigin} https://api.openai.com https://api.anthropic.com https://openrouter.ai http://localhost:11434 http://localhost:1234 http://127.0.0.1:11434 http://127.0.0.1:1234`,
+    `connect-src 'self' ${opts.apiOrigin} ${aiConnectSources()}`,
     "worker-src 'self' blob:",
     "manifest-src 'self'",
     "object-src 'none'",
@@ -205,7 +217,7 @@ export async function buildCloudflare(opts: { scriptHashes: string[]; styleHashe
     "/privacy-policy /en/privacy/ 301",
     "/tos /en/terms/ 301",
     "/terms-of-service /en/terms/ 301",
-    "/app/* /app/index.html 200",
+    "/app/* /app/ 200",
   ].join("\n");
   await writeFile(out("_redirects"), `${redirects}\n`);
 }
