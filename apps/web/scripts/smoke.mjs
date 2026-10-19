@@ -18,6 +18,8 @@ const exe = ["/opt/pw-browsers/chromium/chrome-linux/chrome", process.env.CHROME
 const browser = await chromium.launch(exe ? { executablePath: exe } : {});
 const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
 const errors = [];
+// Local runs must not touch the production API (and its CORS allowlist rightly rejects localhost).
+if (!argUrl) await page.route(/\/v1\/stats(\/|$)/, (r) => r.fulfill(r.request().method() === "GET" ? { status: 200, contentType: "application/json", body: JSON.stringify({ visitsTotal: 1, onlineNow: 1, downloads: { windows: 0, android: 0, total: 0 } }) } : { status: 204 }));
 page.on("pageerror", (e) => errors.push(String(e)));
 page.on("console", (m) => m.type() === "error" && !/Failed to load resource|net::ERR/.test(m.text()) && errors.push(m.text()));
 const step = (name) => console.log(`✓ ${name}`);
