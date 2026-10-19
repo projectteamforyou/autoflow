@@ -18,7 +18,7 @@ describe("public stats", () => {
     expect((await t.call("POST", "/v1/stats/leave", { body: { sid: sid(2) } })).status).toBe(204);
     const dl = await t.call("GET", "/v1/stats/download/windows");
     expect(dl.status).toBe(302);
-    expect(dl.headers.get("location")).toBe("https://github.com/work517/autoflow/releases/latest");
+    expect(dl.headers.get("location")).toBe("https://dl.autoflowmacro.com/windows/AutoFlow-Setup-x64.exe");
     await t.call("GET", "/v1/stats/download/android");
     s = (await t.call("GET", "/v1/stats")).json;
     expect(s.onlineNow).toBe(1);
