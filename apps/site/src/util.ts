@@ -19,8 +19,11 @@ function render(v: unknown): string {
 }
 
 /** Inline copy formatting: **bold**, [label](href) and {email}. Everything else is escaped. */
+/** Escapes text; "\n" becomes a line break shown on wide screens only (mobile wraps naturally). */
+export const brk = (s: string) => esc(s).replace(/\n/g, '<br class="br-pc">');
+
 export function md(s: string): string {
-  let out = esc(s);
+  let out = brk(s);
   out = out.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   out = out.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_m, label: string, href: string) => {
     const ext = /^https?:/.test(href);

@@ -4,7 +4,7 @@ import { LINKS, pagePath, type PageId } from "./config.js";
 import { brand, icon, mark } from "./icons.js";
 import { shareBar, type Ctx } from "./layout.js";
 import { crumbsFor } from "./seo.js";
-import { esc, html, md } from "./util.js";
+import { esc, html, md, brk } from "./util.js";
 
 export interface PageOut {
   title: string;
@@ -45,6 +45,9 @@ function crumbs(ctx: Ctx, page: PageId) {
     i === c.length - 1 ? `<li><span aria-current="page">${esc(x.name)}</span></li>` : `<li><a href="${x.path}">${esc(x.name)}</a></li>`,
   )}</ol></nav>`;
 }
+
+/** Short-script locales keep section headings on one line on desktop; longer languages wrap. */
+const oneLine = (ctx: Ctx) => (["ko", "ja", "zh-CN", "zh-TW", "en"].includes(ctx.lang) ? " nowrap-pc" : "");
 
 function pageHero(ctx: Ctx, page: PageId, h1: string, lead: string, extra = "") {
   return html`<section class="page-hero"><div class="wrap">
@@ -176,7 +179,7 @@ function home(ctx: Ctx): PageOut {
 <div class="wrap">
 <a class="eyebrow" href="${LINKS.app}"><b>NEW</b><span>${esc(h.eyebrow)}</span>${icon("arrow", 14)}</a>
 <h1 class="display"><span class="line">${esc(h.h1a)}</span> <span class="line grad">${esc(h.h1b)}</span></h1>
-<p class="lead">${esc(h.lead)}</p>
+<p class="lead">${brk(h.lead)}</p>
 ${ctaRow(ctx)}
 <div class="hero-visual">${editorMock(t)}</div>
 </div>
@@ -191,7 +194,7 @@ ${h.rows.map(
 )}
 </div></section>
 <section class="section" id="universe"><div class="wrap">
-<div class="section-head"><span class="kicker">${esc(h.universe.kicker)}</span><h2 class="h2">${esc(h.universe.h2)}</h2><p class="lead">${esc(h.universe.lead)}</p></div>
+<div class="section-head"><span class="kicker">${esc(h.universe.kicker)}</span><h2 class="h2${oneLine(ctx)}">${brk(h.universe.h2)}</h2><p class="lead${oneLine(ctx)}">${brk(h.universe.lead)}</p></div>
 <div class="uni">${Object.entries(h.universe.items).map(
     ([k, v]) => `<div class="uni-card"><span class="tile${k === "halt" ? " halt" : ""}">${icon(uniIcon[k]!, 20)}</span><h3>${esc(v.name)}</h3><p>${esc(v.desc)}</p></div>`,
   )}</div>

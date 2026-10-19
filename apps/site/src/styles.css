@@ -459,3 +459,11 @@ ul { margin: 0; padding: 0; }
 .foot-biz dt { font-weight: 600; color: var(--af-text); opacity: .75; }
 .foot-biz dd { margin: 0; }
 .foot-biz a { color: inherit; }
+
+/* Editorial line breaks and single-line headings on desktop; natural wrapping on small screens. */
+.br-pc { display: none; }
+@media (min-width: 1024px) {
+  .br-pc { display: inline; }
+  .nowrap-pc { white-space: nowrap; max-width: none !important; }
+  .lead:has(.br-pc) { max-width: none; }
+}
