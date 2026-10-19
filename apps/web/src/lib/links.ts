@@ -1,6 +1,7 @@
 /**
  * Handles links that arrive on a real path (from emails and server share links) rather than a
  * hash route: /verify-email#token=…, /reset-password#token=…, /s/<shareId>.
+ * (/billing/return is rewritten synchronously in main.tsx, before the router mounts.)
  * Tokens travel in the URL fragment so they never reach server logs; we clear them right away.
  */
 import { api } from "./api";

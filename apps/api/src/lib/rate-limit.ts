@@ -82,6 +82,8 @@ export interface Limiters {
   relay: RateLimiter;
   install: RateLimiter;
   stats: RateLimiter;
+  billing: RateLimiter;
+  admin: RateLimiter;
 }
 
 export function createMemoryLimiters(rules: Record<keyof Limiters, RateRule>): Limiters {
@@ -94,5 +96,7 @@ export function createMemoryLimiters(rules: Record<keyof Limiters, RateRule>): L
     relay: new MemoryTokenBucket(rules.relay),
     install: new MemoryTokenBucket(rules.install),
     stats: new MemoryTokenBucket(rules.stats),
+    billing: new MemoryTokenBucket(rules.billing),
+    admin: new MemoryTokenBucket(rules.admin),
   };
 }

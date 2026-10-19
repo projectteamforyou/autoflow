@@ -23,6 +23,7 @@ import { healthRoutes, metaRoutes } from "./routes/meta.js";
 import { meRoutes } from "./routes/me.js";
 import { shareRoutes } from "./routes/shares.js";
 import { syncRoutes } from "./routes/sync.js";
+import { adminBillingRoutes, billingRoutes } from "./routes/billing.js";
 
 export const CORS_ALLOW_HEADERS = ["Authorization", "Content-Type", "If-Match", "X-Provider-Key", "X-Request-Id"];
 export const CORS_EXPOSE_HEADERS = ["ETag", "Retry-After", "X-Request-Id"];
@@ -127,6 +128,8 @@ export function createApp(deps: AppDeps): Hono<AppEnv> {
   app.route("/v1/shares", shareRoutes());
   app.route("/v1/ai", aiRoutes());
   app.route("/v1/stats", statsRoutes());
+  app.route("/v1/billing", billingRoutes());
+  app.route("/v1/admin/billing", adminBillingRoutes());
 
   app.get("/", (c) => c.json({ name: "AutoFlow API", version: config.version, docs: "/v1/openapi.yaml" }));
 

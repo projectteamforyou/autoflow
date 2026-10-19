@@ -12,6 +12,7 @@ Deployed on Railway (Dockerfile) with the web app on Cloudflare Pages.
 - **동기화**: 클라이언트가 암호화한 `ciphertext + iv + contentHash`만 저장. `If-Match` 리비전으로 낙관적 동시성 제어, 충돌 시 409와 서버 사본 반환, 삭제는 툼스톤. 사용자당 5,000개 / 50 MB, 항목당 2 MB.
 - **Atlas**: 게시 시 서버가 `parseFlow → sanitizeForSharing → lintFlow(오류 금지) → analyzeRisk`를 다시 실행하고 위험도·권한 라벨을 저장. 고위험은 검토 대기(`pending_review`), 신고 N건 이상이면 자동 숨김 후 관리자 검토.
 - **릴레이**: 허용 목록 호스트(api.openai.com, api.anthropic.com, generativelanguage.googleapis.com, openrouter.ai)로만 전달. 사용자 키는 `X-Provider-Key`로 요청마다 전달되며 저장·로그하지 않음. 임의 base URL 불가(SSRF 차단).
+- **결제(Business 플랜)**: 개인 사용은 무료, 비개인(업무) 사용은 2026-10-25(KST)까지 무료. 이후 업무용 계정은 유효한 이용권이 없으면 동기화 쓰기가 402 `business_plan_required`(읽기·삭제·내보내기·탈퇴는 항상 허용). 결제 키는 환경 변수가 아니라 앱의 관리자 페이지에서 입력하며 AES-256-GCM으로 암호화 저장(`SETTINGS_ENCRYPTION_KEY`). 웹훅 없이 서버가 PortOne/PayPal API로 직접 검증하고 멱등 처리.
 - **GDPR**: `GET /v1/me/export`로 전체 데이터 JSON 내보내기, `DELETE /v1/me`로 계정과 모든 데이터 영구 삭제(FK cascade).
 - **배포**: Railway 서비스의 Config-as-code 경로를 `apps/api/railway.json`으로 지정하고 PostgreSQL 플러그인의 `DATABASE_URL`을 연결. 시작 시 마이그레이션 자동 적용(advisory lock).
 
@@ -44,6 +45,8 @@ Migrations in `migrations/*.sql` are applied automatically at startup inside one
 | `TRUST_PROXY_HOPS` | `1` | Trusted proxies for `X-Forwarded-For` (Railway edge = 1) |
 | `LOG_LEVEL` | `info` (prod) / `debug` | `silent` in tests |
 | `ATLAS_REQUIRE_VERIFIED_EMAIL` | `true` | Publishing requires a verified email |
+| `ADMIN_EMAILS` | `projectteamforyou@gmail.com` | Operators (verified email) for the Admin page: payment keys, orders, entitlements |
+| `SETTINGS_ENCRYPTION_KEY` | — (dev/test: built-in dev key) | ≥ 32 chars (`openssl rand -base64 32`); encrypts admin-entered payment secrets. Without it in production, keys cannot be saved and checkout stays off |
 
 ## Endpoints
 
@@ -90,6 +93,32 @@ All responses are JSON; errors are `{ "error": { "code", "message", "details"? }
 | GET / DELETE | `/v1/shares/:id` | — / 🔒 | Open / delete (owner) |
 | GET | `/v1/ai/providers` | | Relay allow-list |
 | POST | `/v1/ai/relay` | 🔒 | Relay JSON to an allow-listed provider with `X-Provider-Key` |
+| GET | `/v1/billing/config` | | Plans, prices, policy dates, public checkout parameters (no secrets) |
+| GET | `/v1/billing/status` | 🔒 | Usage type, plan status, entitlement, recent orders |
+| POST | `/v1/billing/checkout` | 🔒 | Pending one-time order (PortOne KRW / PayPal USD, 1 or 12 months) |
+| POST | `/v1/billing/confirm` | 🔒 | Server-side verification with the provider, idempotent settlement |
+| GET / PUT | `/v1/admin/billing/settings` | 🔒 operator | Payment keys (secrets encrypted, never returned), prices, providers on/off |
+| GET | `/v1/admin/billing/orders` · `/users?email=` · `/audit` | 🔒 operator | Orders, a user's billing, audit log |
+| POST | `/v1/admin/billing/entitlements` | 🔒 operator | Grant / revoke a Business entitlement (audited) |
+
+## Billing (Business plan)
+
+Policy, prices and dates live in `packages/core/src/plans.ts`, shared by the API, web app and site:
+Sync is ₩0 during launch, personal use is free, non-personal use is free until **2026-10-25 23:59:59 KST**;
+after that, `PUT /v1/sync/items/*` returns **402 `business_plan_required`** for `usageType = business`
+without a valid entitlement (only while at least one payment provider is configured). Reads, tombstones,
+export and account deletion are never blocked.
+
+- **Keys are not env vars.** An operator (`ADMIN_EMAILS`, verified email) enters PortOne (store id, KCP
+  channel key, API secret) and PayPal (client id/secret, live/sandbox) in the app's Admin page. Secrets are
+  sealed with AES-256-GCM (key derived from `SETTINGS_ENCRYPTION_KEY`), never returned (only "set" + last 4),
+  and every change is written to `admin_audit_log`. Billing works as soon as keys are saved.
+- **No webhooks, no stored cards.** One-time purchases of 1 or 12 months; a purchase extends a running entitlement.
+- **Never trust the client.** `confirm` asks PortOne (`GET https://api.portone.io/payments/{id}`) or PayPal
+  (order lookup → capture) and settles only if status, amount, currency and our pending order all match.
+  A PortOne payment that does not match is refunded through the cancel API. `pending → paid` happens once
+  (row lock + `UNIQUE (provider, provider_payment_id)`), with the user's row locked while the entitlement grows.
+- Orders survive account deletion (`user_id` → NULL) because Korean e-commerce law requires payment records for 5 years.
 
 ## Security notes
 

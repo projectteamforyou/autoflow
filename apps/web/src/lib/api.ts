@@ -59,6 +59,9 @@ export interface User {
   id: string;
   email: string;
   emailVerified?: boolean;
+  usageType?: "personal" | "business";
+  /** Operator of this deployment: sees the Admin page. */
+  isAdmin?: boolean;
   createdAt?: string;
 }
 
@@ -91,6 +94,9 @@ export const auth = {
     } finally {
       await setToken(null);
     }
+  },
+  async update(patch: { usageType?: "personal" | "business" }): Promise<User> {
+    return (await api<{ user: User }>("/v1/me", { method: "PATCH", json: patch })).user;
   },
   async requestReset(email: string): Promise<void> {
     await api("/v1/auth/password/forgot", { method: "POST", json: { email }, auth: false });

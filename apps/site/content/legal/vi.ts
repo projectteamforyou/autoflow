@@ -73,7 +73,7 @@ export const privacy: Privacy = {
     processors: sec(
       "13. Bên xử lý dữ liệu",
       "Chúng tôi làm việc với một số ít nhà cung cấp xử lý dữ liệu thay mặt chúng tôi theo nghĩa vụ bảo mật và an toàn trong hợp đồng:",
-      ["**Cloudflare, Inc.** — lưu trữ trang web và ứng dụng web, phân phối nội dung và chống tấn công;", "**Railway Corporation** — lưu trữ API và cơ sở dữ liệu AutoFlow (dữ liệu tài khoản, dữ liệu đồng bộ đã mã hóa, Atlas).", "Bản tải được cung cấp qua **GitHub** (Windows) và **Google Play** (Android); các dịch vụ này xử lý dữ liệu theo chính sách riêng của họ."],
+      ["**Cloudflare, Inc.** — lưu trữ trang web và ứng dụng web, phân phối nội dung và chống tấn công;", "**Railway Corporation** — lưu trữ API và cơ sở dữ liệu AutoFlow (dữ liệu tài khoản, dữ liệu đồng bộ đã mã hóa, Atlas).", "Bản tải được cung cấp qua **GitHub** (Windows) và **Google Play** (Android); các dịch vụ này xử lý dữ liệu theo chính sách riêng của họ.", "**PortOne** (Korea PortOne Inc.) và **NHN KCP Corp.** — thanh toán thẻ bằng won Hàn Quốc cho gói Business; **PayPal** — thanh toán bằng các loại tiền khác. Họ nhận thông tin thanh toán bạn nhập trên trang của họ; chúng tôi chỉ nhận kết quả thanh toán (số tiền, trạng thái, mã thanh toán và email tài khoản), không bao giờ nhận số thẻ của bạn."],
     ),
     transfers: sec(
       "14. Chuyển dữ liệu ra nước ngoài",
@@ -85,6 +85,7 @@ export const privacy: Privacy = {
       "Sau khi xóa tài khoản: gỡ khỏi hệ thống đang chạy ngay lập tức và khỏi bản sao lưu trong vòng 30 ngày.",
       "Mẫu Atlas: đến khi bạn gỡ hoặc xóa tài khoản; báo cáo lạm dụng tối đa một năm.",
       "Nhật ký bảo mật: tối đa 30 ngày, trừ khi cần lâu hơn để điều tra một sự cố cụ thể.",
+      "Hồ sơ thanh toán (đơn hàng gói Business): lưu 5 năm theo yêu cầu của Luật Bảo vệ Người tiêu dùng trong Thương mại Điện tử của Hàn Quốc — kể cả sau khi xóa tài khoản — rồi xóa.",
     ]),
     rights: sec(
       "16. Quyền của bạn",
@@ -183,8 +184,12 @@ export const terms: Terms = {
       "Đồng bộ mã hóa là tùy chọn và hiện miễn phí trong giai đoạn ra mắt. Chúng tôi cố gắng duy trì Dịch vụ, nhưng Dịch vụ có thể gián đoạn do bảo trì, sự cố hoặc lý do ngoài tầm kiểm soát. Vì đồng bộ được mã hóa đầu cuối, chúng tôi không thể khôi phục dữ liệu nếu bạn mất khóa. Hãy lưu bản xuất của các luồng quan trọng.",
     ),
     fees: sec(
-      "10. Phí",
-      "Mọi thứ Dịch vụ đang cung cấp đều miễn phí. Nếu sau này có tính năng trả phí, chúng tôi sẽ thông báo trước, không áp dụng hồi tố, và tự động hóa cục bộ, Halt cùng tính năng xuất vẫn miễn phí.",
+      "10. Phí, gói trả phí và hoàn tiền",
+      "Ứng dụng AutoFlow, tự động hóa cục bộ, Halt và tính năng xuất đều miễn phí. Đồng bộ mã hóa miễn phí (₩0) trong giai đoạn ra mắt. Sử dụng đồng bộ cho mục đích cá nhân (cá nhân, phi thương mại) là miễn phí. Sử dụng ngoài mục đích cá nhân — cho doanh nghiệp, tổ chức hoặc bất kỳ mục đích thương mại nào — miễn phí đến 23:59 ngày 25 tháng 10 năm 2026 theo giờ Hàn Quốc; sau đó, việc sử dụng đồng bộ ngoài mục đích cá nhân cần gói Business trả phí. Bạn chọn loại sử dụng trong ứng dụng và phải giữ cho thông tin này chính xác.",
+      "Gói Business được bán theo hình thức mua một lần cho 1 hoặc 12 tháng, thanh toán qua PortOne (thẻ bằng won Hàn Quốc qua KCP) hoặc PayPal (đô la Mỹ). Giá, bao gồm thuế nếu có, được hiển thị trước khi thanh toán. Không tự động gia hạn và chúng tôi không lưu thẻ của bạn; lần mua mới sẽ kéo dài thời hạn hiện tại.",
+      "Rút lại yêu cầu mua: theo Luật Bảo vệ Người tiêu dùng trong Thương mại Điện tử của Hàn Quốc, bạn có thể rút lại giao dịch mua trong vòng 7 ngày kể từ ngày thanh toán và được hoàn tiền toàn bộ. Vì gói Business là nội dung số được cung cấp ngay từ khi thanh toán, quyền rút lại chấm dứt khi bạn bắt đầu sử dụng sau khi thanh toán (ví dụ tải dữ liệu lên đồng bộ cho mục đích doanh nghiệp), với điều kiện bạn đã đồng ý điều này khi thanh toán; trước đó, bạn có thể rút lại bất cứ lúc nào. Nếu dịch vụ khác với nội dung đã hiển thị, quảng cáo hoặc thỏa thuận, bạn có thể rút lại trong vòng 3 tháng kể từ khi nhận dịch vụ, hoặc trong vòng 30 ngày kể từ khi bạn biết hoặc có thể biết điều đó. Hãy yêu cầu hoàn tiền qua {email}; chúng tôi hoàn tiền qua phương thức thanh toán ban đầu trong vòng 3 ngày làm việc sau khi xác nhận việc rút lại.",
+      "Nếu chúng tôi không thể cung cấp đồng bộ vì lý do thuộc về chúng tôi, hoặc ngừng gói trả phí, chúng tôi sẽ hoàn lại phần thời hạn chưa sử dụng theo tỷ lệ. Không thanh toán không bao giờ khóa dữ liệu của bạn: việc xem, xuất và xóa dữ liệu đã đồng bộ luôn khả dụng. Nếu thay đổi giá hoặc ra mắt tính năng trả phí mới, chúng tôi sẽ thông báo trước, thay đổi không áp dụng cho thời hạn đã thanh toán, và tự động hóa cục bộ, Halt cùng tính năng xuất vẫn miễn phí.",
+      "Mục 14 (không bồi thường) cũng áp dụng cho các gói trả phí, nhưng không giới hạn việc hoàn tiền nêu trong mục này hay các quyền của bạn theo pháp luật bảo vệ người tiêu dùng.",
     ),
     ip: sec(
       "11. Sở hữu trí tuệ của chúng tôi",

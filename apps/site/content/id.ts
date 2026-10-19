@@ -410,11 +410,13 @@ export const id: Content = {
     },
     sync: {
       name: "Sinkronisasi terenkripsi",
-      price: "Rp0",
-      period: "selama peluncuran",
+      price: "₩0",
+      period: "gratis selama peluncuran",
       desc: "Akun opsional untuk menyinkronkan alur antarperangkat dengan enkripsi end-to-end.",
       items: ["Dienkripsi di perangkat sebelum diunggah", "Saat konflik, kedua versi disimpan", "Hapus akun dan data kapan saja"],
       note: "Sinkronisasi berjalan di server yang memerlukan biaya, jadi bisa saja menjadi opsi berbayar nanti. Jika itu terjadi, kami akan mengumumkannya jauh-jauh hari — dan tak ada data yang sudah Anda sinkronkan yang akan disandera.",
+      policy: "Penggunaan pribadi gratis. Penggunaan non-pribadi (bisnis) gratis hingga {date}.",
+      business: "Setelah itu, penggunaan bisnis memerlukan paket Business: {month} per bulan atau {year} per tahun — pembayaran sekali tanpa perpanjangan otomatis.",
     },
     promises: {
       h2: "Janji yang tidak berubah",

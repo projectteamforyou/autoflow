@@ -1,17 +1,19 @@
 import { SITE_URL } from "../lib/site";
 import { useEffect, useState } from "react";
-import { LOCALES, type LocaleCode } from "@autoflow/core";
+import { BUSINESS_FREE_UNTIL, LOCALES, formatPolicyDate, type LocaleCode } from "@autoflow/core";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
 import { Field, HotkeyInput, Seg, Switch, download } from "../components/ui";
 import { DEFAULT_API_URL, useStore } from "../lib/store";
-import { auth, type User } from "../lib/api";
+import { ApiError, auth, type User } from "../lib/api";
 import { deriveSyncKey, keyCheck } from "../lib/crypto";
 import { hasSyncKey, setSyncKey, syncNow } from "../lib/sync";
 import { confirmDialog, promptDialog } from "../lib/dialog";
-import { formatNumber, formatRelative, setLocale, useLocale, useT } from "../i18n";
+import { formatNumber, formatRelative, getLocale, setLocale, useLocale, useT } from "../i18n";
 import { usePublicStats } from "../lib/stats";
 import { hasNativeBridge, invoke } from "../platform";
+import { Link } from "react-router-dom";
+import { BillingPolicy, BillingSection } from "./Billing";
 
 export function SettingsPage() {
   const t = useT();
@@ -205,16 +207,19 @@ function AccountSection() {
       const r = await syncNow();
       toast("success", t("sync.done", { up: r.uploaded, down: r.downloaded, conflicts: r.conflicts }));
     } catch (e) {
-      toast("error", (e as Error).message);
+      if (e instanceof ApiError && e.code === "business_plan_required") toast("warning", t("billing.requiredBody", { date: formatPolicyDate(BUSINESS_FREE_UNTIL, getLocale()) }));
+      else toast("error", (e as Error).message);
     } finally {
       setBusy(false);
     }
   };
 
   return (
+    <>
     <section className="card stack">
       <h3><Icon name="Cloud" size={16} /> {t("account.title")}</h3>
       <p className="hint">{t("account.optional")}</p>
+      {!checking && !user && <BillingPolicy />}
       {checking ? (
         <p className="muted small">{t("common.loading")}</p>
       ) : user ? (
@@ -241,6 +246,7 @@ function AccountSection() {
               if (!pw) return;
               try { await auth.deleteAccount(pw); setUser(null); setSyncKey(null); await update({ sync: { enabled: false } }); toast("success", t("account.deleted")); } catch (e) { toast("error", (e as Error).message); }
             }}><Icon name="Trash2" size={14} /> {t("account.delete")}</button>
+            {user.isAdmin && <Link className="btn sm ghost" to="/admin"><Icon name="Shield" size={14} /> {t("admin.open")}</Link>}
           </div>
         </>
       ) : (
@@ -255,5 +261,7 @@ function AccountSection() {
         </form>
       )}
     </section>
+    {user && <BillingSection user={user} onUser={setUser} />}
+    </>
   );
 }

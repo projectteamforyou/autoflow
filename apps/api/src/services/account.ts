@@ -1,6 +1,7 @@
 /** GDPR: full data export and account deletion (cascades to every user-owned row). */
 import type { AppDeps, AuthContext } from "../deps.js";
-import { deleteUser, listSessions, updateProfile, revokeUserSessions } from "../db/users.js";
+import { deleteUser, listSessions, updateProfile, revokeUserSessions, updateUsageType, type UsageType } from "../db/users.js";
+import { listUserOrders, getEntitlement } from "../db/billing.js";
 import { listDevices } from "../db/devices.js";
 import { listAllItems } from "../db/items.js";
 import { listAuthorTemplatesWithFlow, listUserInstalls, listUserRatings, listUserReports } from "../db/atlas.js";
@@ -14,7 +15,7 @@ import { errors } from "../errors.js";
 
 export async function exportData(deps: AppDeps, auth: AuthContext) {
   const uid = auth.user.id;
-  const [sessions, devices, items, templates, ratings, reports, installs, shares] = await Promise.all([
+  const [sessions, devices, items, templates, ratings, reports, installs, shares, orders, entitlement] = await Promise.all([
     listSessions(deps.sql, uid, deps.now()),
     listDevices(deps.sql, uid),
     listAllItems(deps.sql, uid),
@@ -23,13 +24,15 @@ export async function exportData(deps: AppDeps, auth: AuthContext) {
     listUserReports(deps.sql, uid),
     listUserInstalls(deps.sql, uid),
     listOwnerShares(deps.sql, uid),
+    listUserOrders(deps.sql, uid, 1000),
+    getEntitlement(deps.sql, uid, "business"),
   ]);
   return {
     format: "autoflow.account-export",
     version: 1,
     exportedAt: deps.now().toISOString(),
     note: "Sync items are end-to-end encrypted; decrypt them with your AutoFlow app and sync passphrase.",
-    user: toPublicUser(auth.user),
+    user: toPublicUser(auth.user, deps.config.adminEmails),
     sessions: sessions.map((s) => ({
       id: s.id,
       deviceId: s.deviceId,
@@ -55,6 +58,21 @@ export async function exportData(deps: AppDeps, auth: AuthContext) {
       createdAt: s.createdAt.toISOString(),
       expiresAt: s.expiresAt?.toISOString() ?? null,
     })),
+    billing: {
+      usageType: auth.user.usageType,
+      entitlement: entitlement ? { plan: entitlement.plan, validUntil: entitlement.validUntil.toISOString() } : null,
+      orders: orders.map((o) => ({
+        id: o.id,
+        provider: o.provider,
+        plan: o.plan,
+        period: o.period,
+        amount: o.amount,
+        currency: o.currency,
+        status: o.status,
+        createdAt: o.createdAt.toISOString(),
+        paidAt: o.paidAt?.toISOString() ?? null,
+      })),
+    },
   };
 }
 
@@ -68,8 +86,19 @@ export async function deleteAccount(deps: AppDeps, auth: AuthContext, password: 
   await deps.mailer.send(accountDeletedMessage(auth.user.email));
 }
 
-export async function updateMe(deps: AppDeps, auth: AuthContext, patch: { displayName?: string | null; locale?: string }) {
-  const u = await updateProfile(deps.sql, auth.user.id, patch);
-  if (!u) throw errors.notFound("Account");
+export async function updateMe(deps: AppDeps, auth: AuthContext, patch: { displayName?: string | null; locale?: string; usageType?: UsageType }) {
+  const { usageType, ...profile } = patch;
+  let u = auth.user;
+  if (profile.displayName !== undefined || profile.locale !== undefined) {
+    const updated = await updateProfile(deps.sql, auth.user.id, profile);
+    if (!updated) throw errors.notFound("Account");
+    u = updated;
+  }
+  if (usageType !== undefined && usageType !== u.usageType) {
+    const updated = await updateUsageType(deps.sql, auth.user.id, usageType);
+    if (!updated) throw errors.notFound("Account");
+    deps.logger.info("account.usage_type", { userId: u.id, usageType });
+    u = updated;
+  }
   return u;
 }

@@ -73,7 +73,7 @@ export const privacy: Privacy = {
     processors: sec(
       "13. Auftragsverarbeiter",
       "Wir arbeiten mit wenigen Dienstleistern, die Daten in unserem Auftrag und unter vertraglichen Vertraulichkeits- und Sicherheitspflichten verarbeiten:",
-      ["**Cloudflare, Inc.** – Hosting der Website und der Web-App, Content-Auslieferung und Angriffsschutz;", "**Railway Corporation** – Hosting der AutoFlow-API und Datenbank (Kontodaten, verschlüsselte Sync-Daten, Atlas).", "Downloads erfolgen über **GitHub** (Windows) und **Google Play** (Android); diese Dienste verarbeiten Ihre Daten nach ihren eigenen Datenschutzbestimmungen."],
+      ["**Cloudflare, Inc.** – Hosting der Website und der Web-App, Content-Auslieferung und Angriffsschutz;", "**Railway Corporation** – Hosting der AutoFlow-API und Datenbank (Kontodaten, verschlüsselte Sync-Daten, Atlas).", "Downloads erfolgen über **GitHub** (Windows) und **Google Play** (Android); diese Dienste verarbeiten Ihre Daten nach ihren eigenen Datenschutzbestimmungen.", "**PortOne** (Korea PortOne Inc.) und **NHN KCP Corp.** – Kartenzahlungen in koreanischen Won für den Business-Tarif; **PayPal** – Zahlungen in anderen Währungen. Sie erhalten die Zahlungsdaten, die Sie auf ihren Seiten eingeben; wir erhalten nur das Zahlungsergebnis (Betrag, Status, Zahlungs-ID und die E-Mail-Adresse Ihres Kontos), niemals Ihre Kartennummer."],
     ),
     transfers: sec(
       "14. Internationale Übermittlungen",
@@ -85,6 +85,7 @@ export const privacy: Privacy = {
       "Nach Kontolöschung: sofortige Entfernung aus aktiven Systemen, aus Backups innerhalb von 30 Tagen.",
       "Atlas-Vorlagen: bis zum Zurückziehen oder zur Kontolöschung; Missbrauchsmeldungen bis zu einem Jahr.",
       "Sicherheitsprotokolle: bis zu 30 Tage, sofern sie nicht zur Aufklärung eines konkreten Vorfalls länger benötigt werden.",
+      "Zahlungsunterlagen (Bestellungen des Business-Tarifs): 5 Jahre, wie es das koreanische Gesetz zum Verbraucherschutz im elektronischen Handel verlangt – auch nach Löschung des Kontos –, danach werden sie gelöscht.",
     ]),
     rights: sec(
       "16. Ihre Rechte",
@@ -183,8 +184,12 @@ export const terms: Terms = {
       "Der verschlüsselte Sync ist optional und zum Start derzeit kostenlos. Wir bemühen uns um eine hohe Verfügbarkeit, der Dienst kann aber wegen Wartung, Störungen oder Umständen außerhalb unserer Kontrolle unterbrochen werden. Da der Sync Ende-zu-Ende-verschlüsselt ist, können wir Daten bei Schlüsselverlust nicht wiederherstellen. Bewahren Sie Exporte wichtiger Flows auf.",
     ),
     fees: sec(
-      "10. Entgelte",
-      "Alles, was der Dienst heute bietet, ist kostenlos. Führen wir künftig kostenpflichtige Funktionen ein, kündigen wir sie vorher an; sie gelten nicht rückwirkend, und lokale Automatisierung, Halt und Export bleiben kostenlos.",
+      "10. Entgelte, kostenpflichtige Tarife und Erstattungen",
+      "Die AutoFlow-Apps, lokale Automatisierung, Halt und Export sind kostenlos. Die verschlüsselte Synchronisierung ist während der Startphase kostenlos (₩0). Die private (individuelle, nicht kommerzielle) Nutzung der Synchronisierung ist kostenlos. Die nicht private Nutzung – für ein Unternehmen, eine Organisation oder einen sonstigen kommerziellen Zweck – ist bis zum 25. Oktober 2026, 23:59 Uhr koreanischer Zeit, kostenlos; danach erfordert die nicht private Nutzung der Synchronisierung den kostenpflichtigen Business-Tarif. Sie wählen Ihre Nutzungsart in der App und müssen sie zutreffend halten.",
+      "Der Business-Tarif wird als Einmalkauf für 1 oder 12 Monate verkauft und über PortOne (Kartenzahlung in koreanischen Won über KCP) oder PayPal (US-Dollar) bezahlt. Der Preis einschließlich etwaiger Steuern wird vor der Zahlung angezeigt. Es gibt keine automatische Verlängerung, und wir speichern Ihre Karte nicht; ein weiterer Kauf verlängert Ihren laufenden Zeitraum.",
+      "Widerruf: Nach dem koreanischen Gesetz zum Verbraucherschutz im elektronischen Handel können Sie einen Kauf innerhalb von 7 Tagen nach der Zahlung widerrufen und erhalten den vollen Betrag zurück. Da der Business-Tarif ein digitaler Inhalt ist, der ab der Zahlung bereitgestellt wird, erlischt das Widerrufsrecht, sobald Sie ihn nach der Zahlung nutzen (zum Beispiel durch Uploads in die Synchronisierung für geschäftliche Zwecke), sofern Sie dem beim Bezahlen zugestimmt haben; bis dahin können Sie jederzeit widerrufen. Weicht der Dienst von dem ab, was angezeigt, beworben oder vereinbart wurde, können Sie innerhalb von 3 Monaten nach Erhalt oder innerhalb von 30 Tagen ab dem Zeitpunkt widerrufen, zu dem Sie davon wussten oder wissen konnten. Erstattungen fordern Sie unter {email} an; wir erstatten über das ursprüngliche Zahlungsmittel innerhalb von 3 Werktagen nach Bestätigung des Widerrufs.",
+      "Können wir die Synchronisierung aus Gründen, die wir zu vertreten haben, nicht bereitstellen, oder stellen wir den kostenpflichtigen Tarif ein, erstatten wir den ungenutzten Teil Ihres Zeitraums anteilig. Nicht zu zahlen sperrt Ihre Daten nie: Lesen, Exportieren und Löschen synchronisierter Daten bleiben immer möglich. Ändern wir Preise oder führen neue kostenpflichtige Funktionen ein, kündigen wir dies vorher an; es gilt nicht für bereits bezahlte Zeiträume, und lokale Automatisierung, Halt und Export bleiben kostenlos.",
+      "Abschnitt 14 (kein Schadensersatz) gilt auch für kostenpflichtige Tarife, schränkt aber weder die in diesem Abschnitt beschriebenen Erstattungen noch Ihre Rechte nach dem Verbraucherschutzrecht ein.",
     ),
     ip: sec(
       "11. Unser geistiges Eigentum",

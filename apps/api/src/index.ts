@@ -16,6 +16,9 @@ const logger = createLogger(config.logLevel, { service: "autoflow-api", version:
 
 process.on("unhandledRejection", (reason) => logger.error("process.unhandled_rejection", { error: reason instanceof Error ? { name: reason.name, message: reason.message } : String(reason) }));
 
+if (config.env === "production" && !config.settingsEncryptionKey)
+  logger.warn("billing.disabled", { hint: "set SETTINGS_ENCRYPTION_KEY so operators can store payment keys in the Admin page" });
+
 const sql = createDb(config.databaseUrl);
 const applied = await migrate(sql, logger);
 logger.info("db.ready", { appliedMigrations: applied });

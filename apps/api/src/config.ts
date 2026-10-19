@@ -46,6 +46,8 @@ export interface Limits {
     relay: RateRule;
     install: RateRule;
     stats: RateRule;
+    billing: RateRule;
+    admin: RateRule;
   };
 }
 
@@ -57,6 +59,15 @@ export interface Config {
   publicAppUrl: string;
   mailFrom: string;
   resendApiKey?: string;
+  /** Normalized emails of the operators allowed into /v1/admin/billing (must also be verified). */
+  adminEmails: string[];
+  /**
+   * Secret that the AES-256-GCM key for admin-entered payment secrets is derived from.
+   * Unset in production → secrets cannot be stored and checkout stays disabled.
+   */
+  settingsEncryptionKey?: string;
+  /** Timeout for calls to payment providers. */
+  billingTimeoutMs: number;
   /** Number of trusted reverse proxies in front of the app (Railway edge = 1). */
   trustProxyHops: number;
   logLevel: "debug" | "info" | "warn" | "error" | "silent";
@@ -81,8 +92,15 @@ export const DEFAULT_LIMITS: Limits = {
     relay: { capacity: 30, refillPerMinute: 30 },
     install: { capacity: 60, refillPerMinute: 30 },
     stats: { capacity: 30, refillPerMinute: 20 },
+    billing: { capacity: 20, refillPerMinute: 10 },
+    admin: { capacity: 60, refillPerMinute: 30 },
   },
 };
+
+export const DEFAULT_ADMIN_EMAILS = ["projectteamforyou@gmail.com"] as const;
+
+/** Development/test only: lets admins try billing settings locally without configuring a key. */
+export const DEV_SETTINGS_ENCRYPTION_KEY = "autoflow-dev-only-settings-key-not-for-production";
 
 const EnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -95,7 +113,18 @@ const EnvSchema = z.object({
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error", "silent"]).optional(),
   ATLAS_REQUIRE_VERIFIED_EMAIL: z.enum(["true", "false"]).optional(),
+  ADMIN_EMAILS: z.string().optional(),
+  SETTINGS_ENCRYPTION_KEY: z.string().min(32, "SETTINGS_ENCRYPTION_KEY must be at least 32 characters (e.g. openssl rand -base64 32)").optional(),
 });
+
+export function parseAdminEmails(raw: string | undefined): string[] {
+  const list = (raw ?? "")
+    .split(",")
+    .map((s) => s.normalize("NFKC").trim().toLowerCase())
+    .filter(Boolean);
+  for (const e of list) if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) throw new Error(`ADMIN_EMAILS entry is not an email: ${e}`);
+  return list.length ? list : [...DEFAULT_ADMIN_EMAILS];
+}
 
 export function parseOrigins(raw: string | undefined): string[] {
   if (!raw || !raw.trim()) return [...DEFAULT_APP_ORIGINS];
@@ -125,6 +154,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     publicAppUrl: e.PUBLIC_APP_URL.replace(/\/+$/, ""),
     mailFrom: e.MAIL_FROM,
     resendApiKey: e.RESEND_API_KEY,
+    adminEmails: parseAdminEmails(e.ADMIN_EMAILS),
+    settingsEncryptionKey: e.SETTINGS_ENCRYPTION_KEY ?? (e.NODE_ENV === "production" ? undefined : DEV_SETTINGS_ENCRYPTION_KEY),
+    billingTimeoutMs: 20_000,
     trustProxyHops: e.TRUST_PROXY_HOPS,
     logLevel: e.LOG_LEVEL ?? (e.NODE_ENV === "test" ? "silent" : e.NODE_ENV === "production" ? "info" : "debug"),
     version: readPackageVersion(),
