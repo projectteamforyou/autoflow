@@ -64,13 +64,13 @@ export interface User {
 
 export const auth = {
   async signup(email: string, password: string): Promise<User> {
-    const r = await api<{ token: string; user: User }>("/v1/auth/signup", { method: "POST", json: { email, password }, auth: false });
-    await setToken(r.token);
+    const r = await api<{ session: { token: string }; user: User }>("/v1/auth/signup", { method: "POST", json: { email, password }, auth: false });
+    await setToken(r.session.token);
     return r.user;
   },
   async login(email: string, password: string): Promise<User> {
-    const r = await api<{ token: string; user: User }>("/v1/auth/login", { method: "POST", json: { email, password }, auth: false });
-    await setToken(r.token);
+    const r = await api<{ session: { token: string }; user: User }>("/v1/auth/login", { method: "POST", json: { email, password }, auth: false });
+    await setToken(r.session.token);
     return r.user;
   },
   async me(): Promise<User | null> {

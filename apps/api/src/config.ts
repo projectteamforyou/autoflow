@@ -68,7 +68,7 @@ export const DEFAULT_LIMITS: Limits = {
   devices: { maxPerUser: 50 },
   atlas: { reportHideThreshold: 3, maxPerAuthor: 100, maxFlowBytes: 512 * 1024, requireVerifiedEmail: true },
   shares: { maxFlowBytes: 256 * 1024, maxExpiryDays: 365 },
-  relay: { maxBodyBytes: 256 * 1024, maxResponseBytes: 4 * 1024 * 1024, timeoutMs: 60_000 },
+  relay: { maxBodyBytes: 256 * 1024, maxResponseBytes: 16 * 1024 * 1024, timeoutMs: 120_000 },
   session: { ttlMs: 30 * 86_400_000, touchIntervalMs: 5 * 60_000 },
   tokens: { resetTtlMs: 60 * 60_000, verifyTtlMs: 7 * 86_400_000 },
   rate: {

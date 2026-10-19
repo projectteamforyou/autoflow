@@ -7,7 +7,7 @@ import { Empty, FlowIcon, Modal, SafetyBadge, Seg } from "../components/ui";
 import { useStore } from "../lib/store";
 import { api, ApiError, getToken } from "../lib/api";
 import { promptDialog } from "../lib/dialog";
-import { tp, useT } from "../i18n";
+import { getLocale, tp, useT } from "../i18n";
 
 interface CommunityTemplate {
   id: string;
@@ -15,12 +15,10 @@ interface CommunityTemplate {
   description: string;
   category: string;
   platforms: Platform[];
-  riskLevel: "low" | "medium" | "high";
-  permissions: string[];
-  rating: number;
-  ratingCount: number;
+  author: { name: string };
+  risk: { level: "low" | "medium" | "high"; score: number; permissions: string[] };
   installs: number;
-  author: string;
+  rating: { average: number; count: number };
   flow?: Flow;
 }
 
@@ -48,8 +46,8 @@ export function AtlasPage() {
     if (cat !== "all") params.set("category", cat);
     if (plat !== "all") params.set("platform", plat);
     setCommunityError(null);
-    api<{ items: CommunityTemplate[] }>(`/v1/atlas?${params}`, { auth: false })
-      .then((r) => setCommunity(r.items))
+    api<{ templates: CommunityTemplate[] }>(`/v1/atlas/templates?${params}`, { auth: false })
+      .then((r) => setCommunity(r.templates))
       .catch((e: ApiError) => {
         setCommunity([]);
         setCommunityError(e.status === 0 ? t("atlas.offline") : e.message);
@@ -169,10 +167,10 @@ function CommunityCard({ item }: { item: CommunityTemplate }) {
   const toast = useStore((s) => s.toast);
   const installIt = async () => {
     try {
-      const r = await api<{ template: CommunityTemplate & { flow: Flow } }>(`/v1/atlas/${item.id}`, { auth: false });
+      const r = await api<{ template: CommunityTemplate & { flow: Flow } }>(`/v1/atlas/templates/${item.id}`, { auth: false });
       const parsed = parseFlow(r.template.flow);
       if (!parsed.ok) return toast("error", t("import.invalid"));
-      void api(`/v1/atlas/${item.id}/install`, { method: "POST", auth: false }).catch(() => undefined);
+      void api(`/v1/atlas/templates/${item.id}/install`, { method: "POST", auth: false }).catch(() => undefined);
       const now = new Date().toISOString();
       const f = await save({ ...parsed.flow, id: `f_${item.id.slice(0, 20)}_${Date.now().toString(36)}`, createdAt: now, updatedAt: now, revision: 0 }, { snapshot: false });
       navigate(`/flows/${f.id}`);
@@ -184,7 +182,7 @@ function CommunityCard({ item }: { item: CommunityTemplate }) {
     const reason = await promptDialog({ title: t("atlas.report"), input: { label: t("atlas.reportReason"), type: "textarea" } });
     if (!reason) return;
     try {
-      await api(`/v1/atlas/${item.id}/report`, { method: "POST", json: { reason: "other", text: reason.slice(0, 1000) } });
+      await api(`/v1/atlas/templates/${item.id}/reports`, { method: "POST", json: { reason: "other", details: reason.slice(0, 1000) } });
       toast("success", t("atlas.reported"));
     } catch (e) {
       toast("error", (e as Error).message);
@@ -196,13 +194,13 @@ function CommunityCard({ item }: { item: CommunityTemplate }) {
         <div className="tile-icon" style={{ background: "var(--af-gradient)" }}><Icon name="Globe" /></div>
         <div className="grow" style={{ minWidth: 0 }}>
           <b className="truncate" style={{ display: "block" }}>{item.name}</b>
-          <span className="small muted">{item.author} · ★ {item.rating.toFixed(1)} ({item.ratingCount}) · {t("atlas.installs", { n: item.installs })}</span>
+          <span className="small muted">{item.author.name} · ★ {item.rating.average.toFixed(1)} ({item.rating.count}) · {t("atlas.installs", { n: item.installs })}</span>
         </div>
       </div>
       <p className="small muted">{item.description}</p>
       <div className="meta">
-        <SafetyBadge level={item.riskLevel} />
-        {item.permissions.slice(0, 3).map((p) => <span key={p} className="badge">{t(p)}</span>)}
+        <SafetyBadge level={item.risk.level} />
+        {item.risk.permissions.slice(0, 3).map((p) => <span key={p} className="badge">{t(p)}</span>)}
       </div>
       <div className="row end">
         <button className="btn sm ghost" onClick={report}><Icon name="ShieldAlert" size={14} /> {t("atlas.report")}</button>
@@ -224,7 +222,7 @@ function PublishButton() {
     if (!flow) return;
     if (!(await getToken())) return toast("warning", t("atlas.signInFirst"));
     try {
-      await api("/v1/atlas", { method: "POST", json: { flow, category } });
+      await api("/v1/atlas/templates", { method: "POST", json: { flow, category, locale: getLocale() } });
       toast("success", t("atlas.published"));
       setOpen(false);
     } catch (e) {

@@ -22,3 +22,4 @@ apps/desktop/src-tauri/gen/
 .idea/
 .vscode/*
 !.vscode/extensions.json
+.claude/worktrees/

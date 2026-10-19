@@ -64,7 +64,7 @@ async function chat(system: string, user: string, json: boolean): Promise<string
   if (ai.provider === "anthropic") {
     const body = { model: ai.model, max_tokens: 4096, system, messages: [{ role: "user", content: user }] };
     const data = ai.useRelay
-      ? await api<{ content: { type: string; text?: string }[] }>("/v1/ai/relay", { method: "POST", json: { provider: "anthropic", path: "/v1/messages", body }, headers: { "X-Provider-Key": key } })
+      ? await viaRelay<{ content: { type: string; text?: string }[] }>("anthropic", "/v1/messages", body, key)
       : await providerFetch<{ content: { type: string; text?: string }[] }>(`${ai.baseUrl.replace(/\/+$/, "")}/messages`, body, { "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" });
     return data.content.filter((c) => c.type === "text").map((c) => c.text ?? "").join("");
   }
@@ -73,9 +73,21 @@ async function chat(system: string, user: string, json: boolean): Promise<string
   if (json) body.response_format = { type: "json_object" };
   const data =
     ai.useRelay && !isLocalUrl(ai.baseUrl)
-      ? await api<{ choices: { message: { content: string } }[] }>("/v1/ai/relay", { method: "POST", json: { provider: new URL(ai.baseUrl).host === "openrouter.ai" ? "openrouter" : "openai", path: "/chat/completions", body }, headers: { "X-Provider-Key": key } })
+      ? new URL(ai.baseUrl).host === "openrouter.ai"
+        ? await viaRelay<{ choices: { message: { content: string } }[] }>("openrouter", "/api/v1/chat/completions", body, key)
+        : await viaRelay<{ choices: { message: { content: string } }[] }>("openai", "/v1/chat/completions", body, key)
       : await providerFetch<{ choices: { message: { content: string } }[] }>(`${ai.baseUrl.replace(/\/+$/, "")}/chat/completions`, body, key ? { Authorization: `Bearer ${key}` } : {});
   return data.choices[0]?.message.content ?? "";
+}
+
+/** Calls the allow-listed AutoFlow relay; it answers 200 with the provider's status and body. */
+async function viaRelay<T>(provider: "openai" | "anthropic" | "openrouter", path: string, body: unknown, key: string): Promise<T> {
+  const r = await api<{ upstream: { status: number; body: unknown } }>("/v1/ai/relay", { method: "POST", json: { provider, path, body }, headers: { "X-Provider-Key": key } });
+  if (r.upstream.status >= 400) {
+    const b = r.upstream.body as { error?: { message?: string } } | string;
+    throw new AiError(`${r.upstream.status}: ${typeof b === "string" ? b.slice(0, 300) : (b?.error?.message ?? "provider error")}`);
+  }
+  return r.upstream.body as T;
 }
 
 async function providerFetch<T>(url: string, body: unknown, headers: Record<string, string>): Promise<T> {
@@ -162,7 +174,7 @@ export async function generateImage(req: ImageRequest): Promise<Blob> {
   const body = { model: ai.imageModel, prompt: req.prompt, size: req.size, background: req.background, output_format: req.format, quality: req.quality, n: 1 };
   const data =
     ai.useRelay && !isLocalUrl(ai.baseUrl)
-      ? await api<{ data: { b64_json: string }[] }>("/v1/ai/relay", { method: "POST", json: { provider: "openai", path: "/images/generations", body }, headers: { "X-Provider-Key": key } })
+      ? await viaRelay<{ data: { b64_json: string }[] }>("openai", "/v1/images/generations", body, key)
       : await providerFetch<{ data: { b64_json: string }[] }>(`${ai.baseUrl.replace(/\/+$/, "")}/images/generations`, body, { Authorization: `Bearer ${key}` });
   const b64 = data.data[0]?.b64_json;
   if (!b64) throw new AiError("No image returned");

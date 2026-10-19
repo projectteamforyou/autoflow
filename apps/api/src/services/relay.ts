@@ -20,7 +20,7 @@ const bearer = (key: string) => ({ Authorization: `Bearer ${key}` });
 export const RELAY_PROVIDERS = {
   openai: {
     origin: "https://api.openai.com",
-    paths: [/^\/v1\/chat\/completions$/, /^\/v1\/responses$/],
+    paths: [/^\/v1\/chat\/completions$/, /^\/v1\/responses$/, /^\/v1\/images\/generations$/],
     authHeaders: bearer,
   },
   anthropic: {

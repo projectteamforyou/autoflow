@@ -185,6 +185,7 @@ export const useStore = create<State>((set, get) => ({
     await db.delete("flows", id);
     for (const v of await db.byIndex<Version>("versions", "flowId", id)) await db.delete("versions", v.key);
     set({ flows: get().flows.filter((f) => f.id !== id) });
+    void import("./sync").then((m) => m.deleteRemote("flow", id));
   },
 
   async duplicateFlow(id) {
@@ -219,6 +220,7 @@ export const useStore = create<State>((set, get) => ({
   async deleteProfile(id) {
     await db.delete("profiles", id);
     set({ profiles: get().profiles.filter((p) => p.id !== id) });
+    void import("./sync").then((m) => m.deleteRemote("profile", id));
   },
 
   async recordRun(r) {
