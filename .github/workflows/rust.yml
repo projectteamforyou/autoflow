@@ -1,0 +1,75 @@
+# Rust checks for the native side: autoflow_engine (all platforms) and the Tauri desktop shell (Windows).
+name: rust
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "crates/**"
+      - "apps/desktop/**"
+      - "packages/core/fixtures/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/rust.yml"
+  pull_request:
+    paths:
+      - "crates/**"
+      - "apps/desktop/**"
+      - "packages/core/fixtures/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/rust.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rust-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+jobs:
+  engine:
+    name: Engine (fmt, clippy, test) on Ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: cargo fmt --check
+        run: cargo fmt --all --check
+      - name: cargo clippy (engine)
+        run: cargo clippy -p autoflow_engine --all-targets -- -D warnings
+      - name: cargo test (engine, shared fixtures)
+        run: cargo test -p autoflow_engine
+
+  windows:
+    name: Engine tests + desktop check on Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Stub frontend for generate_context!
+        # apps/web/dist is built by the web pipeline; the type check only needs an index.html.
+        shell: pwsh
+        run: |
+          $stub = Join-Path $env:RUNNER_TEMP 'stub-dist'
+          New-Item -ItemType Directory -Force -Path $stub | Out-Null
+          '<!doctype html><title>stub</title>' | Set-Content -Encoding ascii (Join-Path $stub 'index.html')
+          $cfg = @{ build = @{ frontendDist = $stub } } | ConvertTo-Json -Compress
+          "TAURI_CONFIG=$cfg" >> $env:GITHUB_ENV
+      - name: cargo test (engine, incl. Win32 smoke tests)
+        run: cargo test -p autoflow_engine
+      - name: cargo clippy (engine + desktop, Windows)
+        run: cargo clippy -p autoflow_engine -p autoflow-desktop --all-targets -- -D warnings
+      - name: cargo check (desktop)
+        run: cargo check -p autoflow-desktop

@@ -1,0 +1,210 @@
+# Windows release: web app -> Tauri (NSIS + MSI) -> Azure Artifact Signing -> verification gate -> release.
+#
+# Signing is enabled only when every secret/variable below is configured (see docs/WINDOWS_SIGNING.md):
+#   secrets   AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_CLIENT_SECRET
+#   variables AZURE_SIGN_ACCOUNT, AZURE_SIGN_PROFILE, AZURE_SIGN_ENDPOINT (default https://krc.codesigning.azure.net/)
+# Without them the workflow still builds, but every artifact is renamed "*-UNSIGNED*", the run prints a
+# warning and a tag release is published as a pre-release clearly marked UNSIGNED.
+name: windows
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  TAURI_CLI_VERSION: "2.12.3"
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build, sign and verify
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages/core
+        run: pnpm --filter @autoflow/core build
+
+      - name: Build apps/web
+        run: pnpm --filter @autoflow/web build
+
+      - name: Check web build output
+        shell: pwsh
+        run: |
+          if (-not (Test-Path apps/web/dist/index.html)) { throw "apps/web/dist/index.html is missing - the desktop app needs the web app build." }
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Decide signing mode
+        id: mode
+        shell: pwsh
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_SIGN_ACCOUNT: ${{ vars.AZURE_SIGN_ACCOUNT }}
+          AZURE_SIGN_PROFILE: ${{ vars.AZURE_SIGN_PROFILE }}
+        run: |
+          $missing = @('AZURE_CLIENT_ID', 'AZURE_TENANT_ID', 'AZURE_CLIENT_SECRET', 'AZURE_SIGN_ACCOUNT', 'AZURE_SIGN_PROFILE') |
+            Where-Object { -not [Environment]::GetEnvironmentVariable($_) }
+          if ($missing.Count -eq 0) {
+            "signed=true" >> $env:GITHUB_OUTPUT
+            "label=signed" >> $env:GITHUB_OUTPUT
+            Write-Host "Signing is configured: every binary and installer will be signed and verified."
+          } else {
+            "signed=false" >> $env:GITHUB_OUTPUT
+            "label=UNSIGNED" >> $env:GITHUB_OUTPUT
+            Write-Host "::warning title=UNSIGNED build::Azure Artifact Signing is not configured (missing: $($missing -join ', ')). Artifacts will be labelled UNSIGNED. See docs/WINDOWS_SIGNING.md."
+          }
+
+      - name: Install signing tools (C:\afsign)
+        shell: pwsh
+        run: |
+          if ('${{ steps.mode.outputs.signed }}' -eq 'true') {
+            powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/sign.ps1 -Install
+          } else {
+            # signCommand still points here; without AZURE_SIGN_PROFILE the script skips signing.
+            powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/sign.ps1 -Install -SkipDlib
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: App version from tag
+        id: version
+        shell: pwsh
+        run: |
+          $ref = '${{ github.ref_name }}'
+          $cfg = Join-Path $env:RUNNER_TEMP 'tauri.version.json'
+          if ('${{ github.ref_type }}' -eq 'tag' -and $ref -match '^v(\d+\.\d+\.\d+)$') {
+            '{"version":"' + $Matches[1] + '"}' | Set-Content -Encoding ascii $cfg
+            "args=--config `"$cfg`"" >> $env:GITHUB_OUTPUT
+            "version=$($Matches[1])" >> $env:GITHUB_OUTPUT
+          } else {
+            "args=" >> $env:GITHUB_OUTPUT
+            "version=dev" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Build installers (tauri build)
+        working-directory: apps/desktop
+        shell: pwsh
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_SIGN_ENDPOINT: ${{ vars.AZURE_SIGN_ENDPOINT || 'https://krc.codesigning.azure.net/' }}
+          AZURE_SIGN_ACCOUNT: ${{ vars.AZURE_SIGN_ACCOUNT }}
+          # Only set when signing is fully configured; sign.ps1 skips (exit 0) when it is empty.
+          AZURE_SIGN_PROFILE: ${{ steps.mode.outputs.signed == 'true' && vars.AZURE_SIGN_PROFILE || '' }}
+        run: |
+          npx --yes "@tauri-apps/cli@$env:TAURI_CLI_VERSION" build --ci ${{ steps.version.outputs.args }}
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Collect artifacts
+        id: collect
+        shell: pwsh
+        run: |
+          $out = New-Item -ItemType Directory -Force -Path dist
+          $files = @(Get-Item target/release/autoflow-desktop.exe)
+          $files += Get-ChildItem target/release/bundle/nsis/*.exe
+          $files += Get-ChildItem target/release/bundle/msi/*.msi
+          if ($files.Count -lt 3) { throw "expected the app exe, an NSIS installer and an MSI; found $($files.Count) file(s)" }
+          $unsigned = '${{ steps.mode.outputs.signed }}' -ne 'true'
+          foreach ($f in $files) {
+            $name = if ($f.Name -eq 'autoflow-desktop.exe') { "AutoFlow-${{ steps.version.outputs.version }}-portable.exe" } else { $f.Name }
+            if ($unsigned) { $name = [IO.Path]::GetFileNameWithoutExtension($name) + '-UNSIGNED' + $f.Extension }
+            Copy-Item $f.FullName (Join-Path $out $name)
+          }
+          Get-ChildItem dist | Format-Table Name, Length
+
+      - name: Signature verification gate
+        if: steps.mode.outputs.signed == 'true'
+        shell: pwsh
+        run: |
+          $kits = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin'
+          $signtool = Get-ChildItem $kits -Directory | Where-Object Name -match '^10\.' | Sort-Object { [version]$_.Name } -Descending |
+            ForEach-Object { Join-Path $_.FullName 'x64\signtool.exe' } | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $signtool) { throw 'signtool.exe not found' }
+          $failed = @()
+          foreach ($f in Get-ChildItem dist -Include *.exe, *.msi -Recurse) {
+            & $signtool verify /pa /v $f.FullName | Out-Host
+            $sig = Get-AuthenticodeSignature -LiteralPath $f.FullName
+            if ($LASTEXITCODE -ne 0 -or $sig.Status -ne 'Valid' -or $null -eq $sig.TimeStamperCertificate) {
+              $failed += "$($f.Name) (status: $($sig.Status), timestamp: $([bool]$sig.TimeStamperCertificate))"
+            } else {
+              Write-Host "OK  $($f.Name)  signer: $($sig.SignerCertificate.Subject)  timestamp: $($sig.TimeStamperCertificate.Subject)"
+            }
+          }
+          if ($failed.Count -gt 0) {
+            Write-Host "::error title=Unsigned or untimestamped files::$($failed -join '; ')"
+            exit 1
+          }
+
+      - name: Mark unsigned build
+        if: steps.mode.outputs.signed != 'true'
+        shell: pwsh
+        run: |
+          @"
+          THIS BUILD IS UNSIGNED.
+          Windows SmartScreen will warn about these files. Configure Azure Artifact Signing
+          (docs/WINDOWS_SIGNING.md) and re-run the workflow to produce signed installers.
+          "@ | Set-Content -Encoding utf8 dist/UNSIGNED-README.txt
+          Write-Host "::warning title=UNSIGNED artifacts::The uploaded files are NOT code-signed and are labelled -UNSIGNED."
+
+      - name: SHA256SUMS
+        shell: pwsh
+        run: |
+          $lines = Get-ChildItem dist -File | Where-Object Name -ne 'SHA256SUMS.txt' | Sort-Object Name | ForEach-Object {
+            "{0}  {1}" -f (Get-FileHash -Algorithm SHA256 $_.FullName).Hash.ToLowerInvariant(), $_.Name
+          }
+          [IO.File]::WriteAllText((Join-Path (Resolve-Path dist) 'SHA256SUMS.txt'), (($lines -join "`n") + "`n"))
+          Get-Content dist/SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: autoflow-windows-${{ steps.version.outputs.version }}-${{ steps.mode.outputs.label }}
+          path: dist/*
+          if-no-files-found: error
+
+      - name: GitHub Release (signed)
+        if: github.ref_type == 'tag' && steps.mode.outputs.signed == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+
+      - name: GitHub Release (UNSIGNED pre-release)
+        if: github.ref_type == 'tag' && steps.mode.outputs.signed != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }} (UNSIGNED)
+          prerelease: true
+          body: |
+            ⚠️ **UNSIGNED build** — Azure Artifact Signing was not configured when this release was built.
+            Windows SmartScreen will warn about these installers. Every file name carries `-UNSIGNED`.
+            Verify downloads with `SHA256SUMS.txt`.
+          generate_release_notes: true
+          files: dist/*
+          fail_on_unmatched_files: true
