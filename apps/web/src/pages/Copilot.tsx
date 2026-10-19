@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LOCALES, explainFlow, explainFlowEn } from "@autoflow/core";
+import { LOCALES, explainFlow, explainFlowEn, findProvider, type ProviderRegion } from "@autoflow/core";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
 import { Field, SafetyBadge, Switch } from "../components/ui";
 import { useStore } from "../lib/store";
-import { AI_KEY, PROVIDER_PRESETS, askText, draftFlow, isLocalUrl, previewRequest, testConnection, type DraftResult } from "../lib/ai";
+import { PROVIDER_PRESETS, askText, keyName, draftFlow, isLocalUrl, previewRequest, testConnection, type DraftResult } from "../lib/ai";
 import { vault } from "../lib/crypto";
 import { confirmDialog } from "../lib/dialog";
 import { getLocale, tp, useT } from "../i18n";
@@ -18,9 +18,16 @@ export function ProviderSettings() {
   const [key, setKey] = useState("");
   const [hasKey, setHasKey] = useState(false);
   const [testing, setTesting] = useState(false);
-  const preset = PROVIDER_PRESETS.find((p) => p.baseUrl === ai.baseUrl && p.provider === ai.provider)?.id ?? (ai.provider === "none" ? "none" : "custom");
-  useEffect(() => void vault.get(AI_KEY(ai.provider)).then((k) => setHasKey(!!k)), [ai.provider]);
+  const preset = ai.provider === "none" ? undefined : findProvider(ai.presetId);
+  const selected = ai.provider === "none" ? "none" : (ai.presetId ?? "custom");
+  const vaultName = keyName(ai);
+  useEffect(() => void vault.get(vaultName).then((k) => setHasKey(!!k)), [vaultName]);
   const set = (patch: Partial<typeof ai>) => void update({ ai: { ...ai, ...patch } });
+  const groups: { region: ProviderRegion; label: string }[] = [
+    { region: "global", label: t("copilot.group.global") },
+    { region: "korea", label: t("copilot.group.korea") },
+    { region: "local", label: t("copilot.group.local") },
+  ];
   return (
     <div className="card stack">
       <div className="row between">
@@ -28,34 +35,66 @@ export function ProviderSettings() {
         <span className={`badge ${ai.provider === "none" ? "" : "ok"}`}>{ai.provider === "none" ? t("copilot.off") : t("copilot.on")}</span>
       </div>
       <p className="hint">{t("copilot.byok")}</p>
-      <Field label={t("copilot.choose")}>
-        <select className="select" value={preset} onChange={(e) => {
-          const p = PROVIDER_PRESETS.find((x) => x.id === e.target.value);
-          if (e.target.value === "none") set({ provider: "none" });
-          else if (p) set({ provider: p.provider, baseUrl: p.baseUrl, model: p.model, localOnly: p.local ? ai.localOnly : false });
+      <Field label={t("copilot.choose")} hint={t("copilot.count", { n: PROVIDER_PRESETS.length })}>
+        <select className="select" value={selected} onChange={(e) => {
+          const v = e.target.value;
+          if (v === "none") return set({ provider: "none" });
+          if (v === "custom") return set({ provider: "openai", presetId: "custom" });
+          const p = findProvider(v);
+          if (p) set({ provider: p.api, presetId: p.id, baseUrl: p.baseUrl, model: p.models[0]!, localOnly: p.local ? ai.localOnly : false, useRelay: p.local ? false : ai.useRelay });
         }}>
           <option value="none">{t("copilot.none")}</option>
-          {PROVIDER_PRESETS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
-          {preset === "custom" && <option value="custom">{t("copilot.custom")}</option>}
+          {groups.map((g) => (
+            <optgroup key={g.region} label={g.label}>
+              {PROVIDER_PRESETS.filter((p) => p.region === g.region).map((p) => <option key={p.id} value={p.id}>{p.label} — {p.vendor}</option>)}
+            </optgroup>
+          ))}
+          <option value="custom">{t("copilot.custom")}</option>
         </select>
       </Field>
       {ai.provider !== "none" && (
         <>
+          {preset && (
+            <div className="row wrap small">
+              <span className={`badge ${preset.local ? "accent" : preset.region === "korea" ? "primary" : ""}`}>{preset.local ? t("copilot.badge.local") : preset.region === "korea" ? t("copilot.badge.korea") : t("copilot.badge.cloud")}</span>
+              {preset.images && <span className="badge">{t("copilot.badge.images")}</span>}
+              {preset.keyUrl && <a href={preset.keyUrl} target="_blank" rel="noopener noreferrer">{t("copilot.getKey")} ↗</a>}
+            </div>
+          )}
           <div className="grid cols-2">
-            <Field label={t("copilot.baseUrl")}><input className="input mono" value={ai.baseUrl} onChange={(e) => set({ baseUrl: e.target.value })} /></Field>
-            <Field label={t("copilot.model")}><input className="input mono" value={ai.model} onChange={(e) => set({ model: e.target.value })} /></Field>
+            <Field label={t("copilot.baseUrl")}><input className="input mono" value={ai.baseUrl} onChange={(e) => set({ baseUrl: e.target.value, presetId: findProvider(ai.presetId)?.baseUrl === e.target.value ? ai.presetId : "custom" })} /></Field>
+            <Field label={t("copilot.model")}>
+              <input className="input mono" list="af-models" value={ai.model} onChange={(e) => set({ model: e.target.value })} />
+              <datalist id="af-models">{(preset?.models ?? []).map((m) => <option key={m} value={m} />)}</datalist>
+            </Field>
           </div>
-          {ai.provider === "openai" && <Field label={t("copilot.imageModel")} hint={t("copilot.imageModelHint")}><input className="input mono" value={ai.imageModel} onChange={(e) => set({ imageModel: e.target.value })} /></Field>}
+          {ai.provider === "anthropic" ? (
+            <Field label={t("copilot.wire")}><span className="badge">Anthropic Messages API</span></Field>
+          ) : (
+            !preset && (
+              <Field label={t("copilot.wire")}>
+                <select className="select" value={ai.provider} onChange={(e) => set({ provider: e.target.value as "openai" | "anthropic" })}>
+                  <option value="openai">OpenAI-compatible (chat/completions)</option>
+                  <option value="anthropic">Anthropic Messages</option>
+                </select>
+              </Field>
+            )
+          )}
+          {(preset?.images || !preset) && ai.provider === "openai" && <Field label={t("copilot.imageModel")} hint={t("copilot.imageModelHint")}><input className="input mono" value={ai.imageModel} onChange={(e) => set({ imageModel: e.target.value })} /></Field>}
           <Field label={t("copilot.key")} hint={hasKey ? t("copilot.keyStored") : isLocalUrl(ai.baseUrl) ? t("copilot.keyOptional") : t("copilot.keyHint")}>
             <div className="input-group">
               <input className="input mono" type="password" autoComplete="off" value={key} placeholder={hasKey ? "••••••••••••" : "sk-…"} onChange={(e) => setKey(e.target.value)} />
-              <button className="btn" disabled={!key} onClick={async () => { await vault.set(AI_KEY(ai.provider), key.trim()); setKey(""); setHasKey(true); toast("success", t("copilot.keySaved")); }}>{t("common.save")}</button>
-              {hasKey && <button className="btn ghost" onClick={async () => { await vault.delete(AI_KEY(ai.provider)); setHasKey(false); }}><Icon name="Trash2" size={14} /></button>}
+              <button className="btn" disabled={!key} onClick={async () => { await vault.set(vaultName, key.trim()); setKey(""); setHasKey(true); toast("success", t("copilot.keySaved")); }}>{t("common.save")}</button>
+              {hasKey && <button className="btn ghost" onClick={async () => { await vault.delete(vaultName); setHasKey(false); }} aria-label={t("common.delete")}><Icon name="Trash2" size={14} /></button>}
             </div>
           </Field>
           <div className="row between"><span className="label">{t("copilot.localOnly")}</span><Switch checked={ai.localOnly} onChange={(v) => set({ localOnly: v })} label={t("copilot.localOnly")} /></div>
-          <div className="row between"><span className="label">{t("copilot.relay")}</span><Switch checked={ai.useRelay} onChange={(v) => set({ useRelay: v })} label={t("copilot.relay")} /></div>
-          <p className="hint">{t("copilot.relayHint")}</p>
+          {!isLocalUrl(ai.baseUrl) && (
+            <>
+              <div className="row between"><span className="label">{t("copilot.relay")}</span><Switch checked={ai.useRelay} onChange={(v) => set({ useRelay: v })} label={t("copilot.relay")} /></div>
+              <p className="hint">{preset ? t("copilot.relayHint") : t("copilot.relayCustom")}</p>
+            </>
+          )}
           <div className="row">
             <button className="btn sm" disabled={testing} onClick={async () => { setTesting(true); try { toast("success", `${t("copilot.connected")}: ${await testConnection()}`); } catch (e) { toast("error", (e as Error).message); } finally { setTesting(false); } }}>
               <Icon name="Zap" size={14} /> {testing ? t("common.loading") : t("copilot.test")}

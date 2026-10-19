@@ -23,6 +23,8 @@ export type Theme = "system" | "dark" | "light";
 export interface AiSettings {
   /** none = AI off · openai = OpenAI-compatible (OpenAI, OpenRouter, LM Studio, Ollama…) · anthropic */
   provider: "none" | "openai" | "anthropic";
+  /** Catalog id from @autoflow/core AI_PROVIDERS ("custom" for a hand-entered base URL). */
+  presetId?: string;
   baseUrl: string;
   model: string;
   imageModel: string;
@@ -60,7 +62,7 @@ export const DEFAULT_SETTINGS: Settings = {
   reduceMotion: false,
   canvasSpeed: 1,
   sync: { enabled: false },
-  ai: { provider: "none", baseUrl: "https://api.openai.com/v1", model: "gpt-4.1-mini", imageModel: "gpt-image-1", localOnly: false, useRelay: false },
+  ai: { provider: "none", presetId: "openai", baseUrl: "https://api.openai.com/v1", model: "gpt-4.1-mini", imageModel: "gpt-image-1", localOnly: false, useRelay: false },
   ledgerRetentionDays: 30,
 };
 

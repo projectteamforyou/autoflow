@@ -76,7 +76,7 @@ export function Library() {
         <div className="row">
           <button className="btn sm" onClick={onImportCode}><Icon name="Link" size={15} /> {t("import.code")}</button>
           <button className="btn sm" onClick={onImportFile}><Icon name="Upload" size={15} /> {t("import.file")}</button>
-          <button className="btn sm primary" onClick={() => navigate("/new/click")}><Icon name="Plus" size={15} /> {t("flows.new")}</button>
+          <button className="btn sm primary" onClick={() => navigate(useStore.getState().settings.defaultMode === "pro" ? "/new/pro" : "/new/click")}><Icon name="Plus" size={15} /> {t("flows.new")}</button>
         </div>
       }
     >

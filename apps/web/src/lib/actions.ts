@@ -65,6 +65,8 @@ export async function createFromKind(kind: string): Promise<Flow> {
     const m = defaultEasyModel(kind as EasyKind);
     if (kind === "multiClick") m.points = [{ x: 0.35, y: 0.5, button: "left", clicks: 1, holdMs: 0 }, { x: 0.65, y: 0.5, button: "left", clicks: 1, holdMs: 0 }];
     flow = applyEasy(base, m);
+    // Pro users get the same flow opened in the full editor (it stays Easy-compatible).
+    if (s.defaultMode === "pro") flow = { ...flow, mode: "pro" };
     flow.icon = kind === "keys" ? "keyboard" : kind === "text" ? "pen" : kind === "multiClick" ? "target" : "cursor";
   } else {
     flow = { ...base, mode: "pro", icon: kind === "record" ? "sparkles" : "workflow", color: kind === "record" ? "#EF4444" : "#F59E0B" };

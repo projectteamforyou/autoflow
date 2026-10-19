@@ -36,6 +36,7 @@ Rules:
 - Keep these product names in English: ${BRAND.join(", ")}.
 - Keep keyboard names (Ctrl, Alt, Esc, Shift, Tab, Enter, F8…) and units (ms, px, %) as is.
 - Natural, concise, native UI tone (as Apple/Google would ship). Use the platform's common terms for click, tap, swipe, clipboard, notification.
+- Keys starting with "onboard." are shown on ONE line on desktop: keep them as short as the English (similar character count; CJK about half), no extra clauses.
 - Korean: use 합니다/하세요 polite style for sentences; short labels as nouns. Japanese: です/ます. Chinese: concise.`,
       },
       { role: "user", content: JSON.stringify(Object.fromEntries(entries)) },

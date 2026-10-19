@@ -356,9 +356,10 @@ kbd {
 
 /* ---------- onboarding ---------- */
 .onboard { min-height: 100%; display: grid; place-items: center; padding: 24px; background: radial-gradient(900px 500px at 10% 0%, rgba(124, 92, 255, .3), transparent 60%), radial-gradient(800px 500px at 100% 100%, rgba(34, 195, 166, .22), transparent 60%), var(--af-bg); }
-.onboard .panel { width: min(720px, 100%); display: grid; gap: 22px; text-align: center; justify-items: center; }
+.onboard .panel { width: min(1100px, 100%); display: grid; gap: 22px; text-align: center; justify-items: center; }
 .onboard h1 { font-size: clamp(30px, 5vw, 48px); letter-spacing: -0.03em; }
-.onboard .lead { color: var(--af-muted); font-size: 16px; max-width: 560px; }
+.onboard .lead { color: var(--af-muted); font-size: 16px; max-width: 640px; }
+@media (min-width: 900px) { .onboard .lead { max-width: none; white-space: nowrap; font-size: clamp(15px, 1.35vw, 18px); } .onboard .grid.cols-2 { max-width: 720px; } }
 .dots { display: flex; gap: 6px; }
 .dots span { width: 8px; height: 8px; border-radius: 50%; background: var(--af-border-strong); }
 .dots span.on { background: var(--af-primary); width: 22px; border-radius: 6px; }

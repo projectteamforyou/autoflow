@@ -4,20 +4,25 @@
  * (or through the allow-listed AutoFlow relay when the user prefers). AI output is only a
  * draft: flows are validated, linted and risk-scored before the user can save them.
  */
-import { FUNCTION_NAMES, SCHEMA_VERSION, lintFlow, newId, parseFlow, analyzeRisk, type Flow, type LintIssue, type RiskReport, type ValidationIssue } from "@autoflow/core";
+import { AI_PROVIDERS, chatPath, findProvider, imagesPath, type AiProviderPreset, FUNCTION_NAMES, SCHEMA_VERSION, lintFlow, newId, parseFlow, analyzeRisk, type Flow, type LintIssue, type RiskReport, type ValidationIssue } from "@autoflow/core";
 import { vault } from "./crypto";
 import { api } from "./api";
 import { useStore, type AiSettings } from "./store";
 
 export const AI_KEY = (provider: string) => `ai:${provider}`;
 
-export const PROVIDER_PRESETS: { id: string; label: string; provider: AiSettings["provider"]; baseUrl: string; model: string; local?: boolean; images?: boolean }[] = [
-  { id: "openai", label: "OpenAI", provider: "openai", baseUrl: "https://api.openai.com/v1", model: "gpt-4.1-mini", images: true },
-  { id: "anthropic", label: "Anthropic", provider: "anthropic", baseUrl: "https://api.anthropic.com/v1", model: "claude-sonnet-5-5" },
-  { id: "openrouter", label: "OpenRouter", provider: "openai", baseUrl: "https://openrouter.ai/api/v1", model: "openai/gpt-4.1-mini" },
-  { id: "ollama", label: "Ollama (local)", provider: "openai", baseUrl: "http://localhost:11434/v1", model: "llama3.1", local: true },
-  { id: "lmstudio", label: "LM Studio (local)", provider: "openai", baseUrl: "http://localhost:1234/v1", model: "local-model", local: true },
-];
+export const PROVIDER_PRESETS = AI_PROVIDERS;
+
+/** The catalog entry behind the current settings (only when its base URL is unchanged, so the relay path is exact). */
+export function currentPreset(ai: AiSettings): AiProviderPreset | undefined {
+  const p = findProvider(ai.presetId);
+  return p && p.baseUrl === ai.baseUrl.replace(/\/+$/, "") ? p : undefined;
+}
+
+/** Vault name of the API key for the selected provider (one key per provider). */
+export function keyName(ai: AiSettings): string {
+  return AI_KEY(ai.presetId && ai.presetId !== "custom" ? ai.presetId : ai.provider);
+}
 
 export function isLocalUrl(url: string): boolean {
   try {
@@ -51,20 +56,22 @@ export function previewRequest(ai: AiSettings, prompt: string, includes: string[
   } catch {
     host = ai.baseUrl;
   }
-  return { provider: ai.provider, host, model: ai.model, bytes: new TextEncoder().encode(prompt).length, includes, viaRelay: ai.useRelay && !isLocalUrl(ai.baseUrl) };
+  return { provider: currentPreset(ai)?.label ?? ai.provider, host, model: ai.model, bytes: new TextEncoder().encode(prompt).length, includes, viaRelay: ai.useRelay && !isLocalUrl(ai.baseUrl) && !!currentPreset(ai) };
 }
 
 async function chat(system: string, user: string, json: boolean): Promise<string> {
   const ai = useStore.getState().settings.ai;
   if (ai.provider === "none") throw new AiError("AI is turned off in Copilot settings");
   if (ai.localOnly && !isLocalUrl(ai.baseUrl)) throw new AiError("Local-only mode is on: only localhost providers are allowed");
-  const key = (await vault.get(AI_KEY(ai.provider))) ?? "";
+  const key = (await vault.get(keyName(ai))) ?? "";
   if (!key && !isLocalUrl(ai.baseUrl)) throw new AiError("Add your API key in Copilot settings first");
+  const preset = currentPreset(ai);
+  const relay = ai.useRelay && !isLocalUrl(ai.baseUrl) && preset && !preset.local ? preset : undefined;
 
   if (ai.provider === "anthropic") {
     const body = { model: ai.model, max_tokens: 4096, system, messages: [{ role: "user", content: user }] };
-    const data = ai.useRelay
-      ? await viaRelay<{ content: { type: string; text?: string }[] }>("anthropic", "/v1/messages", body, key)
+    const data = relay
+      ? await viaRelay<{ content: { type: string; text?: string }[] }>(relay.id, chatPath(relay), body, key)
       : await providerFetch<{ content: { type: string; text?: string }[] }>(`${ai.baseUrl.replace(/\/+$/, "")}/messages`, body, { "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" });
     return data.content.filter((c) => c.type === "text").map((c) => c.text ?? "").join("");
   }
@@ -72,16 +79,14 @@ async function chat(system: string, user: string, json: boolean): Promise<string
   const body: Record<string, unknown> = { model: ai.model, messages: [{ role: "system", content: system }, { role: "user", content: user }], temperature: 0.2 };
   if (json) body.response_format = { type: "json_object" };
   const data =
-    ai.useRelay && !isLocalUrl(ai.baseUrl)
-      ? new URL(ai.baseUrl).host === "openrouter.ai"
-        ? await viaRelay<{ choices: { message: { content: string } }[] }>("openrouter", "/api/v1/chat/completions", body, key)
-        : await viaRelay<{ choices: { message: { content: string } }[] }>("openai", "/v1/chat/completions", body, key)
+    relay
+      ? await viaRelay<{ choices: { message: { content: string } }[] }>(relay.id, chatPath(relay), body, key)
       : await providerFetch<{ choices: { message: { content: string } }[] }>(`${ai.baseUrl.replace(/\/+$/, "")}/chat/completions`, body, key ? { Authorization: `Bearer ${key}` } : {});
   return data.choices[0]?.message.content ?? "";
 }
 
 /** Calls the allow-listed AutoFlow relay; it answers 200 with the provider's status and body. */
-async function viaRelay<T>(provider: "openai" | "anthropic" | "openrouter", path: string, body: unknown, key: string): Promise<T> {
+async function viaRelay<T>(provider: string, path: string, body: unknown, key: string): Promise<T> {
   const r = await api<{ upstream: { status: number; body: unknown } }>("/v1/ai/relay", { method: "POST", json: { provider, path, body }, headers: { "X-Provider-Key": key } });
   if (r.upstream.status >= 400) {
     const b = r.upstream.body as { error?: { message?: string } } | string;
@@ -108,6 +113,7 @@ async function providerFetch<T>(url: string, body: unknown, headers: Record<stri
     return JSON.parse(text) as T;
   } catch (e) {
     if ((e as Error).name === "AbortError") throw new AiError("The AI provider did not answer in time");
+    if (e instanceof TypeError) throw new AiError(isLocalUrl(url) ? "Could not reach the local AI server. Is it running, and does it allow this origin (CORS)?" : "The browser could not reach this provider directly (network or CORS). Turn on “Send through the AutoFlow relay” and try again.");
     throw e instanceof AiError ? e : new AiError((e as Error).message);
   } finally {
     clearTimeout(timer);
@@ -168,13 +174,14 @@ export interface ImageRequest {
 /** Image generation through the user's OpenAI-compatible key. Returns a Blob the user can save. */
 export async function generateImage(req: ImageRequest): Promise<Blob> {
   const ai = useStore.getState().settings.ai;
-  if (ai.provider !== "openai") throw new AiError("Image generation needs an OpenAI-compatible provider with image support");
+  const preset = currentPreset(ai);
+  if (ai.provider !== "openai" || (preset && !preset.images && !preset.local)) throw new AiError("Image generation needs a provider with image support (e.g. OpenAI)");
   if (ai.localOnly && !isLocalUrl(ai.baseUrl)) throw new AiError("Local-only mode is on");
-  const key = (await vault.get(AI_KEY("openai"))) ?? "";
+  const key = (await vault.get(keyName(ai))) ?? "";
   const body = { model: ai.imageModel, prompt: req.prompt, size: req.size, background: req.background, output_format: req.format, quality: req.quality, n: 1 };
   const data =
-    ai.useRelay && !isLocalUrl(ai.baseUrl)
-      ? await viaRelay<{ data: { b64_json: string }[] }>("openai", "/v1/images/generations", body, key)
+    ai.useRelay && !isLocalUrl(ai.baseUrl) && preset
+      ? await viaRelay<{ data: { b64_json: string }[] }>(preset!.id, imagesPath(preset!), body, key)
       : await providerFetch<{ data: { b64_json: string }[] }>(`${ai.baseUrl.replace(/\/+$/, "")}/images/generations`, body, { Authorization: `Bearer ${key}` });
   const b64 = data.data[0]?.b64_json;
   if (!b64) throw new AiError("No image returned");

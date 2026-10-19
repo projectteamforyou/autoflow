@@ -23,6 +23,8 @@ export function Home() {
   const navigate = useNavigate();
   const flows = useStore((s) => s.flows);
   const runs = useStore((s) => s.runs);
+  const mode = useStore((s) => s.settings.defaultMode);
+  const quick = mode === "pro" ? [QUICK[4]!, QUICK[3]!, QUICK[0]!, QUICK[1]!, QUICK[2]!, QUICK[5]!] : QUICK;
   const favorites = flows.filter((f) => f.favorite).slice(0, 6);
   const recent = flows.slice(0, 6);
   const picks = TEMPLATES.slice(0, 4);
@@ -38,9 +40,9 @@ export function Home() {
           <h1>
             {t(greet)} <span className="gradient-text">{t("home.headline")}</span>
           </h1>
-          <p>{t("home.sub")}</p>
+          <p>{t(mode === "pro" ? "home.subPro" : "home.sub")}</p>
           <div className="quick">
-            {QUICK.map((q) => (
+            {quick.map((q) => (
               <button key={q.kind} onClick={() => navigate(q.kind === "keyforge" ? "/keyforge" : `/new/${q.kind}`)}>
                 <div className="tile-icon" style={{ background: `linear-gradient(135deg, ${q.color}, ${q.color}aa)` }}>
                   <Icon name={q.icon} />
@@ -101,7 +103,7 @@ export function Home() {
                 <h3>{t("home.empty.title")}</h3>
                 <p className="small">{t("home.empty.body")}</p>
                 <div className="row wrap" style={{ justifyContent: "center" }}>
-                  <button className="btn primary" onClick={() => navigate("/new/click")}><Icon name="Plus" size={16} /> {t("home.quick.click")}</button>
+                  <button className="btn primary" onClick={() => navigate(mode === "pro" ? "/new/pro" : "/new/click")}><Icon name="Plus" size={16} /> {t(mode === "pro" ? "home.quick.pro" : "home.quick.click")}</button>
                   <button className="btn" onClick={() => navigate("/atlas")}><Icon name="Map" size={16} /> {t("nav.atlas")}</button>
                 </div>
               </div>

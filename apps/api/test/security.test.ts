@@ -1,4 +1,4 @@
-import { LOCALE_CODES } from "@autoflow/core";
+import { LOCALE_CODES, AI_PROVIDERS } from "@autoflow/core";
 import { describe, expect, it } from "vitest";
 import { makeApp, useTestDb } from "./helpers.js";
 
@@ -133,7 +133,7 @@ describe("health and meta", () => {
     const r = await t.call("GET", "/v1/meta");
     expect(r.json).toMatchObject({ name: "AutoFlow API", version: "test", schemaVersion: "1.0", locales: LOCALE_CODES });
     expect(r.json.limits.sync).toMatchObject({ maxItems: 5000, maxBytes: 50 * 1024 * 1024, maxItemBytes: 2 * 1024 * 1024 });
-    expect(r.json.relayProviders).toEqual(["openai", "anthropic", "gemini", "openrouter"]);
+    expect(r.json.relayProviders).toEqual(AI_PROVIDERS.filter((p) => !p.local).map((p) => p.id));
   });
 
   it("serves the OpenAPI document", async () => {

@@ -13,3 +13,4 @@ export * from "./locales.js";
 export * from "./templates.js";
 export * from "./sandbox.js";
 export * from "./bridge.js";
+export * from "./ai-providers.js";

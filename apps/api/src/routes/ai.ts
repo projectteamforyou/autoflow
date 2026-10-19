@@ -17,7 +17,7 @@ export function aiRoutes() {
 
   r.get("/providers", (c) =>
     c.json({
-      providers: RELAY_PROVIDER_NAMES.map((name) => ({ name, host: new URL(RELAY_PROVIDERS[name].origin).host, paths: RELAY_PROVIDERS[name].paths.map((p) => p.source) })),
+      providers: RELAY_PROVIDER_NAMES.map((name) => ({ name, host: new URL(RELAY_PROVIDERS[name]!.origin).host, paths: RELAY_PROVIDERS[name]!.paths.map((p) => p.source) })),
     }),
   );
 

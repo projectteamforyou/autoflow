@@ -42,7 +42,7 @@ export function Shell({ children, flush, title, actions }: { children: ReactNode
     <div className="shell">
       <a href="#main" className="sr-only">{t("a11y.skip")}</a>
       <aside className="sidebar" aria-label={t("a11y.mainNav")}>
-        <NavLink to="/" className="brand">
+        <NavLink to="/welcome?step=choose" className="brand" title={t("nav.chooseMode")}>
           <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" />
           <b>AutoFlow</b>
         </NavLink>
@@ -61,6 +61,7 @@ export function Shell({ children, flush, title, actions }: { children: ReactNode
           </NavLink>
         ))}
         <div className="sidebar-foot">
+          <ModeSwitch />
           <PlatformChip />
           <button className="btn sm ghost" onClick={() => setCmd(true)} style={{ justifyContent: "flex-start" }}>
             <Icon name="Command" size={15} /> {t("cmd.open")} <kbd style={{ marginLeft: "auto" }}>Ctrl K</kbd>
@@ -85,6 +86,26 @@ export function Shell({ children, flush, title, actions }: { children: ReactNode
         ))}
       </nav>
       {cmd && <CommandPalette onClose={() => setCmd(false)} />}
+    </div>
+  );
+}
+
+/** Global Easy/Pro preference: new flows, the Home shortcuts and the default editor follow it. */
+function ModeSwitch() {
+  const t = useT();
+  const mode = useStore((s) => s.settings.defaultMode);
+  const update = useStore((s) => s.updateSettings);
+  const toast = useStore((s) => s.toast);
+  return (
+    <div className="stack-xs">
+      <span className="nav-section" style={{ margin: "0 2px" }}>{t("settings.defaultMode")}</span>
+      <div className="seg" role="group" aria-label={t("settings.defaultMode")} style={{ width: "100%" }}>
+        {(["easy", "pro"] as const).map((m) => (
+          <button key={m} type="button" aria-pressed={mode === m} style={{ flex: 1, justifyContent: "center" }} onClick={() => { if (mode !== m) { void update({ defaultMode: m }); toast("info", t(`mode.switched.${m}`)); } }}>
+            <Icon name={m === "easy" ? "Sparkles" : "Workflow"} size={14} /> {t(`mode.${m}`)}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

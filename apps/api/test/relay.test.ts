@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { AI_PROVIDERS } from "@autoflow/core";
 import { ALLOWED_RELAY_HOSTS, resolveUpstream } from "../src/services/relay.js";
 import { createLogger } from "../src/logger.js";
 import { makeApp, useTestDb } from "./helpers.js";
@@ -83,8 +84,15 @@ describe("Copilot relay", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("only ever resolves to the four allow-listed hosts", () => {
-    expect([...ALLOWED_RELAY_HOSTS].sort()).toEqual(["api.anthropic.com", "api.openai.com", "generativelanguage.googleapis.com", "openrouter.ai"]);
+  it("only ever resolves to cloud hosts from the shared provider catalog", () => {
+    const expected = [...new Set(AI_PROVIDERS.filter((p) => !p.local).map((p) => new URL(p.baseUrl).host))].sort();
+    expect([...ALLOWED_RELAY_HOSTS].sort()).toEqual(expected);
+    expect(ALLOWED_RELAY_HOSTS).toEqual(expect.arrayContaining(["api.openai.com", "api.anthropic.com", "api.upstage.ai", "clovastudio.stream.ntruss.com"]));
+    expect(ALLOWED_RELAY_HOSTS.some((h) => h.startsWith("localhost"))).toBe(false);
+    expect(resolveUpstream("upstage", "/v1/chat/completions").href).toBe("https://api.upstage.ai/v1/chat/completions");
+    expect(resolveUpstream("perplexity", "/chat/completions").href).toBe("https://api.perplexity.ai/chat/completions");
+    expect(() => resolveUpstream("upstage", "/v1/images/generations")).toThrow();
+    expect(() => resolveUpstream("ollama", "/v1/chat/completions")).toThrow();
     expect(resolveUpstream("openai", "/v1/responses").host).toBe("api.openai.com");
     expect(() => resolveUpstream("hasOwnProperty", "/v1/messages")).toThrow();
   });
