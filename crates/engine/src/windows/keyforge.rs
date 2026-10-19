@@ -2,9 +2,11 @@
 //!
 //! - A watcher thread follows the foreground app every 500 ms and activates the matching
 //!   profile ([`resolve_active_profile`]); a `switchProfile` step can force one.
-//! - The hook sink feeds physical events to the [`Remapper`] and swallows what it maps; any
-//!   injected event (including AutoFlow's own, marked with `INJECTED_MARKER`) is ignored, so
-//!   remaps can never loop. The emergency stop combination always passes through.
+//! - The hook sink feeds physical events to the [`Remapper`] and swallows what it maps.
+//!   AutoFlow's own output (marked with `INJECTED_MARKER`) is always ignored, so remaps can never
+//!   loop; input injected by other software (on-screen keyboards, other remappers) is ignored too
+//!   unless [`Keyforge::set_remap_foreign_injected`] opts in. The emergency stop combination
+//!   always passes through.
 //! - An executor thread injects outputs, runs repeats and expands text.
 //! - Pointer settings of the active profile are applied for the session only (not persisted)
 //!   and restored when the profile deactivates.
@@ -50,6 +52,7 @@ struct State {
     remapper: Remapper,
     invert_wheel: bool,
     emergency: Option<Hotkey>,
+    remap_foreign_injected: bool,
 }
 
 struct Shared {
@@ -90,15 +93,17 @@ fn wheel_direction(horizontal: bool, delta: i32) -> WheelDirection {
 
 impl HookSink for Sink {
     fn on_event(&self, e: &RawEvent) -> bool {
-        let injected = match e {
-            RawEvent::Key { injected, .. } | RawEvent::Button { injected, .. } | RawEvent::Wheel { injected, .. } => *injected,
+        let (injected, ours) = match e {
+            RawEvent::Key { injected, ours, .. } | RawEvent::Button { injected, ours, .. } | RawEvent::Wheel { injected, ours, .. } => {
+                (*injected, *ours)
+            }
         };
-        if injected {
+        if ours {
             return false;
         }
         let now = super::hooks::ms_since(self.0.started);
         let mut st = self.0.lock();
-        if !st.enabled || st.active.is_none() {
+        if !st.enabled || st.active.is_none() || (injected && !st.remap_foreign_injected) {
             return false;
         }
         let input = match e {
@@ -478,6 +483,13 @@ impl Keyforge {
         }
         reevaluate(&self.shared);
         Ok(())
+    }
+
+    /// Also remap input injected by other software (on-screen keyboards, other tools). Off by
+    /// default to avoid ping-pong loops with other remappers; AutoFlow's own output is never
+    /// remapped either way.
+    pub fn set_remap_foreign_injected(&self, on: bool) {
+        self.shared.lock().remap_foreign_injected = on;
     }
 
     /// Currently active profile id.
