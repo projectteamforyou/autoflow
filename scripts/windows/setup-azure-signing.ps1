@@ -122,10 +122,16 @@ $subId = Invoke-Az account show --query id -o tsv
 $subName = Invoke-Az account show --query name -o tsv
 $tenantId = Invoke-Az account show --query tenantId -o tsv
 Info "구독: $subName ($subId)"
+Info 'GitHub 로그인 확인 중...'
+# 'gh auth status' 출력 리디렉션은 Windows PowerShell 5.1 에서 멈출 수 있어, 토큰 조회로 확인합니다 (대화형 프롬프트 없음).
 $ErrorActionPreference = 'Continue'
-& gh auth status *> $null
-$ghOk = ($LASTEXITCODE -eq 0)
+$env:GH_PROMPT_DISABLED = '1'
+$ghToken = (& gh auth token --hostname github.com 2>$null | Out-String).Trim()
+$ghOk = ($LASTEXITCODE -eq 0 -and $ghToken.Length -gt 0)
+$ghToken = $null
+Remove-Item Env:GH_PROMPT_DISABLED -ErrorAction SilentlyContinue
 $ErrorActionPreference = 'Stop'
+if ($ghOk) { Info 'GitHub 로그인 확인됨.' }
 if (-not $ghOk) {
     Info 'GitHub에 로그인합니다.'
     & gh auth login --web --scopes repo
@@ -136,6 +142,7 @@ if ($answer -notmatch '^(y|yes|예|ㅇ)$') { Fail '사용자가 취소했습니�
 
 # ---------------------------------------------------------------- 2. 공급자와 확장
 Step '2/8 Microsoft.CodeSigning 공급자 등록, trustedsigning 확장 설치'
+Info '공급자 등록 중... (처음이면 1~3분 걸릴 수 있습니다)'
 Invoke-Az provider register --namespace Microsoft.CodeSigning --wait | Out-Null
 Invoke-Az extension add --name trustedsigning --upgrade --only-show-errors | Out-Null
 Info '완료'
