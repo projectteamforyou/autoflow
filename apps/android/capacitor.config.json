@@ -1,0 +1,15 @@
+{
+  "appId": "com.projectteamforyou.autoflow",
+  "appName": "AutoFlow",
+  "webDir": "../web/dist",
+  "android": {
+    "path": "android",
+    "allowMixedContent": false,
+    "captureInput": false,
+    "webContentsDebuggingEnabled": false,
+    "backgroundColor": "#0B0B1A"
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

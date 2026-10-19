@@ -1,0 +1,52 @@
+// Pure-Kotlin AutoFlow engine: schema parser, safe expression language and flow executor.
+// No Android dependency, so it is unit-tested on the JVM against packages/core/fixtures (the same documents the
+// TypeScript and Rust engines are tested with).
+apply plugin: 'java-library'
+apply plugin: 'org.jetbrains.kotlin.jvm'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+        freeCompilerArgs.add('-Xjsr305=strict')
+    }
+}
+
+dependencies {
+    api "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion"
+    api "org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationJsonVersion"
+    testImplementation "junit:junit:$junitVersion"
+    testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
+    testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion"
+}
+
+// The shared fixtures live in packages/core/fixtures (written by `pnpm --filter @autoflow/core build`). They are
+// copied into the test resources so the tests also run from a jar, and the directory is passed as a system property.
+def coreFixtures = rootProject.file('../../../packages/core/fixtures')
+def fixturesOut = layout.buildDirectory.dir('generated/core-fixtures')
+
+def copyCoreFixtures = tasks.register('copyCoreFixtures', Copy) {
+    from(coreFixtures) { include '*.json' }
+    into(fixturesOut.map { it.dir('fixtures') })
+}
+
+sourceSets {
+    test {
+        resources.srcDir(fixturesOut)
+    }
+}
+
+tasks.named('processTestResources') { dependsOn copyCoreFixtures }
+
+tasks.named('test', Test) {
+    systemProperty 'autoflow.fixtures', coreFixtures.absolutePath
+    inputs.dir(coreFixtures).withPropertyName('coreFixtures').withPathSensitivity(PathSensitivity.RELATIVE)
+    testLogging {
+        events 'failed', 'skipped'
+        exceptionFormat 'full'
+    }
+}
