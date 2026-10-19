@@ -112,6 +112,7 @@ pub fn run() {
             commands::secret_list,
             commands::open_settings,
             commands::autostart_set,
+            commands::open_external,
         ]);
     match builder.build(tauri::generate_context!()) {
         Ok(app) => app.run(|handle, event| {

@@ -4,6 +4,7 @@ import { App } from "./app/App";
 import { initialLocale, setLocale } from "./i18n";
 import { useStore } from "./lib/store";
 import { shell } from "./platform";
+import { installExternalLinks } from "./lib/site";
 import "./styles/app.css";
 
 async function boot() {
@@ -11,6 +12,7 @@ async function boot() {
   // Email links (verify / reset) and server share links arrive on real paths.
   if (!/\/(index\.html)?$/.test(location.pathname)) void import("./lib/links").then((m) => m.handleIncomingLink());
   void import("./lib/stats").then((m) => m.startPresence());
+  installExternalLinks();
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
       <App />

@@ -3,6 +3,7 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { LOCALES, hotkeyToString, type LocaleCode } from "@autoflow/core";
 import { Icon } from "./Icon";
 import { Modal } from "./ui";
+import { StudioPromoLink } from "./StudioPromo";
 import { useStore } from "../lib/store";
 import { useDialogs } from "../lib/dialog";
 import { haltAll, pauseRun, resumeRun, stopRun } from "../lib/runner";
@@ -61,6 +62,7 @@ export function Shell({ children, flush, title, actions }: { children: ReactNode
           </NavLink>
         ))}
         <div className="sidebar-foot">
+          <StudioPromoLink />
           <ModeSwitch />
           <PlatformChip />
           <button className="btn sm ghost" onClick={() => setCmd(true)} style={{ justifyContent: "flex-start" }}>

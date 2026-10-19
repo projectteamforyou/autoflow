@@ -119,6 +119,11 @@ mod imp {
         win::shell::open_settings(page).map_err(|e| e.message)
     }
 
+    /// Default browser.
+    pub fn open_external(url: &str) -> Result<(), String> {
+        win::shell::open_url(url).map_err(|e| e.message)
+    }
+
     /// Crosshair overlay.
     pub fn pick_point() -> Result<(i32, i32), String> {
         win::picker::pick_point(Duration::from_secs(60)).map_err(|e| e.message)
@@ -268,6 +273,10 @@ mod imp {
     }
     /// Unsupported.
     pub fn open_settings(_page: &str) -> Result<(), String> {
+        Err(ONLY_WINDOWS.into())
+    }
+    /// Unsupported.
+    pub fn open_external(_url: &str) -> Result<(), String> {
         Err(ONLY_WINDOWS.into())
     }
     /// Unsupported.

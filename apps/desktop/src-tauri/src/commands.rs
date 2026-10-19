@@ -202,6 +202,15 @@ pub fn open_settings(page: String) -> Result<(), String> {
     platform::open_settings(&page)
 }
 
+/// `open_external` — https only, so a compromised page cannot launch local files or other schemes.
+#[tauri::command]
+pub fn open_external(url: String) -> Result<(), String> {
+    if !url.starts_with("https://") || url.len() > 2048 {
+        return Err("only https links can be opened".into());
+    }
+    platform::open_external(&url)
+}
+
 /// `autostart_set`
 #[tauri::command]
 pub fn autostart_set(app: AppHandle, enabled: bool) -> Result<(), String> {

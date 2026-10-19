@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { TEMPLATES, describeTrigger } from "@autoflow/core";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
+import { StudioPromoCard } from "../components/StudioPromo";
 import { FlowIcon, SafetyBadge } from "../components/ui";
 import { useStore } from "../lib/store";
 import { formatDuration, formatRelative, tp, useT } from "../i18n";
@@ -155,6 +156,7 @@ export function Home() {
             </div>
           </section>
         )}
+        <StudioPromoCard />
       </div>
     </Shell>
   );

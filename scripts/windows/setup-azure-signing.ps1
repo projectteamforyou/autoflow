@@ -28,10 +28,10 @@
 [CmdletBinding()]
 param(
     [string]$ResourceGroup = 'rg-signing',
-    [string]$Account = 'autoflow-signing',
-    [string]$Profile = 'autoflow-public',
+    [string]$Account = 'ultarineosigning',
+    [string]$Profile = '',
     [string]$Location = 'koreacentral',
-    [string]$Repo = 'projectteamforyou/autoflow',
+    [string]$Repo = 'work517/autoflow',
     [string]$ServicePrincipal = 'sp-autoflow-signing-ci',
     [string]$Subscription = ''
 )
@@ -141,8 +141,11 @@ Invoke-Az extension add --name trustedsigning --upgrade --only-show-errors | Out
 Info '완료'
 
 # ---------------------------------------------------------------- 3. 리소스 그룹과 계정
+# 이미 있는 서명 계정(예: ultarineosigning)은 어느 리소스 그룹에 있든 찾아서 그대로 씁니다.
+$foundRg = Try-Az resource list --resource-type Microsoft.CodeSigning/codeSigningAccounts --name $Account --query "[0].resourceGroup" -o tsv
+if ($foundRg) { $ResourceGroup = $foundRg; Info "기존 서명 계정 '$Account' 를 리소스 그룹 '$ResourceGroup' 에서 찾았습니다." }
 Step "3/8 리소스 그룹 '$ResourceGroup' / 서명 계정 '$Account' ($Location)"
-Invoke-Az group create --name $ResourceGroup --location $Location --only-show-errors | Out-Null
+if (-not $foundRg) { Invoke-Az group create --name $ResourceGroup --location $Location --only-show-errors | Out-Null }
 $accountId = Try-Az trustedsigning show --name $Account --resource-group $ResourceGroup --query id -o tsv
 if (-not $accountId) {
     Invoke-Az trustedsigning create --name $Account --resource-group $ResourceGroup --location $Location --sku Basic --only-show-errors | Out-Null
@@ -167,20 +170,32 @@ if (-not $existing) {
     Info '이미 역할이 있습니다.'
 }
 
+# 계정에 이미 Active 인증서 프로필이 있으면 그것을 쓰고 신원 확인 단계를 건너뜁니다.
+$existingProfile = ''
+if (-not $Profile) {
+    $existingProfile = Try-Az trustedsigning certificate-profile list --account-name $Account --resource-group $ResourceGroup --query "[?properties.status=='Active'] | [0].name" -o tsv
+    if ($existingProfile) { $Profile = $existingProfile; Info "기존 Active 프로필 '$Profile' 을 사용합니다." } else { $Profile = 'autoflow-public' }
+}
+$profileId = Try-Az trustedsigning certificate-profile show --account-name $Account --resource-group $ResourceGroup --name $Profile --query id -o tsv
+
 # ---------------------------------------------------------------- 5. 신원 확인 (포털)
-Step '5/8 [직접 할 일] Azure Portal에서 신원 확인'
-Info "1) https://portal.azure.com → '$Account' (Artifact Signing 계정) → Identity validations"
-Info '2) + New identity → Public → 회사/개인 정보 입력 → 제출'
-Info '3) 상태가 Completed 가 될 때까지 기다립니다 (수 시간~수 일, 메일로 서류 요청이 올 수 있음).'
-Info '4) Completed 된 항목의 Identity validation Id(GUID)를 복사합니다.'
+if (-not $profileId) {
+    Step '5/8 [직접 할 일] Azure Portal에서 신원 확인'
+    Info "1) https://portal.azure.com → '$Account' (Artifact Signing 계정) → Identity validations"
+    Info '2) + New identity → Public → 회사/개인 정보 입력 → 제출'
+    Info '3) 상태가 Completed 가 될 때까지 기다립니다 (수 시간~수 일, 메일로 서류 요청이 올 수 있음).'
+    Info '4) Completed 된 항목의 Identity validation Id(GUID)를 복사합니다.'
+} else {
+    Step '5/8 신원 확인 — 기존 프로필이 있어 건너뜁니다'
+}
 $validationId = ''
+if ($profileId) { Info '프로필이 이미 있으므로 신원 확인 입력을 건너뜁니다.'; $validationId = '00000000-0000-0000-0000-000000000000' }
 while ($validationId -notmatch '^[0-9a-fA-F-]{36}$') {
     $validationId = (Read-Host 'Completed 된 Identity validation Id를 붙여 넣으세요 (나중에 하려면 Ctrl+C 후 이 스크립트를 다시 실행)').Trim()
 }
 
 # ---------------------------------------------------------------- 6. 인증서 프로필
 Step "6/8 인증서 프로필 '$Profile' (PublicTrust)"
-$profileId = Try-Az trustedsigning certificate-profile show --account-name $Account --resource-group $ResourceGroup --name $Profile --query id -o tsv
 if (-not $profileId) {
     Invoke-Az trustedsigning certificate-profile create --account-name $Account --resource-group $ResourceGroup --name $Profile --profile-type PublicTrust --identity-validation-id $validationId --only-show-errors | Out-Null
     $profileId = Invoke-Az trustedsigning certificate-profile show --account-name $Account --resource-group $ResourceGroup --name $Profile --query id -o tsv

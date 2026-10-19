@@ -32,7 +32,7 @@ AutoFlow Windows 설치 파일은 **Azure Artifact Signing**(이전 이름 Trust
    powershell -NoProfile -ExecutionPolicy Bypass -File .\setup-azure-signing.ps1
    ```
    위 방법이 안 되면 `cd $env:USERPROFILE\Downloads` 를 쓰세요.
-3. 기본값: 리소스 그룹 `rg-signing`, 계정 `autoflow-signing`, 프로필 `autoflow-public`, 위치 `koreacentral`.
+3. 기본값: 리소스 그룹 `rg-signing`, 계정 `ultarineosigning`(이미 있으면 어느 리소스 그룹이든 찾아서 재사용), 프로필은 계정의 기존 Active 프로필 자동 사용(없으면 `autoflow-public` 생성), 위치 `koreacentral`.
    바꾸려면 예: `.\setup-azure-signing.ps1 -Account myco-sign -Profile myco-public -Repo owner/autoflow`
 
 스크립트가 하는 일:

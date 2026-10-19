@@ -382,3 +382,10 @@ kbd {
 .mouse-svg .zone.mapped { fill: rgba(124, 92, 255, .6); }
 
 .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--af-accent); animation: beat 1.6s infinite; display: inline-block; }
+
+/* projectteamforyou.com cross-promotion */
+.studio-promo { display: flex; align-items: center; gap: 14px; text-decoration: none; color: inherit; flex-wrap: wrap; }
+.studio-promo .tile-icon { background: linear-gradient(135deg, var(--af-primary), #8B5CF6); }
+.studio-promo:hover { border-color: color-mix(in oklab, var(--af-primary) 45%, var(--af-border)); }
+.studio-link { font-size: 13px; color: var(--af-muted); }
+.studio-link .truncate { flex: 1; min-width: 0; }

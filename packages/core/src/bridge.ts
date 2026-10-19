@@ -71,6 +71,8 @@ export interface BridgeCommands {
   /** Opens OS settings pages (accessibility, battery, overlay…). */
   open_settings: [{ page: NativePermission | "app" }, void];
   autostart_set: [{ enabled: boolean }, void];
+  /** Opens an https link in the system browser (the app WebView never navigates away). */
+  open_external: [{ url: string }, void];
 }
 
 export type BridgeCommand = keyof BridgeCommands;

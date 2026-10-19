@@ -1,4 +1,4 @@
-import { LOCALES, type LocaleCode } from "@autoflow/core";
+import { LOCALES, STUDIO_URL, studioPromo, type LocaleCode } from "@autoflow/core";
 import type { Content } from "../content/types.js";
 import { API_ORIGIN, BRAND, BUSINESS, LINKS, LOCALE_BY_CODE, PAGES, SITE_URL, abs, pagePath, type PageId } from "./config.js";
 import { brand, icon, mark } from "./icons.js";
@@ -142,6 +142,15 @@ function businessInfo(ctx: Ctx): string {
   ].join("")}</dl></section>`;
 }
 
+/** Cross-promotion band for the studio's other work (projectteamforyou.com). */
+function studioBand(ctx: Ctx): string {
+  const p = studioPromo(ctx.lang);
+  return html`<aside class="studio-band" aria-label="${esc(p.title)}"><div class="wrap studio-band-in">
+<div class="studio-band-text"><strong>${esc(p.title)}</strong><span>${esc(p.body)}</span></div>
+<a class="btn btn-primary btn-sm" href="${STUDIO_URL}/?utm_source=autoflow&amp;utm_medium=site&amp;utm_campaign=${ctx.lang}" rel="noopener" target="_blank">${esc(p.cta)}<span class="sr-only"> ${esc(ctx.t.a11y.newTab)}</span></a>
+</div></aside>`;
+}
+
 function footer(ctx: Ctx): string {
   const { t, lang } = ctx;
   const target: PageId = ctx.page === "404" ? "home" : ctx.page;
@@ -174,6 +183,7 @@ ${header(ctx)}
 <main id="main" tabindex="-1">
 ${main}
 </main>
+${studioBand(ctx)}
 ${footer(ctx)}
 <div class="toast" id="lang-toast" role="region" aria-label="${esc(t.a11y.language)}" hidden><span data-t></span><a class="btn btn-primary btn-sm" data-go href="${pagePath("en", "home")}">${icon("globe", 16)}<span></span></a><button type="button" class="btn btn-secondary btn-sm" data-stay></button></div>
 <div class="status" id="status" role="status" aria-live="polite"></div>

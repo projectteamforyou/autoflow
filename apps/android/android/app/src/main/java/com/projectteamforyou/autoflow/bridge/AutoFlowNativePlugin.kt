@@ -270,6 +270,21 @@ class AutoFlowNativePlugin : Plugin() {
     }
 
     @PluginMethod
+    fun open_external(call: PluginCall) {
+        val url = args(call).string("url") ?: ""
+        if (!url.startsWith("https://") || url.length > 2048) return fail(call, "only https links can be opened", "validation")
+        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+            .addCategory(android.content.Intent.CATEGORY_BROWSABLE)
+            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            context.startActivity(intent)
+        } catch (_: Exception) {
+            return fail(call, "no browser is available", "environment")
+        }
+        ok(call)
+    }
+
+    @PluginMethod
     fun autostart_set(call: PluginCall) {
         TriggerEngine.setAutostart(context, args(call).bool("enabled"))
         ok(call)
