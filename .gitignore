@@ -23,3 +23,5 @@ apps/desktop/src-tauri/gen/
 .vscode/*
 !.vscode/extensions.json
 .claude/worktrees/
+smoke-failure.png
+smoke-sync-failure.png
