@@ -101,9 +101,14 @@ fn step_findings(s: &Step) -> Vec<RiskFinding> {
             }
         }
         StepKind::Clipboard { op: crate::schema::ClipboardOp::Get, .. } => out.push(f("risk.clipboardRead", 8, false)),
-        StepKind::Ocr { .. } | StepKind::FindImage { .. } => out.push(f("risk.screenRead", 8, false)),
+        StepKind::Ocr { .. } | StepKind::FindImage { .. } | StepKind::PixelCheck { .. } | StepKind::WaitForPixel { .. } | StepKind::MatchScene { .. } => {
+            out.push(f("risk.screenRead", 8, false));
+        }
         StepKind::Loop { mode: LoopMode::Forever, .. } => out.push(f("risk.foreverLoop", 5, false)),
         _ => {}
+    }
+    if s.condition().is_some_and(crate::schema::Condition::probes_screen) {
+        out.push(f("risk.screenRead", 8, false));
     }
     out
 }
@@ -117,7 +122,7 @@ fn permission_of(step_type: &str) -> Option<&'static str> {
         "window" => "perm.windows",
         "http" => "perm.network",
         "file" => "perm.files",
-        "ocr" | "findImage" => "perm.screen",
+        "ocr" | "findImage" | "pixelCheck" | "waitForPixel" | "matchScene" => "perm.screen",
         "notify" => "perm.notifications",
         "androidGlobal" => "perm.accessibility",
         _ => return None,
@@ -136,7 +141,14 @@ pub fn analyze_risk(flow: &Flow) -> RiskReport {
         if let Some(p) = permission_of(s.type_name()) {
             perms.insert(p.to_owned());
         }
+        if s.condition().is_some_and(crate::schema::Condition::probes_screen) {
+            perms.insert("perm.screen".to_owned());
+        }
     });
+    // Stage mode without the takeover pause keeps clicking even while the user grabs the mouse.
+    if flow.stage.as_ref().is_some_and(|st| st.pause_on_takeover == Some(false)) {
+        findings.push(RiskFinding { step_id: None, key: "risk.stageNoTakeover".into(), weight: 12, needs_confirm: false });
+    }
     let global = |key: &str, weight: u32| RiskFinding { step_id: None, key: key.into(), weight, needs_confirm: false };
     if matches!(flow.trigger, Trigger::Location { .. }) {
         findings.push(global("risk.location", 10));

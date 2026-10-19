@@ -70,6 +70,7 @@ export const vi: Content = {
       mobile: "Di động",
       developer: "Lập trình",
       wellbeing: "Sức khỏe",
+      gaming: "Trò chơi & idle",
     },
     difficulty: { easy: "Dễ", pro: "Pro" },
     risk: { low: "Rủi ro thấp", medium: "Rủi ro trung bình", high: "Rủi ro cao" },
@@ -264,6 +265,15 @@ export const vi: Content = {
           { icon: "stop", h3: "Halt", p: "Ctrl+Alt+Esc trên Windows, nút nổi trên Android. Luồng dừng trong chưa tới 500 ms — thời gian chờ được chia nhỏ để không gì cản được." },
         ],
       },
+      {
+        h2: "Nhiều màn hình & trò chơi",
+        items: [
+          { icon: "devices", h3: "Sân khấu", p: "Thiết lập luồng trên một màn hình và cho chạy trên màn hình khác. Chọn sân khấu trên bản đồ màn hình đúng tỉ lệ, hiện số của từng màn hình, giữ AutoFlow ở bảng điều khiển và theo dõi HUD trực tiếp với bản đồ nhỏ của lần nhấp tiếp theo." },
+          { icon: "pause", h3: "Bảo vệ khi tiếp quản", p: "Chạm vào chuột là lượt chạy trên sân khấu tự tạm dừng. Thiếu màn hình cũng không bao giờ nhấp nhầm màn hình: luồng dừng, hỏi bạn hoặc dùng màn hình chính — tùy bạn chọn." },
+          { icon: "image", h3: "Cảnh", p: "AutoFlow ghi nhớ màn hình — sảnh, màn hình phần thưởng — dưới dạng dấu vân tay nhỏ và phản ứng theo màn hình đang hiện. Kiểm tra màu điểm ảnh, chờ có giới hạn thời gian và thời gian chờ giữa các vòng lặp hoàn thiện tính năng." },
+          { icon: "shield", h3: "Chơi công bằng", p: "AutoFlow chỉ nhấp và gõ như bạn. Không bao giờ đọc bộ nhớ trò chơi, chèn mã hay vượt qua chống gian lận — hãy tuân thủ điều khoản dịch vụ của từng trò chơi." },
+        ],
+      },
     ],
   },
   windows: {
@@ -280,6 +290,9 @@ export const vi: Content = {
       { icon: "window", h3: "Cửa sổ và ứng dụng", p: "Mở ứng dụng, chuyển, di chuyển và đổi kích thước cửa sổ — dựng cả góc làm việc chỉ bằng một phím." },
       { icon: "record", h3: "Ghi thao tác", p: "Ghi một việc một lần và biến nó thành các bước chỉnh sửa được. Ô mật khẩu được che tự động." },
       { icon: "pulse", h3: "Khay hệ thống và Pulse", p: "AutoFlow nằm yên trong khay hệ thống; thanh Pulse hiện ra ngay khi có gì đó chạy. Tự động hóa không bao giờ vô hình." },
+      { icon: "devices", h3: "Sân khấu trên màn hình thứ hai", p: "Chạy luồng trên một màn hình trong khi AutoFlow ở màn hình còn lại. Màn hình được nhận diện bằng số và lượt chạy tạm dừng ngay khi bạn cầm chuột." },
+      { icon: "image", h3: "Cảnh", p: "Chụp một vùng màn hình một lần; các điều kiện sẽ so sánh màn hình hiện tại với nó, để luồng phân biệt sảnh với màn hình phần thưởng." },
+      { icon: "gauge", h3: "Kiểm tra điểm ảnh", p: "Chờ một nút đổi màu hoặc đọc một điểm ảnh vào biến — có dung sai và giới hạn thời gian, trên bất kỳ màn hình nào." },
     ],
     req: {
       h2: "Yêu cầu hệ thống",
@@ -473,6 +486,9 @@ export const vi: Content = {
     "status-check": { n: "Kiểm tra trạng thái website", d: "Cứ 10 phút kiểm tra một URL và báo bạn nếu nó không phản hồi." },
     "copy-cleaner": { n: "Làm sạch văn bản bộ nhớ tạm", d: "Bỏ ngắt dòng và khoảng trắng kép khỏi bộ nhớ tạm rồi trả lại văn bản gọn gàng." },
     "countdown-timer": { n: "Hẹn giờ tập trung", d: "Phiên tập trung 25 phút kết thúc bằng một thông báo — Pomodoro mà không cần ứng dụng khác." },
+    "idle-collect": { n: "Game idle: nhận thưởng & về sảnh", d: "Trên màn hình thứ hai, nhận diện sảnh và màn hình phần thưởng, bắt đầu một ván, nhận thưởng rồi quay lại — ba lần." },
+    "stage-ready-clicker": { n: "Sân khấu hai màn hình: nhấp khi sẵn sàng", d: "Theo dõi một điểm trên màn hình thứ hai và nhấp mỗi khi nó chuyển xanh, tối đa hai lần mỗi giây." },
+    "daily-check-in": { n: "Vòng điểm danh hằng ngày", d: "Nhấp nút điểm danh hằng ngày rồi chờ 24 giờ trước vòng tiếp theo. Chạy tối đa một tuần." },
   },
   privacy,
   terms,

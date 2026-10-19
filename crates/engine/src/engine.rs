@@ -9,21 +9,30 @@
 //! - Emits [`RunEvent`]s whose JSON is identical to the TypeScript `RunEvent` union.
 //! - Engine v2 (opt-in schema fields, same semantics as engine.ts): per-step `stepTimeoutMs`,
 //!   retry backoff curves with cap and jitter, `limits.maxSteps` and seeded `humanize`.
+//! - Multi-monitor (opt-in): display-relative targets are placed on absolute pixels here
+//!   ([`crate::display`]), a missing display follows `onMissingDisplay`, Stage mode pauses when the
+//!   user takes over the pointer, scene / pixel probes feed conditions, and loops can keep a
+//!   `cooldownMs` rhythm.
 //!
 //! A run executes synchronously on the calling thread ([`FlowRun::start`]) or on a dedicated
 //! thread ([`FlowRun::spawn`]); other threads control it through a cloneable [`RunHandle`]
 //! backed by atomic flags and a condition variable.
 
 use crate::capabilities::{compatibility, CompatIssue, Support};
+use crate::display::{
+    color_distance, display_ref_key, display_ref_label, find_display, hash_similarity, is_hash, on_display, parse_color, place_point,
+    place_rect, rect_on_display, sort_displays, to_hex_color, DisplayInfo,
+};
 use crate::expr::{default_random, interpolate_with, ExprEnv, ExprError, Vars};
 use crate::risk::{analyze_risk, RiskReport};
 use crate::schema::{
-    retry_delay_ms, ErrorStrategy, FileOp, Flow, HttpMethod, Humanize, KeyAction, LogLevel, LoopMode, Modifier, MouseButton, Mulberry32,
-    Platform, Rect, Space, Step, StepKind, Target, VarType, WindowMatch, WindowOp,
+    retry_delay_ms, Condition, DisplayRef, ErrorStrategy, FileOp, Flow, HttpMethod, Humanize, KeyAction, LogLevel, LoopMode, Modifier,
+    MouseButton, Mulberry32, OnMissingDisplay, Platform, Rect, Scene, Space, Step, StepKind, Target, VarType, WindowMatch, WindowOp,
 };
 use crate::value::{js_number_to_string, Value};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
@@ -119,9 +128,21 @@ pub enum InputAction {
         reference: String,
         confidence: f64,
         timeout_ms: u64,
+        /// Search area in virtual-desktop px (display-scoped steps only).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        region: Option<Rect>,
     },
     SwitchProfile {
         profile_id: String,
+    },
+    /// Probe: color of one virtual-desktop pixel as `#rrggbb`.
+    Pixel {
+        x: f64,
+        y: f64,
+    },
+    /// Probe: dHash (16 hex digits) of a virtual-desktop rectangle.
+    SceneHash {
+        region: Rect,
     },
 }
 
@@ -147,6 +168,8 @@ impl InputAction {
             InputAction::Ocr { .. } => "ocr",
             InputAction::FindImage { .. } => "findImage",
             InputAction::SwitchProfile { .. } => "switchProfile",
+            InputAction::Pixel { .. } => "pixel",
+            InputAction::SceneHash { .. } => "sceneHash",
         }
     }
 }
@@ -178,6 +201,7 @@ pub enum ErrorCategory {
     User,
     Internal,
     Timeout,
+    Display,
 }
 
 /// Error returned by an [`InputBackend`].
@@ -227,6 +251,16 @@ pub trait InputBackend: Send {
     fn confirm(&mut self, message: &str, control: &RunControl) -> Result<bool, BackendError>;
     /// Live screen geometry, if known.
     fn screen(&mut self) -> Option<ScreenInfo> {
+        None
+    }
+    /// Connected monitors in virtual-desktop px, any order (default: the primary screen only).
+    fn displays(&mut self) -> Vec<DisplayInfo> {
+        self.screen()
+            .map(|s| vec![DisplayInfo::new("primary", true, Rect { x: 0.0, y: 0.0, w: f64::from(s.width), h: f64::from(s.height) }, s.scale)])
+            .unwrap_or_default()
+    }
+    /// Current pointer position (Stage takeover detection); `None` when there is no pointer.
+    fn pointer_position(&mut self) -> Option<(f64, f64)> {
         None
     }
 }
@@ -465,6 +499,8 @@ pub type RiskApproval = Box<dyn FnMut(&RiskReport) -> bool + Send>;
 pub type ScreenApproval = Box<dyn FnMut(&ScreenInfo, &ScreenInfo) -> bool + Send>;
 /// Random source in `[0, 1)`.
 pub type RandomSource = Arc<dyn Fn() -> f64 + Send + Sync>;
+/// onMissingDisplay "ask": may the run use the primary display instead of the one labelled?
+pub type DisplayApproval = Box<dyn FnMut(&str) -> bool + Send>;
 
 /// Options of a run (`RunOptions` in engine.ts).
 #[derive(Default)]
@@ -491,6 +527,8 @@ pub struct RunOptions {
     pub skip_countdown: bool,
     /// Max nesting of `runFlow` (default 8).
     pub max_call_depth: Option<u32>,
+    /// Answers onMissingDisplay "ask" (absent = the backend's confirm dialog asks).
+    pub confirm_missing_display: Option<DisplayApproval>,
 }
 
 /* ---------------------------------------------------------------- control */
@@ -754,16 +792,19 @@ struct Deadline {
 /// Applies the humanize offset to pixel point targets (`humanizeTarget` in engine.ts).
 pub fn humanize_target(t: &Target, offset_px: u32, rnd: &mut dyn FnMut() -> f64) -> Target {
     match t {
-        Target::Point { x, y, space, monitor } if offset_px > 0 && *space != Space::Normalized => {
+        Target::Point { x, y, space, monitor, display } if offset_px > 0 && *space != Space::Normalized => {
             let max = f64::from(offset_px);
             let mut off = || ((rnd() * (2.0 * max + 1.0)).floor()).min(2.0 * max) - max;
             let dx = off();
             let dy = off();
-            Target::Point { x: x + dx, y: y + dy, space: *space, monitor: *monitor }
+            Target::Point { x: x + dx, y: y + dy, space: *space, monitor: *monitor, display: display.clone() }
         }
         other => other.clone(),
     }
 }
+
+/// Default takeover distance in px (`TAKEOVER_PX`).
+const TAKEOVER_PX: u32 = 24;
 
 /// One execution of a flow (`FlowRun` in engine.ts). Can be started once.
 pub struct FlowRun {
@@ -781,6 +822,10 @@ pub struct FlowRun {
     next_deadline: u64,
     humanize: Option<Humanize>,
     human_rng: Option<Mulberry32>,
+    /// Where AutoFlow last put the pointer (Stage takeover detection).
+    last_pointer: Option<(f64, f64)>,
+    display_warned: HashSet<String>,
+    display_answers: HashMap<String, bool>,
 }
 
 impl FlowRun {
@@ -806,6 +851,9 @@ impl FlowRun {
             next_deadline: 0,
             humanize,
             human_rng,
+            last_pointer: None,
+            display_warned: HashSet::new(),
+            display_answers: HashMap::new(),
         }
     }
 
@@ -929,7 +977,238 @@ impl FlowRun {
                 }
             }
         }
+        // A missing stage fails (or falls back, or asks) before the countdown, not at the first click.
+        if let Some(st) = &flow.stage {
+            self.display(&st.display)?;
+        }
         Ok(())
+    }
+
+    /* ---------------------------------------------------------- displays */
+
+    fn display_list(&mut self) -> Vec<DisplayInfo> {
+        sort_displays(&self.backend.displays())
+    }
+
+    /// Resolves a display reference, applying `onMissingDisplay` when it is not connected.
+    fn display(&mut self, r: &DisplayRef) -> Flowing<DisplayInfo> {
+        let list = self.display_list();
+        if let Some(d) = find_display(&list, r) {
+            return Ok(d.clone());
+        }
+        let key = display_ref_key(r);
+        let label = display_ref_label(r);
+        let Some(primary) = list.first().cloned() else {
+            return Err(Signal::Fail(RunError::new(ErrorCategory::Display, format!("display {label} is not connected"))));
+        };
+        let use_primary = match self.flow.on_missing_display.unwrap_or_default() {
+            OnMissingDisplay::Fail => false,
+            OnMissingDisplay::Primary => true,
+            OnMissingDisplay::Ask => {
+                if let Some(ok) = self.display_answers.get(&key) {
+                    *ok
+                } else {
+                    let ok = if let Some(f) = self.opts.confirm_missing_display.as_mut() {
+                        f(&label)
+                    } else {
+                        let msg = format!("Display {label} is not connected. Use the primary display instead?");
+                        match self.backend.confirm(&msg, &self.shared.control) {
+                            Ok(ok) => ok,
+                            Err(e) if e.aborted => return Err(Signal::Abort),
+                            Err(e) => return Err(Signal::Fail(RunError::new(e.category.unwrap_or(ErrorCategory::Action), e.message))),
+                        }
+                    };
+                    self.display_answers.insert(key.clone(), ok);
+                    ok
+                }
+            }
+        };
+        if !use_primary {
+            return Err(Signal::Fail(RunError::new(ErrorCategory::Display, format!("display {label} is not connected"))));
+        }
+        if self.display_warned.insert(key) {
+            self.emit(RunEvent::Log {
+                level: LogLevel::Warn,
+                message: format!("display {label} is not connected; using the primary display"),
+                step_id: None,
+                at: self.now(),
+            });
+        }
+        Ok(primary)
+    }
+
+    /// Places display-relative point/region/image targets on absolute pixels (`place` in
+    /// engine.ts). Targets without a display reference outside Stage mode are returned unchanged.
+    fn place(&mut self, t: &Target) -> Flowing<Target> {
+        match t {
+            Target::Image(img) => {
+                let Some(r) = &img.display else { return Ok(t.clone()) };
+                let d = self.display(r)?;
+                let region = img.region.as_ref().map_or(d.bounds, |reg| place_rect(&d.bounds, reg, "display"));
+                let mut out = img.clone();
+                out.display = None;
+                out.region = Some(region);
+                Ok(Target::Image(out))
+            }
+            Target::Point { space, display, .. } | Target::Region { space, display, .. } if *space != Space::Window => {
+                let stage = self.flow.stage.as_ref().map(|s| s.display.clone());
+                let r = match display {
+                    Some(r) => r.clone(),
+                    None if *space == Space::Display || (*space == Space::Normalized && stage.is_some()) => {
+                        stage.unwrap_or_else(|| DisplayRef::Name("primary".into()))
+                    }
+                    None => return Ok(t.clone()),
+                };
+                let d = self.display(&r)?;
+                let b = d.bounds;
+                match t {
+                    Target::Point { x, y, .. } => {
+                        let (px, py) = place_point(&b, *x, *y, space.as_str());
+                        if !on_display(&b, px, py) {
+                            return Err(Signal::Fail(RunError::new(
+                                ErrorCategory::Display,
+                                format!(
+                                    "point ({}, {}) is outside display {}",
+                                    js_number_to_string(px),
+                                    js_number_to_string(py),
+                                    display_ref_label(&r)
+                                ),
+                            )));
+                        }
+                        Ok(Target::Point { x: px, y: py, space: Space::Screen, monitor: None, display: None })
+                    }
+                    Target::Region { x, y, w, h, pick, .. } => {
+                        let rr = place_rect(&b, &Rect { x: *x, y: *y, w: *w, h: *h }, space.as_str());
+                        if !rect_on_display(&b, &rr) {
+                            return Err(Signal::Fail(RunError::new(
+                                ErrorCategory::Display,
+                                format!(
+                                    "region ({}, {}) {}x{} is outside display {}",
+                                    js_number_to_string(rr.x),
+                                    js_number_to_string(rr.y),
+                                    js_number_to_string(rr.w),
+                                    js_number_to_string(rr.h),
+                                    display_ref_label(&r)
+                                ),
+                            )));
+                        }
+                        Ok(Target::Region { x: rr.x, y: rr.y, w: rr.w, h: rr.h, space: Space::Screen, pick: *pick, display: None })
+                    }
+                    _ => Ok(t.clone()),
+                }
+            }
+            _ => Ok(t.clone()),
+        }
+    }
+
+    /// Placement on displays, then humanization (in that order in every engine).
+    fn target(&mut self, t: &Target) -> Flowing<Target> {
+        let placed = self.place(t)?;
+        Ok(self.human_target(&placed))
+    }
+
+    /// Remembers where an input action left the pointer (unknown for non-pixel targets).
+    fn track(&mut self, t: Option<&Target>) {
+        self.last_pointer = match t {
+            Some(Target::Point { x, y, space: Space::Screen, .. }) => Some((*x, *y)),
+            _ => None,
+        };
+    }
+
+    /// Stage guard: once AutoFlow placed the pointer, a pointer that moved more than
+    /// `takeoverPx` or left the stage display means the user took over — the run pauses.
+    fn check_takeover(&mut self) -> Flowing {
+        let Some(st) = self.flow.stage.clone() else { return Ok(()) };
+        let Some((lx, ly)) = self.last_pointer else { return Ok(()) };
+        if st.pause_on_takeover == Some(false) {
+            return Ok(());
+        }
+        let Some((px, py)) = self.backend.pointer_position() else { return Ok(()) };
+        let limit = f64::from(st.takeover_px.unwrap_or(TAKEOVER_PX));
+        let (dx, dy) = (px - lx, py - ly);
+        let stage = self.display(&st.display)?;
+        let off = !on_display(&stage.bounds, px, py);
+        if !off && dx * dx + dy * dy <= limit * limit {
+            return Ok(());
+        }
+        self.last_pointer = None;
+        let message = if off { "takeover: pointer left the stage display, run paused" } else { "takeover: pointer moved, run paused" };
+        self.emit(RunEvent::Log { level: LogLevel::Warn, message: message.into(), step_id: None, at: self.now() });
+        self.shared.pause();
+        self.gate()
+    }
+
+    /// Absolute pixel of a probe position (pixel conditions and steps).
+    fn probe_point(&mut self, at: &Target) -> Flowing<(f64, f64)> {
+        let Target::Point { x, y, space, display, .. } = at else {
+            return Err(Signal::Fail(RunError::new(ErrorCategory::Validation, "pixel positions must be points")));
+        };
+        if *space == Space::Window {
+            return Err(Signal::Fail(RunError::new(ErrorCategory::Validation, "pixel positions cannot be window-relative")));
+        }
+        let r = match display {
+            Some(r) => r.clone(),
+            None if *space == Space::Screen => return Ok(place_point(&Rect { x: 0.0, y: 0.0, w: 0.0, h: 0.0 }, *x, *y, "screen")),
+            None => self.flow.stage.as_ref().map_or_else(|| DisplayRef::Name("primary".into()), |s| s.display.clone()),
+        };
+        let d = self.display(&r)?;
+        let (px, py) = place_point(&d.bounds, *x, *y, space.as_str());
+        if !on_display(&d.bounds, px, py) {
+            return Err(Signal::Fail(RunError::new(
+                ErrorCategory::Display,
+                format!("point ({}, {}) is outside display {}", js_number_to_string(px), js_number_to_string(py), display_ref_label(&r)),
+            )));
+        }
+        Ok((px, py))
+    }
+
+    fn read_pixel(&mut self, at: &Target) -> Flowing<[u8; 3]> {
+        let (x, y) = self.probe_point(at)?;
+        let v = self.perform(&InputAction::Pixel { x, y })?;
+        match &v {
+            Value::Str(s) => parse_color(s),
+            _ => None,
+        }
+        .ok_or_else(|| Signal::Fail(RunError::new(ErrorCategory::Unsupported, "this device cannot read screen pixels")))
+    }
+
+    fn scene(&self, name: &str) -> Flowing<Scene> {
+        self.flow.scenes.iter().flatten().find(|s| s.name == name).cloned().ok_or_else(|| {
+            Signal::Fail(RunError::new(ErrorCategory::Validation, format!("scene \"{name}\" is not defined in this flow")))
+        })
+    }
+
+    /// Similarity (0..1) between the live display region of a scene and its remembered hash.
+    fn scene_similarity(&mut self, s: &Scene) -> Flowing<f64> {
+        let r = s.display.clone().or_else(|| self.flow.stage.as_ref().map(|st| st.display.clone())).unwrap_or(DisplayRef::Name("primary".into()));
+        let b = self.display(&r)?.bounds;
+        let mut rr = place_rect(&b, &s.region, "normalized");
+        rr.w = rr.w.min(b.x + b.w - rr.x).max(1.0);
+        rr.h = rr.h.min(b.y + b.h - rr.y).max(1.0);
+        let v = self.perform(&InputAction::SceneHash { region: rr })?;
+        match &v {
+            Value::Str(h) if is_hash(h) => Ok(hash_similarity(&h.to_ascii_lowercase(), &s.hash)),
+            _ => Err(Signal::Fail(RunError::new(ErrorCategory::Unsupported, "this device cannot capture the screen for scenes"))),
+        }
+    }
+
+    /// Evaluates a condition: scene, then pixel, then expression (short-circuit AND).
+    fn holds(&mut self, c: &Condition) -> Flowing<bool> {
+        if let Some(sc) = &c.scene {
+            let scene = self.scene(&sc.name)?;
+            let showing = self.scene_similarity(&scene)? >= sc.min_similarity;
+            if showing == (sc.not == Some(true)) {
+                return Ok(false);
+            }
+        }
+        if let Some(px) = &c.pixel {
+            let want = parse_color(&px.color).unwrap_or([0, 0, 0]);
+            let matched = color_distance(self.read_pixel(&px.at)?, want) <= px.tolerance;
+            if matched == (px.not == Some(true)) {
+                return Ok(false);
+            }
+        }
+        Ok(self.eval(&c.expr)?.truthy())
     }
 
     fn init_vars(&mut self, flow: &Flow) {
@@ -1259,32 +1538,43 @@ impl FlowRun {
                 | StepKind::Type { .. }
         ) {
             self.count_action()?;
+            self.check_takeover()?;
             if !matches!(s.kind, StepKind::Key { .. }) {
                 self.human_delay()?;
             }
         }
         match &s.kind {
             StepKind::Click { target, button, clicks, hold_ms, modifiers } => {
-                let target = self.human_target(target);
+                let target = self.target(target)?;
                 self.perform(&InputAction::Click {
-                    target,
+                    target: target.clone(),
                     button: *button,
                     clicks: *clicks,
                     hold_ms: *hold_ms,
                     modifiers: modifiers.clone(),
                 })?;
+                self.track(Some(&target));
             }
             StepKind::Move { target, duration_ms } => {
-                let target = self.human_target(target);
-                self.perform(&InputAction::Move { target, duration_ms: *duration_ms })?;
+                let target = self.target(target)?;
+                self.perform(&InputAction::Move { target: target.clone(), duration_ms: *duration_ms })?;
+                self.track(Some(&target));
             }
             StepKind::Drag { from, to, duration_ms, button } => {
-                let from = self.human_target(from);
-                let to = self.human_target(to);
-                self.perform(&InputAction::Drag { from, to, duration_ms: *duration_ms, button: *button })?;
+                let from = self.target(from)?;
+                let to = self.target(to)?;
+                self.perform(&InputAction::Drag { from, to: to.clone(), duration_ms: *duration_ms, button: *button })?;
+                self.track(Some(&to));
             }
             StepKind::Scroll { dx, dy, target } => {
+                let target = match target {
+                    Some(t) => Some(self.place(t)?),
+                    None => None,
+                };
                 self.perform(&InputAction::Scroll { dx: *dx, dy: *dy, target: target.clone() })?;
+                if target.is_some() {
+                    self.track(target.as_ref());
+                }
             }
             StepKind::Key { key, modifiers, action, repeat } => {
                 for i in 0..*repeat {
@@ -1313,7 +1603,7 @@ impl FlowRun {
             StepKind::WaitFor { condition, poll_ms, timeout_ms } => {
                 let deadline = self.now() + timeout_ms;
                 loop {
-                    if self.eval(&condition.expr)?.truthy() {
+                    if self.holds(condition)? {
                         return Ok(());
                     }
                     if self.now() >= deadline {
@@ -1408,17 +1698,79 @@ impl FlowRun {
                     self.set_var(var, res);
                 }
             }
-            StepKind::Ocr { region, result_var } => {
-                let res = self.perform(&InputAction::Ocr { region: *region })?;
+            StepKind::Ocr { region, result_var, display } => {
+                let region = match display {
+                    Some(r) => place_rect(&self.display(r)?.bounds, region, "display"),
+                    None => *region,
+                };
+                let res = self.perform(&InputAction::Ocr { region })?;
                 self.set_var(result_var, Value::Str(res.to_js_string()));
             }
             StepKind::FindImage { target, result_var, timeout_ms } => {
-                let (reference, confidence) = match target {
-                    Target::Image(img) => (img.reference.clone(), img.confidence),
-                    _ => (String::new(), 0.9),
+                let (reference, confidence, scoped) = match target {
+                    Target::Image(img) => (img.reference.clone(), img.confidence, img.display.is_some()),
+                    _ => (String::new(), 0.9, false),
                 };
-                let res = self.perform(&InputAction::FindImage { reference, confidence, timeout_ms: *timeout_ms })?;
+                // The search region is only passed for display-scoped steps (older flows keep searching the whole screen).
+                let region = if scoped {
+                    match self.place(target)? {
+                        Target::Image(img) => img.region,
+                        _ => None,
+                    }
+                } else {
+                    None
+                };
+                let res = self.perform(&InputAction::FindImage { reference, confidence, timeout_ms: *timeout_ms, region })?;
                 self.set_var(result_var, res);
+            }
+            StepKind::PixelCheck { at, color, tolerance, result_var } => {
+                let c = self.read_pixel(at)?;
+                let v = match color {
+                    Some(want) => Value::Bool(color_distance(c, parse_color(want).unwrap_or([0, 0, 0])) <= *tolerance),
+                    None => Value::Str(to_hex_color(c)),
+                };
+                self.set_var(result_var, v);
+            }
+            StepKind::WaitForPixel { at, color, tolerance, not, poll_ms, timeout_ms } => {
+                let deadline = timeout_ms.map(|t| self.now() + t);
+                let want = parse_color(color).unwrap_or([0, 0, 0]);
+                loop {
+                    let matched = color_distance(self.read_pixel(at)?, want) <= *tolerance;
+                    if matched != (*not == Some(true)) {
+                        return Ok(());
+                    }
+                    if let Some(d) = deadline {
+                        if self.now() >= d {
+                            return Err(Signal::Fail(RunError {
+                                step_id: Some(s.id.clone()),
+                                path: Some(path.to_owned()),
+                                message: format!("pixel condition not met within {} ms", timeout_ms.unwrap_or(0)),
+                                category: ErrorCategory::Target,
+                            }));
+                        }
+                    }
+                    self.sleep(*poll_ms)?;
+                }
+            }
+            StepKind::MatchScene { scenes, min_similarity, result_var, similarity_var } => {
+                let names: Vec<String> = match scenes {
+                    Some(list) => list.clone(),
+                    None => self.flow.scenes.iter().flatten().map(|sc| sc.name.clone()).collect(),
+                };
+                let (mut best_name, mut best_sim) = (String::new(), -1.0_f64);
+                for name in names {
+                    let scene = self.scene(&name)?;
+                    let sim = self.scene_similarity(&scene)?;
+                    if sim > best_sim {
+                        best_sim = sim;
+                        best_name = name;
+                    }
+                }
+                let result = if best_sim >= *min_similarity { best_name } else { String::new() };
+                self.set_var(result_var, Value::Str(result));
+                if let Some(var) = similarity_var {
+                    self.set_var(var, Value::Num(best_sim.max(0.0)));
+                }
             }
             StepKind::SwitchProfile { profile_id } => {
                 self.perform(&InputAction::SwitchProfile { profile_id: profile_id.clone() })?;
@@ -1452,26 +1804,37 @@ impl FlowRun {
             StepKind::Continue => return Err(Signal::Continue),
             StepKind::Group { body, .. } => self.run_list(body, path)?,
             StepKind::If { condition, then, else_ } => {
-                if self.eval(&condition.expr)?.truthy() {
+                if self.holds(condition)? {
                     self.run_list(then, &format!("{path}.then"))?;
                 } else {
                     self.run_list(else_, &format!("{path}.else"))?;
                 }
             }
-            StepKind::Loop { mode, count, condition, index_var, body } => {
+            StepKind::Loop { mode, count, condition, index_var, cooldown_ms, body } => {
                 let body_path = format!("{path}.body");
                 let mut i: u64 = 0;
+                let mut round_start: u64 = 0;
                 loop {
                     if *mode == LoopMode::Count && i >= count.unwrap_or(0) {
                         return Ok(());
                     }
+                    if let Some(cd) = cooldown_ms.filter(|c| *c > 0 && i > 0) {
+                        let rest = (round_start + cd).saturating_sub(self.now());
+                        if rest > 0 {
+                            self.sleep(rest)?;
+                        }
+                    }
                     if *mode == LoopMode::While {
-                        let expr = condition.as_ref().map_or("false", |c| c.expr.as_str());
-                        if !self.eval(expr)?.truthy() {
+                        let holds = match condition {
+                            Some(c) => self.holds(c)?,
+                            None => false,
+                        };
+                        if !holds {
                             return Ok(());
                         }
                     }
                     self.count_iteration()?;
+                    round_start = self.now();
                     if let Some(var) = index_var {
                         #[allow(clippy::cast_precision_loss)]
                         self.set_var(var, Value::Num(i as f64));

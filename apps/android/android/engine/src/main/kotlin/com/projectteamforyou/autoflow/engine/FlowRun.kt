@@ -19,7 +19,9 @@ import kotlin.random.Random
  * if/loop/forEach/group/break/continue/stop, runFlow nesting, pre-run checks (unsupported steps, risk approval,
  * screen geometry drift) and the same RunEvent stream. Engine v2 (opt-in schema fields, verified against the
  * TypeScript engine by ConformanceTest): per-step `stepTimeoutMs`, retry backoff curves with cap and jitter,
- * `limits.maxSteps` and seeded `humanize`.
+ * `limits.maxSteps` and seeded `humanize`. Multi-monitor (opt-in, see Displays.kt): display-relative targets are placed
+ * on absolute pixels here, a missing display follows `onMissingDisplay`, Stage mode pauses on a pointer takeover,
+ * scene / pixel probes feed conditions, and loops can keep a `cooldownMs` rhythm.
  *
  * Threading: [start] suspends until the run ends and can run on any dispatcher; [pause], [resume], [stop] and
  * [stepOver] are thread-safe and may be called from any thread.
@@ -54,12 +56,18 @@ class FlowRun(
     private val humanRng: Mulberry32? = flow.humanize?.seed?.let { Mulberry32(it) }
     private var startedAt = 0L
     private var callDepth = 0
+    /** Where AutoFlow last put the pointer (Stage takeover detection). */
+    private var lastPointer: Pair<Double, Double>? = null
+    private val displayWarned = HashSet<String>()
+    private val displayAnswers = HashMap<String, Boolean>()
     private val clock = opts.clock
     private val env = ExprEnv(vars, now = { clock.now() }, random = opts.random, zone = opts.zone)
 
     companion object {
         /** Stop latency target is 500 ms; long waits are sliced so pause/stop/limits are observed quickly. */
         const val SLICE_MS = 100L
+        /** Default pointer movement (px) that counts as the user taking over a Stage run. */
+        const val TAKEOVER_PX = 24
         private val INPUT_TYPES = setOf("click", "move", "drag", "scroll", "key", "type")
 
         data class Preflight(val compat: List<CompatIssue>, val blocked: List<CompatIssue>, val risk: RiskReport)
@@ -193,6 +201,138 @@ class FlowRun(
                 }
             }
         }
+        // A missing stage fails (or falls back, or asks) before the countdown, not at the first tap.
+        flow.stage?.let { display(it.display) }
+    }
+
+    /* ---------------------------------------------------------- displays */
+
+    private suspend fun displayList(): List<DisplayInfo> = sortDisplays(abortable { backend.displays() })
+
+    /** Resolves a display reference, applying `onMissingDisplay` when it is not connected. */
+    private suspend fun display(ref: DisplayRef): DisplayInfo {
+        val list = displayList()
+        findDisplay(list, ref)?.let { return it }
+        val primary = list.firstOrNull()
+        val use = when {
+            primary == null -> false
+            flow.onMissingDisplay == "primary" -> true
+            flow.onMissingDisplay == "ask" -> displayAnswers[ref.key] ?: run {
+                val ok = opts.confirmMissingDisplay?.invoke(ref.label)
+                    ?: abortable { backend.confirm("Display ${ref.label} is not connected. Use the primary display instead?") }
+                displayAnswers[ref.key] = ok
+                ok
+            }
+            else -> false
+        }
+        if (!use || primary == null) throw RunFailure(RunError(message = "display ${ref.label} is not connected", category = ErrorCategory.DISPLAY))
+        if (displayWarned.add(ref.key)) {
+            emit(RunEvent.Log("warn", "display ${ref.label} is not connected; using the primary display", null, clock.now()))
+        }
+        return primary
+    }
+
+    private fun outside(what: String, ref: DisplayRef): RunFailure =
+        RunFailure(RunError(message = "$what is outside display ${ref.label}", category = ErrorCategory.DISPLAY))
+
+    /** Places display-relative point/region/image targets on absolute pixels; other targets are returned unchanged. */
+    private suspend fun place(t: Target): Target {
+        if (t is Target.Image) {
+            val ref = t.display ?: return t
+            val d = display(ref)
+            return t.copy(display = null, region = t.region?.let { placeRect(d.bounds, it, "display") } ?: d.bounds)
+        }
+        val (space, own) = when (t) {
+            is Target.Point -> t.space to t.display
+            is Target.Region -> t.space to t.display
+            else -> return t
+        }
+        if (space == "window") return t
+        val stage = flow.stage?.display
+        val ref = own ?: (if (space == "display" || (space == "normalized" && stage != null)) stage ?: DisplayRef.PRIMARY else return t)
+        val b = display(ref).bounds
+        return when (t) {
+            is Target.Point -> {
+                val (px, py) = placePoint(b, t.x, t.y, space)
+                if (!onDisplay(b, px, py)) throw outside("point (${jsNumberToString(px)}, ${jsNumberToString(py)})", ref)
+                Target.Point(px, py, "screen")
+            }
+            is Target.Region -> {
+                val r = placeRect(b, Target.Rect(t.x, t.y, t.w, t.h), space)
+                if (!rectOnDisplay(b, r)) {
+                    throw outside("region (${jsNumberToString(r.x)}, ${jsNumberToString(r.y)}) ${jsNumberToString(r.w)}x${jsNumberToString(r.h)}", ref)
+                }
+                Target.Region(r.x, r.y, r.w, r.h, "screen", t.pick)
+            }
+            else -> t
+        }
+    }
+
+    /** Placement on displays, then humanization (in that order in every engine). */
+    private suspend fun target(t: Target): Target {
+        val placed = place(t)
+        return humanize?.let { humanizeTarget(placed, it.offsetPx, ::humanRandom) } ?: placed
+    }
+
+    private fun track(t: Target?) {
+        lastPointer = if (t is Target.Point && t.space == "screen") t.x to t.y else null
+    }
+
+    /** Stage guard: a pointer that moved more than `takeoverPx` or left the stage display pauses the run. */
+    private suspend fun checkTakeover() {
+        val st = flow.stage ?: return
+        val last = lastPointer ?: return
+        if (st.pauseOnTakeover == false) return
+        val p = abortable { backend.pointerPosition() } ?: return
+        val limit = (st.takeoverPx ?: TAKEOVER_PX).toDouble()
+        val dx = p.first - last.first
+        val dy = p.second - last.second
+        val off = !onDisplay(display(st.display).bounds, p.first, p.second)
+        if (!off && dx * dx + dy * dy <= limit * limit) return
+        lastPointer = null
+        emit(RunEvent.Log("warn", if (off) "takeover: pointer left the stage display, run paused" else "takeover: pointer moved, run paused", null, clock.now()))
+        pause()
+        gate()
+    }
+
+    private suspend fun probePoint(at: Target.Point): Pair<Double, Double> {
+        if (at.space == "window") throw RunFailure(RunError(message = "pixel positions cannot be window-relative", category = ErrorCategory.VALIDATION))
+        val ref = at.display ?: (if (at.space == "screen") return placePoint(Target.Rect(0.0, 0.0, 0.0, 0.0), at.x, at.y, "screen") else flow.stage?.display ?: DisplayRef.PRIMARY)
+        val b = display(ref).bounds
+        val (px, py) = placePoint(b, at.x, at.y, at.space)
+        if (!onDisplay(b, px, py)) throw outside("point (${jsNumberToString(px)}, ${jsNumberToString(py)})", ref)
+        return px to py
+    }
+
+    private suspend fun readPixel(at: Target.Point): IntArray {
+        val (x, y) = probePoint(at)
+        return parseColor((perform(InputAction.Pixel(x, y)) as? Value.Str)?.v)
+            ?: throw RunFailure(RunError(message = "this device cannot read screen pixels", category = ErrorCategory.UNSUPPORTED))
+    }
+
+    private fun scene(name: String): Scene = flow.scenes.orEmpty().firstOrNull { it.name == name }
+        ?: throw RunFailure(RunError(message = "scene \"$name\" is not defined in this flow", category = ErrorCategory.VALIDATION))
+
+    private suspend fun sceneSimilarity(s: Scene): Double {
+        val b = display(s.display ?: flow.stage?.display ?: DisplayRef.PRIMARY).bounds
+        val r0 = placeRect(b, s.region, "normalized")
+        val r = r0.copy(w = maxOf(1.0, minOf(r0.w, b.x + b.w - r0.x)), h = maxOf(1.0, minOf(r0.h, b.y + b.h - r0.y)))
+        val v = (perform(InputAction.SceneHash(r)) as? Value.Str)?.v
+        if (!isHash(v)) throw RunFailure(RunError(message = "this device cannot capture the screen for scenes", category = ErrorCategory.UNSUPPORTED))
+        return hashSimilarity(v!!.lowercase(), s.hash)
+    }
+
+    /** Evaluates a condition: scene, then pixel, then expression (short-circuit AND). */
+    private suspend fun holds(c: Condition): Boolean {
+        c.scene?.let { sc ->
+            val showing = sceneSimilarity(scene(sc.name)) >= sc.minSimilarity
+            if (showing == sc.not) return false
+        }
+        c.pixel?.let { px ->
+            val matched = colorDistance(readPixel(px.at), parseColor(px.color) ?: intArrayOf(0, 0, 0)) <= px.tolerance
+            if (matched == px.not) return false
+        }
+        return truthy(evalExpr(c.expr, env))
     }
 
     private fun initVars() {
@@ -300,7 +440,6 @@ class FlowRun(
         if (h.delayMs > 0) sleep(minOf(h.delayMs, Math.floor(humanRandom() * (h.delayMs + 1)).toLong()))
     }
 
-    private fun target(t: Target): Target = humanize?.let { humanizeTarget(t, it.offsetPx, ::humanRandom) } ?: t
 
     private suspend fun runStep(step: Step, path: String) {
         if (step.meta.disabled) return
@@ -403,16 +542,31 @@ class FlowRun(
     private suspend fun exec(s: Step, path: String) {
         if (s.type in INPUT_TYPES) {
             countAction()
+            checkTakeover()
             if (s !is Step.Key) humanDelay()
         }
         when (s) {
-            is Step.Click -> perform(InputAction.Click(target(s.target), s.button, s.clicks, s.holdMs, s.modifiers))
-            is Step.Move -> perform(InputAction.Move(target(s.target), s.durationMs))
+            is Step.Click -> {
+                val t = target(s.target)
+                perform(InputAction.Click(t, s.button, s.clicks, s.holdMs, s.modifiers))
+                track(t)
+            }
+            is Step.Move -> {
+                val t = target(s.target)
+                perform(InputAction.Move(t, s.durationMs))
+                track(t)
+            }
             is Step.Drag -> {
                 val from = target(s.from)
-                perform(InputAction.Drag(from, target(s.to), s.durationMs, s.button))
+                val to = target(s.to)
+                perform(InputAction.Drag(from, to, s.durationMs, s.button))
+                track(to)
             }
-            is Step.Scroll -> perform(InputAction.Scroll(s.dx, s.dy, s.target))
+            is Step.Scroll -> {
+                val t = s.target?.let { place(it) }
+                perform(InputAction.Scroll(s.dx, s.dy, t))
+                if (t != null) track(t)
+            }
             is Step.Key -> for (i in 0 until s.repeat) {
                 if (i > 0) {
                     gate()
@@ -429,7 +583,7 @@ class FlowRun(
             is Step.WaitFor -> {
                 val deadline = clock.now() + s.timeoutMs
                 while (true) {
-                    if (truthy(evalExpr(s.condition, env))) return
+                    if (holds(s.condition)) return
                     if (clock.now() >= deadline) throw RunFailure(RunError(s.id, path, "condition not met within ${s.timeoutMs} ms", ErrorCategory.TARGET))
                     sleep(s.pollMs)
                 }
@@ -463,12 +617,45 @@ class FlowRun(
                 if (s.resultVar != null) setVar(s.resultVar, res ?: Value.Null)
             }
             is Step.Ocr -> {
-                val res = perform(InputAction.Ocr(s.region))
+                val region = s.display?.let { placeRect(display(it).bounds, s.region, "display") } ?: s.region
+                val res = perform(InputAction.Ocr(region))
                 setVar(s.resultVar, Value.Str(toStr(res ?: Value.Str(""))))
             }
             is Step.FindImage -> {
-                val res = perform(InputAction.FindImage(s.target.ref, s.target.confidence, s.timeoutMs))
+                // The search region is only passed for display-scoped steps (older flows keep searching the whole screen).
+                val region = if (s.target.display != null) (place(s.target) as? Target.Image)?.region else null
+                val res = perform(InputAction.FindImage(s.target.ref, s.target.confidence, s.timeoutMs, region))
                 setVar(s.resultVar, res ?: Value.Null)
+            }
+            is Step.PixelCheck -> {
+                val c = readPixel(s.at)
+                setVar(s.resultVar, s.color?.let { Value.of(colorDistance(c, parseColor(it) ?: intArrayOf(0, 0, 0)) <= s.tolerance) } ?: Value.Str(toHexColor(c)))
+            }
+            is Step.WaitForPixel -> {
+                val deadline = s.timeoutMs?.let { clock.now() + it }
+                val want = parseColor(s.color) ?: intArrayOf(0, 0, 0)
+                while (true) {
+                    val matched = colorDistance(readPixel(s.at), want) <= s.tolerance
+                    if (matched != s.not) return
+                    if (deadline != null && clock.now() >= deadline) {
+                        throw RunFailure(RunError(s.id, path, "pixel condition not met within ${s.timeoutMs} ms", ErrorCategory.TARGET))
+                    }
+                    sleep(s.pollMs)
+                }
+            }
+            is Step.MatchScene -> {
+                val names = s.scenes ?: flow.scenes.orEmpty().map { it.name }
+                var bestName = ""
+                var bestSim = -1.0
+                for (name in names) {
+                    val sim = sceneSimilarity(scene(name))
+                    if (sim > bestSim) {
+                        bestSim = sim
+                        bestName = name
+                    }
+                }
+                setVar(s.resultVar, Value.Str(if (bestSim >= s.minSimilarity) bestName else ""))
+                if (s.similarityVar != null) setVar(s.similarityVar, Value.Num(maxOf(0.0, bestSim)))
             }
             is Step.SwitchProfile -> perform(InputAction.SwitchProfile(s.profileId))
             is Step.RunFlow -> {
@@ -486,13 +673,20 @@ class FlowRun(
             is Step.Break -> throw Interrupt(Interrupt.Kind.BREAK)
             is Step.Continue -> throw Interrupt(Interrupt.Kind.CONTINUE)
             is Step.Group -> runList(s.body, path)
-            is Step.If -> if (truthy(evalExpr(s.condition, env))) runList(s.then, "$path.then") else runList(s.otherwise, "$path.else")
+            is Step.If -> if (holds(s.condition)) runList(s.then, "$path.then") else runList(s.otherwise, "$path.else")
             is Step.Loop -> {
                 var i = 0L
+                var roundStart = 0L
                 while (true) {
                     if (s.mode == "count" && i >= (s.count ?: 0L)) return
-                    if (s.mode == "while" && !truthy(evalExpr(s.condition!!, env))) return
+                    val cooldown = s.cooldownMs ?: 0L
+                    if (cooldown > 0 && i > 0) {
+                        val rest = roundStart + cooldown - clock.now()
+                        if (rest > 0) sleep(rest)
+                    }
+                    if (s.mode == "while" && !holds(s.condition!!)) return
                     countIteration()
+                    roundStart = clock.now()
                     if (s.indexVar != null) setVar(s.indexVar, Value.Num(i.toDouble()))
                     try {
                         runList(s.body, "$path.body")
@@ -592,6 +786,8 @@ class RunOptions(
     val secret: ((String) -> String?)? = null,
     val confirmRisk: (suspend (RiskReport) -> Boolean)? = null,
     val confirmScreenChange: (suspend (ScreenInfo, ScreenInfo) -> Boolean)? = null,
+    /** onMissingDisplay "ask": may the run use the primary display instead of the one labelled? Default: backend confirm. */
+    val confirmMissingDisplay: (suspend (String) -> Boolean)? = null,
     val resolveFlow: ((String) -> Flow?)? = null,
     val debug: Boolean = false,
     val skipCountdown: Boolean = false,

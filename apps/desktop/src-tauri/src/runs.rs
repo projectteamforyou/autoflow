@@ -105,10 +105,14 @@ pub fn start(app: &AppHandle, flow: Flow, inputs: IndexMap<String, Value>, origi
         resolve_flow: Some(Arc::new(move |id: &str| library.get(id).cloned())),
         confirm_risk: Some(confirm_risk),
         confirm_screen_change: Some(confirm_screen),
+        // onMissingDisplay "ask": the backend's topmost dialog asks people; with nobody there the answer is no.
+        confirm_missing_display: if origin == Origin::Unattended { Some(Box::new(|_: &str| false)) } else { None },
         ..RunOptions::default()
     };
     let backend: Box<dyn InputBackend> = if dry_run {
-        Box::new(MockBackend::new(Platform::Windows).with_screen(platform::screen_info()))
+        let mock = MockBackend::new(Platform::Windows).with_screen(platform::screen_info());
+        let displays = platform::displays();
+        Box::new(if displays.is_empty() { mock } else { mock.with_displays(displays) })
     } else {
         platform::real_backend(Arc::new(Hooks { app: app.clone() }))?
     };

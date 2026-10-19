@@ -70,6 +70,7 @@ export const ptBR: Content = {
       mobile: "Celular",
       developer: "Desenvolvimento",
       wellbeing: "Bem-estar",
+      gaming: "Jogos e idle",
     },
     difficulty: { easy: "Fácil", pro: "Pro" },
     risk: { low: "Risco baixo", medium: "Risco médio", high: "Risco alto" },
@@ -264,6 +265,15 @@ export const ptBR: Content = {
           { icon: "stop", h3: "Halt", p: "Ctrl+Alt+Esc no Windows, botão flutuante no Android. Os fluxos param em menos de 500 ms — as esperas são fatiadas para nada travar a parada." },
         ],
       },
+      {
+        h2: "Vários monitores e jogos",
+        items: [
+          { icon: "devices", h3: "Palco", p: "Configure um fluxo em um monitor e deixe-o rodar em outro. Escolha o palco em um mapa em escala dos seus monitores, faça os números piscarem, mantenha o AutoFlow no painel e acompanhe um HUD ao vivo com minimapa do próximo clique." },
+          { icon: "pause", h3: "Proteção ao assumir o mouse", p: "Toque no mouse e a execução no palco pausa sozinha. Um monitor ausente nunca manda cliques para a tela errada: o fluxo para, pergunta ou usa o monitor principal — você escolhe." },
+          { icon: "image", h3: "Cenas", p: "O AutoFlow memoriza telas — um lobby, uma tela de recompensa — como pequenas impressões digitais e reage à que estiver aparecendo. Verificação de cor de pixel, esperas com limite de tempo e intervalos entre voltas completam o conjunto." },
+          { icon: "shield", h3: "Jogo limpo", p: "O AutoFlow só clica e digita como você faria. Nunca lê a memória do jogo, injeta código ou contorna o anti-cheat — siga os termos de serviço de cada jogo." },
+        ],
+      },
     ],
   },
   windows: {
@@ -280,6 +290,9 @@ export const ptBR: Content = {
       { icon: "window", h3: "Janelas e apps", p: "Abra apps, foque, mova e redimensione janelas — monte todo o seu espaço de trabalho com uma tecla." },
       { icon: "record", h3: "Gravador", p: "Capture uma tarefa uma vez e transforme em passos editáveis. Campos de senha são mascarados automaticamente." },
       { icon: "pulse", h3: "Bandeja e Pulse", p: "O AutoFlow fica quietinho na bandeja; a barra Pulse aparece assim que algo roda. Automação nunca fica invisível." },
+      { icon: "devices", h3: "Palco em um segundo monitor", p: "Rode um fluxo em um monitor enquanto o AutoFlow fica no outro. Os monitores são identificados por número e a execução pausa assim que você assume o mouse." },
+      { icon: "image", h3: "Cenas", p: "Capture uma área de um monitor uma vez; as condições comparam a tela ao vivo com ela, para que um fluxo diferencie um lobby de uma tela de recompensa." },
+      { icon: "gauge", h3: "Verificação de pixels", p: "Espere um botão mudar de cor ou leia um pixel para uma variável — com tolerância e limite de tempo, em qualquer monitor." },
     ],
     req: {
       h2: "Requisitos do sistema",
@@ -473,6 +486,9 @@ export const ptBR: Content = {
     "status-check": { n: "Verificação de status de site", d: "A cada 10 minutos, verifica uma URL e avisa você se ela não responder." },
     "copy-cleaner": { n: "Limpar texto da área de transferência", d: "Tira quebras de linha e espaços duplos da área de transferência e devolve o texto limpo." },
     "countdown-timer": { n: "Timer de foco", d: "Uma sessão de foco de 25 minutos que termina com uma notificação — Pomodoro sem outro app." },
+    "idle-collect": { n: "Jogo idle: coletar e voltar ao lobby", d: "Em um segundo monitor, reconhece o lobby e a tela de recompensa, inicia uma rodada, coleta a recompensa e volta — três vezes." },
+    "stage-ready-clicker": { n: "Palco em dois monitores: clicar quando pronto", d: "Observa um ponto do seu segundo monitor e clica sempre que ficar verde, no máximo duas vezes por segundo." },
+    "daily-check-in": { n: "Loop de check-in diário", d: "Clica em um botão de check-in diário e espera 24 horas antes da próxima rodada. Funciona por até uma semana." },
   },
   privacy,
   terms,

@@ -44,6 +44,8 @@ export interface Settings {
   apiUrl: string;
   reduceMotion: boolean;
   canvasSpeed: number;
+  /** Simulated monitors in the browser Practice Canvas (1–4; Stage shows at least 2). */
+  practiceDisplays: number;
   sync: { enabled: boolean; accountId?: string; email?: string; keyCheck?: string; cursor?: string; lastSyncAt?: number };
   ai: AiSettings;
   ledgerRetentionDays: number;
@@ -61,6 +63,7 @@ export const DEFAULT_SETTINGS: Settings = {
   apiUrl: DEFAULT_API_URL,
   reduceMotion: false,
   canvasSpeed: 1,
+  practiceDisplays: 1,
   sync: { enabled: false },
   ai: { provider: "none", presetId: "openai", baseUrl: "https://api.openai.com/v1", model: "gpt-4.1-mini", imageModel: "gpt-image-1", localOnly: false, useRelay: false },
   ledgerRetentionDays: 30,

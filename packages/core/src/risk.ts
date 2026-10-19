@@ -61,6 +61,9 @@ function stepFindings(s: Step): RiskFinding[] {
       break;
     case "ocr":
     case "findImage":
+    case "pixelCheck":
+    case "waitForPixel":
+    case "matchScene":
       f.push({ stepId: s.id, key: "risk.screenRead", weight: 8, needsConfirm: false });
       break;
     case "loop":
@@ -68,6 +71,9 @@ function stepFindings(s: Step): RiskFinding[] {
       break;
     default:
       break;
+  }
+  if ((s.type === "if" || s.type === "waitFor" || s.type === "loop") && (s.condition?.scene || s.condition?.pixel)) {
+    f.push({ stepId: s.id, key: "risk.screenRead", weight: 8, needsConfirm: false });
   }
   return f;
 }
@@ -87,11 +93,14 @@ const PERMISSION_OF: Partial<Record<Step["type"], string>> = {
   file: "perm.files",
   ocr: "perm.screen",
   findImage: "perm.screen",
+  pixelCheck: "perm.screen",
+  waitForPixel: "perm.screen",
+  matchScene: "perm.screen",
   notify: "perm.notifications",
   androidGlobal: "perm.accessibility",
 };
 
-export function analyzeRisk(flow: Pick<Flow, "steps" | "trigger" | "limits">): RiskReport {
+export function analyzeRisk(flow: Pick<Flow, "steps" | "trigger" | "limits"> & Partial<Pick<Flow, "stage">>): RiskReport {
   const findings: RiskFinding[] = [];
   const perms = new Set<string>();
   walkSteps(flow.steps, (s) => {
@@ -99,7 +108,10 @@ export function analyzeRisk(flow: Pick<Flow, "steps" | "trigger" | "limits">): R
     findings.push(...stepFindings(s));
     const p = PERMISSION_OF[s.type];
     if (p) perms.add(p);
+    if ((s.type === "if" || s.type === "waitFor" || s.type === "loop") && (s.condition?.scene || s.condition?.pixel)) perms.add("perm.screen");
   });
+  // Stage mode without the takeover pause keeps clicking even while the user grabs the mouse.
+  if (flow.stage && flow.stage.pauseOnTakeover === false) findings.push({ key: "risk.stageNoTakeover", weight: 12, needsConfirm: false });
   if (flow.trigger.type === "location") {
     findings.push({ key: "risk.location", weight: 10, needsConfirm: false });
     perms.add("perm.location");

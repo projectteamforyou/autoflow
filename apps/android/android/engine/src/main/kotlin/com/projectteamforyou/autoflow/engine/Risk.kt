@@ -28,10 +28,11 @@ private fun stepFindings(s: Step): List<RiskFinding> {
         is Step.Window -> if (s.op == "close") add("risk.windowClose", 12, false)
         is Step.AndroidGlobal -> if (s.action == "lockScreen" || s.action == "powerDialog") add("risk.systemAction", 10, false)
         is Step.Clipboard -> if (s.op == "get") add("risk.clipboardRead", 8, false)
-        is Step.Ocr, is Step.FindImage -> add("risk.screenRead", 8, false)
+        is Step.Ocr, is Step.FindImage, is Step.PixelCheck, is Step.WaitForPixel, is Step.MatchScene -> add("risk.screenRead", 8, false)
         is Step.Loop -> if (s.mode == "forever") add("risk.foreverLoop", 5, false)
         else -> Unit
     }
+    if (s.condition()?.probesScreen == true) add("risk.screenRead", 8, false)
     return f
 }
 
@@ -39,6 +40,7 @@ private val PERMISSION_OF = mapOf(
     "click" to "perm.input", "move" to "perm.input", "drag" to "perm.input", "scroll" to "perm.input", "key" to "perm.input", "type" to "perm.input",
     "clipboard" to "perm.clipboard", "launchApp" to "perm.apps", "openUrl" to "perm.browser", "window" to "perm.windows", "http" to "perm.network",
     "file" to "perm.files", "ocr" to "perm.screen", "findImage" to "perm.screen", "notify" to "perm.notifications", "androidGlobal" to "perm.accessibility",
+    "pixelCheck" to "perm.screen", "waitForPixel" to "perm.screen", "matchScene" to "perm.screen",
 )
 
 fun analyzeRisk(flow: Flow): RiskReport {
@@ -48,7 +50,10 @@ fun analyzeRisk(flow: Flow): RiskReport {
         if (s.meta.disabled) return@walkSteps
         findings.addAll(stepFindings(s))
         PERMISSION_OF[s.type]?.let { perms.add(it) }
+        if (s.condition()?.probesScreen == true) perms.add("perm.screen")
     }
+    // Stage mode without the takeover pause keeps clicking even while the user grabs the mouse.
+    if (flow.stage?.pauseOnTakeover == false) findings.add(RiskFinding(null, "risk.stageNoTakeover", 12, false))
     when (flow.trigger) {
         is Trigger.Location -> {
             findings.add(RiskFinding(null, "risk.location", 10, false))

@@ -68,6 +68,35 @@ pub fn capture(x: i32, y: i32, w: i32, h: i32) -> Result<Capture, BackendError> 
     Ok(Capture { x, y, w: uw, h: uh, bgra })
 }
 
+impl Capture {
+    /// RGB of the captured pixel (x, y) relative to the capture.
+    pub fn rgb(&self, x: usize, y: usize) -> [u8; 3] {
+        let o = (y * self.w + x) * 4;
+        [self.bgra[o + 2], self.bgra[o + 1], self.bgra[o]]
+    }
+}
+
+/// Color of one virtual-desktop pixel as `#rrggbb` (pixel probes).
+pub fn pixel_hex(x: i32, y: i32) -> Result<String, BackendError> {
+    let shot = capture(x, y, 1, 1)?;
+    Ok(crate::display::to_hex_color(shot.rgb(0, 0)))
+}
+
+/// dHash of a virtual-desktop rectangle (scene probes); same math as `dhash()` in displays.ts.
+pub fn scene_hash(x: i32, y: i32, w: i32, h: i32) -> Result<String, BackendError> {
+    let shot = capture(x, y, w, h)?;
+    crate::display::dhash(shot.w, shot.h, |px, py| shot.rgb(px, py)).ok_or_else(|| BackendError::action("scene region is empty"))
+}
+
+/// Scene capture for the Stage panel: dHash plus a PNG thumbnail data URL.
+pub fn scene_capture(x: i32, y: i32, w: i32, h: i32) -> Result<(String, String, u32, u32), BackendError> {
+    let shot = capture(x, y, w, h)?;
+    let hash = crate::display::dhash(shot.w, shot.h, |px, py| shot.rgb(px, py)).ok_or_else(|| BackendError::action("scene region is empty"))?;
+    let thumb = crate::display::thumbnail_data_url(shot.w, shot.h, |px, py| shot.rgb(px, py), 160)
+        .ok_or_else(|| BackendError::action("cannot encode the scene preview"))?;
+    Ok((hash, thumb, u32::try_from(shot.w).unwrap_or(0), u32::try_from(shot.h).unwrap_or(0)))
+}
+
 /// Searches the screen (or `region`) for a PNG template until `timeout_ms` passes.
 /// Returns the match centre in physical pixels, `None` when not found in time.
 pub fn find_on_screen(

@@ -39,6 +39,9 @@ export const STEP_CAPABILITIES: Record<StepType, Record<Platform, CapabilityNote
   file: { windows: S, android: L("cap.file.android"), web: U("cap.native") },
   ocr: { windows: S, android: L("cap.ocr.android"), web: U("cap.native") },
   findImage: { windows: S, android: L("cap.findImage.android"), web: U("cap.native") },
+  pixelCheck: { windows: S, android: U("cap.screenProbe.android"), web: L("cap.sandbox") },
+  waitForPixel: { windows: S, android: U("cap.screenProbe.android"), web: L("cap.sandbox") },
+  matchScene: { windows: S, android: U("cap.screenProbe.android"), web: L("cap.sandbox") },
   runFlow: { windows: S, android: S, web: S },
   switchProfile: { windows: S, android: L("cap.switchProfile.android"), web: U("cap.native") },
   stop: { windows: S, android: S, web: S },
@@ -60,6 +63,18 @@ export const TRIGGER_CAPABILITIES: Record<Trigger["type"], Record<Platform, Capa
   location: { windows: U("cap.location.windows"), android: L("cap.location.android"), web: U("cap.native") },
   notification: { windows: U("cap.notification.windows"), android: L("cap.notification.android"), web: U("cap.native") },
 };
+
+/**
+ * Scene and pixel conditions read the screen. Android has no screen-capture (MediaProjection)
+ * integration, so they are blocked there with a clear note instead of silently never matching.
+ */
+export const CONDITION_PROBE_CAPABILITY: Record<Platform, CapabilityNote> = { windows: S, android: U("cap.screenProbe.android"), web: L("cap.sandbox") };
+
+/** True when the step's own condition reads the screen (scene or pixel). */
+export function usesScreenProbe(s: Step): boolean {
+  const c = s.type === "if" || s.type === "waitFor" ? s.condition : s.type === "loop" ? s.condition : undefined;
+  return !!c && (c.scene !== undefined || c.pixel !== undefined);
+}
 
 export function targetSupport(t: Target, platform: Platform): CapabilityNote {
   if (t.kind === "element" && platform === "web") return U("cap.element.web");
@@ -89,6 +104,7 @@ export function compatibility(steps: Step[], platform: Platform): CompatIssue[] 
       const tc = targetSupport(t, platform);
       if (rank(tc.support) > rank(worst.support)) worst = tc;
     }
+    if (usesScreenProbe(s) && rank(CONDITION_PROBE_CAPABILITY[platform].support) > rank(worst.support)) worst = CONDITION_PROBE_CAPABILITY[platform];
     if (worst.support !== "supported") out.push({ stepId: s.id, stepType: s.type, support: worst.support, noteKey: worst.noteKey });
   });
   return out;

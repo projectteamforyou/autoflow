@@ -47,6 +47,9 @@ export const STEP_META: StepMeta[] = [
   { type: "switchProfile", category: "system", icon: "Keyboard", color: "#0EA5E9", create: () => ({ id: newId(), type: "switchProfile", profileId: "default" }) },
   { type: "ocr", category: "vision", icon: "ScanText", color: "#A855F7", create: () => ({ id: newId(), type: "ocr", region: { x: 0, y: 0, w: 400, h: 200 }, resultVar: "text" }) },
   { type: "findImage", category: "vision", icon: "ScanSearch", color: "#A855F7", create: () => ({ id: newId(), type: "findImage", target: { kind: "image", ref: "", confidence: 0.9 }, resultVar: "found", timeoutMs: 5000 }) },
+  { type: "pixelCheck", category: "vision", icon: "Pipette", color: "#A855F7", create: () => ({ id: newId(), type: "pixelCheck", at: { ...pt }, color: "#2ecc71", tolerance: 24, resultVar: "ready" }) },
+  { type: "waitForPixel", category: "vision", icon: "Crosshair", color: "#A855F7", create: () => ({ id: newId(), type: "waitForPixel", at: { ...pt }, color: "#2ecc71", tolerance: 24, pollMs: 250, timeoutMs: 30_000 }) },
+  { type: "matchScene", category: "vision", icon: "ScanEye", color: "#A855F7", create: () => ({ id: newId(), type: "matchScene", minSimilarity: 0.9, resultVar: "scene" }) },
 ];
 
 export const STEP_BY_TYPE = Object.fromEntries(STEP_META.map((m) => [m.type, m])) as Record<StepType, StepMeta>;

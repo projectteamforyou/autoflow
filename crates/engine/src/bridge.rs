@@ -3,6 +3,7 @@
 //! The Tauri shell exposes the `BridgeCommands` as commands with these argument/result shapes
 //! and emits [`BridgeEvent`]s on the [`BRIDGE_EVENT`] channel.
 
+pub use crate::display::DisplayInfo;
 use crate::engine::{RunEvent, RunResult, ScreenInfo};
 use crate::record::RecordedEvent;
 use crate::schema::Platform;
@@ -69,6 +70,12 @@ pub enum BridgeEvent {
         x: i32,
         y: i32,
         screen: ScreenInfo,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        display_id: Option<String>,
+    },
+    /// Monitors were added, removed, moved or rescaled.
+    Displays {
+        displays: Vec<DisplayInfo>,
     },
 }
 
@@ -194,7 +201,8 @@ pub struct RecordingResult {
 }
 
 /// `pick_point` result.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PickedPoint {
     /// X in virtual-desktop physical px.
     pub x: i32,
@@ -202,6 +210,22 @@ pub struct PickedPoint {
     pub y: i32,
     /// Screen info.
     pub screen: ScreenInfo,
+    /// Display the point lies on.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub display_id: Option<String>,
+}
+
+/// `scene_capture` result.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SceneCaptured {
+    /// dHash, 16 lowercase hex digits.
+    pub hash: String,
+    /// PNG thumbnail as a data URL (≤ `MAX_SCENE_THUMB_CHARS`).
+    pub thumb: String,
+    /// Captured width in px.
+    pub width: u32,
+    /// Captured height in px.
+    pub height: u32,
 }
 
 /// `profiles_apply` result.
@@ -223,5 +247,16 @@ mod tests {
         assert_eq!(serde_json::to_string(&e).expect("serializes"), r#"{"kind":"profileActivated","profileId":null}"#);
         let h = BridgeEvent::Hotkey { action: HotkeyAction::Halt, flow_id: None };
         assert_eq!(serde_json::to_string(&h).expect("serializes"), r#"{"kind":"hotkey","action":"halt"}"#);
+    }
+
+    #[test]
+    fn displays_event_and_picked_point_use_bridge_names() {
+        let d = crate::display::DisplayInfo::new("\\\\.\\DISPLAY2", false, crate::schema::Rect { x: 1920.0, y: 0.0, w: 1280.0, h: 1024.0 }, 1.25);
+        let v = serde_json::to_value(BridgeEvent::Displays { displays: vec![d] }).expect("serializes");
+        assert_eq!(v["kind"], "displays");
+        assert_eq!(v["displays"][0]["workArea"]["w"], 1280.0);
+        assert_eq!(v["displays"][0]["orientation"], "landscape");
+        let p = PickedPoint { x: 1, y: 2, screen: ScreenInfo { width: 3, height: 4, scale: 1.0 }, display_id: Some("A".into()) };
+        assert_eq!(serde_json::to_value(p).expect("serializes")["displayId"], "A");
     }
 }

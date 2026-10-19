@@ -16,7 +16,8 @@ enum class Platform(val json: String) { WINDOWS("windows"), ANDROID("android"), 
 sealed class Target {
     abstract val kind: String
 
-    data class Point(val x: Double, val y: Double, val space: String = "screen", val monitor: Int? = null) : Target() {
+    /** space: screen | window | normalized | display; [display] references a monitor (see Displays.kt). */
+    data class Point(val x: Double, val y: Double, val space: String = "screen", val monitor: Int? = null, val display: DisplayRef? = null) : Target() {
         override val kind get() = "point"
     }
 
@@ -26,7 +27,7 @@ sealed class Target {
 
     data class Region(
         val x: Double, val y: Double, val w: Double, val h: Double,
-        val space: String = "screen", val pick: String = "center",
+        val space: String = "screen", val pick: String = "center", val display: DisplayRef? = null,
     ) : Target() {
         override val kind get() = "region"
     }
@@ -42,7 +43,7 @@ sealed class Target {
 
     data class Rect(val x: Double, val y: Double, val w: Double, val h: Double)
 
-    data class Image(val ref: String, val confidence: Double = 0.9, val region: Rect? = null) : Target() {
+    data class Image(val ref: String, val confidence: Double = 0.9, val region: Rect? = null, val display: DisplayRef? = null) : Target() {
         override val kind get() = "image"
     }
 }
@@ -113,6 +114,17 @@ data class StepMeta(
 
 data class Hotkey(val key: String, val modifiers: List<String> = emptyList())
 
+/** "Does the display region look like the remembered scene?" */
+data class SceneCondition(val name: String, val minSimilarity: Double = 0.9, val not: Boolean = false)
+
+/** "Does this pixel have that color?" (each RGB channel within [tolerance]). */
+data class PixelCondition(val at: Target.Point, val color: String, val tolerance: Int = 24, val not: Boolean = false)
+
+/** A condition holds when every present part holds, checked scene → pixel → expr. */
+data class Condition(val expr: String = "true", val scene: SceneCondition? = null, val pixel: PixelCondition? = null) {
+    val probesScreen: Boolean get() = scene != null || pixel != null
+}
+
 sealed class Step {
     abstract val meta: StepMeta
     abstract val type: String
@@ -140,7 +152,7 @@ sealed class Step {
 
     data class Wait(override val meta: StepMeta, val ms: Long, val jitterMs: Long = 0) : Step() { override val type get() = "wait" }
 
-    data class WaitFor(override val meta: StepMeta, val condition: String, val pollMs: Long = 250, val timeoutMs: Long = 10_000) : Step() {
+    data class WaitFor(override val meta: StepMeta, val condition: Condition, val pollMs: Long = 250, val timeoutMs: Long = 10_000) : Step() {
         override val type get() = "waitFor"
     }
 
@@ -177,11 +189,25 @@ sealed class Step {
         val resultVar: String? = null,
     ) : Step() { override val type get() = "file" }
 
-    data class Ocr(override val meta: StepMeta, val region: Target.Rect, val resultVar: String) : Step() { override val type get() = "ocr" }
+    data class Ocr(override val meta: StepMeta, val region: Target.Rect, val resultVar: String, val display: DisplayRef? = null) : Step() { override val type get() = "ocr" }
 
     data class FindImage(override val meta: StepMeta, val target: Target.Image, val resultVar: String, val timeoutMs: Long = 5000) : Step() {
         override val type get() = "findImage"
     }
+
+    /** resultVar = true/false with [color], else the color as "#rrggbb". */
+    data class PixelCheck(override val meta: StepMeta, val at: Target.Point, val color: String?, val tolerance: Int = 24, val resultVar: String) : Step() {
+        override val type get() = "pixelCheck"
+    }
+
+    data class WaitForPixel(
+        override val meta: StepMeta, val at: Target.Point, val color: String, val tolerance: Int = 24, val not: Boolean = false,
+        val pollMs: Long = 250, val timeoutMs: Long? = null,
+    ) : Step() { override val type get() = "waitForPixel" }
+
+    data class MatchScene(
+        override val meta: StepMeta, val scenes: List<String>?, val minSimilarity: Double = 0.9, val resultVar: String, val similarityVar: String? = null,
+    ) : Step() { override val type get() = "matchScene" }
 
     data class RunFlow(override val meta: StepMeta, val flowId: String) : Step() { override val type get() = "runFlow" }
     data class SwitchProfile(override val meta: StepMeta, val profileId: String) : Step() { override val type get() = "switchProfile" }
@@ -189,13 +215,13 @@ sealed class Step {
     data class Break(override val meta: StepMeta) : Step() { override val type get() = "break" }
     data class Continue(override val meta: StepMeta) : Step() { override val type get() = "continue" }
 
-    data class If(override val meta: StepMeta, val condition: String, val then: List<Step> = emptyList(), val otherwise: List<Step> = emptyList()) : Step() {
+    data class If(override val meta: StepMeta, val condition: Condition, val then: List<Step> = emptyList(), val otherwise: List<Step> = emptyList()) : Step() {
         override val type get() = "if"
     }
 
     data class Loop(
-        override val meta: StepMeta, val mode: String, val count: Long? = null, val condition: String? = null,
-        val indexVar: String? = null, val body: List<Step> = emptyList(),
+        override val meta: StepMeta, val mode: String, val count: Long? = null, val condition: Condition? = null,
+        val indexVar: String? = null, val body: List<Step> = emptyList(), val cooldownMs: Long? = null,
     ) : Step() { override val type get() = "loop" }
 
     data class ForEach(override val meta: StepMeta, val list: String, val itemVar: String, val body: List<Step> = emptyList()) : Step() {
@@ -220,6 +246,14 @@ sealed class Step {
         else -> emptyList()
     }
 
+    /** The step's own condition (if / waitFor / loop). */
+    fun condition(): Condition? = when (this) {
+        is If -> condition
+        is WaitFor -> condition
+        is Loop -> condition
+        else -> null
+    }
+
     /** Every target this step points at (used by capability and screen checks). */
     fun targets(): List<Target> = when (this) {
         is Click -> listOf(target)
@@ -233,8 +267,8 @@ sealed class Step {
 
 val STEP_TYPES = listOf(
     "click", "move", "drag", "scroll", "key", "type", "wait", "waitFor", "setVar", "log", "notify", "confirm", "clipboard", "launchApp",
-    "openUrl", "window", "androidGlobal", "http", "file", "ocr", "findImage", "runFlow", "switchProfile", "stop", "break", "continue",
-    "if", "loop", "forEach", "try", "group",
+    "openUrl", "window", "androidGlobal", "http", "file", "ocr", "findImage", "pixelCheck", "waitForPixel", "matchScene", "runFlow",
+    "switchProfile", "stop", "break", "continue", "if", "loop", "forEach", "try", "group",
 )
 
 /** Depth-first walk over every step, including nested ones. */
@@ -308,6 +342,11 @@ data class Flow(
     val variables: List<VariableDef> = emptyList(),
     val steps: List<Step>,
     val humanize: Humanize? = null,
+    /** Multi-monitor Stage mode. */
+    val stage: Stage? = null,
+    /** fail (default) | primary | ask. */
+    val onMissingDisplay: String? = null,
+    val scenes: List<Scene>? = null,
     val screen: ScreenRef? = null,
     val favorite: Boolean = false,
     val folder: String? = null,

@@ -1,12 +1,13 @@
 //! Monitors, DPI and target resolution in physical virtual-desktop pixels.
 
 use crate::bridge::DeviceScreen;
+use crate::display::DisplayInfo;
 use crate::engine::{BackendError, ErrorCategory, ScreenInfo};
-use crate::schema::{Pick, Space, Target};
+use crate::schema::{Pick, Rect, Space, Target};
 use crate::value::js_round;
 use ::windows::core::BOOL;
 use ::windows::Win32::Foundation::{LPARAM, POINT, RECT};
-use ::windows::Win32::Graphics::Gdi::{EnumDisplayMonitors, GetMonitorInfoW, HDC, HMONITOR, MONITORINFO};
+use ::windows::Win32::Graphics::Gdi::{EnumDisplayMonitors, GetMonitorInfoW, HDC, HMONITOR, MONITORINFO, MONITORINFOEXW};
 use ::windows::Win32::UI::HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI};
 use ::windows::Win32::UI::WindowsAndMessaging::{
     GetCursorPos, GetForegroundWindow, GetSystemMetrics, GetWindowRect, MONITORINFOF_PRIMARY, SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN,
@@ -18,10 +19,14 @@ use ::windows::Win32::UI::WindowsAndMessaging::{
 pub struct Monitor {
     /// Bounds in virtual-desktop coordinates.
     pub rect: RECT,
+    /// Work area (bounds minus taskbars).
+    pub work: RECT,
     /// Primary monitor.
     pub primary: bool,
     /// Effective DPI scale (1.0 = 96 DPI).
     pub scale: f64,
+    /// Device name (`\\.\DISPLAY1`), NUL-terminated UTF-16.
+    pub device: [u16; 32],
 }
 
 impl Monitor {
@@ -33,19 +38,30 @@ impl Monitor {
     pub fn height(&self) -> i32 {
         self.rect.bottom - self.rect.top
     }
+    /// Stable display id: the device name, e.g. `\\.\DISPLAY2`.
+    pub fn id(&self) -> String {
+        super::from_wide(&self.device)
+    }
+}
+
+fn to_rect(r: &RECT) -> Rect {
+    Rect { x: f64::from(r.left), y: f64::from(r.top), w: f64::from(r.right - r.left), h: f64::from(r.bottom - r.top) }
 }
 
 unsafe extern "system" fn collect_monitor(hmon: HMONITOR, _hdc: HDC, _rect: *mut RECT, data: LPARAM) -> BOOL {
     // SAFETY: `data` is the `&mut Vec<Monitor>` passed by `monitors()` for the duration of the
     // synchronous EnumDisplayMonitors call.
     let out = unsafe { &mut *(data.0 as *mut Vec<Monitor>) };
-    let mut info = MONITORINFO { cbSize: u32::try_from(std::mem::size_of::<MONITORINFO>()).unwrap_or(40), ..Default::default() };
-    // SAFETY: `info` is a properly sized MONITORINFO.
-    if unsafe { GetMonitorInfoW(hmon, &mut info) }.as_bool() {
+    let mut ex = MONITORINFOEXW::default();
+    ex.monitorInfo.cbSize = u32::try_from(std::mem::size_of::<MONITORINFOEXW>()).unwrap_or(104);
+    // SAFETY: `ex` is a properly sized MONITORINFOEXW whose first member is the MONITORINFO the
+    // API fills; cbSize tells it the extended layout (device name) is available.
+    if unsafe { GetMonitorInfoW(hmon, std::ptr::addr_of_mut!(ex).cast::<MONITORINFO>()) }.as_bool() {
+        let info = ex.monitorInfo;
         let (mut dx, mut dy) = (96u32, 96u32);
         // SAFETY: out-params are valid u32s.
         let scale = if unsafe { GetDpiForMonitor(hmon, MDT_EFFECTIVE_DPI, &mut dx, &mut dy) }.is_ok() { f64::from(dx) / 96.0 } else { 1.0 };
-        out.push(Monitor { rect: info.rcMonitor, primary: info.dwFlags & MONITORINFOF_PRIMARY != 0, scale });
+        out.push(Monitor { rect: info.rcMonitor, work: info.rcWork, primary: info.dwFlags & MONITORINFOF_PRIMARY != 0, scale, device: ex.szDevice });
     }
     BOOL(1)
 }
@@ -78,6 +94,25 @@ pub fn primary_screen_info() -> ScreenInfo {
         height: u32::try_from(m.height()).unwrap_or(0),
         scale: m.scale,
     })
+}
+
+/// Monitors as `DisplayInfo` (`displays_list`, engine display resolution), primary first.
+pub fn displays() -> Vec<DisplayInfo> {
+    monitors()
+        .into_iter()
+        .enumerate()
+        .map(|(i, m)| {
+            let mut d = DisplayInfo::new(m.id(), m.primary, to_rect(&m.rect), m.scale);
+            d.work_area = to_rect(&m.work);
+            d.name = if m.primary { format!("Display {} (primary)", i + 1) } else { format!("Display {}", i + 1) };
+            d
+        })
+        .collect()
+}
+
+/// Id of the display containing (x, y), if any.
+pub fn display_id_at(list: &[DisplayInfo], x: i32, y: i32) -> Option<String> {
+    list.iter().find(|d| crate::display::on_display(&d.bounds, f64::from(x), f64::from(y))).map(|d| d.id.clone())
 }
 
 /// Monitor list for `device_info`.
@@ -129,7 +164,8 @@ fn frame(space: Space, monitor: Option<u32>) -> Result<(f64, f64, f64, f64), Bac
     let r = match space {
         Space::Window => foreground_rect()?,
         Space::Normalized => monitor_rect(monitor)?,
-        Space::Screen => {
+        // The engine places display-space targets; a stray one is treated as screen pixels.
+        Space::Screen | Space::Display => {
             if monitor.is_some() {
                 monitor_rect(monitor)?
             } else {
@@ -153,11 +189,11 @@ fn px(v: f64) -> i32 {
 /// targets are resolved by the backend (UI Automation / screen search).
 pub fn resolve_basic(t: &Target, random: &dyn Fn() -> f64) -> Result<Option<(i32, i32)>, BackendError> {
     Ok(Some(match t {
-        Target::Point { x, y, space, monitor } => {
+        Target::Point { x, y, space, monitor, .. } => {
             let (ox, oy, sx, sy) = frame(*space, *monitor)?;
             (px(ox + x * sx), px(oy + y * sy))
         }
-        Target::Region { x, y, w, h, space, pick } => {
+        Target::Region { x, y, w, h, space, pick, .. } => {
             let (ox, oy, sx, sy) = frame(*space, None)?;
             let (x, y, w, h) = (ox + x * sx, oy + y * sy, w * sx, h * sy);
             if *pick == Pick::Random {

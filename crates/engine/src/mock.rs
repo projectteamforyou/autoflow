@@ -1,8 +1,10 @@
 //! Mock backend — the Rust counterpart of `SandboxBackend` (`packages/core/src/sandbox.ts`).
 //!
 //! Runs any flow against a virtual screen. Used by the test-suite and by desktop dry runs:
-//! nothing touches the real mouse, keyboard, clipboard, network or file system.
+//! nothing touches the real mouse, keyboard, clipboard, network or file system. Optional
+//! emulated monitors and scripted probe answers (pixels, scene hashes) drive multi-monitor tests.
 
+use crate::display::DisplayInfo;
 use crate::engine::{BackendError, Clock, InputAction, InputBackend, RunControl, ScreenInfo};
 use crate::expr::default_random;
 use crate::schema::{FileOp, Pick, Platform, Space, Target};
@@ -38,6 +40,8 @@ pub struct MockState {
     pub notifications: Vec<(String, String)>,
     /// Questions asked by confirm steps.
     pub confirms: Vec<String>,
+    /// Probes in call order: `[x, y]` pixels and `[x, y, w, h]` scene regions.
+    pub probes: Vec<Vec<f64>>,
 }
 
 /// Shared view of a mock backend's state; stays valid after the backend moved into a run.
@@ -67,6 +71,22 @@ pub struct MockBackend {
     confirm: Option<ConfirmFn>,
     hook: Option<Hook>,
     report_screen: bool,
+    displays: Option<Vec<DisplayInfo>>,
+    pixels: HashMap<String, Vec<String>>,
+    scene_hashes: HashMap<String, Vec<String>>,
+}
+
+/// Next scripted answer: each call takes the next value, the last one repeats.
+fn next_answer(map: &mut HashMap<String, Vec<String>>, key: &str, fallback: &str) -> String {
+    match map.get_mut(key) {
+        Some(seq) if seq.len() > 1 => seq.remove(0),
+        Some(seq) => seq.first().cloned().unwrap_or_else(|| fallback.to_owned()),
+        None => fallback.to_owned(),
+    }
+}
+
+fn num_key(v: f64) -> String {
+    crate::value::js_number_to_string(v)
 }
 
 impl MockBackend {
@@ -75,7 +95,39 @@ impl MockBackend {
         let screen = ScreenInfo { width: 1280, height: 800, scale: 1.0 };
         let state = MockHandle::default();
         state.lock().pointer = (i64::from(screen.width / 2), i64::from(screen.height / 2));
-        Self { platform, screen, state, clock: None, confirm: None, hook: None, report_screen: true }
+        Self {
+            platform,
+            screen,
+            state,
+            clock: None,
+            confirm: None,
+            hook: None,
+            report_screen: true,
+            displays: None,
+            pixels: HashMap::new(),
+            scene_hashes: HashMap::new(),
+        }
+    }
+
+    /// Emulates these monitors (reported in this order).
+    #[must_use]
+    pub fn with_displays(mut self, displays: Vec<DisplayInfo>) -> Self {
+        self.displays = Some(displays);
+        self
+    }
+
+    /// Scripted pixel colors keyed `"x,y"` (each probe takes the next; the last repeats; default `#000000`).
+    #[must_use]
+    pub fn with_pixels(mut self, pixels: HashMap<String, Vec<String>>) -> Self {
+        self.pixels = pixels;
+        self
+    }
+
+    /// Scripted scene hashes keyed `"x,y,w,h"` (default `0000000000000000`).
+    #[must_use]
+    pub fn with_scene_hashes(mut self, hashes: HashMap<String, Vec<String>>) -> Self {
+        self.scene_hashes = hashes;
+        self
     }
 
     /// Uses a different virtual screen.
@@ -132,7 +184,7 @@ impl MockBackend {
                     (r(*x), r(*y))
                 }
             }
-            Target::Region { x, y, w: rw, h: rh, space, pick } => {
+            Target::Region { x, y, w: rw, h: rh, space, pick, .. } => {
                 let (sx, sy) = if *space == Space::Normalized { (w, h) } else { (1.0, 1.0) };
                 let (x, y, rw, rh) = (x * sx, y * sy, rw * sx, rh * sy);
                 if *pick == Pick::Random {
@@ -154,6 +206,23 @@ impl InputBackend for MockBackend {
 
     fn screen(&mut self) -> Option<ScreenInfo> {
         self.report_screen.then_some(self.screen)
+    }
+
+    fn displays(&mut self) -> Vec<DisplayInfo> {
+        match &self.displays {
+            Some(d) => d.clone(),
+            None => {
+                let s = self.screen;
+                let bounds = crate::schema::Rect { x: 0.0, y: 0.0, w: f64::from(s.width), h: f64::from(s.height) };
+                vec![DisplayInfo::new("mock-1", true, bounds, s.scale)]
+            }
+        }
+    }
+
+    #[allow(clippy::cast_precision_loss)]
+    fn pointer_position(&mut self) -> Option<(f64, f64)> {
+        let (x, y) = self.state.lock().pointer;
+        Some((x as f64, y as f64))
     }
 
     fn perform(&mut self, action: &InputAction, control: &RunControl) -> Result<Value, BackendError> {
@@ -182,7 +251,20 @@ impl InputBackend for MockBackend {
                     points.extend([a, b]);
                     st.pointer = b;
                 }
-                InputAction::Scroll { target: Some(t), .. } => points.push(self.resolve(t, pointer)),
+                InputAction::Scroll { target: Some(t), .. } => {
+                    let p = self.resolve(t, pointer);
+                    points.push(p);
+                    st.pointer = p;
+                }
+                InputAction::Pixel { x, y } => {
+                    st.probes.push(vec![*x, *y]);
+                    result = Value::Str(next_answer(&mut self.pixels, &format!("{},{}", num_key(*x), num_key(*y)), "#000000"));
+                }
+                InputAction::SceneHash { region: r } => {
+                    st.probes.push(vec![r.x, r.y, r.w, r.h]);
+                    let key = format!("{},{},{},{}", num_key(r.x), num_key(r.y), num_key(r.w), num_key(r.h));
+                    result = Value::Str(next_answer(&mut self.scene_hashes, &key, "0000000000000000"));
+                }
                 InputAction::Type { text, .. } => st.typed.push(text.clone()),
                 InputAction::ClipboardSet { value } => st.clipboard.clone_from(value),
                 InputAction::ClipboardGet => result = Value::Str(st.clipboard.clone()),

@@ -8,6 +8,8 @@ import { createElement } from "react";
 import {
   FlowRun,
   SandboxBackend,
+  type DisplayInfo,
+  type PracticeWorld,
   type Flow,
   type Platform,
   type RiskReport,
@@ -100,10 +102,18 @@ export interface CanvasRunOptions {
   skipCountdown?: boolean;
   inputs?: Record<string, string | number | boolean>;
   notify?: (title: string, body: string) => void;
+  /** Simulated monitors, pixels and scenes (Stage / multi-monitor practice). */
+  world?: PracticeWorld;
+  displays?: DisplayInfo[];
+}
+
+/** onMissingDisplay "ask" on the canvas: the same question native runs ask in a system dialog. */
+export async function askMissingDisplay(label: string): Promise<boolean> {
+  return confirmDialog({ title: t("stage.missing.title"), tone: "warning", body: t("stage.missing.body", { display: label }), confirmLabel: t("stage.missing.usePrimary") });
 }
 
 /** Runs a flow in the Practice Canvas sandbox (real engine, virtual screen). */
-export async function runInCanvas(flow: Flow, opts: CanvasRunOptions = {}): Promise<{ run: FlowRun; done: Promise<RunResult> }> {
+export async function runInCanvas(flow: Flow, opts: CanvasRunOptions = {}): Promise<{ run: FlowRun; done: Promise<RunResult>; backend: SandboxBackend }> {
   const plat = simulatedPlatform(flow);
   const runId = `canvas_${Date.now().toString(36)}`;
   const l = begin(flow, "canvas", runId, plat);
@@ -116,11 +126,14 @@ export async function runInCanvas(flow: Flow, opts: CanvasRunOptions = {}): Prom
     notify: opts.notify,
     confirm: (msg) => confirmDialog({ title: t("run.confirmStep"), body: msg, confirmLabel: t("common.yes"), cancelLabel: t("common.no") }),
     actionDelayMs: Math.round(60 / (opts.speed ?? 1)),
+    world: opts.world,
+    displays: opts.displays,
   });
   const run = new FlowRun(flow, backend, {
     onEvent: (e) => onEvent(l, e),
     confirmRisk: askRisk,
     confirmScreenChange: async () => true, // the virtual screen always matches by construction
+    confirmMissingDisplay: askMissingDisplay,
     resolveFlow: (id) => flows.find((f) => f.id === id),
     secret: (name) => secrets[name],
     debug: opts.debug,
@@ -132,7 +145,7 @@ export async function runInCanvas(flow: Flow, opts: CanvasRunOptions = {}): Prom
     await end(l, r);
     return r;
   });
-  return { run, done };
+  return { run, done, backend };
 }
 
 let bridgeAttached = false;
@@ -213,6 +226,11 @@ export function haltAll(): void {
 
 export function liveEngine(runId: string): FlowRun | undefined {
   return live.get(runId)?.engine;
+}
+
+/** Live counters of a canvas run (loop rounds for the Stage HUD); native runs report none. */
+export function liveCounters(runId: string): { actions: number; iterations: number; steps: number } | undefined {
+  return live.get(runId)?.engine?.counters;
 }
 
 /** Live event buffer of a running flow (for the Practice Canvas log). */

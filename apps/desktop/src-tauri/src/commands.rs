@@ -9,15 +9,18 @@ use crate::runs::{self, Origin};
 use crate::state::{emit, lock, AppState};
 use crate::triggers;
 use autoflow_engine::bridge::{
-    BridgeEvent, DeviceInfo, NativePermission, PermissionStatus, PickedPoint, ProfilesApplied, RecordingResult, RunStarted, TriggersSynced,
+    BridgeEvent, DeviceInfo, NativePermission, PermissionStatus, PickedPoint, ProfilesApplied, RecordingResult, RunStarted, SceneCaptured,
+    TriggersSynced,
 };
+use autoflow_engine::display::{on_display, DisplayInfo};
 use autoflow_engine::input_profile::{parse_profile, InputProfile};
 use autoflow_engine::record::RecordedEvent;
-use autoflow_engine::schema::{parse_flow, Hotkey};
+use autoflow_engine::schema::{parse_flow, Hotkey, Rect};
 use autoflow_engine::Value;
 use indexmap::IndexMap;
 use std::sync::Arc;
-use tauri::{AppHandle, Manager, State};
+use std::time::Duration;
+use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize, State, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_autostart::ManagerExt;
 
 /// `device_info`
@@ -151,8 +154,108 @@ pub async fn pick_point(app: AppHandle) -> Result<PickedPoint, String> {
     }
     let (x, y) = picked?;
     let screen = platform::screen_info();
-    emit(&app, &BridgeEvent::PointPicked { x, y, screen });
-    Ok(PickedPoint { x, y, screen })
+    let display_id = platform::displays().into_iter().find(|d| on_display(&d.bounds, f64::from(x), f64::from(y))).map(|d| d.id);
+    emit(&app, &BridgeEvent::PointPicked { x, y, screen, display_id: display_id.clone() });
+    Ok(PickedPoint { x, y, screen, display_id })
+}
+
+/// `displays_list`
+#[tauri::command]
+pub fn displays_list() -> Vec<DisplayInfo> {
+    platform::displays()
+}
+
+#[allow(clippy::cast_possible_truncation)]
+fn px(v: f64) -> i32 {
+    v.round() as i32
+}
+
+/// `displays_identify` — a transparent, click-through-free overlay window per monitor showing its
+/// number (the same numbering as the Stage panel), closed again after `durationMs` (default 2.5 s).
+#[tauri::command]
+pub fn displays_identify(app: AppHandle, duration_ms: Option<u64>) -> Result<(), String> {
+    let displays = platform::displays();
+    if displays.is_empty() {
+        return Err("monitor identification is only available in the Windows build".into());
+    }
+    let mut labels = Vec::new();
+    for (i, d) in displays.iter().enumerate() {
+        let label = format!("identify-{}", i + 1);
+        if let Some(old) = app.get_webview_window(&label) {
+            let _closed = old.close();
+        }
+        let size = (d.bounds.w.min(d.bounds.h) * 0.4).clamp(160.0, 520.0);
+        let url = format!("index.html#/identify?n={}&primary={}", i + 1, u8::from(d.primary));
+        let window = WebviewWindowBuilder::new(&app, &label, WebviewUrl::App(url.into()))
+            .title("AutoFlow")
+            .visible(false)
+            .decorations(false)
+            .transparent(true)
+            .shadow(false)
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .resizable(false)
+            .focused(false)
+            .build()
+            .map_err(|e| format!("cannot show the monitor number: {e}"))?;
+        let _sized = window.set_size(PhysicalSize::new(px(size).unsigned_abs(), px(size).unsigned_abs()));
+        let _moved = window.set_position(PhysicalPosition::new(px(d.bounds.x + (d.bounds.w - size) / 2.0), px(d.bounds.y + (d.bounds.h - size) / 2.0)));
+        let _shown = window.show();
+        labels.push(label);
+    }
+    let wait = Duration::from_millis(duration_ms.unwrap_or(2500).clamp(500, 10_000));
+    let closer = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(wait);
+        for l in labels {
+            if let Some(w) = closer.get_webview_window(&l) {
+                let _closed = w.close();
+            }
+        }
+    });
+    Ok(())
+}
+
+/// `deck_pin` — moves the AutoFlow window onto a monitor (the "deck") and maximizes it there.
+#[tauri::command]
+pub fn deck_pin(app: AppHandle, display_id: String) -> Result<(), String> {
+    let d = platform::displays().into_iter().find(|d| d.id == display_id).ok_or_else(|| format!("display \"{display_id}\" is not connected"))?;
+    let w = app.get_webview_window("main").ok_or("the AutoFlow window is not open")?;
+    let wa = d.work_area;
+    let _unmax = w.unmaximize();
+    w.set_position(PhysicalPosition::new(px(wa.x + 24.0), px(wa.y + 24.0))).map_err(|e| e.to_string())?;
+    let _sized = w.set_size(PhysicalSize::new(px(wa.w - 48.0).max(900).unsigned_abs(), px(wa.h - 48.0).max(600).unsigned_abs()));
+    let _max = w.maximize();
+    let _shown = w.show();
+    Ok(())
+}
+
+/// `scene_capture` — remembers a normalized region of a monitor as a Scene (hash + thumbnail).
+#[tauri::command]
+pub async fn scene_capture(display_id: String, region: Rect) -> Result<SceneCaptured, String> {
+    let ok = |v: f64| v.is_finite() && (0.0..=1.0).contains(&v);
+    if !(ok(region.x) && ok(region.y) && ok(region.w) && ok(region.h)) || region.w <= 0.0 || region.h <= 0.0 {
+        return Err("the scene region must be a normalized rectangle inside the display".into());
+    }
+    tauri::async_runtime::spawn_blocking(move || platform::scene_capture(&display_id, &region)).await.map_err(|e| format!("capture failed: {e}"))?
+}
+
+/// Emits `BridgeEvent::Displays` whenever monitors are added, removed, moved or rescaled.
+pub fn spawn_display_watcher(app: AppHandle) {
+    let spawned = std::thread::Builder::new().name("autoflow-displays".into()).spawn(move || {
+        let mut last = platform::displays();
+        loop {
+            std::thread::sleep(Duration::from_secs(2));
+            let now = platform::displays();
+            if now != last {
+                emit(&app, &BridgeEvent::Displays { displays: now.clone() });
+                last = now;
+            }
+        }
+    });
+    if let Err(e) = spawned {
+        eprintln!("autoflow: display watcher unavailable: {e}");
+    }
 }
 
 /// `profiles_apply`

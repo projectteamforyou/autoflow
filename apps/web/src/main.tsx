@@ -5,6 +5,7 @@ import { initialLocale, setLocale } from "./i18n";
 import { useStore } from "./lib/store";
 import { shell } from "./platform";
 import { installExternalLinks } from "./lib/site";
+import { IdentifyOverlay, identifyParams } from "./pages/IdentifyOverlay";
 import "./styles/app.css";
 
 /**
@@ -24,6 +25,13 @@ function routeBillingReturn() {
 }
 
 async function boot() {
+  // Monitor-number overlay windows (desktop Stage panel): render only the number, nothing else.
+  const identify = identifyParams(location.hash);
+  if (identify) {
+    document.documentElement.classList.add("identify");
+    createRoot(document.getElementById("root")!).render(<IdentifyOverlay {...identify} />);
+    return;
+  }
   routeBillingReturn();
   await Promise.all([setLocale(initialLocale()), useStore.getState().init()]);
   // Email links (verify / reset) and server share links arrive on real paths.

@@ -394,3 +394,40 @@ kbd {
 h1, h2, h3, h4, .page-head h1 { text-wrap: balance; }
 p, li, dd, label, .hint, .small, .callout, td { text-wrap: pretty; }
 :lang(ko) :is(h1, h2, h3, h4, p, li, dd, label, .hint, .small, .callout, td, button) { word-break: keep-all; overflow-wrap: anywhere; }
+
+/* Stage (multi-monitor): to-scale monitor map, HUD and Scenes */
+.monitor-map { position: relative; width: 100%; max-height: 300px; margin: 0 auto; }
+.monitor-map .monitor {
+  position: absolute; display: grid; place-content: center; justify-items: center; gap: 4px; padding: 6px; margin: 0; box-sizing: border-box;
+  border: 2px solid var(--af-border-strong); border-radius: 10px; background: var(--af-surface-2); color: inherit; cursor: pointer; overflow: hidden;
+  transition: border-color .15s, background .15s; outline-offset: 2px; font: inherit;
+}
+.monitor-map .monitor:hover { border-color: #7C5CFF; }
+.monitor-map .monitor.is-stage { border-color: #22C3A6; background: rgba(34, 195, 166, .12); }
+.monitor-map .monitor.is-deck { background: rgba(124, 92, 255, .1); }
+.monitor-map .monitor .num { font-size: clamp(22px, 4vw, 44px); line-height: 1; font-weight: 800; }
+.monitor-map .monitor .num.flash { animation: identify .6s ease-in-out 4; color: #22C3A6; }
+@keyframes identify { 50% { transform: scale(1.35); } }
+.stage-hud { display: grid; grid-template-columns: minmax(0, 340px) 1fr; gap: 18px; align-items: start; }
+.stage-hud .minimap { width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--af-border-strong); background: var(--af-bg-2); image-rendering: pixelated; }
+.hud-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin: 0; }
+.hud-list div { padding: 10px 12px; border-radius: 12px; background: var(--af-surface-2); border: 1px solid var(--af-border); min-width: 0; }
+.hud-list dt { font-size: 11.5px; color: var(--af-muted); text-transform: uppercase; letter-spacing: .04em; }
+.hud-list dd { margin: 4px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+.scene-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+.scene-card { display: grid; gap: 6px; padding: 10px; border-radius: 12px; border: 1px solid var(--af-border); background: var(--af-surface-2); min-width: 0; }
+.scene-card .badge { justify-self: start; }
+.scene-card img, .scene-card .scene-ph { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; background: var(--af-bg-2); display: grid; place-items: center; color: var(--af-muted); }
+.practice-monitors { position: absolute; inset: 0; display: grid; z-index: 1; }
+.practice-monitors .pm { position: relative; border-right: 2px solid var(--af-border-strong); overflow: hidden; }
+.practice-monitors .pm:last-child { border-right: 0; }
+.practice-monitors .pm canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+.practice-monitors .pm .pm-num { position: absolute; right: 10px; bottom: 8px; font-size: 28px; font-weight: 800; opacity: .45; color: #fff; }
+@media (max-width: 900px) { .stage-hud { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .stage-actions .btn.ghost { display: none; } .monitor-map .monitor .small { display: none; } }
+/* Identify overlay windows (desktop): transparent page with one big number */
+html.identify, html.identify body, html.identify #root { background: transparent !important; }
+.identify-overlay { position: fixed; inset: 0; display: grid; place-items: center; }
+.identify-badge { width: 92%; aspect-ratio: 1; border-radius: 28%; display: grid; place-items: center; background: rgba(11, 11, 26, .78); border: 4px solid #22C3A6; color: #fff; box-shadow: 0 10px 40px rgba(0, 0, 0, .45); position: relative; }
+.identify-badge b { font-size: min(48vw, 48vh); line-height: 1; font-weight: 800; font-family: system-ui, sans-serif; }
+.identify-badge span { position: absolute; top: 8%; right: 10%; font-size: min(12vw, 12vh); color: #fbbf24; }

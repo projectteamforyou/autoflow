@@ -81,6 +81,8 @@ impl Recorder {
                 let mut out = Vec::new();
                 let mut sens = Sensitivity { checked_at: None, value: false };
                 let mut held_sensitive: HashMap<u32, bool> = HashMap::new();
+                // Monitors at recording start: each mouse event names the display it happened on.
+                let displays = screen::displays();
                 while let Ok((t, raw)) = rx.recv() {
                     let ev = match raw {
                         RawEvent::Key { vk, key, down, modifiers, .. } => {
@@ -101,17 +103,19 @@ impl Recorder {
                         }
                         RawEvent::Button { button, down, x, y, .. } => {
                             sens.checked_at = None; // a click can move focus
+                            let display_id = screen::display_id_at(&displays, x, y);
                             if down {
-                                RecordedEvent::MouseDown { t, x, y, button }
+                                RecordedEvent::MouseDown { t, x, y, button, display_id }
                             } else {
-                                RecordedEvent::MouseUp { t, x, y, button }
+                                RecordedEvent::MouseUp { t, x, y, button, display_id }
                             }
                         }
                         RawEvent::Wheel { horizontal, delta, x, y, .. } => {
+                            let display_id = screen::display_id_at(&displays, x, y);
                             if horizontal {
-                                RecordedEvent::Wheel { t, dx: delta, dy: 0, x, y }
+                                RecordedEvent::Wheel { t, dx: delta, dy: 0, x, y, display_id }
                             } else {
-                                RecordedEvent::Wheel { t, dx: 0, dy: -delta, x, y }
+                                RecordedEvent::Wheel { t, dx: 0, dy: -delta, x, y, display_id }
                             }
                         }
                     };

@@ -70,6 +70,7 @@ export const es: Content = {
       mobile: "Móvil",
       developer: "Desarrollo",
       wellbeing: "Bienestar",
+      gaming: "Juegos e idle",
     },
     difficulty: { easy: "Fácil", pro: "Pro" },
     risk: { low: "Riesgo bajo", medium: "Riesgo medio", high: "Riesgo alto" },
@@ -264,6 +265,15 @@ export const es: Content = {
           { icon: "stop", h3: "Halt", p: "Ctrl+Alt+Esc en Windows y un botón flotante en Android. Los flujos se detienen en menos de 500 ms: las esperas se trocean para que nada lo impida." },
         ],
       },
+      {
+        h2: "Varios monitores y juegos",
+        items: [
+          { icon: "devices", h3: "Escenario", p: "Configura un flujo en un monitor y deja que se ejecute en otro. Elige el escenario en un mapa a escala de tus monitores, haz que parpadeen sus números, deja AutoFlow en el panel y sigue un HUD en directo con un minimapa del próximo clic." },
+          { icon: "pause", h3: "Protección al tomar el control", p: "Toca el ratón y la ejecución del escenario se pausa sola. Si falta un monitor, nunca se envían clics a la pantalla equivocada: el flujo se detiene, pregunta o usa el monitor principal, tú eliges." },
+          { icon: "image", h3: "Escenas", p: "AutoFlow recuerda pantallas —un lobby, una pantalla de recompensa— como pequeñas huellas y reacciona a la que se muestra. Lo completan las comprobaciones de color de píxel, esperas con límite de tiempo y pausas entre vueltas." },
+          { icon: "shield", h3: "Juego limpio", p: "AutoFlow solo hace clic y escribe como tú. Nunca lee la memoria del juego, no inyecta código ni evade sistemas antitrampas: respeta los términos de servicio de cada juego." },
+        ],
+      },
     ],
   },
   windows: {
@@ -280,6 +290,9 @@ export const es: Content = {
       { icon: "window", h3: "Ventanas y apps", p: "Abre apps, enfoca, mueve y redimensiona ventanas: prepara todo tu espacio de trabajo con una tecla." },
       { icon: "record", h3: "Grabadora", p: "Captura una tarea una vez y conviértela en pasos editables. Los campos de contraseña se ocultan automáticamente." },
       { icon: "pulse", h3: "Bandeja y Pulse", p: "AutoFlow espera tranquilo en la bandeja; la barra Pulse aparece en cuanto algo se ejecuta, así la automatización nunca es invisible." },
+      { icon: "devices", h3: "Escenario en un segundo monitor", p: "Ejecuta un flujo en un monitor mientras AutoFlow se queda en el otro. Los monitores se identifican por número y la ejecución se pausa en cuanto tomas el ratón." },
+      { icon: "image", h3: "Escenas", p: "Captura una vez una zona de un monitor; después las condiciones comparan la pantalla en vivo con ella, para que un flujo distinga un lobby de una pantalla de recompensa." },
+      { icon: "gauge", h3: "Comprobación de píxeles", p: "Espera a que un botón cambie de color o lee un píxel en una variable, con tolerancia y límite de tiempo, en cualquier monitor." },
     ],
     req: {
       h2: "Requisitos del sistema",
@@ -473,6 +486,9 @@ export const es: Content = {
     "status-check": { n: "Comprobación de estado web", d: "Cada 10 minutos comprueba una URL y te avisa si no responde." },
     "copy-cleaner": { n: "Limpiar texto del portapapeles", d: "Quita saltos de línea y espacios dobles del portapapeles y vuelve a dejar el texto limpio." },
     "countdown-timer": { n: "Temporizador de concentración", d: "Una sesión de concentración de 25 minutos que termina con un aviso: Pomodoro sin otra app." },
+    "idle-collect": { n: "Juego idle: recoger y volver al lobby", d: "En un segundo monitor reconoce el lobby y la pantalla de recompensa, inicia una ronda, recoge la recompensa y vuelve, tres veces." },
+    "stage-ready-clicker": { n: "Escenario de dos monitores: clic cuando esté listo", d: "Vigila un punto de tu segundo monitor y hace clic cuando se pone verde, como máximo dos veces por segundo." },
+    "daily-check-in": { n: "Bucle de registro diario", d: "Hace clic en un botón de registro diario y espera 24 horas antes de la siguiente vuelta. Funciona hasta una semana." },
   },
   privacy,
   terms,

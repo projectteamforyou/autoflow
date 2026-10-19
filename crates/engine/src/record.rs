@@ -20,12 +20,17 @@ pub enum RecordedEvent {
         x: i32,
         y: i32,
         button: MouseButton,
+        /// Monitor the event happened on (recorders fill it in so steps become display-relative).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        display_id: Option<String>,
     },
     MouseUp {
         t: u64,
         x: i32,
         y: i32,
         button: MouseButton,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        display_id: Option<String>,
     },
     Wheel {
         t: u64,
@@ -33,6 +38,8 @@ pub enum RecordedEvent {
         dy: i32,
         x: i32,
         y: i32,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        display_id: Option<String>,
     },
     KeyDown {
         t: u64,
@@ -97,7 +104,7 @@ mod tests {
             serde_json::to_value(&e).expect("serializes"),
             serde_json::json!({"kind":"keyDown","t":5,"key":"*","modifiers":["shift"],"sensitive":true})
         );
-        let m = RecordedEvent::MouseUp { t: 1, x: 2, y: 3, button: MouseButton::X1 };
+        let m = RecordedEvent::MouseUp { t: 1, x: 2, y: 3, button: MouseButton::X1, display_id: None };
         assert_eq!(serde_json::to_value(&m).expect("serializes"), serde_json::json!({"kind":"mouseUp","t":1,"x":2,"y":3,"button":"x1"}));
     }
 }

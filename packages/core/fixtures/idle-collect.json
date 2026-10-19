@@ -1,0 +1,181 @@
+{
+  "schemaVersion": "1.0",
+  "id": "tpl_idle-collect",
+  "name": "Idle game: collect & return to lobby",
+  "description": "On your second monitor, recognizes the lobby and reward screens (Scenes), starts a round, collects the reward and returns to the lobby — three times. Pauses as soon as you touch the mouse.",
+  "tags": [],
+  "icon": "gamepad",
+  "color": "#22C3A6",
+  "targets": [
+    "windows",
+    "web"
+  ],
+  "mode": "pro",
+  "trigger": {
+    "type": "manual"
+  },
+  "hotkeys": {
+    "stop": {
+      "key": "Escape",
+      "modifiers": [
+        "ctrl",
+        "alt"
+      ]
+    }
+  },
+  "limits": {
+    "maxDurationMs": 1800000,
+    "maxActions": 100000,
+    "maxIterations": 1000000,
+    "countdownMs": 3000,
+    "preventOverlap": true,
+    "cooldownMs": 0
+  },
+  "variables": [
+    {
+      "name": "rounds",
+      "type": "number",
+      "initial": 3
+    }
+  ],
+  "steps": [
+    {
+      "id": "zero",
+      "type": "setVar",
+      "name": "collected",
+      "value": "0"
+    },
+    {
+      "id": "play",
+      "type": "loop",
+      "mode": "while",
+      "condition": {
+        "expr": "collected < rounds"
+      },
+      "cooldownMs": 400,
+      "body": [
+        {
+          "id": "lobby",
+          "label": "In the lobby: start a round",
+          "type": "if",
+          "condition": {
+            "expr": "true",
+            "scene": {
+              "name": "lobby",
+              "minSimilarity": 0.85
+            }
+          },
+          "then": [
+            {
+              "id": "start",
+              "type": "click",
+              "target": {
+                "kind": "point",
+                "x": 0.5,
+                "y": 0.68,
+                "space": "normalized"
+              },
+              "button": "left",
+              "clicks": 1,
+              "holdMs": 0,
+              "modifiers": []
+            }
+          ],
+          "else": []
+        },
+        {
+          "id": "reward",
+          "label": "Reward screen: collect it",
+          "type": "if",
+          "condition": {
+            "expr": "true",
+            "scene": {
+              "name": "reward",
+              "minSimilarity": 0.85
+            }
+          },
+          "then": [
+            {
+              "id": "collect",
+              "type": "click",
+              "target": {
+                "kind": "point",
+                "x": 0.5,
+                "y": 0.76,
+                "space": "normalized"
+              },
+              "button": "left",
+              "clicks": 1,
+              "holdMs": 0,
+              "modifiers": []
+            },
+            {
+              "id": "count",
+              "type": "setVar",
+              "name": "collected",
+              "value": "collected + 1"
+            },
+            {
+              "id": "log",
+              "type": "log",
+              "message": "Collected round {{collected}} of {{rounds}}",
+              "level": "info"
+            }
+          ],
+          "else": []
+        }
+      ]
+    },
+    {
+      "id": "done",
+      "type": "notify",
+      "title": "Idle run finished",
+      "body": "{{collected}} rewards collected."
+    }
+  ],
+  "humanize": {
+    "offsetPx": 3,
+    "delayMs": 120
+  },
+  "stage": {
+    "display": "secondary",
+    "pauseOnTakeover": true
+  },
+  "onMissingDisplay": "ask",
+  "scenes": [
+    {
+      "name": "lobby",
+      "region": {
+        "x": 0,
+        "y": 0.1,
+        "w": 1,
+        "h": 0.9
+      },
+      "hash": "ffffffffffcfffff"
+    },
+    {
+      "name": "battle",
+      "region": {
+        "x": 0,
+        "y": 0.1,
+        "w": 1,
+        "h": 0.9
+      },
+      "hash": "a5a5a5a5a5a5a5a5"
+    },
+    {
+      "name": "reward",
+      "region": {
+        "x": 0,
+        "y": 0.1,
+        "w": 1,
+        "h": 0.9
+      },
+      "hash": "000c0c0c0c0c0c00"
+    }
+  ],
+  "favorite": false,
+  "createdAt": "2026-10-19T00:00:00.000Z",
+  "updatedAt": "2026-10-19T00:00:00.000Z",
+  "revision": 0
+}

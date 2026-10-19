@@ -25,8 +25,13 @@ sealed class InputAction {
     data class Http(val method: String, val url: String, val headers: Map<String, String>, val body: String?) : InputAction() { override val type get() = "http" }
     data class FileOp(val op: String, val path: String, val dest: String?, val content: String?) : InputAction() { override val type get() = "file" }
     data class Ocr(val region: Target.Rect) : InputAction() { override val type get() = "ocr" }
-    data class FindImage(val ref: String, val confidence: Double, val timeoutMs: Long) : InputAction() { override val type get() = "findImage" }
+    /** [region] (virtual-desktop px) is set for display-scoped steps only. */
+    data class FindImage(val ref: String, val confidence: Double, val timeoutMs: Long, val region: Target.Rect? = null) : InputAction() { override val type get() = "findImage" }
     data class SwitchProfile(val profileId: String) : InputAction() { override val type get() = "switchProfile" }
+    /** Probe: color of one virtual-desktop pixel as "#rrggbb". */
+    data class Pixel(val x: Double, val y: Double) : InputAction() { override val type get() = "pixel" }
+    /** Probe: dHash (16 hex digits) of a virtual-desktop rectangle. */
+    data class SceneHash(val region: Target.Rect) : InputAction() { override val type get() = "sceneHash" }
 }
 
 /**
@@ -49,6 +54,15 @@ interface Backend {
     suspend fun confirm(message: String): Boolean
 
     suspend fun screen(): ScreenInfo? = null
+
+    /** Connected monitors, any order (default: the screen as the only, primary display). */
+    suspend fun displays(): List<DisplayInfo> {
+        val s = screen() ?: return emptyList()
+        return listOf(DisplayInfo("primary", "Built-in display", true, Target.Rect(0.0, 0.0, s.width.toDouble(), s.height.toDouble()), scale = s.scale))
+    }
+
+    /** Pointer position for Stage takeover detection (touch screens have none). */
+    suspend fun pointerPosition(): Pair<Double, Double>? = null
 }
 
 /** One-shot abort flag that suspending code can race against (the Kotlin counterpart of AbortSignal). */

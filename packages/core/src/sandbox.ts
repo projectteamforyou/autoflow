@@ -1,11 +1,14 @@
 /**
  * Sandbox backend: runs any flow against a virtual screen. Powers the in-browser
  * "Practice Canvas", template previews, tests and dry runs on every platform —
- * nothing touches the real mouse or keyboard.
+ * nothing touches the real mouse or keyboard. With a PracticeWorld it also emulates several
+ * monitors, screen pixels and scenes deterministically (Stage mode in the browser).
  */
 import type { Backend, InputAction, ScreenInfo } from "./engine.js";
 import type { Platform, Target } from "./schema.js";
 import type { Value } from "./expr.js";
+import { toHexColor, type DisplayInfo } from "./displays.js";
+import type { PracticeWorld } from "./practice.js";
 
 export interface SandboxEffect {
   at: number;
@@ -30,6 +33,10 @@ export interface SandboxOptions {
   actionDelayMs?: number;
   /** Initial pointer position. */
   pointer?: { x: number; y: number };
+  /** Emulated monitors (default: the practice world's, else one display the size of `screen`). */
+  displays?: DisplayInfo[];
+  /** Virtual desktop content: pixels, scenes and clickable game buttons. */
+  world?: PracticeWorld;
 }
 
 export class SandboxBackend implements Backend {
@@ -52,6 +59,18 @@ export class SandboxBackend implements Backend {
 
   async screen(): Promise<ScreenInfo> {
     return this.screenInfo();
+  }
+
+  async displays(): Promise<DisplayInfo[]> {
+    if (this.opts.displays) return this.opts.displays;
+    if (this.opts.world) return this.opts.world.displays;
+    const s = this.screenInfo();
+    const bounds = { x: 0, y: 0, w: s.width, h: s.height };
+    return [{ id: "sandbox-1", name: "Practice screen", primary: true, bounds, workArea: bounds, scale: s.scale, orientation: s.width >= s.height ? "landscape" : "portrait" }];
+  }
+
+  async pointerPosition(): Promise<{ x: number; y: number }> {
+    return { ...this.pointer };
   }
 
   resolve(t: Target, pick: () => number = Math.random): { x: number; y: number } {
@@ -84,13 +103,17 @@ export class SandboxBackend implements Backend {
       case "move":
         points.push(this.resolve(action.target));
         this.pointer = points[0]!;
+        if (action.type === "click") this.opts.world?.click(points[0]!.x, points[0]!.y);
         break;
       case "drag":
         points.push(this.resolve(action.from), this.resolve(action.to));
         this.pointer = points[1]!;
         break;
       case "scroll":
-        if (action.target) points.push(this.resolve(action.target));
+        if (action.target) {
+          points.push(this.resolve(action.target));
+          this.pointer = points[0]!;
+        }
         break;
       case "type":
         this.typed.push(action.text);
@@ -119,6 +142,14 @@ export class SandboxBackend implements Backend {
         break;
       case "findImage":
         result = null;
+        break;
+      case "pixel": {
+        const c = this.opts.world?.pixel(action.x, action.y) ?? [0, 0, 0];
+        result = toHexColor(c[0], c[1], c[2]);
+        break;
+      }
+      case "sceneHash":
+        result = this.opts.world?.sceneHash(action.region) ?? "0000000000000000";
         break;
       default:
         break;
