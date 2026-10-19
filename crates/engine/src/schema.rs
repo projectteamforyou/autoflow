@@ -185,8 +185,21 @@ pub enum ErrorStrategy {
     Goto,
 }
 
+/// Growth of retry delays (`onError.backoff`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Backoff {
+    /// Every retry waits `backoffMs`.
+    Fixed,
+    /// Retry *n* waits `n × backoffMs` (the legacy behaviour, used when absent).
+    #[default]
+    Linear,
+    /// Retry *n* waits `2^(n-1) × backoffMs`.
+    Exponential,
+}
+
 /// Per-step error policy.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OnError {
     /// Strategy.
@@ -201,6 +214,36 @@ pub struct OnError {
     /// Top-level step id for `goto`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub goto_step_id: Option<String>,
+    /// Delay curve (absent = linear).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub backoff: Option<Backoff>,
+    /// Cap for one retry delay, before jitter.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_backoff_ms: Option<u64>,
+    /// 0..1: each delay is reduced by a random share of up to `jitter`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub jitter: Option<f64>,
+}
+
+/// Delay before retry `attempt` (1-based) — `retryDelayMs` in engine.ts. Draws one random number
+/// only when `jitter` > 0.
+pub fn retry_delay_ms(policy: &OnError, attempt: u32, random: &mut dyn FnMut() -> f64) -> u64 {
+    let base = policy.backoff_ms;
+    let mut d: u64 = match policy.backoff.unwrap_or_default() {
+        Backoff::Fixed => base,
+        Backoff::Linear => base.saturating_mul(u64::from(attempt)),
+        Backoff::Exponential => base.saturating_mul(1u64 << attempt.saturating_sub(1).min(32)),
+    };
+    if let Some(cap) = policy.max_backoff_ms {
+        d = d.min(cap);
+    }
+    let j = policy.jitter.unwrap_or(0.0);
+    if j > 0.0 {
+        #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        let cut = (d as f64 * j * random()).floor() as u64;
+        d = d.saturating_sub(cut);
+    }
+    d
 }
 
 fn default_backoff() -> u64 {
@@ -441,6 +484,10 @@ pub struct Step {
     /// Error policy.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub on_error: Option<OnError>,
+    /// Per-attempt timeout (category `timeout`, subject to `onError`). Named apart from the
+    /// step-specific `timeoutMs` of waitFor / findImage.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub step_timeout_ms: Option<u64>,
     /// Type-specific payload (`type` discriminator).
     #[serde(flatten)]
     pub kind: StepKind,
@@ -883,6 +930,9 @@ pub struct Limits {
     /// Minimum time between two trigger-initiated runs.
     #[serde(default)]
     pub cooldown_ms: u64,
+    /// Deterministic watchdog: maximum executed steps (attempts included).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_steps: Option<u64>,
 }
 
 fn default_max_duration() -> u64 {
@@ -910,6 +960,7 @@ impl Default for Limits {
             countdown_ms: default_countdown(),
             prevent_overlap: true,
             cooldown_ms: 0,
+            max_steps: None,
         }
     }
 }
@@ -983,6 +1034,40 @@ fn default_scale() -> f64 {
     1.0
 }
 
+/// Opt-in humanization of input actions (`humanize` in schema.ts).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Humanize {
+    /// Max ± offset in px for point targets in screen/window space (0..50).
+    #[serde(default)]
+    pub offset_px: u32,
+    /// Max extra delay before each input action (0..5000 ms).
+    #[serde(default)]
+    pub delay_ms: u64,
+    /// Seed of the dedicated mulberry32 stream.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub seed: Option<u32>,
+}
+
+/// mulberry32 — bit-identical to `mulberry32` in engine.ts.
+#[derive(Debug, Clone)]
+pub struct Mulberry32(u32);
+
+impl Mulberry32 {
+    /// A generator seeded with `seed`.
+    pub fn new(seed: u32) -> Self {
+        Self(seed)
+    }
+    /// Next value in `[0, 1)`.
+    pub fn next_f64(&mut self) -> f64 {
+        self.0 = self.0.wrapping_add(0x6D2B_79F5);
+        let a = self.0;
+        let mut t = (a ^ (a >> 15)).wrapping_mul(1 | a);
+        t = (t.wrapping_add((t ^ (t >> 7)).wrapping_mul(61 | t))) ^ t;
+        f64::from(t ^ (t >> 14)) / 4_294_967_296.0
+    }
+}
+
 /// Easy / Pro editing mode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -1035,6 +1120,9 @@ pub struct Flow {
     pub variables: Vec<VariableDef>,
     /// Steps.
     pub steps: Vec<Step>,
+    /// Opt-in humanization.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub humanize: Option<Humanize>,
     /// Screen geometry at recording time.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub screen: Option<ScreenRef>,
@@ -1328,25 +1416,38 @@ impl Validator {
     }
     fn rect(&mut self, path: &str, r: &Rect) {
         for (k, v) in [("x", r.x), ("y", r.y), ("w", r.w), ("h", r.h)] {
-            self.finite(&format!("{path}.{k}"), v);
+            self.coord(&format!("{path}.{k}"), v);
+        }
+    }
+    /// Coordinates are bounded to ±1 000 000 (`coord` in schema.ts).
+    fn coord(&mut self, path: &str, n: f64) {
+        self.finite(path, n);
+        if n.is_finite() {
+            self.range_f(path, n, -1_000_000.0, 1_000_000.0);
         }
     }
 
     fn target(&mut self, path: &str, t: &Target) {
         match t {
             Target::Point { x, y, monitor, .. } => {
-                self.finite(&format!("{path}.x"), *x);
-                self.finite(&format!("{path}.y"), *y);
+                self.coord(&format!("{path}.x"), *x);
+                self.coord(&format!("{path}.y"), *y);
                 if let Some(m) = monitor {
                     self.range_u(&format!("{path}.monitor"), u64::from(*m), 0, 16);
                 }
             }
             Target::Current => {}
             Target::Region { x, y, w, h, .. } => {
-                self.finite(&format!("{path}.x"), *x);
-                self.finite(&format!("{path}.y"), *y);
+                self.coord(&format!("{path}.x"), *x);
+                self.coord(&format!("{path}.y"), *y);
                 self.positive(&format!("{path}.w"), *w);
                 self.positive(&format!("{path}.h"), *h);
+                if *w > 1_000_000.0 {
+                    self.issue(&format!("{path}.w"), "Number must be less than or equal to 1000000");
+                }
+                if *h > 1_000_000.0 {
+                    self.issue(&format!("{path}.h"), "Number must be less than or equal to 1000000");
+                }
             }
             Target::Element { selector } => {
                 let p = format!("{path}.selector");
@@ -1397,6 +1498,15 @@ impl Validator {
             if let Some(g) = &oe.goto_step_id {
                 self.id(&format!("{p}.onError.gotoStepId"), g);
             }
+            if let Some(m) = oe.max_backoff_ms {
+                self.ms(&format!("{p}.onError.maxBackoffMs"), m);
+            }
+            if let Some(j) = oe.jitter {
+                self.range_f(&format!("{p}.onError.jitter"), j, 0.0, 1.0);
+            }
+        }
+        if let Some(t) = s.step_timeout_ms {
+            self.range_u(&format!("{p}.stepTimeoutMs"), t, 1, 86_400_000);
         }
         let f = |k: &str| format!("{p}.{k}");
         match &s.kind {
@@ -1475,8 +1585,16 @@ impl Validator {
             StepKind::AndroidGlobal { .. } | StepKind::Break | StepKind::Continue => {}
             StepKind::Http { url, headers, body, result_var, .. } => {
                 self.url(&f("url"), url);
+                if headers.len() > 50 {
+                    self.issue(&f("headers"), "at most 50 headers");
+                }
                 for (k, v) in headers {
                     self.max(&format!("{p}.headers.{k}"), v, 2000);
+                    let token =
+                        !k.is_empty() && k.len() <= 256 && k.bytes().all(|b| b.is_ascii_alphanumeric() || b"!#$%&'*+.^_`|~-".contains(&b));
+                    if !token {
+                        self.issue(&f("headers"), "invalid header name");
+                    }
                 }
                 self.opt_max(&f("body"), body.as_ref(), 100_000);
                 self.opt_var(&f("resultVar"), result_var.as_ref());
@@ -1574,6 +1692,32 @@ impl Validator {
     }
 }
 
+/// Maximum nesting of container steps (`MAX_STEP_DEPTH` in schema.ts).
+pub const MAX_STEP_DEPTH: usize = 32;
+/// Maximum number of steps in one flow (`MAX_TOTAL_STEPS`).
+pub const MAX_TOTAL_STEPS: usize = 10_000;
+
+/// Structural limits: nesting depth and total number of steps (`checkStepStructure`).
+pub fn check_step_structure(list: &[Step]) -> Option<String> {
+    let mut total = 0usize;
+    let mut stack: Vec<(&[Step], usize)> = vec![(list, 1)];
+    while let Some((l, depth)) = stack.pop() {
+        if depth > MAX_STEP_DEPTH {
+            return Some(format!("steps are nested more than {MAX_STEP_DEPTH} levels deep"));
+        }
+        total += l.len();
+        if total > MAX_TOTAL_STEPS {
+            return Some(format!("a flow can have at most {MAX_TOTAL_STEPS} steps"));
+        }
+        for s in l {
+            for c in s.child_lists() {
+                stack.push((c, depth + 1));
+            }
+        }
+    }
+    None
+}
+
 /// Checks every zod constraint that serde's typing does not already enforce.
 pub fn validate_flow(flow: &Flow) -> Vec<ValidationIssue> {
     let mut v = Validator::default();
@@ -1606,14 +1750,30 @@ pub fn validate_flow(flow: &Flow) -> Vec<ValidationIssue> {
     v.range_u("limits.maxIterations", l.max_iterations, 1, 100_000_000);
     v.range_u("limits.countdownMs", l.countdown_ms, 0, 60_000);
     v.ms("limits.cooldownMs", l.cooldown_ms);
+    if let Some(m) = l.max_steps {
+        v.range_u("limits.maxSteps", m, 1, 1_000_000_000);
+    }
+    if let Some(h) = &flow.humanize {
+        v.range_u("humanize.offsetPx", u64::from(h.offset_px), 0, 50);
+        v.range_u("humanize.delayMs", h.delay_ms, 0, 5000);
+    }
     v.arr_max("variables", flow.variables.len(), 200);
     for (i, var) in flow.variables.iter().enumerate() {
         v.var_name(&format!("variables.{i}.name"), &var.name);
         v.opt_max(&format!("variables.{i}.prompt"), var.prompt.as_ref(), 200);
         if let Some(init) = &var.initial {
+            let short = |x: &str| utf16_len(x) <= 10_000;
             let ok = match init {
-                Value::Str(_) | Value::Num(_) | Value::Bool(_) => true,
-                Value::List(items) => items.iter().all(|x| matches!(x, Value::Str(_) | Value::Num(_))),
+                Value::Str(x) => short(x),
+                Value::Num(_) | Value::Bool(_) => true,
+                Value::List(items) => {
+                    items.len() <= 10_000
+                        && items.iter().all(|x| match x {
+                            Value::Str(s) => short(s),
+                            Value::Num(_) => true,
+                            _ => false,
+                        })
+                }
                 Value::Null => false,
             };
             if !ok {
@@ -1622,6 +1782,9 @@ pub fn validate_flow(flow: &Flow) -> Vec<ValidationIssue> {
         }
     }
     v.steps("steps", &flow.steps);
+    if let Some(msg) = check_step_structure(&flow.steps) {
+        v.issue("steps", msg);
+    }
     if let Some(s) = &flow.screen {
         if s.width == 0 {
             v.issue("screen.width", "Number must be greater than 0");

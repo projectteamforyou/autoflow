@@ -1,0 +1,786 @@
+[
+  {
+    "name": "retry-exponential-capped",
+    "random": 0,
+    "failFirst": {
+      "type": "click",
+      "count": 3
+    },
+    "secrets": {},
+    "flow": {
+      "schemaVersion": "1.0",
+      "id": "f_conf",
+      "name": "conformance",
+      "createdAt": "2026-10-19T00:00:00.000Z",
+      "updatedAt": "2026-10-19T00:00:00.000Z",
+      "steps": [
+        {
+          "id": "c",
+          "type": "click",
+          "target": {
+            "kind": "point",
+            "x": 100,
+            "y": 100,
+            "space": "screen"
+          },
+          "onError": {
+            "strategy": "retry",
+            "retries": 4,
+            "backoffMs": 100,
+            "backoff": "exponential",
+            "maxBackoffMs": 300
+          }
+        }
+      ]
+    },
+    "expect": {
+      "status": "completed",
+      "error": null,
+      "durationMs": 600,
+      "actions": 4,
+      "iterations": 0,
+      "steps": 4,
+      "retryDelays": [
+        100,
+        200,
+        300
+      ],
+      "timeouts": [],
+      "logs": [],
+      "targets": [
+        [
+          100,
+          100
+        ]
+      ],
+      "typed": []
+    }
+  },
+  {
+    "name": "retry-fixed-jitter",
+    "random": 0.5,
+    "failFirst": {
+      "type": "click",
+      "count": 2
+    },
+    "secrets": {},
+    "flow": {
+      "schemaVersion": "1.0",
+      "id": "f_conf",
+      "name": "conformance",
+      "createdAt": "2026-10-19T00:00:00.000Z",
+      "updatedAt": "2026-10-19T00:00:00.000Z",
+      "steps": [
+        {
+          "id": "c",
+          "type": "click",
+          "target": {
+            "kind": "point",
+            "x": 100,
+            "y": 100,
+            "space": "screen"
+          },
+          "onError": {
+            "strategy": "retry",
+            "retries": 2,
+            "backoffMs": 400,
+            "backoff": "fixed",
+            "jitter": 0.5
+          }
+        }
+      ]
+    },
+    "expect": {
+      "status": "completed",
+      "error": null,
+      "durationMs": 600,
+      "actions": 3,
+      "iterations": 0,
+      "steps": 3,
+      "retryDelays": [
+        300,
+        300
+      ],
+      "timeouts": [],
+      "logs": [],
+      "targets": [
+        [
+          100,
+          100
+        ]
+      ],
+      "typed": []
+    }
+  },
+  {
+    "name": "retry-legacy-linear-exhausted",
+    "random": 0,
+    "failFirst": {
+      "type": "click",
+      "count": 10
+    },
+    "secrets": {},
+    "flow": {
+      "schemaVersion": "1.0",
+      "id": "f_conf",
+      "name": "conformance",
+      "createdAt": "2026-10-19T00:00:00.000Z",
+      "updatedAt": "2026-10-19T00:00:00.000Z",
+      "steps": [
+        {
+          "id": "c",
+          "type": "click",
+          "target": {
+            "kind": "point",
+            "x": 100,
+            "y": 100,
+            "space": "screen"
+          },
+          "onError": {
+            "strategy": "retry",
+            "retries": 2,
+            "backoffMs": 250
+          }
+        }
+      ]
+    },
+    "expect": {
+      "status": "failed",
+      "error": {
+        "category": "target",
+        "stepId": "c",
+        "message": "target not found"
+      },
+      "durationMs": 750,
+      "actions": 3,
+      "iterations": 0,
+      "steps": 3,
+      "retryDelays": [
+        250,
+        500
+      ],
+      "timeouts": [],
+      "logs": [],
+      "targets": [],
+      "typed": []
+    }
+  },
+  {
+    "name": "step-timeout",
+    "random": 0,
+    "failFirst": null,
+    "secrets": {},
+    "flow": {
+      "schemaVersion": "1.0",
+      "id": "f_conf",
+      "name": "conformance",
+      "createdAt": "2026-10-19T00:00:00.000Z",
+      "updatedAt": "2026-10-19T00:00:00.000Z",
+      "steps": [
+        {
+          "id": "w",
+          "type": "wait",
+          "ms": 5000,
+          "stepTimeoutMs": 1000
+        }
+      ]
+    },
+    "expect": {
+      "status": "failed",
+      "error": {
+        "category": "timeout",
+        "stepId": "w",
+        "message": "step timed out after 1000 ms"
+      },
+      "durationMs": 1001,
+      "actions": 0,
+      "iterations": 0,
+      "steps": 1,
+      "retryDelays": [],
+      "timeouts": [
+        "w"
+      ],
+      "logs": [],
+      "targets": [],
+      "typed": []
+    }
+  },
+  {
+    "name": "step-timeout-not-reached",
+    "random": 0,
+    "failFirst": null,
+    "secrets": {},
+    "flow": {
+      "schemaVersion": "1.0",
+      "id": "f_conf",
+      "name": "conformance",
+      "createdAt": "2026-10-19T00:00:00.000Z",
+      "updatedAt": "2026-10-19T00:00:00.000Z",
+      "steps": [
+        {
+          "id": "w",
+          "type": "wait",
+          "ms": 1000,
+          "stepTimeoutMs": 1000
+        },
+        {
+          "id": "c",
+          "type": "click",
+          "target": {
+            "kind": "point",
+            "x": 100,
+            "y": 100,
+            "space": "screen"
+          }
+        }
+      ]
+    },
+    "expect": {
+      "status": "completed",
+      "error": null,
+      "durationMs": 1000,
+      "actions": 1,
+      "iterations": 0,
+      "steps": 2,
+      "retryDelays": [],
+      "timeouts": [],
+      "logs": [],
+      "targets": [
+        [
+          100,
+          100
+        ]
+      ],
+      "typed": []
+    }
+  },
+  {
+    "name": "step-timeout-continue",
+    "random": 0,
+    "failFirst": null,
+    "secrets": {},
+    "flow": {
+      "schemaVersion": "1.0",
+      "id": "f_conf",
+      "name": "conformance",
+      "createdAt": "2026-10-19T00:00:00.000Z",
+      "updatedAt": "2026-10-19T00:00:00.000Z",
+      "steps": [
+        {
+          "id": "w",
+          "type": "wait",
+          "ms": 5000,
+          "stepTimeoutMs": 100,
+          "onError": {
+            "strategy": "continue"
+          }
+        },
+        {
+          "id": "c",
+          "type": "click",
+          "target": {
+            "kind": "point",
+            "x": 100,
+            "y": 100,
+            "space": "screen"
+          }
+        }
+      ]
+    },
+    "expect": {
+      "status": "completed",
+      "error": null,
+      "durationMs": 101,
+      "actions": 1,
+      "iterations": 0,
+      "steps": 2,
+      "retryDelays": [],
+      "timeouts": [
+        "w"
+      ],
+      "logs": [
+        "step failed and was skipped: step timed out after 100 ms"
+      ],
+      "targets": [
+        [
+          100,
+          100
+        ]
+      ],
+      "typed": []
+    }
+  },
+  {
+    "name": "step-timeout-retried",
+    "random": 0,
+    "failFirst": null,
+    "secrets": {},
+    "flow": {
+      "schemaVersion": "1.0",
+      "id": "f_conf",
+      "name": "conformance",
+      "createdAt": "2026-10-19T00:00:00.000Z",
+      "updatedAt": "2026-10-19T00:00:00.000Z",
+      "steps": [
+        {
+          "id": "w",
+          "type": "wait",
+          "ms": 5000,
+          "stepTimeoutMs": 100,
+          "onError": {
+            "strategy": "retry",
+            "retries": 2,
+            "backoffMs": 10,
+            "backoff": "fixed"
+          }
+        }
+      ]
+    },
+    "expect": {
+      "status": "failed",
+      "error": {
+        "category": "timeout",
+        "stepId": "w",
+        "message": "step timed out after 100 ms"
+      },
+      "durationMs": 323,
+      "actions": 0,
+      "iterations": 0,
+      "steps": 3,
+      "retryDelays": [
+        10,
+        10
+      ],
+      "timeouts": [
+        "w",
+        "w",
+        "w"
+      ],
+      "logs": [],
+      "targets": [],
+      "typed": []
+    }
+  },
+  {
+    "name": "step-timeout-caught",
+    "random": 0,
+    "failFirst": null,
+    "secrets": {},
+    "flow": {
+      "schemaVersion": "1.0",
+      "id": "f_conf",
+      "name": "conformance",
+      "createdAt": "2026-10-19T00:00:00.000Z",
+      "updatedAt": "2026-10-19T00:00:00.000Z",
+      "steps": [
+        {
+          "id": "t",
+          "type": "try",
+          "errorVar": "err",
+          "body": [
+            {
+              "id": "w",
+              "type": "wait",
+              "ms": 5000,
+              "stepTimeoutMs": 100
+            }
+          ],
+          "catch": [
+            {
+              "id": "l",
+              "type": "log",
+              "message": "caught: {{err}}"
+            }
+          ]
+        }
+      ]
+    },
+    "expect": {
+      "status": "completed",
+      "error": null,
+      "durationMs": 101,
+      "actions": 0,
+      "iterations": 0,
+      "steps": 3,
+      "retryDelays": [],
+      "timeouts": [
+        "w"
+      ],
+      "logs": [
+        "caught: step timed out after 100 ms"
+      ],
+      "targets": [],
+      "typed": []
+    }
+  },
+  {
+    "name": "container-timeout-wins",
+    "random": 0,
+    "failFirst": null,
+    "secrets": {},
+    "flow": {
+      "schemaVersion": "1.0",
+      "id": "f_conf",
+      "name": "conformance",
+      "createdAt": "2026-10-19T00:00:00.000Z",
+      "updatedAt": "2026-10-19T00:00:00.000Z",
+      "steps": [
+        {
+          "id": "loop",
+          "type": "loop",
+          "mode": "forever",
+          "stepTimeoutMs": 1000,
+          "body": [
+            {
+              "id": "t",
+              "type": "try",
+              "body": [
+                {
+                  "id": "w",
+                  "type": "wait",
+                  "ms": 300,
+                  "onError": {
+                    "strategy": "retry",
+                    "retries": 10,
+                    "backoffMs": 1,
+                    "backoff": "fixed"
+                  }
+                }
+              ],
+              "catch": []
+            }
+          ]
+        }
+      ]
+    },
+    "expect": {
+      "status": "failed",
+      "error": {
+        "category": "timeout",
+        "stepId": "loop",
+        "message": "step timed out after 1000 ms"
+      },
+      "durationMs": 1001,
+      "actions": 0,
+      "iterations": 4,
+      "steps": 9,
+      "retryDelays": [],
+      "timeouts": [
+        "loop"
+      ],
+      "logs": [],
+      "targets": [],
+      "typed": []
+    }
+  },
+  {
+    "name": "wait-for-keeps-its-own-timeout",
+    "random": 0,
+    "failFirst": null,
+    "secrets": {},
+    "flow": {
+      "schemaVersion": "1.0",
+      "id": "f_conf",
+      "name": "conformance",
+      "createdAt": "2026-10-19T00:00:00.000Z",
+      "updatedAt": "2026-10-19T00:00:00.000Z",
+      "steps": [
+        {
+          "id": "wf",
+          "type": "waitFor",
+          "condition": {
+            "expr": "false"
+          },
+          "timeoutMs": 500,
+          "pollMs": 100,
+          "onError": {
+            "strategy": "continue"
+          }
+        }
+      ]
+    },
+    "expect": {
+      "status": "completed",
+      "error": null,
+      "durationMs": 500,
+      "actions": 0,
+      "iterations": 0,
+      "steps": 1,
+      "retryDelays": [],
+      "timeouts": [],
+      "logs": [
+        "step failed and was skipped: condition not met within 500 ms"
+      ],
+      "targets": [],
+      "typed": []
+    }
+  },
+  {
+    "name": "max-steps",
+    "random": 0,
+    "failFirst": null,
+    "secrets": {},
+    "flow": {
+      "schemaVersion": "1.0",
+      "id": "f_conf",
+      "name": "conformance",
+      "createdAt": "2026-10-19T00:00:00.000Z",
+      "updatedAt": "2026-10-19T00:00:00.000Z",
+      "steps": [
+        {
+          "id": "l",
+          "type": "loop",
+          "mode": "forever",
+          "body": [
+            {
+              "id": "s",
+              "type": "setVar",
+              "name": "x",
+              "value": "1"
+            },
+            {
+              "id": "w",
+              "type": "wait",
+              "ms": 10
+            }
+          ]
+        }
+      ],
+      "limits": {
+        "maxSteps": 25
+      }
+    },
+    "expect": {
+      "status": "failed",
+      "error": {
+        "category": "limit",
+        "stepId": "s",
+        "message": "maximum number of steps reached (25)"
+      },
+      "durationMs": 120,
+      "actions": 0,
+      "iterations": 13,
+      "steps": 26,
+      "retryDelays": [],
+      "timeouts": [],
+      "logs": [],
+      "targets": [],
+      "typed": []
+    }
+  },
+  {
+    "name": "humanize-seeded",
+    "random": 0,
+    "failFirst": null,
+    "secrets": {},
+    "flow": {
+      "schemaVersion": "1.0",
+      "id": "f_conf",
+      "name": "conformance",
+      "createdAt": "2026-10-19T00:00:00.000Z",
+      "updatedAt": "2026-10-19T00:00:00.000Z",
+      "steps": [
+        {
+          "id": "l",
+          "type": "loop",
+          "mode": "count",
+          "count": 6,
+          "body": [
+            {
+              "id": "c",
+              "type": "click",
+              "target": {
+                "kind": "point",
+                "x": 200,
+                "y": 300,
+                "space": "screen"
+              }
+            },
+            {
+              "id": "n",
+              "type": "click",
+              "target": {
+                "kind": "point",
+                "x": 0.5,
+                "y": 0.5,
+                "space": "normalized"
+              }
+            }
+          ]
+        }
+      ],
+      "humanize": {
+        "offsetPx": 5,
+        "delayMs": 40,
+        "seed": 42
+      }
+    },
+    "expect": {
+      "status": "completed",
+      "error": null,
+      "durationMs": 286,
+      "actions": 12,
+      "iterations": 6,
+      "steps": 13,
+      "retryDelays": [],
+      "timeouts": [],
+      "logs": [],
+      "targets": [
+        [
+          199,
+          304
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          200,
+          298
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          200,
+          297
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          198,
+          297
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          201,
+          295
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          195,
+          301
+        ],
+        [
+          0.5,
+          0.5
+        ]
+      ],
+      "typed": []
+    }
+  },
+  {
+    "name": "humanize-run-random",
+    "random": 0.75,
+    "failFirst": null,
+    "secrets": {},
+    "flow": {
+      "schemaVersion": "1.0",
+      "id": "f_conf",
+      "name": "conformance",
+      "createdAt": "2026-10-19T00:00:00.000Z",
+      "updatedAt": "2026-10-19T00:00:00.000Z",
+      "steps": [
+        {
+          "id": "d",
+          "type": "drag",
+          "from": {
+            "kind": "point",
+            "x": 10,
+            "y": 10
+          },
+          "to": {
+            "kind": "point",
+            "x": 50,
+            "y": 60
+          }
+        },
+        {
+          "id": "k",
+          "type": "key",
+          "key": "a",
+          "repeat": 2
+        }
+      ],
+      "humanize": {
+        "offsetPx": 4,
+        "delayMs": 20
+      }
+    },
+    "expect": {
+      "status": "completed",
+      "error": null,
+      "durationMs": 45,
+      "actions": 3,
+      "iterations": 0,
+      "steps": 2,
+      "retryDelays": [],
+      "timeouts": [],
+      "logs": [],
+      "targets": [
+        [
+          12,
+          12
+        ],
+        [
+          52,
+          62
+        ]
+      ],
+      "typed": []
+    }
+  },
+  {
+    "name": "log-masks-secrets",
+    "random": 0,
+    "failFirst": null,
+    "secrets": {
+      "api": "s3cr3t"
+    },
+    "flow": {
+      "schemaVersion": "1.0",
+      "id": "f_conf",
+      "name": "conformance",
+      "createdAt": "2026-10-19T00:00:00.000Z",
+      "updatedAt": "2026-10-19T00:00:00.000Z",
+      "steps": [
+        {
+          "id": "l",
+          "type": "log",
+          "message": "key={{secret:api}} n={{1 + 1}}"
+        },
+        {
+          "id": "t",
+          "type": "type",
+          "text": "{{secret:api}}"
+        }
+      ]
+    },
+    "expect": {
+      "status": "completed",
+      "error": null,
+      "durationMs": 0,
+      "actions": 1,
+      "iterations": 0,
+      "steps": 2,
+      "retryDelays": [],
+      "timeouts": [],
+      "logs": [
+        "key=•••• n=2"
+      ],
+      "targets": [],
+      "typed": [
+        "s3cr3t"
+      ]
+    }
+  }
+]

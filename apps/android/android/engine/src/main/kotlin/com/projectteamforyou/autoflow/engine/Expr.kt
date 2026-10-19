@@ -274,7 +274,15 @@ val FUNCTIONS: Map<String, ExprFn> = mapOf(
     },
     "startsWith" to { a, _ -> arity("startsWith", a, 2); Value.of(toStr(a[0]).startsWith(toStr(a[1]))) },
     "endsWith" to { a, _ -> arity("endsWith", a, 2); Value.of(toStr(a[0]).endsWith(toStr(a[1]))) },
-    "replace" to { a, _ -> arity("replace", a, 3); Value.Str(jsSplit(toStr(a[0]), toStr(a[1])).joinToString(toStr(a[2]))) },
+    "replace" to { a, _ ->
+        arity("replace", a, 3)
+        val (src, from, to) = Triple(toStr(a[0]), toStr(a[1]), toStr(a[2]))
+        // Size the result first: replace(s, "", s) would otherwise square the input in memory.
+        val pieces = if (from.isEmpty()) src.length.toLong() else (src.split(from).size).toLong()
+        val out = src.length - (if (from.isEmpty()) 0L else (pieces - 1) * from.length) + maxOf(0L, pieces - 1) * to.length
+        if (out > MAX_STRING) throw ExprError("string too large")
+        Value.Str(jsSplit(src, from).joinToString(to))
+    },
     "substr" to { a, _ ->
         arity("substr", a, 2, 3)
         Value.Str(jsSubstr(toStr(a[0]), toNum(a[1]), if (a.size == 3) toNum(a[2]) else null))
@@ -458,16 +466,53 @@ fun checkExpr(src: String): String? = try {
     e.message
 }
 
-private val INTERPOLATION = Regex("\\{\\{\\s*([^}]+?)\\s*\\}\\}")
 
 /** Replaces {{ expr }} in text. {{secret:name}} is resolved through [secret] and never logged. */
-fun interpolate(text: String, env: ExprEnv, secret: ((String) -> String?)? = null): String =
-    INTERPOLATION.replace(text) { m ->
-        val inner = m.groupValues[1]
-        if (inner.startsWith("secret:")) {
-            val name = jsTrim(inner.substring(7))
-            secret?.invoke(name) ?: throw ExprError("secret \"$name\" is not available on this device")
+/** Shown instead of a secret's value in logged text (`SECRET_MASK` in expr.ts). */
+const val SECRET_MASK = "\u2022\u2022\u2022\u2022"
+
+data class Placeholder(val start: Int, val end: Int, val inner: String)
+
+/**
+ * Finds `{{ … }}` placeholders in one linear pass (`scanPlaceholders` in expr.ts): same matches as the old regular
+ * expression, which backtracked quadratically on long runs of "{" or spaces.
+ */
+fun scanPlaceholders(text: String): List<Placeholder> {
+    val out = ArrayList<Placeholder>()
+    var nextClose = -1
+    var i = text.indexOf("{{")
+    while (i != -1) {
+        if (nextClose < i + 2) nextClose = text.indexOf('}', i + 2)
+        if (nextClose == -1) break
+        if (nextClose + 1 < text.length && text[nextClose + 1] == '}' && nextClose > i + 2) {
+            val raw = text.substring(i + 2, nextClose)
+            val inner = jsTrim(raw)
+            out.add(Placeholder(i, nextClose + 2, inner.ifEmpty { raw.takeLast(1) }))
+            i = text.indexOf("{{", nextClose + 2)
         } else {
-            toStr(evalExpr(inner, env))
+            i = text.indexOf("{{", i + 1)
         }
     }
+    return out
+}
+
+fun interpolate(text: String, env: ExprEnv, maskSecrets: Boolean = false, secret: ((String) -> String?)? = null): String {
+    val found = scanPlaceholders(text)
+    if (found.isEmpty()) return text
+    val out = StringBuilder()
+    var last = 0
+    for (p in found) {
+        out.append(text, last, p.start)
+        if (p.inner.startsWith("secret:")) {
+            val name = jsTrim(p.inner.substring(7))
+            val v = secret?.invoke(name) ?: throw ExprError("secret \"$name\" is not available on this device")
+            out.append(if (maskSecrets) SECRET_MASK else v)
+        } else {
+            out.append(toStr(evalExpr(p.inner, env)))
+        }
+        if (out.length > MAX_STRING) throw ExprError("string too large")
+        last = p.end
+    }
+    out.append(text, last, text.length)
+    return out.toString()
+}

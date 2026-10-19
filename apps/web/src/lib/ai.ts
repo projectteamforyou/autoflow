@@ -33,6 +33,23 @@ export function isLocalUrl(url: string): boolean {
   }
 }
 
+/**
+ * API keys travel in request headers, so a custom provider must use HTTPS unless it runs on this
+ * machine (Ollama, LM Studio…). Credentials in the URL are refused too (they would end up in logs).
+ */
+export function assertSafeBaseUrl(url: string): void {
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    throw new AiError("The provider base URL is not a valid URL");
+  }
+  if (u.username || u.password) throw new AiError("The provider base URL must not contain a user name or password");
+  if (u.protocol !== "https:" && !(u.protocol === "http:" && isLocalUrl(url))) {
+    throw new AiError("The provider base URL must use https:// (plain http:// is only allowed for localhost)");
+  }
+}
+
 export class AiError extends Error {
   constructor(message: string) {
     super(message);
@@ -63,6 +80,7 @@ async function chat(system: string, user: string, json: boolean): Promise<string
   const ai = useStore.getState().settings.ai;
   if (ai.provider === "none") throw new AiError("AI is turned off in Copilot settings");
   if (ai.localOnly && !isLocalUrl(ai.baseUrl)) throw new AiError("Local-only mode is on: only localhost providers are allowed");
+  assertSafeBaseUrl(ai.baseUrl);
   const key = (await vault.get(keyName(ai))) ?? "";
   if (!key && !isLocalUrl(ai.baseUrl)) throw new AiError("Add your API key in Copilot settings first");
   const preset = currentPreset(ai);
@@ -177,6 +195,7 @@ export async function generateImage(req: ImageRequest): Promise<Blob> {
   const preset = currentPreset(ai);
   if (ai.provider !== "openai" || (preset && !preset.images && !preset.local)) throw new AiError("Image generation needs a provider with image support (e.g. OpenAI)");
   if (ai.localOnly && !isLocalUrl(ai.baseUrl)) throw new AiError("Local-only mode is on");
+  assertSafeBaseUrl(ai.baseUrl);
   const key = (await vault.get(keyName(ai))) ?? "";
   const body = { model: ai.imageModel, prompt: req.prompt, size: req.size, background: req.background, output_format: req.format, quality: req.quality, n: 1 };
   const data =

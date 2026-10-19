@@ -120,7 +120,9 @@ fn dispatch(e: &RawEvent) -> bool {
     let sinks = SINKS.read().unwrap_or_else(std::sync::PoisonError::into_inner);
     let mut swallow = false;
     for (_, s) in sinks.iter() {
-        swallow |= s.on_event(e);
+        // The hook procs are `extern "system"`: a panic unwinding out of them aborts the process (and
+        // with it every run and the emergency stop). A failing sink is skipped and never swallows input.
+        swallow |= std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| s.on_event(e))).unwrap_or(false);
     }
     swallow
 }

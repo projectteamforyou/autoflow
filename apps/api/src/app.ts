@@ -29,6 +29,17 @@ export const CORS_EXPOSE_HEADERS = ["ETag", "Retry-After", "X-Request-Id"];
 
 const DEFAULT_BODY_LIMIT = 64 * 1024;
 
+/**
+ * Path for access logs. Share ids are capabilities (anyone holding one can open the flow) and sync
+ * item ids are chosen by clients, so neither is written to logs.
+ */
+export function redactPath(path: string): string {
+  return path
+    .replace(/^\/v1\/shares\/(?!mine$)[^/]+/, "/v1/shares/:id")
+    .replace(/^\/v1\/sync\/items\/([^/]+)\/[^/]+/, "/v1/sync/items/$1/:id")
+    .slice(0, 200);
+}
+
 function errorJson(code: ErrorBody["error"]["code"], message: string): ErrorBody {
   return { error: { code, message } };
 }
@@ -72,7 +83,7 @@ export function createApp(deps: AppDeps): Hono<AppEnv> {
     logger.info("http.request", {
       requestId: c.get("requestId"),
       method: c.req.method,
-      path: c.req.path,
+      path: redactPath(c.req.path),
       status: c.res.status,
       ms: Math.round(performance.now() - started),
       userId: c.get("auth")?.user.id,

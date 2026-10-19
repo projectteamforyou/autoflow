@@ -97,8 +97,11 @@ const EnvSchema = z.object({
   ATLAS_REQUIRE_VERIFIED_EMAIL: z.enum(["true", "false"]).optional(),
 });
 
-export function parseOrigins(raw: string | undefined): string[] {
-  if (!raw || !raw.trim()) return [...DEFAULT_APP_ORIGINS];
+/** Origins only a developer machine serves; never allowed by default in production. */
+export const DEV_ONLY_ORIGINS: readonly string[] = ["http://localhost:5173"];
+
+export function parseOrigins(raw: string | undefined, env: Config["env"] = "development"): string[] {
+  if (!raw || !raw.trim()) return DEFAULT_APP_ORIGINS.filter((o) => env !== "production" || !DEV_ONLY_ORIGINS.includes(o));
   const list = raw
     .split(",")
     .map((s) => s.trim().replace(/\/+$/, ""))
@@ -121,7 +124,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     env: e.NODE_ENV,
     port: e.PORT,
     databaseUrl: e.DATABASE_URL,
-    appOrigins: parseOrigins(e.APP_ORIGINS),
+    appOrigins: parseOrigins(e.APP_ORIGINS, e.NODE_ENV),
     publicAppUrl: e.PUBLIC_APP_URL.replace(/\/+$/, ""),
     mailFrom: e.MAIL_FROM,
     resendApiKey: e.RESEND_API_KEY,

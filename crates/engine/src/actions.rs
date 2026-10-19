@@ -103,6 +103,34 @@ pub fn file_action(op: FileOp, path: &str, dest: Option<&str>, content: Option<&
     }
 }
 
+/// Validates a `launchApp` target: an executable (absolute path, or a name on PATH / App Paths) or
+/// a packaged app id (AUMID). URI schemes (`ms-settings:`, `search-ms:`, `file:`, `https:`…) are
+/// refused because ShellExecute would hand them to arbitrary protocol handlers (`openUrl` covers
+/// web links with its own allow-list), and so are UNC / network paths, which would run programs
+/// from a remote share.
+pub fn check_launch_target(app: &str) -> Result<(), BackendError> {
+    let app = app.trim();
+    if app.is_empty() {
+        return Err(BackendError::new(ErrorCategory::Validation, "app is empty"));
+    }
+    if app.starts_with("\\\\") || app.starts_with("//") {
+        return Err(BackendError::new(ErrorCategory::Validation, "programs on network paths cannot be launched"));
+    }
+    if let Some(colon) = app.find(':') {
+        let scheme = &app[..colon];
+        let drive_letter =
+            scheme.len() == 1 && scheme.bytes().all(|b| b.is_ascii_alphabetic()) && matches!(app.as_bytes().get(2), Some(b'\\' | b'/'));
+        let looks_like_scheme = !scheme.is_empty() && scheme.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'+' | b'.' | b'-'));
+        if looks_like_scheme && !drive_letter {
+            return Err(BackendError::new(
+                ErrorCategory::Validation,
+                "launchApp opens programs and apps only; use an openUrl step for links",
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// Runs `work` on a helper thread, returning [`BackendError::aborted`] as soon as the run is
 /// stopped (the helper finishes in the background and its result is dropped).
 pub fn run_interruptible<T: Send + 'static>(
@@ -223,6 +251,33 @@ mod tests {
         assert_eq!(e.category, Some(ErrorCategory::Target));
         assert!(file_action(FileOp::Read, "relative.txt", None, None).is_err());
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn launch_targets_are_programs_or_app_ids_only() {
+        for ok in [
+            "notepad.exe",
+            "C:\\Windows\\System32\\calc.exe",
+            "c:/tools/app.exe",
+            "Microsoft.WindowsCalculator_8wekyb3d8bbwe!App",
+            "%LOCALAPPDATA%\\x\\y.exe",
+        ] {
+            assert!(check_launch_target(ok).is_ok(), "{ok} should be allowed");
+        }
+        for bad in [
+            "",
+            "ms-settings:privacy",
+            "search-ms:query=x&crumb=location:\\\\evil\\share",
+            "file:///C:/Windows/System32/cmd.exe",
+            "https://example.com",
+            "\\\\attacker\\share\\payload.exe",
+            "//attacker/share/payload.exe",
+            "shell:AppsFolder\\x",
+            "C:relative.exe",
+        ] {
+            let e = check_launch_target(bad).expect_err(bad);
+            assert_eq!(e.category, Some(ErrorCategory::Validation), "{bad}");
+        }
     }
 
     #[test]

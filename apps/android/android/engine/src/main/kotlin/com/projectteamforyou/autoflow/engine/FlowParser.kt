@@ -22,13 +22,84 @@ class FlowParseException(val issues: List<ValidationIssue>) :
 object FlowParser {
     val json = Json { ignoreUnknownKeys = true; isLenient = false }
 
-    fun parse(text: String): Flow = parse(json.parseToJsonElement(text))
+    fun parse(text: String): Flow {
+        // Checked on the raw text: the JSON reader itself recurses, and Android threads have small stacks.
+        if (nestingExceeds(text, MAX_JSON_DEPTH)) throw FlowParseException(listOf(ValidationIssue("", "document is nested too deeply")))
+        val element = try {
+            json.parseToJsonElement(text)
+        } catch (e: StackOverflowError) {
+            throw FlowParseException(listOf(ValidationIssue("", "document is nested too deeply")))
+        }
+        return parse(element)
+    }
+
+    /** Bracket depth of JSON text (strings and escapes skipped), stopping as soon as it exceeds [max]. */
+    fun nestingExceeds(text: String, max: Int): Boolean {
+        var depth = 0
+        var inString = false
+        var i = 0
+        while (i < text.length) {
+            val c = text[i]
+            if (inString) {
+                if (c == '\\') i++ else if (c == '"') inString = false
+            } else when (c) {
+                '"' -> inString = true
+                '[', '{' -> if (++depth > max) return true
+                ']', '}' -> depth--
+            }
+            i++
+        }
+        return false
+    }
+
+    /** Raw JSON limits checked before decoding (hostile nesting must fail with an issue, not a StackOverflowError). */
+    const val MAX_JSON_DEPTH = 128
+    const val MAX_JSON_NODES = 500_000
+    const val MAX_STEP_DEPTH = 32
+    const val MAX_TOTAL_STEPS = 10_000
+
+    /** Iterative size/depth check — `checkJsonBounds` in schema.ts. */
+    fun checkJsonBounds(element: JsonElement): String? {
+        val stack = ArrayDeque<Pair<JsonElement, Int>>()
+        stack.addLast(element to 1)
+        var nodes = 0
+        while (stack.isNotEmpty()) {
+            val (e, depth) = stack.removeLast()
+            if (++nodes > MAX_JSON_NODES) return "document is too large"
+            val children = when (e) {
+                is JsonObject -> e.values
+                is JsonArray -> e
+                else -> continue
+            }
+            if (depth > MAX_JSON_DEPTH) return "document is nested too deeply"
+            nodes += children.size
+            for (c in children) if (c is JsonObject || c is JsonArray) stack.addLast(c to depth + 1)
+        }
+        return null
+    }
+
+    /** Nesting depth and total step count — `checkStepStructure` in schema.ts. */
+    fun checkStepStructure(steps: List<Step>): String? {
+        var total = 0
+        val stack = ArrayDeque<Pair<List<Step>, Int>>()
+        stack.addLast(steps to 1)
+        while (stack.isNotEmpty()) {
+            val (l, depth) = stack.removeLast()
+            if (depth > MAX_STEP_DEPTH) return "steps are nested more than $MAX_STEP_DEPTH levels deep"
+            total += l.size
+            if (total > MAX_TOTAL_STEPS) return "a flow can have at most $MAX_TOTAL_STEPS steps"
+            for (s in l) for (c in s.children()) stack.addLast(c to depth + 1)
+        }
+        return null
+    }
 
     fun parse(element: JsonElement): Flow {
         val issues = ArrayList<ValidationIssue>()
         val obj = element as? JsonObject ?: throw FlowParseException(listOf(ValidationIssue("", "expected object")))
+        checkJsonBounds(obj)?.let { throw FlowParseException(listOf(ValidationIssue("", it))) }
         val flow = Reader(obj, "", issues).flow()
         if (issues.isNotEmpty() || flow == null) throw FlowParseException(issues.ifEmpty { listOf(ValidationIssue("", "invalid flow")) })
+        checkStepStructure(flow.steps)?.let { throw FlowParseException(listOf(ValidationIssue("steps", it))) }
         val dup = duplicateIds(flow.steps)
         if (dup.isNotEmpty()) throw FlowParseException(dup.map { ValidationIssue("steps", "duplicate step id \"$it\"") })
         return flow
@@ -50,6 +121,9 @@ private val VAR_RE = Regex("^[A-Za-z_][A-Za-z0-9_]*$")
 private val COLOR_RE = Regex("^#[0-9a-fA-F]{6}$")
 private val DATETIME_RE = Regex("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$")
 private const val MS_MAX = 86_400_000L
+/** Coordinates are bounded to ±1 000 000 (`coord` in schema.ts). */
+private const val COORD = 1_000_000.0
+private val HEADER_RE = Regex("^[!#$%&'*+.^_`|~0-9A-Za-z-]{1,256}$")
 
 private class Reader(val o: JsonObject, val path: String, val issues: MutableList<ValidationIssue>) {
     fun p(key: String) = if (path.isEmpty()) key else "$path.$key"
@@ -206,14 +280,15 @@ private class Reader(val o: JsonObject, val path: String, val issues: MutableLis
         val spaces = listOf("screen", "window", "normalized")
         return when (enum("kind", listOf("point", "current", "region", "element", "image"), null)) {
             "point" -> {
-                val x = num("x"); val y = num("y")
+                val x = num("x", min = -COORD, max = COORD); val y = num("y", min = -COORD, max = COORD)
                 val space = enum("space", spaces, "screen")!!
                 val monitor = int("monitor", -1, 0, 16)?.takeIf { it >= 0 }
                 if (x != null && y != null) Target.Point(x, y, space, monitor) else null
             }
             "current" -> Target.Current
             "region" -> {
-                val x = num("x"); val y = num("y"); val w = num("w", positive = true); val h = num("h", positive = true)
+                val x = num("x", min = -COORD, max = COORD); val y = num("y", min = -COORD, max = COORD)
+                val w = num("w", positive = true, max = COORD); val h = num("h", positive = true, max = COORD)
                 val space = enum("space", spaces, "screen")!!
                 val pick = enum("pick", listOf("center", "random"), "center")!!
                 if (x != null && y != null && w != null && h != null) Target.Region(x, y, w, h, space, pick) else null
@@ -247,6 +322,9 @@ private class Reader(val o: JsonObject, val path: String, val issues: MutableLis
             retries = r.int("retries", 0, 0, 10)!!,
             backoffMs = r.ms("backoffMs", 500)!!,
             gotoStepId = r.id("gotoStepId", required = false),
+            backoff = if (r.has("backoff")) r.enum("backoff", listOf("fixed", "linear", "exponential"), null) else null,
+            maxBackoffMs = if (r.has("maxBackoffMs")) r.ms("maxBackoffMs", null) else null,
+            jitter = if (r.has("jitter")) r.num("jitter", min = 0.0, max = 1.0) else null,
         )
     }
 
@@ -275,6 +353,7 @@ private class Reader(val o: JsonObject, val path: String, val issues: MutableLis
             disabled = bool("disabled", false)!!,
             breakpoint = bool("breakpoint", false)!!,
             onError = onError(),
+            stepTimeoutMs = if (has("stepTimeoutMs")) long("stepTimeoutMs", null, 1, MS_MAX) else null,
         )
         return when (type) {
             "click" -> Step.Click(
@@ -312,7 +391,11 @@ private class Reader(val o: JsonObject, val path: String, val issues: MutableLis
             )
             "http" -> {
                 val headers = LinkedHashMap<String, String>()
-                child("headers")?.let { h -> h.o.keys.forEach { k -> h.str(k, max = 2000)?.let { headers[k] = it } } }
+                child("headers")?.let { h ->
+                    if (h.o.size > 50) fail("headers", "at most 50 headers")
+                    if (h.o.keys.any { !HEADER_RE.matches(it) }) fail("headers", "invalid header name")
+                    h.o.keys.forEach { k -> h.str(k, max = 2000)?.let { headers[k] = it } }
+                }
                 Step.Http(
                     meta, enum("method", listOf("GET", "POST", "PUT", "PATCH", "DELETE"), "GET")!!, url("url") ?: return null, headers,
                     str("body", false, max = 100_000), varName("resultVar", false),
@@ -383,6 +466,7 @@ private class Reader(val o: JsonObject, val path: String, val issues: MutableLis
             countdownMs = r.long("countdownMs", d.countdownMs, 0, 60_000)!!,
             preventOverlap = r.bool("preventOverlap", d.preventOverlap)!!,
             cooldownMs = r.ms("cooldownMs", d.cooldownMs)!!,
+            maxSteps = if (r.has("maxSteps")) r.long("maxSteps", null, 1, 1_000_000_000) else null,
         )
     }
 
@@ -392,6 +476,10 @@ private class Reader(val o: JsonObject, val path: String, val issues: MutableLis
             val r = (e as? JsonObject)?.let { Reader(it, p("variables.$i"), issues) } ?: run { fail("variables.$i", "Expected object"); return@mapIndexedNotNull null }
             val name = r.varName("name") ?: return@mapIndexedNotNull null
             val initial = r.o["initial"]?.takeIf { it !is JsonNull }?.let { Value.fromJson(it) }
+            val tooLong = { v: Value -> v is Value.Str && v.v.length > 10_000 }
+            if (initial != null && (tooLong(initial) || (initial is Value.VList && (initial.items.size > 10_000 || initial.items.any(tooLong))))) {
+                r.fail("initial", "Invalid input")
+            }
             VariableDef(name, r.enum("type", listOf("string", "number", "boolean", "list"), "string")!!, initial, r.str("prompt", false, max = 200))
         }
     }
@@ -430,6 +518,13 @@ private class Reader(val o: JsonObject, val path: String, val issues: MutableLis
             limits = limits(),
             variables = variables(),
             steps = steps ?: emptyList(),
+            humanize = child("humanize")?.let { h ->
+                Humanize(
+                    offsetPx = h.int("offsetPx", 0, 0, 50)!!,
+                    delayMs = h.long("delayMs", 0, 0, 5000)!!,
+                    seed = if (h.has("seed")) h.long("seed", null, 0, 4_294_967_295L) else null,
+                )
+            },
             screen = screen,
             favorite = bool("favorite", false)!!,
             folder = str("folder", false, max = 120),

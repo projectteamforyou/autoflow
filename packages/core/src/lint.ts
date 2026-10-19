@@ -3,7 +3,7 @@
  */
 import type { Flow, Step } from "./schema.js";
 import { walkSteps, childLists } from "./schema.js";
-import { checkExpr, referencedVars } from "./expr.js";
+import { checkExpr, referencedVars, scanPlaceholders } from "./expr.js";
 
 export type LintSeverity = "error" | "warning" | "info";
 
@@ -43,7 +43,7 @@ export function lintFlow(flow: Flow, opts: { knownFlowIds?: string[] } = {}): Li
     for (const v of referencedVars(src)) if (!declared.has(v)) out.push({ severity: "warning", stepId: s.id, key: "lint.unknownVar", params: { name: v } });
   };
   const checkText = (s: Step, text: string) => {
-    for (const m of text.matchAll(/\{\{\s*([^}]+?)\s*\}\}/g)) if (!m[1]!.startsWith("secret:")) checkExprField(s, m[1]!);
+    for (const p of scanPlaceholders(text)) if (!p.inner.startsWith("secret:")) checkExprField(s, p.inner);
   };
 
   const visit = (list: Step[], inLoop: boolean) => {

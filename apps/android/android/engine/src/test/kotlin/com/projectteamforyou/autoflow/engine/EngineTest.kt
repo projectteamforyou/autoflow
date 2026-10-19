@@ -265,6 +265,6 @@ class EngineTest {
         val log = json.first { it["type"].toString() == "\"log\"" }
         assertEquals("""{"type":"log","level":"info","message":"n=1,a,true,","stepId":"g","at":1000000}""", log.toString())
         val res: JsonObject = Json.parseToJsonElement(o.result.toJson().toString()).jsonObject
-        assertEquals(setOf("status", "actions", "iterations", "durationMs", "vars", "startedAt", "endedAt"), res.keys)
+        assertEquals(setOf("status", "actions", "iterations", "steps", "durationMs", "vars", "startedAt", "endedAt"), res.keys)
     }
 }

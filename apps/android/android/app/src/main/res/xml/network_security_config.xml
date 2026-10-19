@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  TLS only, system CAs only: no cleartext HTTP anywhere (http steps, Copilot, sync) and no user-installed CAs, so a
+  CA added to the device by another app or profile cannot intercept AutoFlow's API or provider traffic.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -10,6 +10,8 @@
  * The grammar is mirrored in the Rust and Kotlin executors.
  */
 
+import { compileSafeRegex, MAX_PATTERN, RegexError, type SafeRegex } from "./safe-regex.js";
+
 export type Value = number | string | boolean | null | Value[];
 
 export class ExprError extends Error {
@@ -204,8 +206,50 @@ export function truthy(v: Value): boolean {
 
 export function toStr(v: Value): string {
   if (v === null) return "";
-  if (Array.isArray(v)) return v.map(toStr).join(",");
+  // Nested lists could otherwise stringify into hundreds of MB before any size guard runs.
+  if (Array.isArray(v)) return listToStr(v, { left: MAX_STRING });
   return String(v);
+}
+
+function listToStr(list: Value[], budget: { left: number }): string {
+  const parts: string[] = [];
+  for (let i = 0; i < list.length; i++) {
+    const x = list[i]!;
+    const s = Array.isArray(x) ? listToStr(x, budget) : x === null ? "" : String(x);
+    budget.left -= s.length + (i > 0 ? 1 : 0);
+    if (budget.left < 0) throw new ExprError("string too large");
+    parts.push(s);
+  }
+  return parts.join(",");
+}
+
+/** `replace` without building an oversized result first: the output size is known up front. */
+function replaceAll(s: string, from: string, to: string): string {
+  let pieces: number;
+  if (from === "") pieces = s.length;
+  else {
+    pieces = 1;
+    for (let i = s.indexOf(from); i !== -1; i = s.indexOf(from, i + from.length)) pieces++;
+  }
+  const out = s.length - (from === "" ? 0 : (pieces - 1) * from.length) + Math.max(0, pieces - 1) * to.length;
+  if (out > MAX_STRING) throw new ExprError("string too large");
+  return s.split(from).join(to);
+}
+
+const regexCache = new Map<string, SafeRegex>();
+function safeRegex(pattern: string): SafeRegex {
+  let re = regexCache.get(pattern);
+  if (!re) {
+    try {
+      re = compileSafeRegex(pattern);
+    } catch (e) {
+      if (e instanceof RegexError) throw new ExprError(`invalid pattern: ${e.message}`);
+      throw e;
+    }
+    if (regexCache.size > 64) regexCache.clear();
+    regexCache.set(pattern, re);
+  }
+  return re;
 }
 
 function toNum(v: Value): number {
@@ -259,7 +303,7 @@ export const FUNCTIONS: Record<string, Fn> = {
   },
   startsWith: (a) => (arity("startsWith", a, 2), toStr(a[0]!).startsWith(toStr(a[1]!))),
   endsWith: (a) => (arity("endsWith", a, 2), toStr(a[0]!).endsWith(toStr(a[1]!))),
-  replace: (a) => (arity("replace", a, 3), toStr(a[0]!).split(toStr(a[1]!)).join(toStr(a[2]!))),
+  replace: (a) => (arity("replace", a, 3), replaceAll(toStr(a[0]!), toStr(a[1]!), toStr(a[2]!))),
   substr: (a) => {
     arity("substr", a, 2, 3);
     const s = toStr(a[0]!);
@@ -267,7 +311,19 @@ export const FUNCTIONS: Record<string, Fn> = {
     return a.length === 3 ? s.substr(start, toNum(a[2]!)) : s.substr(start);
   },
   split: (a) => (arity("split", a, 2), toStr(a[0]!).split(toStr(a[1]!)).slice(0, MAX_LIST)),
-  join: (a) => (arity("join", a, 2), (Array.isArray(a[0]) ? a[0] : [a[0]!]).map(toStr).join(toStr(a[1]!))),
+  join: (a) => {
+    arity("join", a, 2);
+    const items = Array.isArray(a[0]) ? a[0] : [a[0]!];
+    const sep = toStr(a[1]!);
+    let total = Math.max(0, items.length - 1) * sep.length;
+    const parts = items.map((x) => {
+      const p = toStr(x);
+      total += p.length;
+      if (total > MAX_STRING) throw new ExprError("string too large");
+      return p;
+    });
+    return parts.join(sep);
+  },
   num: (a) => (arity("num", a, 1), toNum(a[0]!)),
   str: (a) => (arity("str", a, 1), toStr(a[0]!)),
   round: (a) => {
@@ -328,13 +384,17 @@ export const FUNCTIONS: Record<string, Fn> = {
     for (let i = lo; i < hi; i++) out.push(i);
     return out;
   },
+  /**
+   * Regular-expression test. Patterns are untrusted (shared flows), so they run on a linear-time
+   * engine (safe-regex.ts) instead of the backtracking RegExp engine.
+   */
   matches: (a) => {
     arity("matches", a, 2);
     const pattern = toStr(a[1]!);
-    if (pattern.length > 200) throw new ExprError("pattern too long");
-    // Reject nested quantifiers that commonly cause catastrophic backtracking.
+    if (pattern.length > MAX_PATTERN) throw new ExprError("pattern too long");
+    // Kept for parity with the Rust and Kotlin engines, which reject the same patterns.
     if (/\([^)]*[+*][^)]*\)[+*{]/.test(pattern)) throw new ExprError("pattern too complex");
-    return new RegExp(pattern).test(toStr(a[0]!).slice(0, 10_000));
+    return safeRegex(pattern).test(toStr(a[0]!).slice(0, 10_000));
   },
 };
 
@@ -479,16 +539,59 @@ export function referencedVars(src: string): string[] {
   return [...out];
 }
 
+export interface Placeholder {
+  /** Index of the opening "{{". */
+  start: number;
+  /** Index just past the closing "}}". */
+  end: number;
+  /** Trimmed content between the braces. */
+  inner: string;
+}
+
 /**
- * Replaces {{ expr }} in text. {{secret:name}} is resolved through `secret` and never logged.
+ * Finds `{{ … }}` placeholders in one linear pass. Same matches as the regular expression
+ * /\{\{\s*([^}]+?)\s*\}\}/g, which backtracks quadratically on long runs of "{" or spaces.
  */
-export function interpolate(text: string, env: ExprEnv, secret?: (name: string) => string | undefined): string {
-  return text.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_, inner: string) => {
-    if (inner.startsWith("secret:")) {
-      const v = secret?.(inner.slice(7).trim());
-      if (v === undefined) throw new ExprError(`secret "${inner.slice(7).trim()}" is not available on this device`);
-      return v;
-    }
-    return toStr(evalExpr(inner, env));
-  });
+export function scanPlaceholders(text: string): Placeholder[] {
+  const out: Placeholder[] = [];
+  let nextClose = -1;
+  let i = text.indexOf("{{");
+  while (i !== -1) {
+    if (nextClose < i + 2) nextClose = text.indexOf("}", i + 2);
+    if (nextClose === -1) break;
+    // The content may not contain "}", so only the first "}" after "{{" can close it.
+    if (text[nextClose + 1] === "}" && nextClose > i + 2) {
+      const raw = text.slice(i + 2, nextClose);
+      const inner = raw.trim();
+      out.push({ start: i, end: nextClose + 2, inner: inner || raw.slice(-1) });
+      i = text.indexOf("{{", nextClose + 2);
+    } else i = text.indexOf("{{", i + 1);
+  }
+  return out;
+}
+
+/** Shown instead of a secret's value wherever text is logged or displayed. */
+export const SECRET_MASK = "••••";
+
+/**
+ * Replaces {{ expr }} in text. {{secret:name}} is resolved through `secret` and never logged;
+ * with `maskSecrets` the secret must exist but is rendered as SECRET_MASK (log messages).
+ */
+export function interpolate(text: string, env: ExprEnv, secret?: (name: string) => string | undefined, opts: { maskSecrets?: boolean } = {}): string {
+  const found = scanPlaceholders(text);
+  if (!found.length) return text;
+  let out = "";
+  let last = 0;
+  for (const p of found) {
+    out += text.slice(last, p.start);
+    if (p.inner.startsWith("secret:")) {
+      const name = p.inner.slice(7).trim();
+      const v = secret?.(name);
+      if (v === undefined) throw new ExprError(`secret "${name}" is not available on this device`);
+      out += opts.maskSecrets ? SECRET_MASK : v;
+    } else out += toStr(evalExpr(p.inner, env));
+    if (out.length > MAX_STRING) throw new ExprError("string too large");
+    last = p.end;
+  }
+  return out + text.slice(last);
 }

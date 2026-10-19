@@ -30,7 +30,7 @@ def coreFixtures = rootProject.file('../../../packages/core/fixtures')
 def fixturesOut = layout.buildDirectory.dir('generated/core-fixtures')
 
 def copyCoreFixtures = tasks.register('copyCoreFixtures', Copy) {
-    from(coreFixtures) { include '*.json' }
+    from(coreFixtures) { include '*.json', 'engine/*.json' }
     into(fixturesOut.map { it.dir('fixtures') })
 }
 

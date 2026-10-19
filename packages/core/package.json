@@ -12,7 +12,7 @@
   },
   "files": ["dist"],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && node scripts/emit-json-schema.mjs && node scripts/emit-fixtures.mjs",
+    "build": "tsc -p tsconfig.build.json && node scripts/emit-json-schema.mjs && node scripts/emit-fixtures.mjs && node scripts/emit-conformance.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "lint": "tsc -p tsconfig.json --noEmit"

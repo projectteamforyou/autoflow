@@ -7,17 +7,19 @@
 //!   (stop / continue / retry / goto) and `try`/`catch`.
 //! - Pre-run checks: unsupported steps, risky steps needing approval, screen-geometry drift.
 //! - Emits [`RunEvent`]s whose JSON is identical to the TypeScript `RunEvent` union.
+//! - Engine v2 (opt-in schema fields, same semantics as engine.ts): per-step `stepTimeoutMs`,
+//!   retry backoff curves with cap and jitter, `limits.maxSteps` and seeded `humanize`.
 //!
 //! A run executes synchronously on the calling thread ([`FlowRun::start`]) or on a dedicated
 //! thread ([`FlowRun::spawn`]); other threads control it through a cloneable [`RunHandle`]
 //! backed by atomic flags and a condition variable.
 
 use crate::capabilities::{compatibility, CompatIssue, Support};
-use crate::expr::{default_random, interpolate, ExprEnv, ExprError, Vars};
+use crate::expr::{default_random, interpolate_with, ExprEnv, ExprError, Vars};
 use crate::risk::{analyze_risk, RiskReport};
 use crate::schema::{
-    ErrorStrategy, FileOp, Flow, HttpMethod, KeyAction, LogLevel, LoopMode, Modifier, MouseButton, Platform, Rect, Space, Step, StepKind,
-    Target, VarType, WindowMatch, WindowOp,
+    retry_delay_ms, ErrorStrategy, FileOp, Flow, HttpMethod, Humanize, KeyAction, LogLevel, LoopMode, Modifier, MouseButton, Mulberry32,
+    Platform, Rect, Space, Step, StepKind, Target, VarType, WindowMatch, WindowOp,
 };
 use crate::value::{js_number_to_string, Value};
 use indexmap::IndexMap;
@@ -175,6 +177,7 @@ pub enum ErrorCategory {
     Action,
     User,
     Internal,
+    Timeout,
 }
 
 /// Error returned by an [`InputBackend`].
@@ -371,6 +374,10 @@ pub enum RunEvent {
         ok: bool,
         duration_ms: u64,
         at: u64,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        attempts: Option<u32>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        error: Option<RunError>,
     },
     Breakpoint {
         step_id: String,
@@ -391,6 +398,15 @@ pub enum RunEvent {
     Retry {
         step_id: String,
         attempt: u32,
+        at: u64,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        delay_ms: Option<u64>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        error: Option<String>,
+    },
+    Timeout {
+        step_id: String,
+        timeout_ms: u64,
         at: u64,
     },
     Error {
@@ -425,6 +441,8 @@ pub struct RunResult {
     pub actions: u64,
     /// Loop iterations.
     pub iterations: u64,
+    /// Executed steps (attempts included), bounded by `limits.maxSteps`.
+    pub steps: u64,
     /// `endedAt - startedAt`.
     pub duration_ms: u64,
     /// Final variables.
@@ -663,6 +681,8 @@ enum Signal {
     Goto(String),
     Abort,
     Fail(RunError),
+    /// A step deadline passed; carries the deadline id so only its owner handles it.
+    Timeout(u64),
 }
 
 impl From<ExprError> for Signal {
@@ -722,6 +742,29 @@ fn new_run_id() -> String {
 
 /* -------------------------------------------------------------------- run */
 
+/// One active step timeout.
+#[derive(Debug, Clone)]
+struct Deadline {
+    id: u64,
+    timeout_ms: u64,
+    /// The step times out once the clock is strictly past this instant.
+    at: u64,
+}
+
+/// Applies the humanize offset to pixel point targets (`humanizeTarget` in engine.ts).
+pub fn humanize_target(t: &Target, offset_px: u32, rnd: &mut dyn FnMut() -> f64) -> Target {
+    match t {
+        Target::Point { x, y, space, monitor } if offset_px > 0 && *space != Space::Normalized => {
+            let max = f64::from(offset_px);
+            let mut off = || ((rnd() * (2.0 * max + 1.0)).floor()).min(2.0 * max) - max;
+            let dx = off();
+            let dy = off();
+            Target::Point { x: x + dx, y: y + dy, space: *space, monitor: *monitor }
+        }
+        other => other.clone(),
+    }
+}
+
 /// One execution of a flow (`FlowRun` in engine.ts). Can be started once.
 pub struct FlowRun {
     flow: Arc<Flow>,
@@ -733,6 +776,11 @@ pub struct FlowRun {
     iterations: u64,
     started_at: u64,
     call_depth: u32,
+    steps: u64,
+    deadlines: Vec<Deadline>,
+    next_deadline: u64,
+    humanize: Option<Humanize>,
+    human_rng: Option<Mulberry32>,
 }
 
 impl FlowRun {
@@ -741,7 +789,24 @@ impl FlowRun {
         let clock: Arc<dyn Clock> = opts.clock.take().unwrap_or_else(|| Arc::new(RealClock));
         let sink = opts.on_event.clone();
         let shared = Arc::new(RunShared { id: new_run_id(), control: RunControl::new(), clock, sink });
-        Self { flow: Arc::new(flow), backend, opts, shared, vars: Vars::new(), actions: 0, iterations: 0, started_at: 0, call_depth: 0 }
+        let humanize = flow.humanize.filter(|h| h.offset_px > 0 || h.delay_ms > 0);
+        let human_rng = flow.humanize.and_then(|h| h.seed).map(Mulberry32::new);
+        Self {
+            flow: Arc::new(flow),
+            backend,
+            opts,
+            shared,
+            vars: Vars::new(),
+            actions: 0,
+            iterations: 0,
+            started_at: 0,
+            call_depth: 0,
+            steps: 0,
+            deadlines: Vec::new(),
+            next_deadline: 0,
+            humanize,
+            human_rng,
+        }
     }
 
     /// Run id.
@@ -926,19 +991,98 @@ impl FlowRun {
                 format!("maximum run time reached ({}s)", js_number_to_string(secs)),
             )));
         }
+        self.check_deadlines()?;
         control.wait_while_paused()?;
         Ok(())
+    }
+
+    /// The outermost expired deadline wins, so an enclosing step's timeout is never swallowed.
+    fn check_deadlines(&self) -> Flowing {
+        let now = self.now();
+        match self.deadlines.iter().find(|d| now > d.at) {
+            Some(d) => Err(Signal::Timeout(d.id)),
+            None => Ok(()),
+        }
+    }
+
+    /// Time until the nearest deadline expires (exclusive), so sleeps end exactly when it does.
+    fn until_deadline(&self) -> u64 {
+        let now = self.now();
+        self.deadlines.iter().map(|d| (d.at + 1).saturating_sub(now)).min().unwrap_or(u64::MAX).max(1)
     }
 
     fn sleep(&self, ms: u64) -> Flowing {
         let mut remaining = ms;
         while remaining > 0 {
             self.gate()?;
-            let slice = remaining.min(SLICE_MS);
+            let slice = remaining.min(SLICE_MS).min(self.until_deadline());
             self.shared.clock.sleep(slice, &self.shared.control)?;
             remaining -= slice;
         }
         Ok(())
+    }
+
+    fn count_step(&mut self) -> Flowing {
+        self.steps += 1;
+        if let Some(max) = self.flow.limits.max_steps {
+            if self.steps > max {
+                return Err(Signal::Fail(RunError::new(ErrorCategory::Limit, format!("maximum number of steps reached ({max})"))));
+            }
+        }
+        Ok(())
+    }
+
+    /// One attempt of a step, with its optional deadline.
+    fn attempt(&mut self, step: &Step, path: &str) -> Result<(), (Signal, Option<Deadline>)> {
+        self.count_step().map_err(|e| (e, None))?;
+        let Some(timeout_ms) = step.step_timeout_ms else {
+            return self.exec(step, path).map_err(|e| (e, None));
+        };
+        self.next_deadline += 1;
+        let d = Deadline { id: self.next_deadline, timeout_ms, at: self.now().saturating_add(timeout_ms) };
+        self.deadlines.push(d.clone());
+        let r = self.exec(step, path);
+        self.deadlines.retain(|x| x.id != d.id);
+        match r {
+            // Work that ended after the deadline (an action that could not be interrupted) still timed out.
+            Ok(()) if self.now() > d.at => Err((Signal::Timeout(d.id), Some(d))),
+            Ok(()) => Ok(()),
+            Err(e) => Err((e, Some(d))),
+        }
+    }
+
+    fn human_random(&mut self) -> f64 {
+        match self.human_rng.as_mut() {
+            Some(r) => r.next_f64(),
+            None => self.random(),
+        }
+    }
+
+    /// Humanization: optional bounded random delay before an input action.
+    fn human_delay(&mut self) -> Flowing {
+        if let Some(h) = self.humanize {
+            if h.delay_ms > 0 {
+                #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+                let d = (self.human_random() * (h.delay_ms as f64 + 1.0)).floor() as u64;
+                self.sleep(d.min(h.delay_ms))?;
+            }
+        }
+        Ok(())
+    }
+
+    fn human_target(&mut self, t: &Target) -> Target {
+        match self.humanize {
+            Some(h) if h.offset_px > 0 => {
+                let mut draws = Vec::with_capacity(2);
+                if matches!(t, Target::Point { space, .. } if *space != Space::Normalized) {
+                    draws.push(self.human_random());
+                    draws.push(self.human_random());
+                }
+                let mut it = draws.into_iter();
+                humanize_target(t, h.offset_px, &mut || it.next().unwrap_or(0.0))
+            }
+            _ => t.clone(),
+        }
     }
 
     fn run_step(&mut self, step: &Step, path: &str) -> Flowing {
@@ -956,33 +1100,65 @@ impl FlowRun {
         }
         let t0 = self.now();
         self.emit(RunEvent::StepStart { step_id: step.id.clone(), step_type: step.type_name().to_owned(), path: path.to_owned(), at: t0 });
-        let policy = step.on_error.as_ref();
+        let policy = step.on_error.clone();
         let mut attempt: u32 = 0;
         loop {
-            let err = match self.exec(step, path) {
+            let err = match self.attempt(step, path) {
                 Ok(()) => {
                     let at = self.now();
-                    self.emit(RunEvent::StepEnd { step_id: step.id.clone(), ok: true, duration_ms: at.saturating_sub(t0), at });
+                    let attempts = (attempt > 0).then_some(attempt + 1);
+                    self.emit(RunEvent::StepEnd {
+                        step_id: step.id.clone(),
+                        ok: true,
+                        duration_ms: at.saturating_sub(t0),
+                        at,
+                        attempts,
+                        error: None,
+                    });
                     return Ok(());
                 }
-                Err(Signal::Fail(e)) if !self.shared.control.is_stopped() => to_run_error(e, &step.id, path),
-                Err(Signal::Fail(_)) => return Err(Signal::Abort),
-                Err(other) => return Err(other),
+                Err((Signal::Timeout(id), Some(d))) if id == d.id && !self.shared.control.is_stopped() => {
+                    self.emit(RunEvent::Timeout { step_id: step.id.clone(), timeout_ms: d.timeout_ms, at: self.now() });
+                    RunError {
+                        step_id: Some(step.id.clone()),
+                        path: Some(path.to_owned()),
+                        message: format!("step timed out after {} ms", d.timeout_ms),
+                        category: ErrorCategory::Timeout,
+                    }
+                }
+                Err((Signal::Fail(e), _)) if !self.shared.control.is_stopped() => to_run_error(e, &step.id, path),
+                Err((Signal::Fail(_) | Signal::Timeout(_), _)) if self.shared.control.is_stopped() => return Err(Signal::Abort),
+                Err((other, _)) => return Err(other),
             };
             if err.category == ErrorCategory::Limit {
                 return Err(Signal::Fail(err));
             }
-            if let Some(p) = policy {
+            if let Some(p) = &policy {
                 if p.strategy == ErrorStrategy::Retry && attempt < p.retries {
                     attempt += 1;
-                    self.emit(RunEvent::Retry { step_id: step.id.clone(), attempt, at: self.now() });
-                    self.sleep(p.backoff_ms.saturating_mul(u64::from(attempt)))?;
+                    let mut rnd = || self.random();
+                    let delay_ms = retry_delay_ms(p, attempt, &mut rnd);
+                    self.emit(RunEvent::Retry {
+                        step_id: step.id.clone(),
+                        attempt,
+                        at: self.now(),
+                        delay_ms: Some(delay_ms),
+                        error: Some(err.message.clone()),
+                    });
+                    self.sleep(delay_ms)?;
                     continue;
                 }
             }
             let at = self.now();
-            self.emit(RunEvent::StepEnd { step_id: step.id.clone(), ok: false, duration_ms: at.saturating_sub(t0), at });
-            match policy {
+            self.emit(RunEvent::StepEnd {
+                step_id: step.id.clone(),
+                ok: false,
+                duration_ms: at.saturating_sub(t0),
+                at,
+                attempts: Some(attempt + 1),
+                error: Some(err.clone()),
+            });
+            match &policy {
                 Some(p) if p.strategy == ErrorStrategy::Continue => {
                     self.emit(RunEvent::Log {
                         level: LogLevel::Warn,
@@ -1046,11 +1222,16 @@ impl FlowRun {
     }
 
     fn text(&self, s: &str) -> Flowing<String> {
+        self.text_with(s, false)
+    }
+
+    /// `mask_secrets`: secrets must exist but render as the mask (log lines end up in the ledger).
+    fn text_with(&self, s: &str, mask_secrets: bool) -> Flowing<String> {
         let resolver: crate::expr::SecretLookup<'_> = match self.opts.secret.as_deref() {
             Some(f) => Some(f),
             None => None,
         };
-        Ok(self.with_env(|env| interpolate(s, env, resolver))?)
+        Ok(self.with_env(|env| interpolate_with(s, env, resolver, mask_secrets))?)
     }
 
     fn set_var(&mut self, name: &str, value: Value) {
@@ -1078,11 +1259,15 @@ impl FlowRun {
                 | StepKind::Type { .. }
         ) {
             self.count_action()?;
+            if !matches!(s.kind, StepKind::Key { .. }) {
+                self.human_delay()?;
+            }
         }
         match &s.kind {
             StepKind::Click { target, button, clicks, hold_ms, modifiers } => {
+                let target = self.human_target(target);
                 self.perform(&InputAction::Click {
-                    target: target.clone(),
+                    target,
                     button: *button,
                     clicks: *clicks,
                     hold_ms: *hold_ms,
@@ -1090,10 +1275,13 @@ impl FlowRun {
                 })?;
             }
             StepKind::Move { target, duration_ms } => {
-                self.perform(&InputAction::Move { target: target.clone(), duration_ms: *duration_ms })?;
+                let target = self.human_target(target);
+                self.perform(&InputAction::Move { target, duration_ms: *duration_ms })?;
             }
             StepKind::Drag { from, to, duration_ms, button } => {
-                self.perform(&InputAction::Drag { from: from.clone(), to: to.clone(), duration_ms: *duration_ms, button: *button })?;
+                let from = self.human_target(from);
+                let to = self.human_target(to);
+                self.perform(&InputAction::Drag { from, to, duration_ms: *duration_ms, button: *button })?;
             }
             StepKind::Scroll { dx, dy, target } => {
                 self.perform(&InputAction::Scroll { dx: *dx, dy: *dy, target: target.clone() })?;
@@ -1104,6 +1292,7 @@ impl FlowRun {
                         self.gate()?;
                         self.count_action()?;
                     }
+                    self.human_delay()?;
                     self.perform(&InputAction::Key { key: key.clone(), modifiers: modifiers.clone(), action: *action })?;
                 }
             }
@@ -1143,7 +1332,7 @@ impl FlowRun {
                 self.set_var(name, v);
             }
             StepKind::Log { message, level } => {
-                let message = self.text(message)?;
+                let message = self.text_with(message, true)?;
                 self.emit(RunEvent::Log { level: *level, message, step_id: Some(s.id.clone()), at: self.now() });
             }
             StepKind::Notify { title, body } => {
@@ -1350,6 +1539,11 @@ impl FlowRun {
                 let msg = err.message.clone();
                 self.finish(RunStatus::Failed, Some(msg), Some(err))
             }
+            Signal::Timeout(_) => {
+                let err = RunError::new(ErrorCategory::Timeout, "step timed out");
+                self.emit(RunEvent::Error { error: err.clone(), at: self.now() });
+                self.finish(RunStatus::Failed, Some(err.message.clone()), Some(err))
+            }
         }
     }
 
@@ -1366,6 +1560,7 @@ impl FlowRun {
             error,
             actions: self.actions,
             iterations: self.iterations,
+            steps: self.steps,
             duration_ms: ended_at.saturating_sub(self.started_at),
             vars: self.vars.clone(),
             started_at: self.started_at,

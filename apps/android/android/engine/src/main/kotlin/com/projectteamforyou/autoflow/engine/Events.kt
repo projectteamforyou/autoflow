@@ -20,7 +20,7 @@ enum class RunState(val json: String) {
 
 enum class ErrorCategory(val json: String) {
     VALIDATION("validation"), UNSUPPORTED("unsupported"), PERMISSION("permission"), ENVIRONMENT("environment"), TARGET("target"),
-    LIMIT("limit"), EXPRESSION("expression"), ACTION("action"), USER("user"), INTERNAL("internal");
+    LIMIT("limit"), EXPRESSION("expression"), ACTION("action"), USER("user"), INTERNAL("internal"), TIMEOUT("timeout");
 
     companion object {
         fun of(s: String?): ErrorCategory? = entries.firstOrNull { it.json == s }
@@ -52,8 +52,15 @@ sealed class RunEvent {
         override fun toJson() = buildJsonObject { put("type", "stepStart"); put("stepId", stepId); put("stepType", stepType); put("path", path); put("at", at) }
     }
 
-    data class StepEnd(val stepId: String, val ok: Boolean, val durationMs: Long, override val at: Long) : RunEvent() {
-        override fun toJson() = buildJsonObject { put("type", "stepEnd"); put("stepId", stepId); put("ok", ok); put("durationMs", durationMs); put("at", at) }
+    data class StepEnd(
+        val stepId: String, val ok: Boolean, val durationMs: Long, override val at: Long,
+        val attempts: Int? = null, val error: RunError? = null,
+    ) : RunEvent() {
+        override fun toJson() = buildJsonObject {
+            put("type", "stepEnd"); put("stepId", stepId); put("ok", ok); put("durationMs", durationMs); put("at", at)
+            attempts?.let { put("attempts", it) }
+            error?.let { put("error", it.toJson()) }
+        }
     }
 
     data class Breakpoint(val stepId: String, override val at: Long) : RunEvent() {
@@ -70,8 +77,16 @@ sealed class RunEvent {
         override fun toJson() = buildJsonObject { put("type", "var"); put("name", name); put("value", value.toJson()); put("at", at) }
     }
 
-    data class Retry(val stepId: String, val attempt: Int, override val at: Long) : RunEvent() {
-        override fun toJson() = buildJsonObject { put("type", "retry"); put("stepId", stepId); put("attempt", attempt); put("at", at) }
+    data class Retry(val stepId: String, val attempt: Int, override val at: Long, val delayMs: Long? = null, val error: String? = null) : RunEvent() {
+        override fun toJson() = buildJsonObject {
+            put("type", "retry"); put("stepId", stepId); put("attempt", attempt); put("at", at)
+            delayMs?.let { put("delayMs", it) }
+            error?.let { put("error", it) }
+        }
+    }
+
+    data class Timeout(val stepId: String, val timeoutMs: Long, override val at: Long) : RunEvent() {
+        override fun toJson() = buildJsonObject { put("type", "timeout"); put("stepId", stepId); put("timeoutMs", timeoutMs); put("at", at) }
     }
 
     data class Error(val error: RunError, override val at: Long) : RunEvent() {
@@ -91,6 +106,8 @@ data class RunResult(
     val vars: Map<String, Value>,
     val startedAt: Long,
     val endedAt: Long,
+    /** Executed steps (attempts included), bounded by limits.maxSteps. */
+    val steps: Long = 0,
 ) {
     fun toJson(): JsonObject = buildJsonObject {
         put("status", status.json)
@@ -98,6 +115,7 @@ data class RunResult(
         error?.let { put("error", it.toJson()) }
         put("actions", actions)
         put("iterations", iterations)
+        put("steps", steps)
         put("durationMs", durationMs)
         put("vars", JsonObject(vars.mapValues { (_, v) -> v.toJson() }))
         put("startedAt", startedAt)
