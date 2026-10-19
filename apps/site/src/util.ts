@@ -90,7 +90,7 @@ export function noOrphans(h: string): string {
       if (!closing) stack.push({ tag, texts: [] });
       else {
         const blk = stack.pop();
-        if (blk && blk.texts.length) fixBlock(parts, blk.texts, /^(h[1-3]|summary)$/.test(blk.tag) ? 16 : 24);
+        if (blk && blk.texts.length) fixBlock(parts, blk.texts, /^(h[1-3]|summary)$/.test(blk.tag) ? 20 : 30);
         // text of a nested block also counts as content of the parent (but is fixed independently)
       }
     } else if (stack.length && !closing) {

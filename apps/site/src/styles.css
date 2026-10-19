@@ -493,3 +493,4 @@ ul { margin: 0; padding: 0; }
 @media (min-width: 861px) { .foot { grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 860px) { .foot { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .row > *, .foot > * { min-width: 0; }
+.grid > *, .grid-3 > *, .split > * { min-width: 0; }
