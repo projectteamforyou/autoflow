@@ -1,0 +1,153 @@
+name: Play demo video
+# Records the Google Play "Accessibility API" declaration video from the real app: builds the debug APK, boots an
+# Android 15 (API 35) emulator, drives AutoFlow with real taps (scripts/play/demo-video.mjs) while `screenrecord`
+# captures the screen, then burns in captions with ffmpeg. Output: artifact `play-demo-video`
+# (autoflow-accessibility-demo-<lang>.mp4 + the raw parts, per-step screenshots and timeline.json), and optionally the
+# MP4s attached to a GitHub Release so they can be downloaded without the Actions artifact API.
+on:
+  workflow_dispatch:
+    inputs:
+      languages:
+        description: 'App languages to record, comma separated (en, ko). Android Settings stays in English.'
+        type: string
+        default: en
+      release_tag:
+        description: 'Also attach the MP4s to this GitHub Release tag (e.g. play-demo-video). A missing release is created as a non-latest pre-release; an existing one only gets the files added. Empty = artifact only.'
+        type: string
+        default: ''
+permissions:
+  contents: read
+concurrency:
+  group: play-demo-video
+  cancel-in-progress: false
+jobs:
+  video:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    permissions:
+      contents: write # only used by the release step (release_tag set)
+    env:
+      VITE_SITE_URL: ${{ vars.SITE_URL || 'https://autoflowmacro.com' }}
+      DEMO_LANGS: ${{ inputs.languages || 'en' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with: { node-version: 22 }
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with: { distribution: temurin, java-version: 21 }
+      - name: Recorder unit tests
+        run: node --test scripts/play/demo-video-lib.test.mjs
+      - name: Enable pnpm (packageManager in package.json)
+        run: corepack enable && pnpm --version
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build core + web app
+        run: |
+          set -euo pipefail
+          pnpm --filter @autoflow/core build
+          pnpm --filter @autoflow/web build
+          test -f apps/web/dist/index.html
+      - name: Capacitor sync
+        working-directory: apps/android
+        run: pnpm exec cap sync android
+      # Same target SDK as the store build (android.yml), so the recording shows the app as it ships (edge-to-edge etc.).
+      - name: Target SDK
+        working-directory: apps/android/android
+        env:
+          TARGET_SDK: ${{ vars.ANDROID_TARGET_SDK || '36' }}
+        run: |
+          set -euo pipefail
+          sed -i -E "s/compileSdkVersion = [0-9]+/compileSdkVersion = ${TARGET_SDK}/; s/targetSdkVersion = [0-9]+/targetSdkVersion = ${TARGET_SDK}/" variables.gradle
+          grep -q suppressUnsupportedCompileSdk gradle.properties || echo "android.suppressUnsupportedCompileSdk=${TARGET_SDK}" >> gradle.properties
+          VERSION_NAME=$(node -p "require('../package.json').version")
+          sed -i -E "s/versionName \"[^\"]*\"/versionName \"${VERSION_NAME}\"/" app/build.gradle
+      - name: Debug APK
+        working-directory: apps/android/android
+        # debug builds turn on WebView debugging (MainActivity), which the recorder uses to locate buttons
+        run: ./gradlew assembleDebug --no-daemon
+      - name: Locate the APK
+        run: |
+          set -euo pipefail
+          apk=$(find apps/android/android/app/build/outputs/apk -name '*debug*.apk' | head -1)
+          test -n "$apk"
+          cp "$apk" autoflow-debug.apk
+          ls -la autoflow-debug.apk
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - name: Record on an API 35 emulator
+        id: rec
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel # 1080×1920 portrait
+          ram-size: 4096M
+          disk-size: 6000M
+          emulator-boot-timeout: 900
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
+          # the runner executes each line in its own shell: keep every command self-contained
+          script: |
+            for l in $(echo "$DEMO_LANGS" | tr ',' ' '); do node scripts/play/demo-video.mjs record --apk autoflow-debug.apk --out demo-out --lang "$l" || exit 1; done
+      # Emulators on shared runners occasionally boot into a broken state; one fresh attempt, keeping the first one's logs.
+      - name: Keep the failed attempt
+        if: steps.rec.outcome == 'failure'
+        run: rm -rf demo-out-attempt1 && mv demo-out demo-out-attempt1 || true
+      - name: Record on an API 35 emulator (retry)
+        if: steps.rec.outcome == 'failure'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel
+          ram-size: 4096M
+          disk-size: 6000M
+          emulator-boot-timeout: 900
+          disable-animations: true
+          force-avd-creation: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot -wipe-data
+          script: |
+            for l in $(echo "$DEMO_LANGS" | tr ',' ' '); do node scripts/play/demo-video.mjs record --apk autoflow-debug.apk --out demo-out --lang "$l" || exit 1; done
+      - name: Captions and final MP4 (ffmpeg)
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core fonts-noto-cjk >/dev/null
+          for l in $(echo "$DEMO_LANGS" | tr ',' ' '); do
+            node scripts/play/demo-video.mjs post --out demo-out --lang "$l"
+            f="demo-out/autoflow-accessibility-demo-$l.mp4"
+            d=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$f")
+            echo "$f: ${d}s"
+            echo "### $f — ${d}s" >> "$GITHUB_STEP_SUMMARY"
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            node -e "const t=require('./demo-out/$l/timeline.json'); const {parts,...rest}=t; console.log(JSON.stringify({...rest, parts: parts.map(p=>({name:p.name,duration:p.duration,mode:p.mode,captions:p.captions}))},null,2))" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          done
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: play-demo-video
+          path: |
+            demo-out
+            demo-out-attempt1
+          if-no-files-found: warn
+      - name: Attach to GitHub Release
+        if: inputs.release_tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --target "$GITHUB_SHA" --prerelease --latest=false \
+              --title "AutoFlow — Play Accessibility API demo video" \
+              --notes "Screen recording of the AutoFlow debug build on an Android 15 (API 35) emulator for the Google Play Accessibility API declaration. Built by ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} from ${GITHUB_SHA}."
+          fi
+          gh release upload "$TAG" demo-out/autoflow-accessibility-demo-*.mp4 --clobber
+          gh release view "$TAG" --json assets --jq '.assets[] | "\(.name)  \(.url)"'

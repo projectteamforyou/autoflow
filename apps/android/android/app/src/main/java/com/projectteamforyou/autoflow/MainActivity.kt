@@ -3,6 +3,7 @@ package com.projectteamforyou.autoflow
 import android.os.Build
 import android.os.Bundle
 import android.webkit.WebSettings
+import android.webkit.WebView
 import com.getcapacitor.BridgeActivity
 import com.projectteamforyou.autoflow.bridge.AutoFlowNativePlugin
 
@@ -12,6 +13,9 @@ class MainActivity : BridgeActivity() {
         registerPlugin(AutoFlowNativePlugin::class.java)
         super.onCreate(savedInstanceState)
         hardenWebView()
+        // capacitor.config.json keeps WebView debugging off (it applies to release builds too); debug builds turn it
+        // back on so CI can drive the UI over Chrome DevTools (scripts/play/demo-video.mjs). Release builds never do.
+        if (BuildConfig.DEBUG) WebView.setWebContentsDebuggingEnabled(true)
     }
 
     /**
