@@ -21,7 +21,7 @@
     <!-- Play: never declare an advertising ID; strip it if any library merges it. -->
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
 
-    <!-- launchApp steps: see launchable apps without QUERY_ALL_PACKAGES. -->
+    <!-- launchApp steps: see launchable apps through <queries> (no all-packages visibility permission). -->
     <queries>
         <intent>
             <action android:name="android.intent.action.MAIN" />
