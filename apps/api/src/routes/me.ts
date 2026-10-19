@@ -4,6 +4,9 @@ import { z } from "zod";
 import { USAGE_TYPES } from "@autoflow/core";
 import type { AppEnv } from "../deps.js";
 import { enforce, parseJson, requireAuth } from "../lib/http.js";
+import { errors } from "../errors.js";
+import { safeEqual, sha256Hex } from "../lib/crypto.js";
+import * as users from "../db/users.js";
 import { toPublicUser } from "../services/auth.js";
 import * as account from "../services/account.js";
 import { LocaleSchema } from "./auth.js";
@@ -12,6 +15,7 @@ const PatchBody = z
   .object({ displayName: z.string().trim().min(1).max(60).nullable().optional(), locale: LocaleSchema.optional(), usageType: z.enum(USAGE_TYPES).optional() })
   .refine((v) => v.displayName !== undefined || v.locale !== undefined || v.usageType !== undefined, { message: "Nothing to update" });
 const DeleteBody = z.object({ password: z.string().min(1).max(1024) });
+const ClaimBody = z.object({ code: z.string().min(1).max(256) });
 
 export function meRoutes() {
   const r = new Hono<AppEnv>();
@@ -24,6 +28,21 @@ export function meRoutes() {
     const deps = c.get("deps");
     const user = await account.updateMe(deps, a, body);
     return c.json({ user: toPublicUser(user, deps.config.adminEmails) });
+  });
+
+  /** Operator bootstrap without email: an ADMIN_EMAILS account proves ownership with ADMIN_SETUP_CODE. */
+  r.post("/admin-claim", async (c) => {
+    const a = requireAuth(c);
+    const deps = c.get("deps");
+    await enforce(deps.limiters.authAccount, `admin-claim:${a.user.id}`);
+    const { code } = await parseJson(c, ClaimBody);
+    const expected = deps.config.adminSetupCode;
+    if (!expected || !deps.config.adminEmails.includes(a.user.emailNormalized) || !safeEqual(sha256Hex(code.trim()), sha256Hex(expected))) {
+      throw errors.forbidden("Invalid setup code");
+    }
+    await users.markEmailVerified(deps.sql, a.user.id);
+    const fresh = (await users.findUserById(deps.sql, a.user.id)) ?? a.user;
+    return c.json({ user: toPublicUser(fresh, deps.config.adminEmails) });
   });
 
   r.get("/export", async (c) => {

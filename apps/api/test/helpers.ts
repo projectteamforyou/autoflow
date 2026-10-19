@@ -76,6 +76,7 @@ export interface AppOptions {
   appOrigins?: string[];
   logger?: Logger;
   adminEmails?: string[];
+  adminSetupCode?: string;
   /** null = no key configured (production without SETTINGS_ENCRYPTION_KEY). */
   settingsEncryptionKey?: string | null;
 }
@@ -97,6 +98,7 @@ export function makeApp(db: TestDb, opts: AppOptions = {}) {
     version: "test",
     limits,
     adminEmails: opts.adminEmails ?? ["operator@example.com"],
+    adminSetupCode: opts.adminSetupCode,
     settingsEncryptionKey: opts.settingsEncryptionKey === null ? undefined : (opts.settingsEncryptionKey ?? TEST_SETTINGS_KEY),
     billingTimeoutMs: 5_000,
   };

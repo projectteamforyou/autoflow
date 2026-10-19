@@ -65,7 +65,10 @@ export function AdminPage() {
         {me === undefined ? (
           <p className="muted small">{t("common.loading")}</p>
         ) : !me?.isAdmin ? (
-          <Empty icon="Shield" title={t("admin.forbidden")} />
+          <>
+            <Empty icon="Shield" title={t("admin.forbidden")} />
+            {me && <ClaimCard onClaimed={setMe} />}
+          </>
         ) : (
           <>
             <KeysCard />
@@ -76,6 +79,36 @@ export function AdminPage() {
         )}
       </div>
     </Shell>
+  );
+}
+
+/** Operator bootstrap when no mail provider is configured: the server's ADMIN_SETUP_CODE proves ownership. */
+function ClaimCard({ onClaimed }: { onClaimed: (u: User) => void }) {
+  const t = useT();
+  const toast = useStore((s) => s.toast);
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
+    setBusy(true);
+    try {
+      const r = await api<{ user: User }>("/v1/me/admin-claim", { method: "POST", json: { code } });
+      onClaimed(r.user);
+      toast("success", t("admin.claimDone"));
+    } catch {
+      toast("error", t("admin.claimFailed"));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="card stack-sm">
+      <h3>{t("admin.claimTitle")}</h3>
+      <p className="small muted">{t("admin.claimBody")}</p>
+      <div className="input-group">
+        <input className="input mono" type="password" autoComplete="off" value={code} onChange={(e) => setCode(e.target.value)} aria-label={t("admin.claimTitle")} />
+        <button className="btn primary" disabled={busy || code.trim().length < 24} onClick={submit}>{t("admin.claimSubmit")}</button>
+      </div>
+    </div>
   );
 }
 

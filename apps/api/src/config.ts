@@ -62,6 +62,11 @@ export interface Config {
   /** Normalized emails of the operators allowed into /v1/admin/billing (must also be verified). */
   adminEmails: string[];
   /**
+   * One-time proof of ownership for an operator account when no mail provider is configured: an account whose email
+   * is in adminEmails and that presents this code is marked verified. Unset → only email verification works.
+   */
+  adminSetupCode?: string;
+  /**
    * Secret that the AES-256-GCM key for admin-entered payment secrets is derived from.
    * Unset in production → secrets cannot be stored and checkout stays disabled.
    */
@@ -114,6 +119,7 @@ const EnvSchema = z.object({
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error", "silent"]).optional(),
   ATLAS_REQUIRE_VERIFIED_EMAIL: z.enum(["true", "false"]).optional(),
   ADMIN_EMAILS: z.string().optional(),
+  ADMIN_SETUP_CODE: z.string().min(24).optional(),
   SETTINGS_ENCRYPTION_KEY: z.string().min(32, "SETTINGS_ENCRYPTION_KEY must be at least 32 characters (e.g. openssl rand -base64 32)").optional(),
 });
 
@@ -158,6 +164,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     mailFrom: e.MAIL_FROM,
     resendApiKey: e.RESEND_API_KEY,
     adminEmails: parseAdminEmails(e.ADMIN_EMAILS),
+    adminSetupCode: e.ADMIN_SETUP_CODE,
     settingsEncryptionKey: e.SETTINGS_ENCRYPTION_KEY ?? (e.NODE_ENV === "production" ? undefined : DEV_SETTINGS_ENCRYPTION_KEY),
     billingTimeoutMs: 20_000,
     trustProxyHops: e.TRUST_PROXY_HOPS,
