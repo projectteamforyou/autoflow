@@ -6,7 +6,7 @@ export const fr: Content = {
     home: "Accueil",
     features: "Fonctionnalités",
     windows: "Windows",
-    android: "Android",
+    android: "Télécharger pour Android (APK)",
     keyforge: "Keyforge",
     atlas: "Atlas",
     safety: "Sécurité",
@@ -285,7 +285,7 @@ export const fr: Content = {
       h2: "Configuration requise",
       items: ["Windows 10 ou 11, 64 bits", "Runtime Microsoft Edge WebView2 (intégré à Windows 11)", "Ni compte ni connexion internet nécessaires"],
     },
-    note: "Les versions officielles sont publiées uniquement sur notre page GitHub Releases. Ne téléchargez pas AutoFlow depuis des sites miroirs.",
+    note: "Les versions officielles sont publiées uniquement sur autoflowmacro.com (dl.autoflowmacro.com). Ne téléchargez pas AutoFlow depuis des miroirs.",
   },
   android: {
     seo: {
@@ -384,14 +384,14 @@ export const fr: Content = {
   download: {
     seo: {
       title: "Télécharger AutoFlow — Windows, Android et web",
-      description: "Obtenez AutoFlow gratuitement : l’installateur Windows sur GitHub Releases, l’app Android sur Google Play, ou l’app web dans votre navigateur, sans compte.",
+      description: "Obtenez AutoFlow gratuitement : l’installeur Windows et l’app Android depuis notre serveur officiel, ou l’app web dans votre navigateur, sans compte.",
     },
     h1: "Obtenir AutoFlow",
     lead: "Gratuit sur toutes les plateformes. Vos flux passent de l’une à l’autre par fichier, par lien ou via la synchro chiffrée facultative.",
-    windows: { h2: "Windows", p: "Installateur pour Windows 10 et 11 (64 bits). Raccourcis globaux, Keyforge et vraies entrées.", meta: "Dernière version sur GitHub" },
-    android: { h2: "Android", p: "Appuis, balayages et routines avec bouton d’arrêt flottant. Nécessite l’autorisation d’accessibilité, que vous contrôlez.", meta: "Google Play" },
+    windows: { h2: "Windows", p: "Installateur pour Windows 10 et 11 (64 bits). Raccourcis globaux, Keyforge et vraies entrées.", meta: "Téléchargement officiel · dl.autoflowmacro.com" },
+    android: { h2: "Android", p: "Appuis, balayages et routines avec bouton d’arrêt flottant. Nécessite l’autorisation d’accessibilité, que vous contrôlez.", meta: "APK direct · Google Play bientôt" },
     web: { h2: "App web", p: "L’éditeur complet, Atlas et Practice Canvas dans votre navigateur. Installez-la comme une app depuis la barre d’adresse.", meta: "Fonctionne hors ligne après la première visite" },
-    verify: "Ne téléchargez AutoFlow que depuis ce site, GitHub Releases ou Google Play. Nous ne demandons jamais d’argent pour le téléchargement.",
+    verify: "Téléchargez AutoFlow uniquement depuis ce site (dl.autoflowmacro.com). Le téléchargement n’est jamais payant.",
     releases: "Voir toutes les versions et notes",
   },
   pricing: {

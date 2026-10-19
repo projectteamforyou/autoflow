@@ -6,7 +6,7 @@ export const ko: Content = {
     home: "홈",
     features: "기능",
     windows: "Windows",
-    android: "Android",
+    android: "Android 앱 받기 (APK)",
     keyforge: "Keyforge",
     atlas: "Atlas",
     safety: "안전",
@@ -285,7 +285,7 @@ export const ko: Content = {
       h2: "시스템 요구 사항",
       items: ["Windows 10 또는 11, 64비트", "Microsoft Edge WebView2 런타임(Windows 11에 기본 포함)", "계정도 인터넷 연결도 필요 없음"],
     },
-    note: "공식 빌드는 GitHub Releases 페이지에만 올라갑니다. 미러 사이트에서 AutoFlow를 내려받지 마세요.",
+    note: "공식 빌드는 autoflowmacro.com(dl.autoflowmacro.com)에서만 배포합니다. 미러 사이트에서 받지 마세요.",
   },
   android: {
     seo: {
@@ -384,14 +384,14 @@ export const ko: Content = {
   download: {
     seo: {
       title: "AutoFlow 다운로드 — Windows, Android, 웹 앱",
-      description: "AutoFlow를 무료로 받으세요. Windows 설치 파일은 GitHub Releases에서, Android 앱은 Google Play에서, 웹 앱은 브라우저에서 바로. 계정 필요 없음.",
+      description: "AutoFlow를 무료로 받으세요. Windows 설치 파일과 Android 앱은 공식 다운로드 서버에서, 웹 앱은 브라우저에서 바로. 계정 필요 없음.",
     },
     h1: "AutoFlow 받기",
     lead: "모든 플랫폼에서 무료. 플로우는 파일, 링크, 또는 선택형 암호화 동기화로 기기 사이를 오갑니다.",
-    windows: { h2: "Windows", p: "Windows 10·11(64비트)용 설치 파일. 전역 단축키, Keyforge, 실제 입력.", meta: "GitHub 최신 릴리스" },
-    android: { h2: "Android", p: "탭, 스와이프, 루틴과 떠 있는 정지 버튼. 직접 관리하는 접근성 권한이 필요합니다.", meta: "Google Play" },
+    windows: { h2: "Windows", p: "Windows 10·11(64비트)용 설치 파일. 전역 단축키, Keyforge, 실제 입력.", meta: "공식 다운로드 · dl.autoflowmacro.com" },
+    android: { h2: "Android", p: "탭, 스와이프, 루틴과 떠 있는 정지 버튼. 직접 관리하는 접근성 권한이 필요합니다.", meta: "APK 직접 설치 · Google Play 준비 중" },
     web: { h2: "웹 앱", p: "전체 편집기, Atlas, Practice Canvas를 브라우저에서. 주소창에서 앱으로 설치할 수도 있어요.", meta: "첫 방문 이후 오프라인에서도 작동" },
-    verify: "AutoFlow는 이 사이트, GitHub Releases, Google Play에서만 받으세요. 다운로드에 비용을 요구하는 일은 절대 없습니다.",
+    verify: "AutoFlow는 이 사이트(dl.autoflowmacro.com)에서만 받으세요. 다운로드에 비용을 요구하는 일은 절대 없습니다.",
     releases: "모든 릴리스와 노트 보기",
   },
   pricing: {

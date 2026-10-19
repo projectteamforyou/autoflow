@@ -34,7 +34,7 @@ export function ctaRow(ctx: Ctx, withWeb = true) {
   const { t } = ctx;
   return html`<div class="cta-row">
 ${ext(t, LINKS.windows, `${brand("windows", 18)}<span>${esc(t.cta.windows)}</span>`, "btn btn-primary")}
-${ext(t, LINKS.android, `${brand("googleplay", 18)}<span>${esc(t.cta.android)}</span>`, "btn btn-secondary")}
+${ext(t, LINKS.android, `${brand("android", 18)}<span>${esc(t.cta.android)}</span>`, "btn btn-secondary")}
 </div>
 ${withWeb ? `<div class="hero-sub"><a class="text-link" href="${LINKS.app}">${esc(t.cta.webLong)}${icon("arrow", 16)}</a><span>${esc(t.cta.note)}</span></div>` : ""}`;
 }
@@ -249,7 +249,7 @@ ${shareSection(ctx, w.seo.title)}`;
 function android(ctx: Ctx): PageOut {
   const { t } = ctx;
   const a = t.android;
-  const main = html`${pageHero(ctx, "android", a.h1, a.lead, `<div class="cta-row">${ext(t, LINKS.android, `${brand("googleplay", 18)}<span>${esc(t.cta.android)}</span>`, "btn btn-primary")}<a class="btn btn-secondary" href="${LINKS.app}">${icon("browser", 18)}<span>${esc(t.cta.web)}</span></a></div>`)}
+  const main = html`${pageHero(ctx, "android", a.h1, a.lead, `<div class="cta-row">${ext(t, LINKS.android, `${brand("android", 18)}<span>${esc(t.cta.android)}</span>`, "btn btn-primary")}<a class="btn btn-secondary" href="${LINKS.app}">${icon("browser", 18)}<span>${esc(t.cta.web)}</span></a></div>`)}
 <section class="section-tight"><div class="wrap">
 <div class="split"><div>${cards(a.items)}</div><div class="frame square">${img("android-automation")}</div></div>
 <div class="card mt-l card-glow" id="accessibility"><span class="tile">${icon("shield", 20)}</span><h2 class="h2">${esc(a.access.h2)}</h2><p>${md(a.access.p)}</p>
@@ -317,7 +317,7 @@ function download(ctx: Ctx): PageOut {
 <section class="section-tight"><div class="wrap">
 <div class="grid-3">
 <article class="card feature card-glow"><span class="tile">${brand("windows", 18)}</span><h2 class="h2">${esc(d.windows.h2)}</h2><p>${esc(d.windows.p)}</p><p class="muted">${esc(d.windows.meta)}</p><div class="cta-row">${ext(t, LINKS.windows, `${icon("download", 18)}<span>${esc(t.cta.windows)}</span>`, "btn btn-primary")}</div></article>
-<article class="card feature"><span class="tile">${brand("android", 18)}</span><h2 class="h2">${esc(d.android.h2)}</h2><p>${esc(d.android.p)}</p><p class="muted">${esc(d.android.meta)}</p><div class="cta-row">${ext(t, LINKS.android, `${brand("googleplay", 18)}<span>${esc(t.cta.android)}</span>`, "btn btn-secondary")}</div></article>
+<article class="card feature"><span class="tile">${brand("android", 18)}</span><h2 class="h2">${esc(d.android.h2)}</h2><p>${esc(d.android.p)}</p><p class="muted">${esc(d.android.meta)}</p><div class="cta-row">${ext(t, LINKS.android, `${brand("android", 18)}<span>${esc(t.cta.android)}</span>`, "btn btn-secondary")}</div></article>
 <article class="card feature"><span class="tile">${icon("browser", 20)}</span><h2 class="h2">${esc(d.web.h2)}</h2><p>${esc(d.web.p)}</p><p class="muted">${esc(d.web.meta)}</p><div class="cta-row"><a class="btn btn-secondary" href="${LINKS.app}">${icon("arrow", 18)}<span>${esc(t.cta.web)}</span></a></div></article>
 </div>
 <div class="note mt-l">${icon("shield", 18)}<span>${md(d.verify)} <a href="${LINKS.releases}" rel="noopener noreferrer" target="_blank">${esc(d.releases)}<span class="sr-only"> ${esc(t.a11y.newTab)}</span></a></span></div>

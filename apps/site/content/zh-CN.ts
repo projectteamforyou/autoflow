@@ -6,7 +6,7 @@ export const zhCN: Content = {
     home: "首页",
     features: "功能",
     windows: "Windows",
-    android: "Android",
+    android: "下载 Android 版（APK）",
     keyforge: "Keyforge",
     atlas: "Atlas",
     safety: "安全",
@@ -285,7 +285,7 @@ export const zhCN: Content = {
       h2: "系统要求",
       items: ["Windows 10 或 11，64 位", "Microsoft Edge WebView2 运行时（Windows 11 已内置）", "无需账号，无需联网"],
     },
-    note: "官方安装包只发布在我们的 GitHub Releases 页面。请勿从镜像站下载 AutoFlow。",
+    note: "官方版本仅在 autoflowmacro.com（dl.autoflowmacro.com）发布，请勿从镜像站下载 AutoFlow。",
   },
   android: {
     seo: {
@@ -384,14 +384,14 @@ export const zhCN: Content = {
   download: {
     seo: {
       title: "下载 AutoFlow——Windows、Android 与网页版",
-      description: "免费获取 AutoFlow：Windows 安装包来自 GitHub Releases，Android 应用在 Google Play，也可以直接在浏览器中打开网页版，无需注册。",
+      description: "免费获取 AutoFlow：Windows 安装包和 Android 应用来自官方下载服务器，网页版可直接在浏览器中打开，无需账户。",
     },
     h1: "获取 AutoFlow",
     lead: "全平台免费。流程可以通过文件、链接或可选的加密同步在设备之间流转。",
-    windows: { h2: "Windows", p: "适用于 Windows 10 和 11（64 位）的安装包。全局快捷键、Keyforge 和真实输入。", meta: "GitHub 最新版本" },
-    android: { h2: "Android", p: "点按、滑动和例程，配有悬浮停止按钮。需要由你掌控的无障碍权限。", meta: "Google Play" },
+    windows: { h2: "Windows", p: "适用于 Windows 10 和 11（64 位）的安装包。全局快捷键、Keyforge 和真实输入。", meta: "官方下载 · dl.autoflowmacro.com" },
+    android: { h2: "Android", p: "点按、滑动和例程，配有悬浮停止按钮。需要由你掌控的无障碍权限。", meta: "APK 直接安装 · Google Play 即将上线" },
     web: { h2: "网页版", p: "在浏览器中使用完整编辑器、Atlas 和 Practice Canvas。还能从地址栏安装为应用。", meta: "首次访问后可离线使用" },
-    verify: "请只从本网站、GitHub Releases 或 Google Play 下载 AutoFlow。我们从不为下载收取任何费用。",
+    verify: "请只从本站（dl.autoflowmacro.com）下载 AutoFlow。我们绝不会为下载收费。",
     releases: "查看所有版本和说明",
   },
   pricing: {

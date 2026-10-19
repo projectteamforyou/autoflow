@@ -14,7 +14,7 @@ import * as stats from "../db/stats.js";
 
 export const DOWNLOAD_TARGETS: Record<stats.DownloadPlatform, string> = {
   windows: "https://github.com/work517/autoflow/releases/latest",
-  android: "https://play.google.com/store/apps/details?id=com.projectteamforyou.autoflow",
+  android: "https://dl.autoflowmacro.com/android/AutoFlow.apk",
 };
 
 const Sid = z.string().regex(/^[A-Za-z0-9_-]{16,64}$/);

@@ -6,7 +6,7 @@ export const de: Content = {
     home: "Start",
     features: "Funktionen",
     windows: "Windows",
-    android: "Android",
+    android: "Für Android laden (APK)",
     keyforge: "Keyforge",
     atlas: "Atlas",
     safety: "Sicherheit",
@@ -285,7 +285,7 @@ export const de: Content = {
       h2: "Systemvoraussetzungen",
       items: ["Windows 10 oder 11, 64 Bit", "Microsoft Edge WebView2 Runtime (in Windows 11 enthalten)", "Kein Konto und keine Internetverbindung nötig"],
     },
-    note: "Offizielle Builds erscheinen ausschließlich auf unserer GitHub-Releases-Seite. Bitte lade AutoFlow nicht von Spiegelseiten herunter.",
+    note: "Offizielle Builds gibt es nur auf autoflowmacro.com (dl.autoflowmacro.com). Bitte lade AutoFlow nicht von Spiegelseiten.",
   },
   android: {
     seo: {
@@ -384,14 +384,14 @@ export const de: Content = {
   download: {
     seo: {
       title: "AutoFlow herunterladen — Windows, Android & Web-App",
-      description: "AutoFlow kostenlos holen: den Windows-Installer von GitHub Releases, die Android-App bei Google Play oder die Web-App direkt im Browser – ohne Konto.",
+      description: "Hol dir AutoFlow kostenlos: Windows-Installer und Android-App von unserem offiziellen Download-Server oder die Web-App direkt im Browser – ohne Konto.",
     },
     h1: "AutoFlow holen",
     lead: "Kostenlos auf jeder Plattform. Deine Flows wandern per Datei, Link oder optionalem verschlüsseltem Sync zwischen den Geräten.",
-    windows: { h2: "Windows", p: "Installer für Windows 10 und 11 (64 Bit). Globale Hotkeys, Keyforge und echte Eingaben.", meta: "Neueste Version auf GitHub" },
-    android: { h2: "Android", p: "Tippen, Wischen und Routinen mit schwebendem Stopp-Button. Braucht die Bedienungshilfe-Berechtigung, die du steuerst.", meta: "Google Play" },
+    windows: { h2: "Windows", p: "Installer für Windows 10 und 11 (64 Bit). Globale Hotkeys, Keyforge und echte Eingaben.", meta: "Offizieller Download · dl.autoflowmacro.com" },
+    android: { h2: "Android", p: "Tippen, Wischen und Routinen mit schwebendem Stopp-Button. Braucht die Bedienungshilfe-Berechtigung, die du steuerst.", meta: "APK direkt · Google Play folgt" },
     web: { h2: "Web-App", p: "Der volle Editor, Atlas und Practice Canvas im Browser. Über die Adressleiste als App installierbar.", meta: "Funktioniert nach dem ersten Besuch offline" },
-    verify: "Lade AutoFlow nur von dieser Website, GitHub Releases oder Google Play. Wir verlangen niemals Geld für den Download.",
+    verify: "Lade AutoFlow nur von dieser Website (dl.autoflowmacro.com). Wir verlangen nie Geld für den Download.",
     releases: "Alle Versionen und Hinweise ansehen",
   },
   pricing: {

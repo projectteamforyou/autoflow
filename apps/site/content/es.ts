@@ -6,7 +6,7 @@ export const es: Content = {
     home: "Inicio",
     features: "Funciones",
     windows: "Windows",
-    android: "Android",
+    android: "Descargar para Android (APK)",
     keyforge: "Keyforge",
     atlas: "Atlas",
     safety: "Seguridad",
@@ -285,7 +285,7 @@ export const es: Content = {
       h2: "Requisitos del sistema",
       items: ["Windows 10 u 11 de 64 bits", "Runtime de Microsoft Edge WebView2 (incluido en Windows 11)", "Sin cuenta y sin conexión a internet"],
     },
-    note: "Las compilaciones oficiales solo se publican en nuestra página de GitHub Releases. No descargues AutoFlow desde sitios espejo.",
+    note: "Las versiones oficiales solo se publican en autoflowmacro.com (dl.autoflowmacro.com). No descargues AutoFlow desde espejos.",
   },
   android: {
     seo: {
@@ -384,14 +384,14 @@ export const es: Content = {
   download: {
     seo: {
       title: "Descargar AutoFlow — Windows, Android y app web",
-      description: "Consigue AutoFlow gratis: el instalador para Windows en GitHub Releases, la app de Android en Google Play o la app web en tu navegador, sin cuenta.",
+      description: "Consigue AutoFlow gratis: el instalador de Windows y la app de Android desde nuestro servidor oficial, o abre la app web en tu navegador, sin cuenta.",
     },
     h1: "Consigue AutoFlow",
     lead: "Gratis en todas las plataformas. Tus flujos viajan entre ellas mediante archivos, enlaces o sincronización cifrada opcional.",
-    windows: { h2: "Windows", p: "Instalador para Windows 10 y 11 (64 bits). Atajos globales, Keyforge y entrada real.", meta: "Última versión en GitHub" },
-    android: { h2: "Android", p: "Toques, deslizamientos y rutinas con botón flotante de parada. Requiere el permiso de accesibilidad, que controlas tú.", meta: "Google Play" },
+    windows: { h2: "Windows", p: "Instalador para Windows 10 y 11 (64 bits). Atajos globales, Keyforge y entrada real.", meta: "Descarga oficial · dl.autoflowmacro.com" },
+    android: { h2: "Android", p: "Toques, deslizamientos y rutinas con botón flotante de parada. Requiere el permiso de accesibilidad, que controlas tú.", meta: "APK directo · Google Play muy pronto" },
     web: { h2: "App web", p: "El editor completo, Atlas y Practice Canvas en tu navegador. Instálala como app desde la barra de direcciones.", meta: "Funciona sin conexión tras la primera visita" },
-    verify: "Descarga AutoFlow solo desde este sitio, GitHub Releases o Google Play. Nunca cobramos por descargarlo.",
+    verify: "Descarga AutoFlow solo desde este sitio (dl.autoflowmacro.com). Nunca pedimos pago por descargar.",
     releases: "Ver todas las versiones y notas",
   },
   pricing: {

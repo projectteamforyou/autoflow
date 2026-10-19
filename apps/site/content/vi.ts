@@ -6,7 +6,7 @@ export const vi: Content = {
     home: "Trang chủ",
     features: "Tính năng",
     windows: "Windows",
-    android: "Android",
+    android: "Tải cho Android (APK)",
     keyforge: "Keyforge",
     atlas: "Atlas",
     safety: "An toàn",
@@ -285,7 +285,7 @@ export const vi: Content = {
       h2: "Yêu cầu hệ thống",
       items: ["Windows 10 hoặc 11, 64-bit", "Microsoft Edge WebView2 Runtime (có sẵn trên Windows 11)", "Không cần tài khoản, không cần Internet"],
     },
-    note: "Bản chính thức chỉ được phát hành trên trang GitHub Releases của chúng tôi. Đừng tải AutoFlow từ các trang mirror.",
+    note: "Bản chính thức chỉ được phát hành trên autoflowmacro.com (dl.autoflowmacro.com). Đừng tải AutoFlow từ trang nhân bản.",
   },
   android: {
     seo: {
@@ -384,14 +384,14 @@ export const vi: Content = {
   download: {
     seo: {
       title: "Tải AutoFlow — Windows, Android và ứng dụng web",
-      description: "Nhận AutoFlow miễn phí: bộ cài Windows trên GitHub Releases, ứng dụng Android trên Google Play hoặc ứng dụng web trong trình duyệt, không cần tài khoản.",
+      description: "Nhận AutoFlow miễn phí: bản cài Windows và ứng dụng Android từ máy chủ chính thức, hoặc mở ứng dụng web trong trình duyệt, không cần tài khoản.",
     },
     h1: "Tải AutoFlow",
     lead: "Miễn phí trên mọi nền tảng. Luồng di chuyển giữa các thiết bị qua tệp, liên kết hoặc đồng bộ mã hóa tùy chọn.",
-    windows: { h2: "Windows", p: "Bộ cài cho Windows 10 và 11 (64-bit). Phím tắt toàn cục, Keyforge và thao tác thật.", meta: "Bản mới nhất trên GitHub" },
-    android: { h2: "Android", p: "Chạm, vuốt và thói quen với nút dừng nổi. Cần quyền trợ năng do bạn kiểm soát.", meta: "Google Play" },
+    windows: { h2: "Windows", p: "Bộ cài cho Windows 10 và 11 (64-bit). Phím tắt toàn cục, Keyforge và thao tác thật.", meta: "Tải chính thức · dl.autoflowmacro.com" },
+    android: { h2: "Android", p: "Chạm, vuốt và thói quen với nút dừng nổi. Cần quyền trợ năng do bạn kiểm soát.", meta: "APK trực tiếp · sắp có trên Google Play" },
     web: { h2: "Ứng dụng web", p: "Trình chỉnh sửa đầy đủ, Atlas và Practice Canvas ngay trong trình duyệt. Cài như ứng dụng từ thanh địa chỉ.", meta: "Chạy offline sau lần truy cập đầu tiên" },
-    verify: "Chỉ tải AutoFlow từ trang này, GitHub Releases hoặc Google Play. Chúng tôi không bao giờ thu phí tải về.",
+    verify: "Chỉ tải AutoFlow từ trang này (dl.autoflowmacro.com). Chúng tôi không bao giờ thu phí tải xuống.",
     releases: "Xem mọi bản phát hành và ghi chú",
   },
   pricing: {

@@ -39,7 +39,7 @@ const dir = mkdtempSync(join(tmpdir(), "afr2-"));
 const put = (key, file, type, disposition) => {
   // Versioned copies never change; stable aliases and latest.json move with each release.
   const cache = key.startsWith("releases/") ? "public, max-age=31536000, immutable" : "public, max-age=300";
-  const args = ["-y", "wrangler@3", "r2", "object", "put", `${BUCKET}/${key}`, "--file", file, "--content-type", type, "--cache-control", cache, "--remote"];
+  const args = ["-y", "wrangler@3", "r2", "object", "put", `${BUCKET}/${key}`, "--file", file, "--content-type", type, "--cache-control", cache];
   if (disposition) args.push("--content-disposition", `attachment; filename="${disposition}"`);
   execFileSync("npx", args, { stdio: ["ignore", "ignore", "inherit"] });
   console.log(`  r2 ${key}`);

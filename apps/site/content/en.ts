@@ -11,7 +11,7 @@ export const en = {
     home: "Home",
     features: "Features",
     windows: "Windows",
-    android: "Android",
+    android: "Download for Android (APK)",
     keyforge: "Keyforge",
     atlas: "Atlas",
     safety: "Safety",
@@ -290,7 +290,7 @@ export const en = {
       h2: "System requirements",
       items: ["Windows 10 or 11, 64-bit", "Microsoft Edge WebView2 runtime (built into Windows 11)", "No account and no internet connection required"],
     },
-    note: "Official builds are published only on our GitHub Releases page. Please do not download AutoFlow from mirrors.",
+    note: "Official builds are published only on autoflowmacro.com (dl.autoflowmacro.com). Please do not download AutoFlow from mirrors.",
   },
   android: {
     seo: {
@@ -389,14 +389,14 @@ export const en = {
   download: {
     seo: {
       title: "Download AutoFlow — Windows, Android & web app",
-      description: "Get AutoFlow free: the Windows installer from GitHub Releases, the Android app on Google Play, or open the web app in your browser — no account needed.",
+      description: "Get AutoFlow free: the Windows installer and the Android app from our official download server, or open the web app in your browser — no account needed.",
     },
     h1: "Get AutoFlow",
     lead: "Free on every platform. Your flows move between them through files, links or optional encrypted sync.",
-    windows: { h2: "Windows", p: "Installer for Windows 10 and 11 (64-bit). Global hotkeys, Keyforge and real input.", meta: "Latest release on GitHub" },
-    android: { h2: "Android", p: "Taps, swipes and routines with a floating stop button. Requires the Accessibility permission you control.", meta: "Google Play" },
+    windows: { h2: "Windows", p: "Installer for Windows 10 and 11 (64-bit). Global hotkeys, Keyforge and real input.", meta: "Official download · dl.autoflowmacro.com" },
+    android: { h2: "Android", p: "Taps, swipes and routines with a floating stop button. Requires the Accessibility permission you control.", meta: "Direct APK · Google Play coming soon" },
     web: { h2: "Web app", p: "The full editor, Atlas and Practice Canvas in your browser. Install it as an app from the address bar.", meta: "Works offline after the first visit" },
-    verify: "Only download AutoFlow from this site, GitHub Releases or Google Play. We never ask for payment to download.",
+    verify: "Only download AutoFlow from this site (dl.autoflowmacro.com). We never ask for payment to download.",
     releases: "See all releases and notes",
   },
   pricing: {

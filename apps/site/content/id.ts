@@ -6,7 +6,7 @@ export const id: Content = {
     home: "Beranda",
     features: "Fitur",
     windows: "Windows",
-    android: "Android",
+    android: "Unduh untuk Android (APK)",
     keyforge: "Keyforge",
     atlas: "Atlas",
     safety: "Keamanan",
@@ -285,7 +285,7 @@ export const id: Content = {
       h2: "Persyaratan sistem",
       items: ["Windows 10 atau 11, 64-bit", "Microsoft Edge WebView2 Runtime (sudah ada di Windows 11)", "Tanpa akun dan tanpa koneksi internet"],
     },
-    note: "Build resmi hanya dirilis di halaman GitHub Releases kami. Jangan unduh AutoFlow dari situs mirror.",
+    note: "Build resmi hanya dipublikasikan di autoflowmacro.com (dl.autoflowmacro.com). Jangan unduh AutoFlow dari situs mirror.",
   },
   android: {
     seo: {
@@ -384,14 +384,14 @@ export const id: Content = {
   download: {
     seo: {
       title: "Unduh AutoFlow — Windows, Android & aplikasi web",
-      description: "Dapatkan AutoFlow gratis: installer Windows dari GitHub Releases, aplikasi Android di Google Play, atau buka aplikasi web langsung di browser, tanpa akun.",
+      description: "Dapatkan AutoFlow gratis: installer Windows dan aplikasi Android dari server unduhan resmi, atau buka aplikasi web di browser — tanpa akun.",
     },
     h1: "Dapatkan AutoFlow",
     lead: "Gratis di semua platform. Alur berpindah antarperangkat lewat file, tautan, atau sinkronisasi terenkripsi opsional.",
-    windows: { h2: "Windows", p: "Installer untuk Windows 10 dan 11 (64-bit). Pintasan global, Keyforge, dan input asli.", meta: "Rilis terbaru di GitHub" },
-    android: { h2: "Android", p: "Ketuk, geser, dan rutinitas dengan tombol berhenti melayang. Memerlukan izin aksesibilitas yang Anda kendalikan.", meta: "Google Play" },
+    windows: { h2: "Windows", p: "Installer untuk Windows 10 dan 11 (64-bit). Pintasan global, Keyforge, dan input asli.", meta: "Unduhan resmi · dl.autoflowmacro.com" },
+    android: { h2: "Android", p: "Ketuk, geser, dan rutinitas dengan tombol berhenti melayang. Memerlukan izin aksesibilitas yang Anda kendalikan.", meta: "APK langsung · segera di Google Play" },
     web: { h2: "Aplikasi web", p: "Editor lengkap, Atlas, dan Practice Canvas di browser. Pasang sebagai aplikasi dari bilah alamat.", meta: "Bisa offline setelah kunjungan pertama" },
-    verify: "Unduh AutoFlow hanya dari situs ini, GitHub Releases, atau Google Play. Kami tidak pernah memungut biaya untuk mengunduh.",
+    verify: "Unduh AutoFlow hanya dari situs ini (dl.autoflowmacro.com). Kami tidak pernah meminta bayaran untuk mengunduh.",
     releases: "Lihat semua rilis dan catatan",
   },
   pricing: {

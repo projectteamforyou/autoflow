@@ -6,7 +6,7 @@ export const ja: Content = {
     home: "ホーム",
     features: "機能",
     windows: "Windows",
-    android: "Android",
+    android: "Android 版をダウンロード（APK）",
     keyforge: "Keyforge",
     atlas: "Atlas",
     safety: "安全性",
@@ -285,7 +285,7 @@ export const ja: Content = {
       h2: "動作環境",
       items: ["Windows 10 または 11（64 ビット）", "Microsoft Edge WebView2 ランタイム（Windows 11 に標準搭載）", "アカウントもインターネット接続も不要"],
     },
-    note: "公式ビルドは GitHub Releases のページでのみ公開しています。ミラーサイトから AutoFlow をダウンロードしないでください。",
+    note: "公式ビルドは autoflowmacro.com（dl.autoflowmacro.com）でのみ配布しています。ミラーサイトからはダウンロードしないでください。",
   },
   android: {
     seo: {
@@ -384,14 +384,14 @@ export const ja: Content = {
   download: {
     seo: {
       title: "AutoFlow をダウンロード — Windows・Android・Web",
-      description: "AutoFlow を無料で入手。Windows 版は GitHub Releases、Android 版は Google Play から。Web アプリならブラウザですぐ使えます。アカウント不要。",
+      description: "AutoFlow を無料で。Windows インストーラーと Android アプリは公式ダウンロードサーバーから、Web アプリはブラウザーですぐに。アカウント不要。",
     },
     h1: "AutoFlow を入手",
     lead: "すべてのプラットフォームで無料。フローはファイル、リンク、または任意の暗号化同期で端末間を行き来します。",
-    windows: { h2: "Windows", p: "Windows 10・11（64 ビット）向けインストーラー。グローバルホットキー、Keyforge、本物の入力。", meta: "GitHub の最新リリース" },
-    android: { h2: "Android", p: "タップ、スワイプ、ルーティンとフローティング停止ボタン。自分で管理するユーザー補助の権限が必要です。", meta: "Google Play" },
+    windows: { h2: "Windows", p: "Windows 10・11（64 ビット）向けインストーラー。グローバルホットキー、Keyforge、本物の入力。", meta: "公式ダウンロード · dl.autoflowmacro.com" },
+    android: { h2: "Android", p: "タップ、スワイプ、ルーティンとフローティング停止ボタン。自分で管理するユーザー補助の権限が必要です。", meta: "APK を直接インストール · Google Play 準備中" },
     web: { h2: "Web アプリ", p: "フル機能のエディター、Atlas、Practice Canvas をブラウザで。アドレスバーからアプリとしてインストールもできます。", meta: "初回アクセス後はオフラインでも動作" },
-    verify: "AutoFlow はこのサイト、GitHub Releases、Google Play からのみダウンロードしてください。ダウンロードに料金を求めることは一切ありません。",
+    verify: "AutoFlow はこのサイト（dl.autoflowmacro.com）からのみダウンロードしてください。ダウンロードに料金を求めることはありません。",
     releases: "すべてのリリースとノートを見る",
   },
   pricing: {

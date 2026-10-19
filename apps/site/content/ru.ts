@@ -6,7 +6,7 @@ export const ru: Content = {
     home: "Главная",
     features: "Возможности",
     windows: "Windows",
-    android: "Android",
+    android: "Скачать для Android (APK)",
     keyforge: "Keyforge",
     atlas: "Atlas",
     safety: "Безопасность",
@@ -285,7 +285,7 @@ export const ru: Content = {
       h2: "Системные требования",
       items: ["Windows 10 или 11, 64-бит", "Среда Microsoft Edge WebView2 (встроена в Windows 11)", "Не нужны ни аккаунт, ни интернет"],
     },
-    note: "Официальные сборки публикуются только на нашей странице GitHub Releases. Не скачивайте AutoFlow с зеркал.",
+    note: "Официальные сборки публикуются только на autoflowmacro.com (dl.autoflowmacro.com). Не скачивайте AutoFlow с зеркал.",
   },
   android: {
     seo: {
@@ -384,14 +384,14 @@ export const ru: Content = {
   download: {
     seo: {
       title: "Скачать AutoFlow — Windows, Android и веб-приложение",
-      description: "Получите AutoFlow бесплатно: установщик для Windows на GitHub Releases, приложение для Android в Google Play или веб-версию прямо в браузере, без аккаунта.",
+      description: "Получите AutoFlow бесплатно: установщик для Windows и приложение для Android с официального сервера загрузок или веб-приложение в браузере — без аккаунта.",
     },
     h1: "Скачать AutoFlow",
     lead: "Бесплатно на всех платформах. Сценарии переносятся между ними файлом, ссылкой или по желанию через шифрованную синхронизацию.",
-    windows: { h2: "Windows", p: "Установщик для Windows 10 и 11 (64-бит). Глобальные горячие клавиши, Keyforge и реальный ввод.", meta: "Последний релиз на GitHub" },
-    android: { h2: "Android", p: "Нажатия, свайпы и рутины с плавающей кнопкой остановки. Нужно разрешение специальных возможностей, которым управляете вы.", meta: "Google Play" },
+    windows: { h2: "Windows", p: "Установщик для Windows 10 и 11 (64-бит). Глобальные горячие клавиши, Keyforge и реальный ввод.", meta: "Официальная загрузка · dl.autoflowmacro.com" },
+    android: { h2: "Android", p: "Нажатия, свайпы и рутины с плавающей кнопкой остановки. Нужно разрешение специальных возможностей, которым управляете вы.", meta: "APK напрямую · скоро в Google Play" },
     web: { h2: "Веб-приложение", p: "Полный редактор, Atlas и Practice Canvas в браузере. Установите как приложение из адресной строки.", meta: "После первого визита работает офлайн" },
-    verify: "Скачивайте AutoFlow только с этого сайта, из GitHub Releases или Google Play. Мы никогда не берём плату за скачивание.",
+    verify: "Скачивайте AutoFlow только с этого сайта (dl.autoflowmacro.com). Мы никогда не берём плату за загрузку.",
     releases: "Все релизы и списки изменений",
   },
   pricing: {
