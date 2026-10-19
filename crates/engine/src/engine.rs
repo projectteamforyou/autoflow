@@ -1,0 +1,1402 @@
+//! Deterministic flow interpreter — mirrors `packages/core/src/engine.ts`.
+//!
+//! - Executes a validated [`Flow`] against an [`InputBackend`] (Windows `SendInput`, the mock
+//!   backend in tests, a dry-run sandbox…).
+//! - Enforces limits (duration, actions, iterations); stop is observed within one sleep slice
+//!   (≤ 100 ms); pause/resume and debugger breakpoints; per-step error policies
+//!   (stop / continue / retry / goto) and `try`/`catch`.
+//! - Pre-run checks: unsupported steps, risky steps needing approval, screen-geometry drift.
+//! - Emits [`RunEvent`]s whose JSON is identical to the TypeScript `RunEvent` union.
+//!
+//! A run executes synchronously on the calling thread ([`FlowRun::start`]) or on a dedicated
+//! thread ([`FlowRun::spawn`]); other threads control it through a cloneable [`RunHandle`]
+//! backed by atomic flags and a condition variable.
+
+use crate::capabilities::{compatibility, CompatIssue, Support};
+use crate::expr::{default_random, interpolate, ExprEnv, ExprError, Vars};
+use crate::risk::{analyze_risk, RiskReport};
+use crate::schema::{
+    ErrorStrategy, FileOp, Flow, HttpMethod, KeyAction, LogLevel, LoopMode, Modifier, MouseButton, Platform, Rect, Space, Step, StepKind,
+    Target, VarType, WindowMatch, WindowOp,
+};
+use crate::value::{js_number_to_string, Value};
+use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
+use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Arc, Condvar, Mutex, MutexGuard};
+use std::time::Duration;
+
+/// Long waits are sliced so pause, stop and limits are observed within this many ms.
+pub const SLICE_MS: u64 = 100;
+
+/* ----------------------------------------------------------------- backend */
+
+/// One platform action requested by the interpreter (`InputAction` in engine.ts).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
+#[allow(missing_docs)]
+pub enum InputAction {
+    Click {
+        target: Target,
+        button: MouseButton,
+        clicks: u32,
+        hold_ms: u64,
+        modifiers: Vec<Modifier>,
+    },
+    Move {
+        target: Target,
+        duration_ms: u64,
+    },
+    Drag {
+        from: Target,
+        to: Target,
+        duration_ms: u64,
+        button: MouseButton,
+    },
+    Scroll {
+        dx: i64,
+        dy: i64,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        target: Option<Target>,
+    },
+    Key {
+        key: String,
+        modifiers: Vec<Modifier>,
+        action: KeyAction,
+    },
+    Type {
+        text: String,
+        per_char_delay_ms: u64,
+    },
+    LaunchApp {
+        app: String,
+        args: Vec<String>,
+    },
+    OpenUrl {
+        url: String,
+    },
+    Window {
+        op: WindowOp,
+        #[serde(rename = "match")]
+        match_: WindowMatch,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        rect: Option<Rect>,
+    },
+    AndroidGlobal {
+        action: crate::schema::AndroidAction,
+    },
+    ClipboardSet {
+        value: String,
+    },
+    ClipboardGet,
+    Notify {
+        title: String,
+        body: String,
+    },
+    Http {
+        method: HttpMethod,
+        url: String,
+        headers: IndexMap<String, String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        body: Option<String>,
+    },
+    File {
+        op: FileOp,
+        path: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        dest: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        content: Option<String>,
+    },
+    Ocr {
+        region: Rect,
+    },
+    FindImage {
+        #[serde(rename = "ref")]
+        reference: String,
+        confidence: f64,
+        timeout_ms: u64,
+    },
+    SwitchProfile {
+        profile_id: String,
+    },
+}
+
+impl InputAction {
+    /// The `type` discriminator.
+    pub fn type_name(&self) -> &'static str {
+        match self {
+            InputAction::Click { .. } => "click",
+            InputAction::Move { .. } => "move",
+            InputAction::Drag { .. } => "drag",
+            InputAction::Scroll { .. } => "scroll",
+            InputAction::Key { .. } => "key",
+            InputAction::Type { .. } => "type",
+            InputAction::LaunchApp { .. } => "launchApp",
+            InputAction::OpenUrl { .. } => "openUrl",
+            InputAction::Window { .. } => "window",
+            InputAction::AndroidGlobal { .. } => "androidGlobal",
+            InputAction::ClipboardSet { .. } => "clipboardSet",
+            InputAction::ClipboardGet => "clipboardGet",
+            InputAction::Notify { .. } => "notify",
+            InputAction::Http { .. } => "http",
+            InputAction::File { .. } => "file",
+            InputAction::Ocr { .. } => "ocr",
+            InputAction::FindImage { .. } => "findImage",
+            InputAction::SwitchProfile { .. } => "switchProfile",
+        }
+    }
+}
+
+/// Live screen geometry (primary / virtual screen).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct ScreenInfo {
+    /// Width in physical px.
+    pub width: u32,
+    /// Height in physical px.
+    pub height: u32,
+    /// Scale factor (1 = 96 DPI).
+    pub scale: f64,
+}
+
+/// Error categories (`ErrorCategory` in engine.ts).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+#[allow(missing_docs)]
+pub enum ErrorCategory {
+    Validation,
+    Unsupported,
+    Permission,
+    Environment,
+    Target,
+    Limit,
+    Expression,
+    Action,
+    User,
+    Internal,
+}
+
+/// Error returned by an [`InputBackend`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BackendError {
+    /// Message shown in the ledger.
+    pub message: String,
+    /// Category (defaults to `action`).
+    pub category: Option<ErrorCategory>,
+    /// The action was interrupted because the run was stopped.
+    pub aborted: bool,
+}
+
+impl BackendError {
+    /// An `action` error.
+    pub fn action(message: impl Into<String>) -> Self {
+        Self { message: message.into(), category: None, aborted: false }
+    }
+    /// An error with an explicit category.
+    pub fn new(category: ErrorCategory, message: impl Into<String>) -> Self {
+        Self { message: message.into(), category: Some(category), aborted: false }
+    }
+    /// The run was stopped while the action was in progress.
+    pub fn aborted() -> Self {
+        Self { message: "stopped".into(), category: None, aborted: true }
+    }
+}
+
+impl std::fmt::Display for BackendError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.message)
+    }
+}
+
+impl std::error::Error for BackendError {}
+
+/// Platform abstraction used by the interpreter (`Backend` in engine.ts).
+///
+/// Implementations must honour [`RunControl::is_stopped`] promptly in long actions (return
+/// [`BackendError::aborted`]).
+pub trait InputBackend: Send {
+    /// Platform used for capability checks.
+    fn platform(&self) -> Platform;
+    /// Performs one action. Returns [`Value::Null`] for actions without a result.
+    fn perform(&mut self, action: &InputAction, control: &RunControl) -> Result<Value, BackendError>;
+    /// Asks the user a yes/no question (confirm step).
+    fn confirm(&mut self, message: &str, control: &RunControl) -> Result<bool, BackendError>;
+    /// Live screen geometry, if known.
+    fn screen(&mut self) -> Option<ScreenInfo> {
+        None
+    }
+}
+
+/* -------------------------------------------------------------------- clock */
+
+/// Returned by [`Clock::sleep`] when the run was stopped during the sleep.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Aborted;
+
+/// Time source of a run.
+pub trait Clock: Send + Sync {
+    /// Milliseconds (epoch for the real clock).
+    fn now(&self) -> u64;
+    /// Sleeps `ms`, returning early with [`Aborted`] when the run is stopped.
+    fn sleep(&self, ms: u64, control: &RunControl) -> Result<(), Aborted>;
+}
+
+/// Wall clock; sleeps wake immediately when the run is stopped.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct RealClock;
+
+impl Clock for RealClock {
+    fn now(&self) -> u64 {
+        let ms = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis());
+        u64::try_from(ms).unwrap_or(u64::MAX)
+    }
+    fn sleep(&self, ms: u64, control: &RunControl) -> Result<(), Aborted> {
+        let deadline = std::time::Instant::now() + Duration::from_millis(ms);
+        loop {
+            if control.is_stopped() {
+                return Err(Aborted);
+            }
+            let now = std::time::Instant::now();
+            if now >= deadline {
+                return Ok(());
+            }
+            let slice = (deadline - now).min(Duration::from_millis(SLICE_MS));
+            if control.wait_for_stop(slice) {
+                return Err(Aborted);
+            }
+        }
+    }
+}
+
+/// Virtual clock for tests, previews and simulations: sleeping advances time instantly.
+#[derive(Debug, Default)]
+pub struct VirtualClock {
+    t: AtomicU64,
+}
+
+impl VirtualClock {
+    /// A clock starting at `start` ms.
+    pub fn new(start: u64) -> Self {
+        Self { t: AtomicU64::new(start) }
+    }
+    /// Moves time forward.
+    pub fn advance(&self, ms: u64) {
+        self.t.fetch_add(ms, Ordering::SeqCst);
+    }
+}
+
+impl Clock for VirtualClock {
+    fn now(&self) -> u64 {
+        self.t.load(Ordering::SeqCst)
+    }
+    fn sleep(&self, ms: u64, control: &RunControl) -> Result<(), Aborted> {
+        if control.is_stopped() {
+            return Err(Aborted);
+        }
+        self.advance(ms);
+        if control.is_stopped() {
+            return Err(Aborted);
+        }
+        Ok(())
+    }
+}
+
+/* ------------------------------------------------------------------- events */
+
+/// Run lifecycle states.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+#[allow(missing_docs)]
+pub enum RunState {
+    Idle,
+    Preflight,
+    Countdown,
+    Running,
+    Paused,
+    Stopped,
+    Completed,
+    Failed,
+}
+
+impl RunState {
+    fn is_terminal(self) -> bool {
+        matches!(self, RunState::Stopped | RunState::Completed | RunState::Failed)
+    }
+}
+
+/// A run failure with location and category.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RunError {
+    /// Step id.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub step_id: Option<String>,
+    /// Step path (`0.body.1`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+    /// Message.
+    pub message: String,
+    /// Category.
+    pub category: ErrorCategory,
+}
+
+impl RunError {
+    fn new(category: ErrorCategory, message: impl Into<String>) -> Self {
+        Self { step_id: None, path: None, message: message.into(), category }
+    }
+}
+
+/// Structured run events (`RunEvent` in engine.ts).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
+#[allow(missing_docs)]
+pub enum RunEvent {
+    State {
+        state: RunState,
+        at: u64,
+    },
+    Countdown {
+        remaining_ms: u64,
+        at: u64,
+    },
+    StepStart {
+        step_id: String,
+        step_type: String,
+        path: String,
+        at: u64,
+    },
+    StepEnd {
+        step_id: String,
+        ok: bool,
+        duration_ms: u64,
+        at: u64,
+    },
+    Breakpoint {
+        step_id: String,
+        at: u64,
+    },
+    Log {
+        level: LogLevel,
+        message: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        step_id: Option<String>,
+        at: u64,
+    },
+    Var {
+        name: String,
+        value: Value,
+        at: u64,
+    },
+    Retry {
+        step_id: String,
+        attempt: u32,
+        at: u64,
+    },
+    Error {
+        error: RunError,
+        at: u64,
+    },
+}
+
+/// Final status of a run.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+#[allow(missing_docs)]
+pub enum RunStatus {
+    Completed,
+    Stopped,
+    Failed,
+}
+
+/// Outcome of a run (`RunResult` in engine.ts).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RunResult {
+    /// Final status.
+    pub status: RunStatus,
+    /// Stop reason or failure message.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+    /// Failure details.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<RunError>,
+    /// Input actions performed (including the one that exceeded the limit).
+    pub actions: u64,
+    /// Loop iterations.
+    pub iterations: u64,
+    /// `endedAt - startedAt`.
+    pub duration_ms: u64,
+    /// Final variables.
+    pub vars: Vars,
+    /// Start (after the countdown).
+    pub started_at: u64,
+    /// End.
+    pub ended_at: u64,
+}
+
+/// Event listener. A panicking listener never breaks a run.
+pub type EventSink = Arc<dyn Fn(&RunEvent) + Send + Sync>;
+/// Resolves `{{secret:name}}` from the OS keystore.
+pub type SecretResolver = Arc<dyn Fn(&str) -> Option<String> + Send + Sync>;
+/// Resolves flows for `runFlow` steps.
+pub type FlowResolver = Arc<dyn Fn(&str) -> Option<Flow> + Send + Sync>;
+/// Approves the risky steps of a run.
+pub type RiskApproval = Box<dyn FnMut(&RiskReport) -> bool + Send>;
+/// Approves a changed screen geometry (recorded, live).
+pub type ScreenApproval = Box<dyn FnMut(&ScreenInfo, &ScreenInfo) -> bool + Send>;
+/// Random source in `[0, 1)`.
+pub type RandomSource = Arc<dyn Fn() -> f64 + Send + Sync>;
+
+/// Options of a run (`RunOptions` in engine.ts).
+#[derive(Default)]
+pub struct RunOptions {
+    /// Time source (default [`RealClock`]).
+    pub clock: Option<Arc<dyn Clock>>,
+    /// Random source (default: per-thread SplitMix64).
+    pub random: Option<RandomSource>,
+    /// Event listener.
+    pub on_event: Option<EventSink>,
+    /// Values for variables that declare a `prompt`.
+    pub inputs: IndexMap<String, Value>,
+    /// Secret resolver.
+    pub secret: Option<SecretResolver>,
+    /// Approves risky steps (absent = not approved).
+    pub confirm_risk: Option<RiskApproval>,
+    /// Approves a changed screen geometry (absent = not approved).
+    pub confirm_screen_change: Option<ScreenApproval>,
+    /// Flow resolver for `runFlow`.
+    pub resolve_flow: Option<FlowResolver>,
+    /// Honour breakpoints.
+    pub debug: bool,
+    /// Skip the pre-start countdown.
+    pub skip_countdown: bool,
+    /// Max nesting of `runFlow` (default 8).
+    pub max_call_depth: Option<u32>,
+}
+
+/* ---------------------------------------------------------------- control */
+
+#[derive(Debug)]
+struct ControlState {
+    state: RunState,
+    paused: bool,
+    stop_reason: Option<String>,
+    step_once: bool,
+}
+
+/// Shared stop / pause flags of one run.
+#[derive(Debug)]
+pub struct RunControl {
+    stopped: AtomicBool,
+    inner: Mutex<ControlState>,
+    cv: Condvar,
+}
+
+impl Default for RunControl {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl RunControl {
+    /// Fresh, idle control block.
+    pub fn new() -> Self {
+        Self {
+            stopped: AtomicBool::new(false),
+            inner: Mutex::new(ControlState { state: RunState::Idle, paused: false, stop_reason: None, step_once: false }),
+            cv: Condvar::new(),
+        }
+    }
+
+    fn lock(&self) -> MutexGuard<'_, ControlState> {
+        // A poisoned lock only means a listener panicked; the data is still consistent.
+        self.inner.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    /// True once a stop was requested.
+    pub fn is_stopped(&self) -> bool {
+        self.stopped.load(Ordering::SeqCst)
+    }
+
+    /// Current state.
+    pub fn state(&self) -> RunState {
+        self.lock().state
+    }
+
+    /// Waits up to `timeout` for a stop request; returns true when stopped.
+    pub fn wait_for_stop(&self, timeout: Duration) -> bool {
+        let guard = self.lock();
+        if self.is_stopped() {
+            return true;
+        }
+        let _unused = self.cv.wait_timeout(guard, timeout).unwrap_or_else(std::sync::PoisonError::into_inner);
+        self.is_stopped()
+    }
+
+    /// Blocks while paused; returns [`Aborted`] when stopped.
+    pub fn wait_while_paused(&self) -> Result<(), Aborted> {
+        let mut guard = self.lock();
+        while guard.paused && !self.is_stopped() {
+            guard = self.cv.wait_timeout(guard, Duration::from_millis(SLICE_MS)).unwrap_or_else(std::sync::PoisonError::into_inner).0;
+        }
+        if self.is_stopped() {
+            Err(Aborted)
+        } else {
+            Ok(())
+        }
+    }
+}
+
+struct RunShared {
+    id: String,
+    control: RunControl,
+    clock: Arc<dyn Clock>,
+    sink: Option<EventSink>,
+}
+
+impl RunShared {
+    fn emit(&self, e: RunEvent) {
+        if let Some(sink) = &self.sink {
+            let _ignored = catch_unwind(AssertUnwindSafe(|| sink(&e)));
+        }
+    }
+    fn set_state(&self, s: RunState) {
+        self.control.lock().state = s;
+        self.emit(RunEvent::State { state: s, at: self.clock.now() });
+    }
+    fn pause(&self) {
+        {
+            let mut g = self.control.lock();
+            if g.state != RunState::Running {
+                return;
+            }
+            g.paused = true;
+            g.state = RunState::Paused;
+        }
+        self.emit(RunEvent::State { state: RunState::Paused, at: self.clock.now() });
+    }
+    fn resume(&self) {
+        {
+            let mut g = self.control.lock();
+            if g.state != RunState::Paused {
+                return;
+            }
+            g.state = RunState::Running;
+            g.paused = false;
+        }
+        self.emit(RunEvent::State { state: RunState::Running, at: self.clock.now() });
+        self.control.cv.notify_all();
+    }
+    fn step_over(&self) {
+        {
+            let mut g = self.control.lock();
+            if g.state != RunState::Paused {
+                return;
+            }
+            g.step_once = true;
+        }
+        self.resume();
+    }
+    fn stop(&self, reason: &str) {
+        {
+            let mut g = self.control.lock();
+            if g.state.is_terminal() {
+                return;
+            }
+            g.stop_reason = Some(reason.to_owned());
+            g.paused = false;
+            self.control.stopped.store(true, Ordering::SeqCst);
+        }
+        self.control.cv.notify_all();
+    }
+    fn take_step_once(&self) -> bool {
+        std::mem::take(&mut self.control.lock().step_once)
+    }
+}
+
+/// Cloneable, thread-safe handle controlling a run.
+#[derive(Clone)]
+pub struct RunHandle {
+    shared: Arc<RunShared>,
+}
+
+impl RunHandle {
+    /// Run id (`run_xxxxxxxx`).
+    pub fn id(&self) -> &str {
+        &self.shared.id
+    }
+    /// Current state.
+    pub fn state(&self) -> RunState {
+        self.shared.control.state()
+    }
+    /// Pauses a running run (no-op otherwise).
+    pub fn pause(&self) {
+        self.shared.pause();
+    }
+    /// Resumes a paused run.
+    pub fn resume(&self) {
+        self.shared.resume();
+    }
+    /// While paused at a breakpoint: execute exactly one more step, then pause again.
+    pub fn step_over(&self) {
+        self.shared.step_over();
+    }
+    /// Requests a stop; observed within one sleep slice.
+    pub fn stop(&self, reason: &str) {
+        self.shared.stop(reason);
+    }
+    /// The control block (for backends).
+    pub fn control(&self) -> &RunControl {
+        &self.shared.control
+    }
+}
+
+/* ------------------------------------------------------------- control flow */
+
+/// Non-local exits inside the interpreter (`Interrupt` / `RunFailure` / abort in engine.ts).
+#[derive(Debug)]
+enum Signal {
+    Break,
+    Continue,
+    Stop(String),
+    Goto(String),
+    Abort,
+    Fail(RunError),
+}
+
+impl From<ExprError> for Signal {
+    fn from(e: ExprError) -> Self {
+        let category = if e.host { ErrorCategory::Action } else { ErrorCategory::Expression };
+        Signal::Fail(RunError::new(category, e.message))
+    }
+}
+
+impl From<Aborted> for Signal {
+    fn from(_: Aborted) -> Self {
+        Signal::Abort
+    }
+}
+
+type Flowing<T = ()> = Result<T, Signal>;
+
+fn to_run_error(mut e: RunError, step_id: &str, path: &str) -> RunError {
+    if e.step_id.is_none() {
+        e.step_id = Some(step_id.to_owned());
+    }
+    if e.path.is_none() {
+        e.path = Some(path.to_owned());
+    }
+    e
+}
+
+/// Result of the static pre-run checks.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Preflight {
+    /// Every not-fully-supported step.
+    pub compat: Vec<CompatIssue>,
+    /// Unsupported steps (block the run).
+    pub blocked: Vec<CompatIssue>,
+    /// Risk report.
+    pub risk: RiskReport,
+}
+
+/// Static pre-run checks shared by every surface (`FlowRun.preflight`).
+pub fn preflight(flow: &Flow, platform: Platform) -> Preflight {
+    let compat = compatibility(&flow.steps, platform);
+    let blocked = compat.iter().filter(|c| c.support == Support::Unsupported).cloned().collect();
+    Preflight { compat, blocked, risk: analyze_risk(flow) }
+}
+
+fn new_run_id() -> String {
+    const ALPHABET: &[u8] = b"0123456789abcdefghijklmnopqrstuvwxyz";
+    let mut s = String::from("run_");
+    for _ in 0..8 {
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        let i = (default_random() * 36.0) as usize % 36;
+        s.push(char::from(ALPHABET[i]));
+    }
+    s
+}
+
+/* -------------------------------------------------------------------- run */
+
+/// One execution of a flow (`FlowRun` in engine.ts). Can be started once.
+pub struct FlowRun {
+    flow: Arc<Flow>,
+    backend: Box<dyn InputBackend>,
+    opts: RunOptions,
+    shared: Arc<RunShared>,
+    vars: Vars,
+    actions: u64,
+    iterations: u64,
+    started_at: u64,
+    call_depth: u32,
+}
+
+impl FlowRun {
+    /// Prepares a run. Nothing happens until [`FlowRun::start`] or [`FlowRun::spawn`].
+    pub fn new(flow: Flow, backend: Box<dyn InputBackend>, mut opts: RunOptions) -> Self {
+        let clock: Arc<dyn Clock> = opts.clock.take().unwrap_or_else(|| Arc::new(RealClock));
+        let sink = opts.on_event.clone();
+        let shared = Arc::new(RunShared { id: new_run_id(), control: RunControl::new(), clock, sink });
+        Self { flow: Arc::new(flow), backend, opts, shared, vars: Vars::new(), actions: 0, iterations: 0, started_at: 0, call_depth: 0 }
+    }
+
+    /// Run id.
+    pub fn id(&self) -> &str {
+        &self.shared.id
+    }
+
+    /// A handle for pause / resume / stop from other threads.
+    pub fn handle(&self) -> RunHandle {
+        RunHandle { shared: Arc::clone(&self.shared) }
+    }
+
+    /// Runs the flow to completion on a new thread.
+    ///
+    /// # Errors
+    /// Fails only if the OS cannot create the thread.
+    pub fn spawn(self) -> std::io::Result<(RunHandle, std::thread::JoinHandle<RunResult>)> {
+        let handle = self.handle();
+        let join = std::thread::Builder::new()
+            .name(format!("autoflow-{}", self.shared.id))
+            .stack_size(8 * 1024 * 1024)
+            .spawn(move || self.start())?;
+        Ok((handle, join))
+    }
+
+    /// Runs the flow to completion on the current thread.
+    pub fn start(mut self) -> RunResult {
+        let clock = Arc::clone(&self.shared.clock);
+        self.started_at = clock.now();
+        self.shared.set_state(RunState::Preflight);
+        let flow = Arc::clone(&self.flow);
+        let outcome = self.run_all(&flow);
+        match outcome {
+            Ok(()) => self.finish(RunStatus::Completed, None, None),
+            Err(sig) => self.handle_terminal(sig),
+        }
+    }
+
+    fn run_all(&mut self, flow: &Flow) -> Flowing {
+        self.preflight_checks(flow)?;
+        self.init_vars(flow);
+        let countdown = flow.limits.countdown_ms;
+        if !self.opts.skip_countdown && countdown > 0 {
+            self.shared.set_state(RunState::Countdown);
+            let mut remaining = countdown;
+            while remaining > 0 {
+                self.emit(RunEvent::Countdown { remaining_ms: remaining, at: self.now() });
+                let slice = remaining.min(1000);
+                self.clock_sleep(slice)?;
+                remaining -= slice;
+            }
+        }
+        self.started_at = self.now();
+        self.shared.set_state(RunState::Running);
+        self.run_top_level(&flow.steps)
+    }
+
+    /* ------------------------------------------------------------ internals */
+
+    fn now(&self) -> u64 {
+        self.shared.clock.now()
+    }
+
+    fn emit(&self, e: RunEvent) {
+        self.shared.emit(e);
+    }
+
+    fn clock_sleep(&self, ms: u64) -> Flowing {
+        // Sub-slices keep stop latency ≤ SLICE_MS for every clock implementation.
+        let mut remaining = ms;
+        while remaining > 0 {
+            let slice = remaining.min(SLICE_MS);
+            self.shared.clock.sleep(slice, &self.shared.control)?;
+            remaining -= slice;
+        }
+        if self.shared.control.is_stopped() {
+            return Err(Signal::Abort);
+        }
+        Ok(())
+    }
+
+    fn preflight_checks(&mut self, flow: &Flow) -> Flowing {
+        let platform = self.backend.platform();
+        let pf = preflight(flow, platform);
+        if let Some(first) = pf.blocked.first() {
+            let types: Vec<&str> = pf.blocked.iter().map(|b| b.step_type.as_str()).collect();
+            return Err(Signal::Fail(RunError {
+                step_id: Some(first.step_id.clone()),
+                path: None,
+                message: format!("{} step(s) are not supported on {}: {}", pf.blocked.len(), platform.as_str(), types.join(", ")),
+                category: ErrorCategory::Unsupported,
+            }));
+        }
+        if pf.risk.needs_confirm {
+            let ok = self.opts.confirm_risk.as_mut().is_some_and(|f| f(&pf.risk));
+            if !ok {
+                return Err(Signal::Fail(RunError::new(ErrorCategory::User, "risky steps were not approved")));
+            }
+        }
+        if let Some(rec) = flow.screen {
+            if let Some(live) = self.backend.screen() {
+                let rec = ScreenInfo { width: rec.width, height: rec.height, scale: rec.scale };
+                let changed = live.width != rec.width || live.height != rec.height || (live.scale - rec.scale).abs() > 0.01;
+                if changed && uses_screen_coordinates(&flow.steps) {
+                    let ok = self.opts.confirm_screen_change.as_mut().is_some_and(|f| f(&rec, &live));
+                    if !ok {
+                        return Err(Signal::Fail(RunError::new(
+                            ErrorCategory::Environment,
+                            format!(
+                                "screen changed from {}x{}@{} to {}x{}@{}",
+                                rec.width,
+                                rec.height,
+                                js_number_to_string(rec.scale),
+                                live.width,
+                                live.height,
+                                js_number_to_string(live.scale)
+                            ),
+                        )));
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn init_vars(&mut self, flow: &Flow) {
+        for v in &flow.variables {
+            let input = self.opts.inputs.get(&v.name).filter(|x| !matches!(x, Value::Null));
+            let mut val = input.cloned().or_else(|| v.initial.clone()).unwrap_or_else(|| default_for(v.var_type));
+            match v.var_type {
+                VarType::Number => val = Value::Num(val.to_js_number()),
+                VarType::Boolean => val = Value::Bool(val == Value::Bool(true) || val == Value::Str("true".into())),
+                VarType::String | VarType::List => {}
+            }
+            self.vars.insert(v.name.clone(), val);
+        }
+    }
+
+    fn run_top_level(&mut self, steps: &[Step]) -> Flowing {
+        let mut i = 0;
+        let mut gotos: u64 = 0;
+        while i < steps.len() {
+            match self.run_step(&steps[i], &i.to_string()) {
+                Ok(()) | Err(Signal::Break | Signal::Continue) => i += 1,
+                Err(Signal::Goto(target)) => {
+                    let Some(idx) = steps.iter().position(|s| s.id == target) else {
+                        return Err(Signal::Fail(RunError::new(
+                            ErrorCategory::Validation,
+                            format!("goto target \"{target}\" not found at top level"),
+                        )));
+                    };
+                    gotos += 1;
+                    if gotos > self.flow.limits.max_iterations {
+                        return Err(Signal::Fail(RunError::new(ErrorCategory::Limit, "too many error jumps")));
+                    }
+                    i = idx;
+                }
+                Err(other) => return Err(other),
+            }
+        }
+        Ok(())
+    }
+
+    fn run_list(&mut self, steps: &[Step], path: &str) -> Flowing {
+        for (i, s) in steps.iter().enumerate() {
+            self.run_step(s, &format!("{path}.{i}"))?;
+        }
+        Ok(())
+    }
+
+    fn gate(&self) -> Flowing {
+        let control = &self.shared.control;
+        if control.is_stopped() {
+            return Err(Signal::Abort);
+        }
+        let max = self.flow.limits.max_duration_ms;
+        if self.now().saturating_sub(self.started_at) > max {
+            #[allow(clippy::cast_precision_loss)]
+            let secs = crate::value::js_round(max as f64 / 1000.0);
+            return Err(Signal::Fail(RunError::new(
+                ErrorCategory::Limit,
+                format!("maximum run time reached ({}s)", js_number_to_string(secs)),
+            )));
+        }
+        control.wait_while_paused()?;
+        Ok(())
+    }
+
+    fn sleep(&self, ms: u64) -> Flowing {
+        let mut remaining = ms;
+        while remaining > 0 {
+            self.gate()?;
+            let slice = remaining.min(SLICE_MS);
+            self.shared.clock.sleep(slice, &self.shared.control)?;
+            remaining -= slice;
+        }
+        Ok(())
+    }
+
+    fn run_step(&mut self, step: &Step, path: &str) -> Flowing {
+        if step.is_disabled() {
+            return Ok(());
+        }
+        self.gate()?;
+        if self.opts.debug {
+            let once = self.shared.take_step_once();
+            if step.breakpoint == Some(true) || once {
+                self.emit(RunEvent::Breakpoint { step_id: step.id.clone(), at: self.now() });
+                self.shared.pause();
+                self.gate()?;
+            }
+        }
+        let t0 = self.now();
+        self.emit(RunEvent::StepStart { step_id: step.id.clone(), step_type: step.type_name().to_owned(), path: path.to_owned(), at: t0 });
+        let policy = step.on_error.as_ref();
+        let mut attempt: u32 = 0;
+        loop {
+            let err = match self.exec(step, path) {
+                Ok(()) => {
+                    let at = self.now();
+                    self.emit(RunEvent::StepEnd { step_id: step.id.clone(), ok: true, duration_ms: at.saturating_sub(t0), at });
+                    return Ok(());
+                }
+                Err(Signal::Fail(e)) if !self.shared.control.is_stopped() => to_run_error(e, &step.id, path),
+                Err(Signal::Fail(_)) => return Err(Signal::Abort),
+                Err(other) => return Err(other),
+            };
+            if err.category == ErrorCategory::Limit {
+                return Err(Signal::Fail(err));
+            }
+            if let Some(p) = policy {
+                if p.strategy == ErrorStrategy::Retry && attempt < p.retries {
+                    attempt += 1;
+                    self.emit(RunEvent::Retry { step_id: step.id.clone(), attempt, at: self.now() });
+                    self.sleep(p.backoff_ms.saturating_mul(u64::from(attempt)))?;
+                    continue;
+                }
+            }
+            let at = self.now();
+            self.emit(RunEvent::StepEnd { step_id: step.id.clone(), ok: false, duration_ms: at.saturating_sub(t0), at });
+            match policy {
+                Some(p) if p.strategy == ErrorStrategy::Continue => {
+                    self.emit(RunEvent::Log {
+                        level: LogLevel::Warn,
+                        message: format!("step failed and was skipped: {}", err.message),
+                        step_id: Some(step.id.clone()),
+                        at: self.now(),
+                    });
+                    return Ok(());
+                }
+                Some(p) if p.strategy == ErrorStrategy::Goto && p.goto_step_id.is_some() => {
+                    let target = p.goto_step_id.clone().unwrap_or_default();
+                    self.emit(RunEvent::Log {
+                        level: LogLevel::Warn,
+                        message: format!("step failed, jumping to {target}: {}", err.message),
+                        step_id: Some(step.id.clone()),
+                        at: self.now(),
+                    });
+                    return Err(Signal::Goto(target));
+                }
+                _ => return Err(Signal::Fail(err)),
+            }
+        }
+    }
+
+    fn count_action(&mut self) -> Flowing {
+        self.actions += 1;
+        if self.actions > self.flow.limits.max_actions {
+            return Err(Signal::Fail(RunError::new(
+                ErrorCategory::Limit,
+                format!("maximum number of actions reached ({})", self.flow.limits.max_actions),
+            )));
+        }
+        Ok(())
+    }
+
+    fn count_iteration(&mut self) -> Flowing {
+        self.iterations += 1;
+        if self.iterations > self.flow.limits.max_iterations {
+            return Err(Signal::Fail(RunError::new(
+                ErrorCategory::Limit,
+                format!("maximum number of loop iterations reached ({})", self.flow.limits.max_iterations),
+            )));
+        }
+        Ok(())
+    }
+
+    fn random(&self) -> f64 {
+        self.opts.random.as_ref().map_or_else(default_random, |r| r())
+    }
+
+    fn with_env<T>(&self, f: impl FnOnce(&ExprEnv<'_>) -> T) -> T {
+        let clock = &self.shared.clock;
+        #[allow(clippy::cast_precision_loss)]
+        let now = || clock.now() as f64;
+        let random = || self.random();
+        f(&ExprEnv { vars: &self.vars, now: &now, random: &random })
+    }
+
+    fn eval(&self, src: &str) -> Flowing<Value> {
+        Ok(self.with_env(|env| crate::expr::eval_expr(src, env))?)
+    }
+
+    fn text(&self, s: &str) -> Flowing<String> {
+        let resolver: crate::expr::SecretLookup<'_> = match self.opts.secret.as_deref() {
+            Some(f) => Some(f),
+            None => None,
+        };
+        Ok(self.with_env(|env| interpolate(s, env, resolver))?)
+    }
+
+    fn set_var(&mut self, name: &str, value: Value) {
+        self.vars.insert(name.to_owned(), value.clone());
+        self.emit(RunEvent::Var { name: name.to_owned(), value, at: self.now() });
+    }
+
+    fn perform(&mut self, action: &InputAction) -> Flowing<Value> {
+        match self.backend.perform(action, &self.shared.control) {
+            Ok(v) => Ok(v),
+            Err(e) if e.aborted => Err(Signal::Abort),
+            Err(e) => Err(Signal::Fail(RunError::new(e.category.unwrap_or(ErrorCategory::Action), e.message))),
+        }
+    }
+
+    #[allow(clippy::too_many_lines)]
+    fn exec(&mut self, s: &Step, path: &str) -> Flowing {
+        if matches!(
+            s.kind,
+            StepKind::Click { .. }
+                | StepKind::Move { .. }
+                | StepKind::Drag { .. }
+                | StepKind::Scroll { .. }
+                | StepKind::Key { .. }
+                | StepKind::Type { .. }
+        ) {
+            self.count_action()?;
+        }
+        match &s.kind {
+            StepKind::Click { target, button, clicks, hold_ms, modifiers } => {
+                self.perform(&InputAction::Click {
+                    target: target.clone(),
+                    button: *button,
+                    clicks: *clicks,
+                    hold_ms: *hold_ms,
+                    modifiers: modifiers.clone(),
+                })?;
+            }
+            StepKind::Move { target, duration_ms } => {
+                self.perform(&InputAction::Move { target: target.clone(), duration_ms: *duration_ms })?;
+            }
+            StepKind::Drag { from, to, duration_ms, button } => {
+                self.perform(&InputAction::Drag { from: from.clone(), to: to.clone(), duration_ms: *duration_ms, button: *button })?;
+            }
+            StepKind::Scroll { dx, dy, target } => {
+                self.perform(&InputAction::Scroll { dx: *dx, dy: *dy, target: target.clone() })?;
+            }
+            StepKind::Key { key, modifiers, action, repeat } => {
+                for i in 0..*repeat {
+                    if i > 0 {
+                        self.gate()?;
+                        self.count_action()?;
+                    }
+                    self.perform(&InputAction::Key { key: key.clone(), modifiers: modifiers.clone(), action: *action })?;
+                }
+            }
+            StepKind::Type { text, per_char_delay_ms } => {
+                let text = self.text(text)?;
+                self.perform(&InputAction::Type { text, per_char_delay_ms: *per_char_delay_ms })?;
+            }
+            StepKind::Wait { ms, jitter_ms } => {
+                let jitter = if *jitter_ms > 0 {
+                    #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+                    let j = (self.random() * (*jitter_ms as f64 + 1.0)).floor() as u64;
+                    j
+                } else {
+                    0
+                };
+                self.sleep(ms + jitter)?;
+            }
+            StepKind::WaitFor { condition, poll_ms, timeout_ms } => {
+                let deadline = self.now() + timeout_ms;
+                loop {
+                    if self.eval(&condition.expr)?.truthy() {
+                        return Ok(());
+                    }
+                    if self.now() >= deadline {
+                        return Err(Signal::Fail(RunError {
+                            step_id: Some(s.id.clone()),
+                            path: Some(path.to_owned()),
+                            message: format!("condition not met within {timeout_ms} ms"),
+                            category: ErrorCategory::Target,
+                        }));
+                    }
+                    self.sleep(*poll_ms)?;
+                }
+            }
+            StepKind::SetVar { name, value } => {
+                let v = self.eval(value)?;
+                self.set_var(name, v);
+            }
+            StepKind::Log { message, level } => {
+                let message = self.text(message)?;
+                self.emit(RunEvent::Log { level: *level, message, step_id: Some(s.id.clone()), at: self.now() });
+            }
+            StepKind::Notify { title, body } => {
+                let (title, body) = (self.text(title)?, self.text(body)?);
+                self.perform(&InputAction::Notify { title, body })?;
+            }
+            StepKind::Confirm { message, result_var } => {
+                let message = self.text(message)?;
+                let ok = match self.backend.confirm(&message, &self.shared.control) {
+                    Ok(ok) => ok,
+                    Err(e) if e.aborted => return Err(Signal::Abort),
+                    Err(e) => return Err(Signal::Fail(RunError::new(e.category.unwrap_or(ErrorCategory::Action), e.message))),
+                };
+                if let Some(var) = result_var {
+                    self.set_var(var, Value::Bool(ok));
+                } else if !ok {
+                    return Err(Signal::Stop("declined".into()));
+                }
+            }
+            StepKind::Clipboard { op, value, var } => {
+                if *op == crate::schema::ClipboardOp::Set {
+                    let value = self.text(value.as_deref().unwrap_or(""))?;
+                    self.perform(&InputAction::ClipboardSet { value })?;
+                } else {
+                    let v = self.perform(&InputAction::ClipboardGet)?;
+                    if let Some(var) = var {
+                        let v = if v == Value::Null { Value::Str(String::new()) } else { v };
+                        self.set_var(var, v);
+                    }
+                }
+            }
+            StepKind::LaunchApp { app, args } => {
+                self.perform(&InputAction::LaunchApp { app: app.clone(), args: args.clone() })?;
+            }
+            StepKind::OpenUrl { url } => {
+                let url = self.text(url)?;
+                self.perform(&InputAction::OpenUrl { url })?;
+            }
+            StepKind::Window { op, match_, rect } => {
+                self.perform(&InputAction::Window { op: *op, match_: match_.clone(), rect: *rect })?;
+            }
+            StepKind::AndroidGlobal { action } => {
+                self.perform(&InputAction::AndroidGlobal { action: *action })?;
+            }
+            StepKind::Http { method, url, headers, body, result_var } => {
+                let mut h = IndexMap::new();
+                for (k, v) in headers {
+                    h.insert(k.clone(), self.text(v)?);
+                }
+                let url = self.text(url)?;
+                let body = match body {
+                    Some(b) => Some(self.text(b)?),
+                    None => None,
+                };
+                let res = self.perform(&InputAction::Http { method: *method, url, headers: h, body })?;
+                if let Some(var) = result_var {
+                    self.set_var(var, res);
+                }
+            }
+            StepKind::File { op, path: file_path, dest, content, result_var } => {
+                let file_path = self.text(file_path)?;
+                let dest = match dest.as_deref() {
+                    Some(d) if !d.is_empty() => Some(self.text(d)?),
+                    Some(d) => Some(d.to_owned()),
+                    None => None,
+                };
+                let content = match content {
+                    Some(c) => Some(self.text(c)?),
+                    None => None,
+                };
+                let res = self.perform(&InputAction::File { op: *op, path: file_path, dest, content })?;
+                if let Some(var) = result_var {
+                    self.set_var(var, res);
+                }
+            }
+            StepKind::Ocr { region, result_var } => {
+                let res = self.perform(&InputAction::Ocr { region: *region })?;
+                self.set_var(result_var, Value::Str(res.to_js_string()));
+            }
+            StepKind::FindImage { target, result_var, timeout_ms } => {
+                let (reference, confidence) = match target {
+                    Target::Image(img) => (img.reference.clone(), img.confidence),
+                    _ => (String::new(), 0.9),
+                };
+                let res = self.perform(&InputAction::FindImage { reference, confidence, timeout_ms: *timeout_ms })?;
+                self.set_var(result_var, res);
+            }
+            StepKind::SwitchProfile { profile_id } => {
+                self.perform(&InputAction::SwitchProfile { profile_id: profile_id.clone() })?;
+            }
+            StepKind::RunFlow { flow_id } => {
+                let max = self.opts.max_call_depth.unwrap_or(8);
+                let target = self.opts.resolve_flow.as_ref().and_then(|r| r(flow_id));
+                let Some(target) = target else {
+                    return Err(Signal::Fail(RunError {
+                        step_id: Some(s.id.clone()),
+                        path: Some(path.to_owned()),
+                        message: format!("flow \"{flow_id}\" not found"),
+                        category: ErrorCategory::Validation,
+                    }));
+                };
+                if self.call_depth >= max {
+                    return Err(Signal::Fail(RunError {
+                        step_id: Some(s.id.clone()),
+                        path: Some(path.to_owned()),
+                        message: "runFlow nesting too deep".into(),
+                        category: ErrorCategory::Limit,
+                    }));
+                }
+                self.call_depth += 1;
+                let r = self.run_list(&target.steps, &format!("{path}>{flow_id}"));
+                self.call_depth -= 1;
+                r?;
+            }
+            StepKind::Stop { reason } => return Err(Signal::Stop(reason.clone().unwrap_or_else(|| "stop step".into()))),
+            StepKind::Break => return Err(Signal::Break),
+            StepKind::Continue => return Err(Signal::Continue),
+            StepKind::Group { body, .. } => self.run_list(body, path)?,
+            StepKind::If { condition, then, else_ } => {
+                if self.eval(&condition.expr)?.truthy() {
+                    self.run_list(then, &format!("{path}.then"))?;
+                } else {
+                    self.run_list(else_, &format!("{path}.else"))?;
+                }
+            }
+            StepKind::Loop { mode, count, condition, index_var, body } => {
+                let body_path = format!("{path}.body");
+                let mut i: u64 = 0;
+                loop {
+                    if *mode == LoopMode::Count && i >= count.unwrap_or(0) {
+                        return Ok(());
+                    }
+                    if *mode == LoopMode::While {
+                        let expr = condition.as_ref().map_or("false", |c| c.expr.as_str());
+                        if !self.eval(expr)?.truthy() {
+                            return Ok(());
+                        }
+                    }
+                    self.count_iteration()?;
+                    if let Some(var) = index_var {
+                        #[allow(clippy::cast_precision_loss)]
+                        self.set_var(var, Value::Num(i as f64));
+                    }
+                    match self.run_list(body, &body_path) {
+                        Ok(()) | Err(Signal::Continue) => {}
+                        Err(Signal::Break) => return Ok(()),
+                        Err(other) => return Err(other),
+                    }
+                    i += 1;
+                    // A loop whose body never waits would spin; always yield so stop/pause stay responsive.
+                    self.gate()?;
+                    if body.is_empty() {
+                        self.sleep(SLICE_MS)?;
+                    }
+                }
+            }
+            StepKind::ForEach { list, item_var, body } => {
+                let items = match self.eval(list)? {
+                    Value::List(l) => l,
+                    other => vec![other],
+                };
+                let body_path = format!("{path}.body");
+                for item in items {
+                    self.count_iteration()?;
+                    self.set_var(item_var, item);
+                    match self.run_list(body, &body_path) {
+                        Ok(()) | Err(Signal::Continue) => {}
+                        Err(Signal::Break) => return Ok(()),
+                        Err(other) => return Err(other),
+                    }
+                    self.gate()?;
+                }
+            }
+            StepKind::Try { body, catch, error_var } => match self.run_list(body, &format!("{path}.body")) {
+                Ok(()) => {}
+                Err(Signal::Fail(e)) if !self.shared.control.is_stopped() => {
+                    let err = to_run_error(e.clone(), &s.id, path);
+                    if err.category == ErrorCategory::Limit {
+                        return Err(Signal::Fail(e));
+                    }
+                    if let Some(var) = error_var {
+                        self.set_var(var, Value::Str(err.message));
+                    }
+                    self.run_list(catch, &format!("{path}.catch"))?;
+                }
+                Err(Signal::Fail(_)) => return Err(Signal::Abort),
+                Err(other) => return Err(other),
+            },
+        }
+        Ok(())
+    }
+
+    fn handle_terminal(&mut self, sig: Signal) -> RunResult {
+        if self.shared.control.is_stopped() {
+            let reason = self.shared.control.lock().stop_reason.clone().unwrap_or_else(|| "user".into());
+            return self.finish(RunStatus::Stopped, Some(reason), None);
+        }
+        match sig {
+            Signal::Stop(reason) => self.finish(RunStatus::Stopped, Some(reason), None),
+            Signal::Abort => self.finish(RunStatus::Stopped, Some("user".into()), None),
+            Signal::Break | Signal::Continue | Signal::Goto(_) => self.finish(RunStatus::Completed, None, None),
+            Signal::Fail(err) => {
+                self.emit(RunEvent::Error { error: err.clone(), at: self.now() });
+                let msg = err.message.clone();
+                self.finish(RunStatus::Failed, Some(msg), Some(err))
+            }
+        }
+    }
+
+    fn finish(&mut self, status: RunStatus, reason: Option<String>, error: Option<RunError>) -> RunResult {
+        self.shared.set_state(match status {
+            RunStatus::Completed => RunState::Completed,
+            RunStatus::Stopped => RunState::Stopped,
+            RunStatus::Failed => RunState::Failed,
+        });
+        let ended_at = self.now();
+        RunResult {
+            status,
+            reason,
+            error,
+            actions: self.actions,
+            iterations: self.iterations,
+            duration_ms: ended_at.saturating_sub(self.started_at),
+            vars: self.vars.clone(),
+            started_at: self.started_at,
+            ended_at,
+        }
+    }
+}
+
+fn default_for(t: VarType) -> Value {
+    match t {
+        VarType::Number => Value::Num(0.0),
+        VarType::Boolean => Value::Bool(false),
+        VarType::List => Value::List(Vec::new()),
+        VarType::String => Value::Str(String::new()),
+    }
+}
+
+/// True when any step targets points/regions in `screen` space (`usesScreenCoordinates`).
+pub fn uses_screen_coordinates(steps: &[Step]) -> bool {
+    let mut uses = false;
+    crate::schema::walk_steps(steps, &mut |s, _, _| {
+        for t in s.targets() {
+            if matches!(t, Target::Point { space: Space::Screen, .. } | Target::Region { space: Space::Screen, .. }) {
+                uses = true;
+            }
+        }
+    });
+    uses
+}
+
+/// Convenience: run a flow to completion on the current thread.
+pub fn run_flow(flow: Flow, backend: Box<dyn InputBackend>, opts: RunOptions) -> RunResult {
+    FlowRun::new(flow, backend, opts).start()
+}
