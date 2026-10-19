@@ -199,8 +199,8 @@ export const terms: Terms = {
       "Soweit gesetzlich zulässig, wird der Dienst unentgeltlich „wie besehen“ und „wie verfügbar“ bereitgestellt, ohne ausdrückliche oder stillschweigende Zusicherungen, etwa der Marktgängigkeit, Eignung für einen bestimmten Zweck oder Nichtverletzung von Rechten. Wir sichern nicht zu, dass Flows auf jedem Gerät gleich funktionieren oder der Dienst fehlerfrei ist. Zwingende gesetzliche Verbraucherrechte bleiben unberührt.",
     ),
     liability: sec(
-      "14. Haftungsbeschränkung",
-      "Soweit gesetzlich zulässig, haften wir nicht für indirekte, zufällige, besondere, Folge- oder Strafschäden oder für entgangenen Gewinn, Daten-, Konto- oder Imageverluste, die aus dem Dienst oder von Ihnen gestarteten Automatisierungen entstehen. Unsere Gesamthaftung für Ansprüche im Zusammenhang mit dem Dienst ist auf den höheren Betrag aus Ihren Zahlungen an uns in den 12 Monaten vor dem Anspruch und 100.000 KRW begrenzt. Diese Beschränkungen gelten nicht bei Vorsatz oder grober Fahrlässigkeit, bei Verletzung von Leben, Körper oder Gesundheit oder wo das Gesetz sie nicht zulässt.",
+      "14. Kein Schadensersatz und Haftungsbeschränkung",
+      "AutoFlow wird unentgeltlich und „wie besehen“ bereitgestellt. Soweit gesetzlich zulässig, leisten wir keinerlei Vergütung und haften nicht für Schäden jeglicher Art – weder für unmittelbare, mittelbare, beiläufig entstandene, besondere, Folge- oder Strafschäden –, einschließlich entgangenen Gewinns, Datenverlust, Verlust von Konten oder Goodwill, die aus der Nutzung des Dienstes, aus von Ihnen erstellten oder ausgeführten Automatisierungen oder aus Vorlagen, KI-Ausgaben oder Diensten Dritter entstehen. Die Nutzung von Automatisierungen erfolgt auf Ihr eigenes Risiko; Sie sind verpflichtet, diese vor deren Ausführung zu überprüfen. Diese Regelung schließt eine Haftung nicht aus, soweit eine solche nach geltendem Recht nicht ausgeschlossen werden kann, insbesondere bei Vorsatz, grober Fahrlässigkeit oder zwingenden Verbraucherrechten.",
     ),
     indemnity: sec(
       "15. Freistellung",

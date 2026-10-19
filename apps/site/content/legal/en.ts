@@ -199,8 +199,8 @@ export const terms: Terms = {
       "To the maximum extent permitted by law, the Service is provided “as is” and “as available”, without warranties of any kind, express or implied, including merchantability, fitness for a particular purpose and non-infringement. We do not warrant that flows will behave identically on every device or that the Service will be error-free. Nothing in these Terms limits rights you have as a consumer that cannot be excluded by law.",
     ),
     liability: sec(
-      "14. Limitation of liability",
-      "To the maximum extent permitted by law, we are not liable for indirect, incidental, special, consequential or punitive damages, or for loss of profits, data, accounts or goodwill, arising from the Service or from automations you run. Our total liability for any claim relating to the Service is limited to the greater of the amount you paid us in the 12 months before the claim and KRW 100,000. These limits do not apply to liability for intent or gross negligence, or where the law does not allow them.",
+      "14. No compensation and limitation of liability",
+      "AutoFlow is provided free of charge and “as is”. To the maximum extent permitted by law, we do not compensate for, and are not liable for, any damages — direct, indirect, incidental, special, consequential or punitive — including loss of profits, data, accounts or goodwill, arising from the Service, from automations you create or run, or from templates, AI output or third-party services. You use automations at your own risk and must check them before running them. This does not exclude liability that cannot be excluded under applicable law, such as liability for intent or gross negligence or mandatory consumer rights.",
     ),
     indemnity: sec(
       "15. Indemnity",

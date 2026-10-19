@@ -199,8 +199,8 @@ export const terms: Terms = {
       "Trong phạm vi tối đa pháp luật cho phép, Dịch vụ được cung cấp “nguyên trạng” và “tùy khả năng sẵn có”, không kèm bất kỳ bảo đảm rõ ràng hay ngụ ý nào, bao gồm khả năng thương mại, phù hợp với mục đích cụ thể và không vi phạm quyền. Chúng tôi không bảo đảm luồng chạy giống hệt nhau trên mọi thiết bị hay Dịch vụ không có lỗi. Không điều gì ở đây hạn chế quyền của người tiêu dùng mà pháp luật không cho phép loại trừ.",
     ),
     liability: sec(
-      "14. Giới hạn trách nhiệm",
-      "Trong phạm vi tối đa pháp luật cho phép, chúng tôi không chịu trách nhiệm về thiệt hại gián tiếp, ngẫu nhiên, đặc biệt, hệ quả hay mang tính trừng phạt, hoặc mất lợi nhuận, dữ liệu, tài khoản hay uy tín phát sinh từ Dịch vụ hoặc các tự động hóa bạn chạy. Tổng trách nhiệm của chúng tôi cho mọi khiếu nại liên quan đến Dịch vụ giới hạn ở mức cao hơn giữa số tiền bạn đã trả cho chúng tôi trong 12 tháng trước khiếu nại và 100.000 KRW. Các giới hạn này không áp dụng cho trách nhiệm do cố ý hoặc sơ suất nghiêm trọng, hoặc khi pháp luật không cho phép.",
+      "14. Không bồi thường và giới hạn trách nhiệm pháp lý",
+      "AutoFlow được cung cấp miễn phí và theo nguyên tắc “nguyên trạng”. Trong phạm vi tối đa được pháp luật cho phép, chúng tôi không bồi thường và không chịu trách nhiệm đối với bất kỳ thiệt hại nào – trực tiếp, gián tiếp, ngẫu nhiên, đặc biệt, hậu quả hoặc mang tính trừng phạt – bao gồm nhưng không giới hạn ở việc mất lợi nhuận, dữ liệu, tài khoản hoặc uy tín, phát sinh từ Dịch vụ, từ các quy trình tự động mà bạn tạo hoặc vận hành, hoặc từ các mẫu, kết quả do AI tạo ra hoặc dịch vụ của bên thứ ba. Bạn tự chịu rủi ro khi sử dụng các quy trình tự động và phải kiểm tra chúng trước khi vận hành. Quy định này không loại trừ trách nhiệm pháp lý mà theo pháp luật hiện hành không thể bị loại trừ, chẳng hạn như trách nhiệm đối với hành vi cố ý hoặc lỗi nghiêm trọng, hoặc các quyền lợi bắt buộc của người tiêu dùng.",
     ),
     indemnity: sec(
       "15. Bồi hoàn",

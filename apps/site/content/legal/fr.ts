@@ -199,8 +199,8 @@ export const terms: Terms = {
       "Dans toute la mesure permise par la loi, le Service est fourni « en l’état » et « selon disponibilité », sans garantie d’aucune sorte, expresse ou implicite, notamment de qualité marchande, d’adéquation à un usage particulier ou d’absence de contrefaçon. Nous ne garantissons pas que les flux se comportent à l’identique sur tous les appareils ni que le Service soit exempt d’erreurs. Rien ici ne limite les droits que vous confère le droit de la consommation et qui ne peuvent être exclus, notamment la garantie légale de conformité.",
     ),
     liability: sec(
-      "14. Limitation de responsabilité",
-      "Dans toute la mesure permise par la loi, nous ne sommes pas responsables des dommages indirects, accessoires, spéciaux, consécutifs ou punitifs, ni des pertes de profits, de données, de comptes ou de réputation liés au Service ou aux automatisations que vous exécutez. Notre responsabilité totale pour toute réclamation liée au Service est limitée au plus élevé des deux montants suivants : ce que vous nous avez payé au cours des 12 mois précédant la réclamation, ou 100 000 KRW. Ces limites ne s’appliquent pas en cas de faute intentionnelle ou lourde, ni lorsque la loi les interdit.",
+      "14. Absence de compensation et limitation de responsabilité",
+      "AutoFlow est fourni gratuitement et « en l’état ». Dans la mesure maximale permise par la loi, nous n’offrons aucune compensation et déclinons toute responsabilité pour tout dommage — direct, indirect, accessoire, spécial, consécutif ou punitif — y compris la perte de bénéfices, de données, de comptes ou de clientèle, résultant du Service, des automatisations que vous créez ou exécutez, ou des modèles, résultats générés par l’IA ou services tiers. Vous utilisez les automatisations à vos propres risques et devez les vérifier avant de les exécuter. La présente clause n’exclut pas la responsabilité qui ne peut être exclue en vertu du droit applicable, telle que la responsabilité en cas d’intention ou de faute lourde, ou les droits impératifs des consommateurs.",
     ),
     indemnity: sec(
       "15. Garantie",

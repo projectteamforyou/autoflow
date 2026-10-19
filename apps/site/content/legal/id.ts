@@ -199,8 +199,8 @@ export const terms: Terms = {
       "Sejauh diizinkan hukum, Layanan disediakan “sebagaimana adanya” dan “sebagaimana tersedia”, tanpa jaminan apa pun, tersurat maupun tersirat, termasuk kelayakan jual, kesesuaian untuk tujuan tertentu, dan tidak melanggar hak. Kami tidak menjamin alur berperilaku sama di setiap perangkat atau Layanan bebas error. Tidak ada ketentuan di sini yang membatasi hak Anda sebagai konsumen yang tidak dapat dikecualikan oleh hukum.",
     ),
     liability: sec(
-      "14. Batasan tanggung jawab",
-      "Sejauh diizinkan hukum, kami tidak bertanggung jawab atas kerugian tidak langsung, insidental, khusus, konsekuensial, atau bersifat hukuman, maupun hilangnya keuntungan, data, akun, atau reputasi yang timbul dari Layanan atau otomatisasi yang Anda jalankan. Total tanggung jawab kami atas klaim terkait Layanan dibatasi pada jumlah yang lebih besar antara yang Anda bayarkan kepada kami dalam 12 bulan sebelum klaim dan KRW 100.000. Batasan ini tidak berlaku untuk tanggung jawab atas kesengajaan atau kelalaian berat, atau bila hukum tidak mengizinkannya.",
+      "14. Tidak Ada Kompensasi dan Pembatasan Tanggung Jawab",
+      "AutoFlow disediakan secara gratis dan \"sebagaimana adanya\". Sepanjang diizinkan oleh hukum yang berlaku, kami tidak memberikan kompensasi dan tidak bertanggung jawab atas segala kerugian—baik langsung, tidak langsung, insidental, khusus, konsekuensial, maupun hukuman—termasuk namun tidak terbatas pada hilangnya keuntungan, data, akun, atau itikad baik, yang timbul dari penggunaan Layanan, dari otomatisasi yang Anda buat atau jalankan, maupun dari templat, keluaran AI, atau layanan pihak ketiga. Anda menggunakan otomatisasi atas risiko Anda sendiri dan wajib memeriksa otomatisasi tersebut sebelum menjalankannya. Ketentuan ini tidak mengecualikan tanggung jawab yang tidak dapat dikecualikan berdasarkan hukum yang berlaku, seperti tanggung jawab atas kesengajaan atau kelalaian berat, atau hak-hak konsumen yang bersifat wajib.",
     ),
     indemnity: sec(
       "15. Ganti rugi",

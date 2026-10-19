@@ -199,8 +199,8 @@ export const terms: Terms = {
       "En la máxima medida permitida por la ley, el Servicio se ofrece «tal cual» y «según disponibilidad», sin garantías de ningún tipo, expresas o implícitas, incluidas las de comerciabilidad, idoneidad para un fin concreto y no infracción. No garantizamos que los flujos se comporten igual en todos los dispositivos ni que el Servicio esté libre de errores. Nada de lo aquí dispuesto limita los derechos que te reconoce la normativa de consumo y que no pueden excluirse.",
     ),
     liability: sec(
-      "14. Limitación de responsabilidad",
-      "En la máxima medida permitida por la ley, no respondemos de daños indirectos, incidentales, especiales, consecuentes o punitivos, ni de la pérdida de beneficios, datos, cuentas o reputación derivados del Servicio o de las automatizaciones que ejecutes. Nuestra responsabilidad total por cualquier reclamación relacionada con el Servicio se limita a la cantidad mayor entre lo que nos hayas pagado en los 12 meses anteriores y 100 000 KRW. Estos límites no se aplican a la responsabilidad por dolo o negligencia grave ni cuando la ley no los permita.",
+      "14. Sin compensación y limitación de responsabilidad",
+      "AutoFlow se proporciona de forma gratuita y \"tal cual\". En la máxima medida permitida por la ley, no ofrecemos compensación ni asumimos responsabilidad alguna por daños de ningún tipo —ya sean directos, indirectos, incidentales, especiales, consecuenciales o punitivos—, incluyendo, entre otros, la pérdida de beneficios, datos, cuentas o fondo de comercio, que surjan del uso del Servicio, de las automatizaciones que usted cree o ejecute, o de plantillas, resultados generados por inteligencia artificial o servicios de terceros. Usted utiliza las automatizaciones bajo su propio riesgo y debe revisarlas antes de ejecutarlas. Esta disposición no excluye la responsabilidad que no pueda ser excluida conforme a la legislación aplicable, como la responsabilidad por dolo o negligencia grave, o los derechos irrenunciables del consumidor.",
     ),
     indemnity: sec(
       "15. Indemnización",
