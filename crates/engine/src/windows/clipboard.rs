@@ -1,7 +1,7 @@
 //! Unicode text clipboard.
 
 use crate::engine::{BackendError, ErrorCategory};
-use ::windows::Win32::Foundation::{HANDLE, HGLOBAL};
+use ::windows::Win32::Foundation::{GlobalFree, HANDLE, HGLOBAL};
 use ::windows::Win32::System::DataExchange::{CloseClipboard, EmptyClipboard, GetClipboardData, OpenClipboard, SetClipboardData};
 use ::windows::Win32::System::Memory::{GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_MOVEABLE};
 use ::windows::Win32::System::Ole::CF_UNICODETEXT;
@@ -69,7 +69,11 @@ pub fn set_text(text: &str) -> Result<(), BackendError> {
         }
         std::ptr::copy_nonoverlapping(units.as_ptr(), p, units.len());
         let _unlocked = GlobalUnlock(hg);
-        SetClipboardData(u32::from(CF_UNICODETEXT.0), Some(HANDLE(hg.0))).map_err(|e| fail("cannot write the clipboard", e))?;
+        if let Err(e) = SetClipboardData(u32::from(CF_UNICODETEXT.0), Some(HANDLE(hg.0))) {
+            // Ownership did not pass to the system; free the allocation ourselves.
+            let _freed = GlobalFree(Some(hg));
+            return Err(fail("cannot write the clipboard", e));
+        }
     }
     Ok(())
 }
