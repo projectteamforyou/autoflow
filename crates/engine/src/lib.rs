@@ -13,6 +13,7 @@
 //! - [`remap`] — the platform-independent Keyforge remapping state machine.
 //! - [`schedule`] — cron / interval evaluation for schedule triggers.
 //! - [`actions`] — file and HTTP actions shared by native backends.
+//! - [`imagematch`] — template-image search for `findImage`.
 //! - `windows` (Windows only) — `SendInput`, clipboard, shell, window management, hotkeys,
 //!   low-level hooks, UI Automation and Credential Manager.
 #![warn(missing_docs)]
@@ -23,6 +24,7 @@ pub mod bridge;
 pub mod capabilities;
 pub mod engine;
 pub mod expr;
+pub mod imagematch;
 pub mod input_profile;
 pub mod keys;
 pub mod mock;
@@ -32,6 +34,9 @@ pub mod risk;
 pub mod schedule;
 pub mod schema;
 pub mod value;
+
+#[cfg(windows)]
+pub mod windows;
 
 pub use engine::{
     preflight, run_flow, BackendError, Clock, ErrorCategory, FlowRun, InputAction, InputBackend, RealClock, RunControl, RunError, RunEvent,
