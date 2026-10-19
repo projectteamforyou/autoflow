@@ -15,18 +15,11 @@
     "@capacitor/core": "8.5.3"
   },
   "devDependencies": {
-    "@capacitor/cli": "8.5.3"
+    "@capacitor/cli": "8.5.3",
+    "@autoflow/core": "workspace:*"
   },
   "exports": {
     "./web-bridge": "./web-bridge.ts",
     "./package.json": "./package.json"
-  },
-  "peerDependencies": {
-    "@autoflow/core": "*"
-  },
-  "peerDependenciesMeta": {
-    "@autoflow/core": {
-      "optional": true
-    }
   }
 }

@@ -75,7 +75,7 @@ jobs:
           node scripts/play/publish.mjs --package ${{ steps.ver.outputs.package }} --check --version-code ${{ steps.ver.outputs.code }}
       - name: Install dependencies
         # The lockfile is shared by every workspace package; fall back to a fresh resolve if a branch changed packages.
-        run: pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
       - name: Build core + web app
         run: |
           set -euo pipefail
