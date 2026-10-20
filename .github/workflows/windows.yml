@@ -131,6 +131,24 @@ jobs:
             [IO.File]::AppendAllText($env:GITHUB_OUTPUT, "version=dev`n")
           }
 
+      - name: NSIS under LocalSystem (WOW64 redirect)
+        # Tauri keeps NSIS in %LOCALAPPDATA%\tauri. For LocalSystem that is under System32, which the 32-bit
+        # makensis.exe sees redirected to SysWOW64, so it cannot start Bin\makensis.exe ("error 0x2").
+        # Point the SysWOW64 view at the real folder with a junction.
+        shell: powershell
+        run: |
+          $real = Join-Path $env:LOCALAPPDATA 'tauri'
+          if ($real -like "$env:windir\System32\*") {
+            New-Item -ItemType Directory -Force -Path $real | Out-Null
+            $wow = $real -replace '\\System32\\', '\SysWOW64\'
+            New-Item -ItemType Directory -Force -Path (Split-Path $wow) | Out-Null
+            if (-not (Test-Path $wow)) {
+              cmd /c mklink /J "$wow" "$real"
+              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            }
+            Write-Host "NSIS tools: $real (also visible as $wow)"
+          }
+
       - name: Build installers (tauri build)
         working-directory: apps/desktop
         shell: powershell
