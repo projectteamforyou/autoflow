@@ -3,6 +3,7 @@
  * the real thing is. Downloads go through the API's counting redirect to the signed builds on dl.autoflowmacro.com.
  * Never rendered inside the Windows/Android apps.
  */
+import { Link } from "react-router-dom";
 import { Icon } from "./Icon";
 import { useStore } from "../lib/store";
 import { SITE_URL } from "../lib/site";
@@ -42,6 +43,10 @@ export function TrialHero() {
         <h2>{t("trial.title")}</h2>
         <p>{t("trial.body")}</p>
         {os === "other" && <p className="small muted">{t("trial.otherOs")}</p>}
+        <p className="trial-hero-biz small">
+          <Icon name="KeyRound" size={14} />
+          <span>{t("trial.business")} <Link className="text-link" to="/business">{t("business.cta")} →</Link></span>
+        </p>
       </div>
       <div className="trial-hero-cta">
         {os === "android" ? [and, win] : [win, and]}

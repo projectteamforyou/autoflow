@@ -186,6 +186,7 @@
   "trial.android": "Descargar para Android",
   "trial.more": "Todas las descargas",
   "trial.otherOs": "Las apps son para Windows 10/11 y Android. En otros dispositivos, sigue usando la app web.",
+  "trial.business": "¿Lo usas para trabajar, en una empresa, con fines comerciales o en equipo? Para eso necesitas una licencia Business.",
   "trial.afterRun": "Eso se ejecutó en la pantalla virtual. Instala la app para ejecutar el mismo flujo en tu pantalla real.",
   "business.title": "Licencia Business",
   "business.headline": "AutoFlow para el trabajo",

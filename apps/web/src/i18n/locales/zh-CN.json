@@ -186,6 +186,7 @@
   "trial.android": "下载 Android 版",
   "trial.more": "全部下载",
   "trial.otherOs": "应用适用于 Windows 10/11 和 Android。其他设备请继续使用网页版。",
+  "trial.business": "用于公司、商业或团队等工作用途?工作用途需要 Business 许可证。",
   "trial.afterRun": "刚才是在虚拟屏幕上运行的。安装应用后，同一流程即可在真实屏幕上运行。",
   "business.title": "Business 许可证",
   "business.headline": "工作用 AutoFlow",
