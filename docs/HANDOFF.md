@@ -1,19 +1,19 @@
 # AutoFlow — 인수인계 (새 채팅에서 이어서 작업용)
 
-갱신: 2026-10-19 20:20 KST · 저장소 `work517/autoflow` · 작업 브랜치 `claude/charming-bell-7loc6o` · PR work517/autoflow#1
+갱신: 2026-10-20 18:00 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#13
 
-## 1. 현재 배포 상태 (1.1.0)
+## 1. 현재 배포 상태 (1.1.1)
 | 항목 | 값 |
 |---|---|
-| 사이트 (12개 언어, 146페이지) | https://autoflowmacro.com |
+| 사이트 (12개 언어, 710페이지 — 가이드 24·대체 프로그램 21 × 12개 언어 포함) | https://autoflowmacro.com |
 | 웹 앱 (PWA) | https://autoflowmacro.com/app/ |
 | 관리자 | https://autoflowmacro.com/app/#/admin (projectteamforyou@gmail.com + 설정 코드) |
 | API | https://api.autoflowmacro.com (Railway `autoflow`/`api`, PostgreSQL) |
 | Windows 1.1.0 (Azure 서명: PROJECTTEAMFORYOU) | https://dl.autoflowmacro.com/windows/AutoFlow-Setup-x64.exe · `AutoFlow-x64.msi` · `AutoFlow-portable-x64.exe` |
-| Android 1.1.0 (versionCode 6, 업로드 키 SHA-256 1fe265ee…) | https://dl.autoflowmacro.com/android/AutoFlow.apk |
+| Android 1.1.1 (업로드 키 SHA-256 1fe265ee…) | https://dl.autoflowmacro.com/android/AutoFlow.apk |
 | 버전 정보 | https://dl.autoflowmacro.com/latest.json |
-| GitHub 릴리스 (보관용) | https://github.com/work517/autoflow/releases/tag/v1.1.0 |
-| Google Play | `com.projectteamforyou.autoflow` — 프로덕션 초안(versionCode 6) + 12개 언어 등록정보 업로드됨, 제출 대기 |
+| GitHub 릴리스 (보관용) | https://github.com/projectteamforyou/autoflow/releases/tag/v1.1.1 |
+| Google Play | `com.projectteamforyou.autoflow` — 1.1.0(versionCode 6) 프로덕션 177개국 **검토 중**(관리형 게시 꺼짐 → 승인 즉시 공개). 승인 후 `android.yml` track=production 으로 1.1.1 올리기 |
 | 접근성 시연 영상 (실제 에뮬레이터 녹화) | https://github.com/work517/autoflow/releases/tag/play-demo-video |
 
 ## 2. 구조
@@ -55,6 +55,24 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
 - 동기화: 업로드 전 암호화, 충돌 시 두 버전 보존, 데이터 볼모 없음
 - 손해 배상 없음(§14), 관할 서울중앙지방법원
 
-## 6. 남은 작업 후보 (다음 채팅)
+## 6. SEO·검색엔진
+- 등록: Google Search Console, 네이버 서치어드바이저(메타 태그), Bing(`/BingSiteAuth.xml`), 다음. 사이트맵 `https://autoflowmacro.com/sitemap.xml`
+- IndexNow: 키 파일 `apps/site/public/<key>.txt`, 배포 후 `NODE_USE_ENV_PROXY=1 node scripts/seo/indexnow.mjs`(전체) 또는 경로 지정
+- 프로그래매틱 SEO: `apps/site/content/seo/<lang>.ts`(가이드 24·대체 21), 렌더러 `src/seo-pages.ts`. `pnpm --filter @autoflow/site verify` 로 제목·설명 길이/중복 검사
+
+## 7. 2026-10-20 A–Z 점검에서 고친 것 (PR #8)
+- 결제: PortOne 채널 키 불일치(테스트 채널) 거부·환불, PayPal 금액 불일치 환불, 대기 주문 '다시 확인', 결제 복귀 시 로그인 카드
+- 엔진(TS·Rust·Kotlin 동기화): 대기 없는 루프에서도 정지, 표현식 비용 제한, range() 2^53 초과 거부, Safety Score(동적 URL·헤더 변수·내부망·파일 append/copy 확인)
+- Windows: 눌린 키 해제·Halt 수식키 무시, 글라이드/이미지 검색 중단, Keyforge 반복 정지, UNC 경로·HTTP 리디렉션 차단, 클립보드 경계, 비상정지 키 검증
+- 웹: Canvas 실시간 로그, 업데이트 알림 유지(12개 언어), 세션 토큰은 발급한 API 주소로만
+
+## 8. 러너 메모
+- 회사 PC 러너(FELIXLEE*)는 **LocalSystem** 계정(WiX MSI ICE 검사에 필요). Rust는 `CARGO_HOME=C:\Rust\cargo`
+- 집 PC 러너는 C 드라이브가 가득 참 → 정리 전까지 Windows 릴리스는 `runner_label: OFFICE`
+- PowerShell 7 없음 → 워크플로는 `shell: powershell`, 출력 파일은 `[IO.File]::AppendAllText`
+
+## 9. 남은 작업 후보 (다음 채팅)
 - Android Scenes/픽셀(MediaProjection) 지원
-- 결제 실키 입력 후 샌드박스 결제 검증
+- 실결제 1건(₩9,900) 후 PortOne 콘솔에서 취소로 끝까지 검증
+- Play 1.1.0 승인 후 1.1.1 프로덕션 업로드
+- 집 PC 러너 디스크 정리, Google 서비스 계정 키 교체
