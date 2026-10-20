@@ -9,7 +9,7 @@
 | 웹 앱 (PWA) | https://autoflowmacro.com/app/ |
 | 관리자 | https://autoflowmacro.com/app/#/admin (projectteamforyou@gmail.com + 설정 코드) |
 | API | https://api.autoflowmacro.com (Railway `autoflow`/`api`, PostgreSQL) |
-| Windows 1.1.0 (Azure 서명: PROJECTTEAMFORYOU) | https://dl.autoflowmacro.com/windows/AutoFlow-Setup-x64.exe · `AutoFlow-x64.msi` · `AutoFlow-portable-x64.exe` |
+| Windows 1.1.1 (Azure 서명: PROJECTTEAMFORYOU, 회사 PC 러너 `runner_label: OFFICE`) | https://dl.autoflowmacro.com/windows/AutoFlow-Setup-x64.exe · `AutoFlow-x64.msi` · `AutoFlow-portable-x64.exe` |
 | Android 1.1.1 (업로드 키 SHA-256 1fe265ee…) | https://dl.autoflowmacro.com/android/AutoFlow.apk |
 | 버전 정보 | https://dl.autoflowmacro.com/latest.json |
 | GitHub 릴리스 (보관용) | https://github.com/projectteamforyou/autoflow/releases/tag/v1.1.1 |
