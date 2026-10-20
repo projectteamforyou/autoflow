@@ -5,7 +5,7 @@ export const es: SeoContent = {
     guides: {
       nav: "Guías",
       title: "Guías de automatización: autoclicker y macros | AutoFlow",
-      description: "Guías paso a paso de clic automático, macros de ratón y teclado, reasignar teclas, toques automáticos en Android y más con AutoFlow, gratis para uso personal.",
+      description: "Guías paso a paso de clic automático, macros de ratón y teclado, reasignar teclas, toques automáticos en Android y más con AutoFlow. Gratis.",
       h1: "Guías de automatización",
       lead: "Elige la tarea que ya no quieres hacer a mano. Cada guía muestra cómo configurarla en AutoFlow en Windows, Android o la web, con consejos para hacerlo de forma segura.",
     },
@@ -54,7 +54,7 @@ export const es: SeoContent = {
     "auto-clicker": {
       kw: "Autoclicker",
       title: "Autoclicker gratis para Windows y Android | AutoFlow",
-      description: "Configura un autoclicker en segundos: elige un punto, fija el intervalo desde 50 ms y repite por número, tiempo o hasta detenerlo. Gratis para uso personal.",
+      description: "Configura un autoclicker en segundos: elige un punto, intervalo desde 50 ms y repite por número, tiempo o hasta detenerlo. Gratis para uso personal.",
       h1: "Autoclicker gratis para Windows y Android",
       intro: "Un autoclicker repite un clic del ratón o un toque en pantalla por ti. En AutoFlow respondes cuatro preguntas —qué, dónde, a qué velocidad y cuántas veces— y el clic automático queda listo, con un atajo para iniciarlo y Halt para detenerlo al instante.",
       steps: [
@@ -142,7 +142,7 @@ export const es: SeoContent = {
     "auto-typer": {
       kw: "Escritura automática",
       title: "Escritura automática de texto con un atajo | AutoFlow",
-      description: "Escribe texto automáticamente con un atajo o una programación: mensajes, plantillas, listas línea a línea, con pausas entre teclas. Gratis para uso personal.",
+      description: "Escribe texto automáticamente con un atajo o una programación: mensajes, plantillas y listas línea a línea, con pausas entre teclas. Gratis.",
       h1: "Escritura automática: deja que AutoFlow escriba por ti",
       intro: "Un escritor automático introduce texto por ti: un mensaje fijo, una plantilla con variables o una lista línea a línea. AutoFlow escribe mediante la entrada normal del teclado, así que funciona en la mayoría de campos de texto.",
       steps: [
@@ -163,7 +163,7 @@ export const es: SeoContent = {
     },
     "key-remapper": {
       kw: "Reasignar teclas",
-      title: "Reasignar teclas en Windows: cambia cualquier tecla | AutoFlow",
+      title: "Reasignar teclas en Windows: cualquier tecla | AutoFlow",
       description: "Reasigna cualquier tecla a otra tecla, texto, app, tecla multimedia o flujo. Capas, perfiles por app y detección de conflictos con Keyforge. Gratis.",
       h1: "Reasigna cualquier tecla en Windows con Keyforge",
       intro: "Keyforge, la herramienta de reasignación de AutoFlow, convierte cualquier tecla en otra tecla, un fragmento de texto, un lanzador de apps, una tecla multimedia o un flujo completo, y cambia de perfil automáticamente según la app, la hora o el dispositivo.",
@@ -208,7 +208,7 @@ export const es: SeoContent = {
     "text-expander": {
       kw: "Expansor de texto",
       title: "Expansor de texto gratis para Windows | AutoFlow",
-      description: "Escribe una abreviatura corta y obtén una frase completa, una firma, una dirección o la fecha de hoy. Expansión de texto con Keyforge, gratis para uso personal.",
+      description: "Escribe una abreviatura y obtén una frase completa, una firma, una dirección o la fecha de hoy. Expansión de texto con Keyforge, gratis para uso personal.",
       h1: "Expansión de texto: escribe menos, di más",
       intro: "Un expansor de texto sustituye un disparador corto como ;firma por una firma completa, una dirección o una respuesta. Keyforge lo hace en todo el sistema y puede insertar fechas y otros valores dinámicos.",
       steps: [
@@ -230,7 +230,7 @@ export const es: SeoContent = {
     "android-auto-tapper": {
       kw: "Toques automáticos en Android",
       title: "Clic automático en Android sin root | AutoFlow",
-      description: "Toques automáticos en Android sin root: toques en uno o varios puntos, pulsación larga e intervalos, con botón flotante de parada. Gratis para uso personal.",
+      description: "Toques automáticos en Android sin root: uno o varios puntos, pulsación larga e intervalos, con botón flotante de parada. Gratis para uso personal.",
       h1: "Toques automáticos en Android, sin necesidad de root",
       intro: "AutoFlow para Android toca la pantalla por ti a través del servicio de Accesibilidad de Android: sin root y sin conectar el PC. Las posiciones se guardan como porcentajes de la pantalla, así que un flujo funciona en distintos teléfonos.",
       steps: [
@@ -296,7 +296,7 @@ export const es: SeoContent = {
     "click-on-image": {
       kw: "Clic en imagen",
       title: "Buscar una imagen en pantalla y hacer clic | AutoFlow",
-      description: "Clics por reconocimiento de imagen: AutoFlow encuentra un botón o icono en pantalla y hace clic, aunque la ventana se mueva. Sin código, gratis para uso personal.",
+      description: "Clic por reconocimiento de imagen: AutoFlow encuentra un botón o icono en pantalla y hace clic, aunque la ventana se mueva. Sin código y gratis.",
       h1: "Encuentra una imagen en pantalla y haz clic en ella",
       intro: "Las coordenadas fijas fallan cuando una ventana se mueve. La búsqueda de imágenes encuentra un botón o icono en pantalla y hace clic donde realmente está, con una tolerancia ajustable.",
       steps: [
@@ -362,7 +362,7 @@ export const es: SeoContent = {
     "form-filling": {
       kw: "Rellenar formularios",
       title: "Rellenar formularios automáticamente | AutoFlow",
-      description: "Rellena formularios automáticamente: recorre campos con Tab, escribe valores de variables o de una lista y envía, en apps y navegadores. Gratis para uso personal.",
+      description: "Rellena formularios automáticamente: recorre campos con Tab, escribe valores de variables o de una lista y envía, en apps y navegadores. Gratis.",
       h1: "Rellena formularios automáticamente",
       intro: "Rellenar el mismo formulario una y otra vez es un trabajo perfecto para la automatización. AutoFlow recorre los campos con Tab, escribe los valores y pulsa enviar, tanto en navegadores como en programas de escritorio.",
       steps: [
@@ -384,7 +384,7 @@ export const es: SeoContent = {
     "data-entry": {
       kw: "Automatizar entrada de datos",
       title: "Automatizar la entrada de datos sin código | AutoFlow",
-      description: "Automatiza la entrada de datos repetitiva entre apps: copia, pega, escribe y haz clic registro a registro con bucles y comprobaciones. Gratis para uso personal.",
+      description: "Automatiza la entrada de datos repetitiva entre apps: copia, pega, escribe y haz clic registro a registro con bucles y comprobaciones. Gratis.",
       h1: "Automatiza la entrada de datos repetitiva",
       intro: "Copiar valores de un programa a otro es lento y propenso a errores. AutoFlow recorre los registros con bucles, el portapapeles y la escritura de texto, y comprueba cada paso para que los errores detengan la ejecución.",
       steps: [
@@ -428,7 +428,7 @@ export const es: SeoContent = {
     "idle-game-auto-tap": {
       kw: "Juegos idle y clicker",
       title: "Autoclicker para juegos idle y clicker | AutoFlow",
-      description: "Automatiza toques y clics en juegos idle y clicker con comprobaciones de imagen y color, en un segundo monitor o en Android. Se aplican normas de juego limpio.",
+      description: "Automatiza toques y clics en juegos idle y clicker con comprobaciones de imagen y color, en un segundo monitor o en Android. Con juego limpio.",
       h1: "Clic automático para juegos idle y clicker",
       intro: "Los juegos idle y clicker se basan en la repetición. AutoFlow puede tocar, recoger recompensas y reaccionar a pantallas sin dejar de jugar limpio: solo hace clic como lo harías tú y nunca toca la memoria del juego.",
       steps: [
@@ -449,7 +449,7 @@ export const es: SeoContent = {
     },
     "multi-monitor-automation": {
       kw: "Automatización multimonitor",
-      title: "Automatiza en un segundo monitor mientras trabajas | AutoFlow",
+      title: "Automatiza en otro monitor mientras trabajas | AutoFlow",
       description: "Ejecuta un flujo en un monitor mientras usas otro. Stage mapea tus monitores, se pausa cuando tocas el ratón y nunca hace clic en la pantalla equivocada.",
       h1: "Automatiza en un monitor y trabaja en el otro",
       intro: "Stage permite que un flujo se ejecute en un monitor mientras AutoFlow permanece en otro. Eliges el escenario en un mapa a escala, sigues un HUD en directo y la ejecución se pausa en cuanto retomas el ratón.",
@@ -515,8 +515,8 @@ export const es: SeoContent = {
     },
     "clipboard-automation": {
       kw: "Automatizar el portapapeles",
-      title: "Portapapeles automático: copiar, transformar, pegar | AutoFlow",
-      description: "Copia texto, límpialo o cambia su formato con expresiones y pégalo en otro sitio automáticamente. Pasos de portapapeles para Windows, gratis para uso personal.",
+      title: "Portapapeles: copiar, transformar y pegar | AutoFlow",
+      description: "Copia texto, límpialo o cambia su formato con expresiones y pégalo en otro sitio automáticamente. Pasos de portapapeles para Windows, gratis.",
       h1: "Copia, transforma y pega automáticamente",
       intro: "Muchas tareas son en realidad “copia esto, cámbialo un poco y pégalo allí”. AutoFlow lee el portapapeles en una variable, lo transforma con expresiones sencillas y pega el resultado.",
       steps: [
@@ -560,7 +560,7 @@ export const es: SeoContent = {
     "no-code-rpa": {
       kw: "RPA sin código",
       title: "Automatización de escritorio sin código (RPA) | AutoFlow",
-      description: "Automatiza el trabajo de escritorio sin código: flujos visuales con condiciones, bucles, variables, archivos, HTTP, OCR y búsqueda de imágenes, con registro completo.",
+      description: "Automatiza el escritorio sin código: flujos visuales con condiciones, bucles, variables, archivos, HTTP, OCR y búsqueda de imágenes, con registro completo.",
       h1: "Automatización de escritorio sin código para el día a día",
       intro: "La automatización robótica de procesos no tiene por qué ser un proyecto empresarial. AutoFlow te ofrece 34 tipos de pasos —condiciones, bucles, variables, archivos, HTTP, OCR y búsqueda de imágenes— en un editor visual, con un registro de cada ejecución.",
       steps: [
@@ -582,7 +582,7 @@ export const es: SeoContent = {
   },
   alts: {
     "op-auto-clicker": {
-      title: "Alternativa a OP Auto Clicker, gratis y con Android | AutoFlow",
+      title: "Alternativa gratis a OP Auto Clicker | AutoFlow",
       description: "¿Buscas una alternativa a OP Auto Clicker? AutoFlow también hace clic a intervalos fijos y añade objetivos de imagen, grabación, atajos y app para Android.",
       h1: "Una alternativa a OP Auto Clicker que va más allá de los clics",
       intro: "OP Auto Clicker es un popular autoclicker gratuito para Windows que repite clics a un intervalo fijo. Si quieres el mismo autoclicker sencillo más objetivos de imagen, grabación, programaciones y una app equivalente para Android, AutoFlow lo cubre.",
@@ -598,7 +598,7 @@ export const es: SeoContent = {
       ],
     },
     "gs-auto-clicker": {
-      title: "Alternativa a GS Auto Clicker para Windows y Android | AutoFlow",
+      title: "Alternativa a GS Auto Clicker: Windows y Android | AutoFlow",
       description: "¿Quieres una alternativa a GS Auto Clicker? AutoFlow repite clics con un atajo y añade clics en varios puntos, grabación y app para Android. Gratis.",
       h1: "Una alternativa a GS Auto Clicker para Windows y Android",
       intro: "GS Auto Clicker es una herramienta ligera para Windows que repite clics del ratón con un atajo. AutoFlow hace lo mismo y añade secuencias de varios puntos, objetivos de imagen y color, grabación y una versión para Android.",
@@ -614,8 +614,8 @@ export const es: SeoContent = {
       ],
     },
     "speed-autoclicker": {
-      title: "Alternativa a Speed AutoClicker, controlada y segura | AutoFlow",
-      description: "¿Necesitas una alternativa a Speed AutoClicker? AutoFlow hace clic desde 50 ms con variación, límites y Halt instantáneo, más objetivos de imagen y Android.",
+      title: "Alternativa a Speed AutoClicker, segura | AutoFlow",
+      description: "¿Buscas una alternativa a Speed AutoClicker? AutoFlow hace clic desde 50 ms con variación, límites y Halt instantáneo, más objetivos de imagen y Android.",
       h1: "Una alternativa a Speed AutoClicker centrada en el control",
       intro: "Speed AutoClicker es conocido por sus velocidades de clic muy altas en Windows. AutoFlow adopta un enfoque más controlado: intervalos desde 50 ms, aleatorización, límites de ejecución y parada instantánea, con objetivos de imagen y una app para Android.",
       points: [
@@ -662,7 +662,7 @@ export const es: SeoContent = {
       ],
     },
     autoit: {
-      title: "Alternativa a AutoIt: automatización visual en Windows | AutoFlow",
+      title: "Alternativa a AutoIt: automatización visual | AutoFlow",
       description: "Alternativa a AutoIt con editor visual: automatiza apps de Windows con clics, teclas, ventanas, archivos y condiciones, sin scripts tipo BASIC.",
       h1: "Una alternativa a AutoIt con editor visual",
       intro: "AutoIt es un lenguaje de scripts similar a BASIC para automatizar la interfaz gráfica de Windows. AutoFlow se orienta a las mismas tareas de escritorio cotidianas con un editor visual, un grabador y comprobaciones de seguridad en lugar de scripts.",
@@ -759,7 +759,7 @@ export const es: SeoContent = {
     },
     uipath: {
       title: "Alternativa a UiPath para uso personal y equipos | AutoFlow",
-      description: "¿Necesitas algo más sencillo que UiPath? AutoFlow automatiza tareas de escritorio con editor visual, grabador y búsqueda de imágenes. Gratis para uso personal.",
+      description: "¿Algo más sencillo que UiPath? AutoFlow automatiza tareas de escritorio con editor visual, grabador y búsqueda de imágenes. Gratis para uso personal.",
       h1: "Una alternativa más sencilla a UiPath para tareas personales",
       intro: "UiPath es una plataforma de automatización empresarial. Si solo necesitas automatizar tu propio trabajo de escritorio, AutoFlow ofrece un editor visual, un grabador, búsqueda de imágenes, OCR y programaciones sin montar una plataforma.",
       points: [
@@ -822,7 +822,7 @@ export const es: SeoContent = {
       ],
     },
     textexpander: {
-      title: "Alternativa a TextExpander gratis para uso personal | AutoFlow",
+      title: "Alternativa gratis a TextExpander | AutoFlow",
       description: "Alternativa a TextExpander para Windows: fragmentos con fechas y valores dinámicos en cualquier app, más reasignación de teclas y macros. Gratis.",
       h1: "Una alternativa a TextExpander para Windows",
       intro: "TextExpander es un servicio de suscripción para fragmentos de texto en varios dispositivos. Keyforge de AutoFlow expande fragmentos en todo el sistema en Windows, gratis para uso personal, y los combina con reasignación de teclas y macros.",
@@ -854,8 +854,8 @@ export const es: SeoContent = {
       ],
     },
     macrodroid: {
-      title: "Alternativa a MacroDroid con automatización en pantalla | AutoFlow",
-      description: "Alternativa a MacroDroid centrada en la automatización en pantalla: toques, deslizamientos y comprobaciones de imagen y texto en Android, y los mismos flujos en Windows.",
+      title: "Alternativa a MacroDroid: automatiza la pantalla | AutoFlow",
+      description: "Alternativa a MacroDroid centrada en la pantalla: toques, deslizamientos y comprobaciones de imagen y texto en Android, con los mismos flujos en Windows.",
       h1: "Una alternativa a MacroDroid para automatizar en pantalla",
       intro: "MacroDroid es una conocida app para Android basada en disparadores, acciones y restricciones. AutoFlow se centra en lo que ocurre en pantalla —toques, deslizamientos y lectura de texto— y comparte flujos con su app para Windows.",
       points: [
@@ -902,7 +902,7 @@ export const es: SeoContent = {
       ],
     },
     uwsc: {
-      title: "Alternativa a UWSC: automatización visual en Windows | AutoFlow",
+      title: "Alternativa a UWSC: automatización visual | AutoFlow",
       description: "Alternativa a UWSC: automatiza tareas de Windows con editor visual, grabador, búsqueda de imágenes y OCR, disponible en japonés. Gratis para uso personal.",
       h1: "Una alternativa a UWSC con editor visual",
       intro: "UWSC es una herramienta de scripts de automatización para Windows muy usada en Japón durante años. AutoFlow automatiza el mismo tipo de tareas de escritorio con un editor visual, un grabador, búsqueda de imágenes y OCR, con interfaz completa en japonés.",

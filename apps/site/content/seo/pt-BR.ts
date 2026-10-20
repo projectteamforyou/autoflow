@@ -5,7 +5,7 @@ export const ptBR: SeoContent = {
     guides: {
       nav: "Guias",
       title: "Guias de automação: auto clicker e macros | AutoFlow",
-      description: "Guias passo a passo de clique automático, macros de mouse e teclado, remapear teclas, toques automáticos no Android e mais com o AutoFlow, grátis para uso pessoal.",
+      description: "Guias passo a passo de clique automático, macros de mouse e teclado, remapear teclas, toques automáticos no Android e mais com o AutoFlow. Grátis.",
       h1: "Guias de automação",
       lead: "Escolha a tarefa que você não quer mais fazer na mão. Cada guia mostra como configurá-la no AutoFlow no Windows, no Android ou na web, com dicas para fazer isso com segurança.",
     },
@@ -54,7 +54,7 @@ export const ptBR: SeoContent = {
     "auto-clicker": {
       kw: "Auto clicker",
       title: "Auto clicker grátis para Windows e Android | AutoFlow",
-      description: "Configure um auto clicker em segundos: escolha um ponto, defina o intervalo a partir de 50 ms e repita por quantidade, tempo ou até parar. Grátis para uso pessoal.",
+      description: "Configure um auto clicker em segundos: escolha um ponto, intervalo a partir de 50 ms e repita por quantidade, tempo ou até parar. Grátis para uso pessoal.",
       h1: "Auto clicker grátis para Windows e Android",
       intro: "Um auto clicker repete um clique do mouse ou um toque na tela por você. No AutoFlow você responde quatro perguntas — o quê, onde, com que velocidade e quantas vezes — e o clique automático está pronto, com um atalho para iniciar e o Halt para parar na hora.",
       steps: [
@@ -274,7 +274,7 @@ export const ptBR: SeoContent = {
     "scheduled-clicks": {
       kw: "Cliques agendados",
       title: "Agendar cliques e tarefas em um horário | AutoFlow",
-      description: "Execute cliques, teclas ou fluxos inteiros em um horário específico, todo dia ou quando um app abrir. Agendamento no Windows e Android, grátis para uso pessoal.",
+      description: "Execute cliques, teclas ou fluxos inteiros em um horário específico, todo dia ou quando um app abrir. Agendamento no Windows e Android, grátis.",
       h1: "Agende cliques e tarefas para um horário definido",
       intro: "Alguns cliques precisam acontecer em um horário específico — um check-in diário, a exportação de um relatório, um lembrete. O AutoFlow aciona fluxos por agendamento, ao iniciar um app ou, no Android, quando começa a carregar.",
       steps: [
@@ -296,7 +296,7 @@ export const ptBR: SeoContent = {
     "click-on-image": {
       kw: "Clicar em imagem",
       title: "Encontrar uma imagem na tela e clicar | AutoFlow",
-      description: "Cliques por reconhecimento de imagem: o AutoFlow encontra um botão ou ícone na tela e clica, mesmo se a janela se mover. Sem código, grátis para uso pessoal.",
+      description: "Clique por reconhecimento de imagem: o AutoFlow encontra um botão ou ícone na tela e clica, mesmo se a janela se mover. Sem código e grátis.",
       h1: "Encontre uma imagem na tela e clique nela",
       intro: "Coordenadas fixas quebram quando uma janela se move. A busca de imagem encontra um botão ou ícone na tela e clica onde ele realmente está, com uma tolerância ajustável.",
       steps: [
@@ -449,7 +449,7 @@ export const ptBR: SeoContent = {
     },
     "multi-monitor-automation": {
       kw: "Automação em vários monitores",
-      title: "Automatize em um segundo monitor enquanto trabalha | AutoFlow",
+      title: "Automatize em outro monitor enquanto trabalha | AutoFlow",
       description: "Rode um fluxo em um monitor enquanto usa outro. O Stage mapeia seus monitores, pausa quando você mexe no mouse e nunca clica na tela errada.",
       h1: "Automatize em um monitor, trabalhe no outro",
       intro: "O Stage deixa um fluxo rodar em um monitor enquanto o AutoFlow fica em outro. Você escolhe o palco em um mapa em escala, acompanha um HUD ao vivo, e a execução pausa no instante em que você assume o mouse.",
@@ -538,7 +538,7 @@ export const ptBR: SeoContent = {
     "repeat-keypress": {
       kw: "Repetir tecla",
       title: "Repetir o pressionamento de uma tecla | AutoFlow",
-      description: "Pressione uma tecla várias vezes em um intervalo definido, ou use os modos segurar para repetir e alternar do Keyforge. Inicie e pare com um atalho. Grátis.",
+      description: "Pressione uma tecla várias vezes em um intervalo definido, ou use os modos segurar para repetir e alternar do Keyforge. Inicie e pare por atalho.",
       h1: "Repita o pressionamento de uma tecla automaticamente",
       intro: "Algumas tarefas exigem pressionar uma tecla várias e várias vezes. O AutoFlow repete qualquer tecla no intervalo que você escolher, e o Keyforge acrescenta os modos repetir enquanto pressionada e alternar.",
       steps: [
@@ -582,7 +582,7 @@ export const ptBR: SeoContent = {
   },
   alts: {
     "op-auto-clicker": {
-      title: "Alternativa ao OP Auto Clicker, grátis e com Android | AutoFlow",
+      title: "Alternativa grátis ao OP Auto Clicker | AutoFlow",
       description: "Procurando uma alternativa ao OP Auto Clicker? O AutoFlow também clica em intervalos definidos e traz alvos de imagem, gravação, atalhos e app Android.",
       h1: "Uma alternativa ao OP Auto Clicker que vai além dos cliques",
       intro: "O OP Auto Clicker é um auto clicker gratuito e popular para Windows que repete cliques em um intervalo definido. Se você quer o mesmo auto clicker simples, mais alvos de imagem, gravação, agendamentos e um app equivalente para Android, o AutoFlow atende.",
@@ -598,7 +598,7 @@ export const ptBR: SeoContent = {
       ],
     },
     "gs-auto-clicker": {
-      title: "Alternativa ao GS Auto Clicker para Windows e Android | AutoFlow",
+      title: "Alternativa ao GS Auto Clicker: Windows e Android | AutoFlow",
       description: "Quer uma alternativa ao GS Auto Clicker? O AutoFlow repete cliques com um atalho e traz cliques em vários pontos, gravação e app Android. Grátis.",
       h1: "Uma alternativa ao GS Auto Clicker para Windows e Android",
       intro: "O GS Auto Clicker é uma ferramenta leve para Windows que repete cliques do mouse com um atalho. O AutoFlow faz o mesmo e acrescenta sequências de vários pontos, alvos de imagem e cor, gravação e uma versão para Android.",
@@ -614,8 +614,8 @@ export const ptBR: SeoContent = {
       ],
     },
     "speed-autoclicker": {
-      title: "Alternativa ao Speed AutoClicker, controlada e segura | AutoFlow",
-      description: "Precisa de uma alternativa ao Speed AutoClicker? O AutoFlow clica a partir de 50 ms com variação, limites e Halt instantâneo, mais alvos de imagem e Android.",
+      title: "Alternativa ao Speed AutoClicker, segura | AutoFlow",
+      description: "Quer uma alternativa ao Speed AutoClicker? O AutoFlow clica a partir de 50 ms com variação, limites e Halt instantâneo, mais alvos de imagem e Android.",
       h1: "Uma alternativa ao Speed AutoClicker com foco em controle",
       intro: "O Speed AutoClicker é conhecido por taxas de clique muito altas no Windows. O AutoFlow adota uma abordagem mais controlada: intervalos a partir de 50 ms, aleatorização, limites de execução e parada instantânea, com alvos de imagem e um app para Android.",
       points: [
@@ -662,7 +662,7 @@ export const ptBR: SeoContent = {
       ],
     },
     autoit: {
-      title: "Alternativa ao AutoIt: automação visual no Windows | AutoFlow",
+      title: "Alternativa ao AutoIt: automação visual | AutoFlow",
       description: "Alternativa ao AutoIt com editor visual: automatize apps do Windows com cliques, teclas, janelas, arquivos e condições, sem scripts no estilo BASIC.",
       h1: "Uma alternativa ao AutoIt com editor visual",
       intro: "O AutoIt é uma linguagem de script parecida com BASIC para automatizar a interface gráfica do Windows. O AutoFlow mira as mesmas tarefas de desktop do dia a dia com um editor visual, um gravador e verificações de segurança em vez de scripts.",
@@ -822,7 +822,7 @@ export const ptBR: SeoContent = {
       ],
     },
     textexpander: {
-      title: "Alternativa ao TextExpander grátis para uso pessoal | AutoFlow",
+      title: "Alternativa grátis ao TextExpander | AutoFlow",
       description: "Alternativa ao TextExpander para Windows: trechos com datas e valores dinâmicos em qualquer lugar, mais remapeamento de teclas e macros. Grátis.",
       h1: "Uma alternativa ao TextExpander para Windows",
       intro: "O TextExpander é um serviço por assinatura para trechos de texto em vários dispositivos. O Keyforge do AutoFlow expande trechos em todo o sistema no Windows, grátis para uso pessoal, e os combina com remapeamento e macros.",
@@ -838,7 +838,7 @@ export const ptBR: SeoContent = {
       ],
     },
     tasker: {
-      title: "Alternativa ao Tasker: automação Android mais fácil | AutoFlow",
+      title: "Alternativa ao Tasker: automação Android fácil | AutoFlow",
       description: "Procurando uma alternativa mais fácil ao Tasker? O AutoFlow automatiza toques, deslizes e rotinas no Android com editor visual e botão flutuante de parada.",
       h1: "Uma alternativa mais fácil ao Tasker para toques e rotinas",
       intro: "O Tasker é um app de automação para Android poderoso e de longa data, com gatilhos profundos do sistema. Se seu objetivo principal é automatizar toques, deslizes e rotinas simples com menos configuração, o AutoFlow é uma opção mais leve.",
