@@ -5,7 +5,7 @@ export const es: SeoContent = {
     guides: {
       nav: "Guías",
       title: "Guías de automatización: autoclicker y macros | AutoFlow",
-      description: "Guías paso a paso de clic automático, macros de ratón y teclado, reasignar teclas, toques automáticos en Android y más con AutoFlow. Gratis.",
+      description: "Guías paso a paso de clic automático, macros de ratón y teclado, reasignar teclas, toques automáticos en Android y más con AutoFlow. Gratis para uso personal.",
       h1: "Guías de automatización",
       lead: "Elige la tarea que ya no quieres hacer a mano. Cada guía muestra cómo configurarla en AutoFlow en Windows, Android o la web, con consejos para hacerlo de forma segura.",
     },
@@ -142,7 +142,7 @@ export const es: SeoContent = {
     "auto-typer": {
       kw: "Escritura automática",
       title: "Escritura automática de texto con un atajo | AutoFlow",
-      description: "Escribe texto automáticamente con un atajo o una programación: mensajes, plantillas y listas línea a línea, con pausas entre teclas. Gratis.",
+      description: "Escribe texto automáticamente con un atajo o una programación: mensajes, plantillas y listas línea a línea, con pausas entre teclas. Gratis para uso personal.",
       h1: "Escritura automática: deja que AutoFlow escriba por ti",
       intro: "Un escritor automático introduce texto por ti: un mensaje fijo, una plantilla con variables o una lista línea a línea. AutoFlow escribe mediante la entrada normal del teclado, así que funciona en la mayoría de campos de texto.",
       steps: [
@@ -164,7 +164,7 @@ export const es: SeoContent = {
     "key-remapper": {
       kw: "Reasignar teclas",
       title: "Reasignar teclas en Windows: cualquier tecla | AutoFlow",
-      description: "Reasigna cualquier tecla a otra tecla, texto, app, tecla multimedia o flujo. Capas, perfiles por app y detección de conflictos con Keyforge. Gratis.",
+      description: "Reasigna cualquier tecla a otra tecla, texto, app, tecla multimedia o flujo. Capas, perfiles por app y detección de conflictos con Keyforge. Gratis para uso personal.",
       h1: "Reasigna cualquier tecla en Windows con Keyforge",
       intro: "Keyforge, la herramienta de reasignación de AutoFlow, convierte cualquier tecla en otra tecla, un fragmento de texto, un lanzador de apps, una tecla multimedia o un flujo completo, y cambia de perfil automáticamente según la app, la hora o el dispositivo.",
       steps: [
@@ -318,7 +318,7 @@ export const es: SeoContent = {
     "click-on-color": {
       kw: "Clic por color de píxel",
       title: "Hacer clic cuando un píxel cambia de color | AutoFlow",
-      description: "Espera a que un píxel o botón cambie a un color y luego haz clic o pulsa una tecla. Comprobación de color con tolerancia y tiempo límite. Gratis.",
+      description: "Espera a que un píxel o botón cambie a un color y luego haz clic o pulsa una tecla. Comprobación de color con tolerancia y tiempo límite. Gratis para uso personal.",
       h1: "Haz clic cuando un píxel cambie a cierto color",
       intro: "Muchas tareas empiezan cuando algo cambia de color: un botón se activa, una barra se llena. AutoFlow comprueba un píxel con una tolerancia y un tiempo límite, y luego continúa.",
       steps: [
@@ -362,7 +362,7 @@ export const es: SeoContent = {
     "form-filling": {
       kw: "Rellenar formularios",
       title: "Rellenar formularios automáticamente | AutoFlow",
-      description: "Rellena formularios automáticamente: recorre campos con Tab, escribe valores de variables o de una lista y envía, en apps y navegadores. Gratis.",
+      description: "Rellena formularios automáticamente: recorre campos con Tab, escribe valores de variables o de una lista y envía, en apps y navegadores. Gratis para uso personal.",
       h1: "Rellena formularios automáticamente",
       intro: "Rellenar el mismo formulario una y otra vez es un trabajo perfecto para la automatización. AutoFlow recorre los campos con Tab, escribe los valores y pulsa enviar, tanto en navegadores como en programas de escritorio.",
       steps: [
@@ -384,7 +384,7 @@ export const es: SeoContent = {
     "data-entry": {
       kw: "Automatizar entrada de datos",
       title: "Automatizar la entrada de datos sin código | AutoFlow",
-      description: "Automatiza la entrada de datos repetitiva entre apps: copia, pega, escribe y haz clic registro a registro con bucles y comprobaciones. Gratis.",
+      description: "Automatiza la entrada de datos repetitiva entre apps: copia, pega, escribe y haz clic registro a registro con bucles y comprobaciones. Gratis para uso personal.",
       h1: "Automatiza la entrada de datos repetitiva",
       intro: "Copiar valores de un programa a otro es lento y propenso a errores. AutoFlow recorre los registros con bucles, el portapapeles y la escritura de texto, y comprueba cada paso para que los errores detengan la ejecución.",
       steps: [
@@ -538,7 +538,7 @@ export const es: SeoContent = {
     "repeat-keypress": {
       kw: "Repetir pulsación de tecla",
       title: "Repetir una pulsación de tecla automáticamente | AutoFlow",
-      description: "Pulsa una tecla una y otra vez a un intervalo fijo, o usa los modos mantener para repetir y alternar de Keyforge. Inicia y detén con un atajo. Gratis.",
+      description: "Pulsa una tecla una y otra vez a un intervalo fijo, o usa los modos mantener para repetir y alternar de Keyforge. Inicia y detén con un atajo. Gratis para uso personal.",
       h1: "Repite una pulsación de tecla automáticamente",
       intro: "Algunas tareas necesitan pulsar una tecla una y otra vez. AutoFlow repite cualquier tecla al intervalo que elijas, y Keyforge añade los modos repetir mientras se mantiene y alternar.",
       steps: [
@@ -599,7 +599,7 @@ export const es: SeoContent = {
     },
     "gs-auto-clicker": {
       title: "Alternativa a GS Auto Clicker: Windows y Android | AutoFlow",
-      description: "¿Quieres una alternativa a GS Auto Clicker? AutoFlow repite clics con un atajo y añade clics en varios puntos, grabación y app para Android. Gratis.",
+      description: "¿Quieres una alternativa a GS Auto Clicker? AutoFlow repite clics con un atajo y añade clics en varios puntos, grabación y app para Android. Gratis para uso personal.",
       h1: "Una alternativa a GS Auto Clicker para Windows y Android",
       intro: "GS Auto Clicker es una herramienta ligera para Windows que repite clics del ratón con un atajo. AutoFlow hace lo mismo y añade secuencias de varios puntos, objetivos de imagen y color, grabación y una versión para Android.",
       points: [
@@ -823,7 +823,7 @@ export const es: SeoContent = {
     },
     textexpander: {
       title: "Alternativa gratis a TextExpander | AutoFlow",
-      description: "Alternativa a TextExpander para Windows: fragmentos con fechas y valores dinámicos en cualquier app, más reasignación de teclas y macros. Gratis.",
+      description: "Alternativa a TextExpander para Windows: fragmentos con fechas y valores dinámicos en cualquier app, más reasignación de teclas y macros. Gratis para uso personal.",
       h1: "Una alternativa a TextExpander para Windows",
       intro: "TextExpander es un servicio de suscripción para fragmentos de texto en varios dispositivos. Keyforge de AutoFlow expande fragmentos en todo el sistema en Windows, gratis para uso personal, y los combina con reasignación de teclas y macros.",
       points: [

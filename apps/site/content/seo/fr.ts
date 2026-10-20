@@ -362,7 +362,7 @@ export const fr: SeoContent = {
     "form-filling": {
       kw: "Remplissage de formulaires",
       title: "Remplir des formulaires automatiquement | AutoFlow",
-      description: "Remplissez des formulaires automatiquement : champ par champ, valeurs de variables ou de listes, puis envoi, dans apps et navigateurs. Gratuit.",
+      description: "Remplissez des formulaires automatiquement : champ par champ, valeurs de variables ou de listes, puis envoi, dans apps et navigateurs. Gratuit en usage personnel.",
       h1: "Remplissez des formulaires automatiquement",
       intro: "Remplir encore et encore le même formulaire est un travail idéal pour l’automatisation. AutoFlow passe d’un champ à l’autre, saisit les valeurs et clique sur Envoyer — dans les navigateurs comme dans les logiciels de bureau.",
       steps: [
@@ -384,7 +384,7 @@ export const fr: SeoContent = {
     "data-entry": {
       kw: "Automatiser la saisie de données",
       title: "Automatiser la saisie de données sans code | AutoFlow",
-      description: "Automatisez la saisie répétitive entre applications : copier, coller, taper et cliquer d’une fiche à l’autre, avec boucles et contrôles. Gratuit.",
+      description: "Automatisez la saisie répétitive entre applications : copier, coller, taper et cliquer d’une fiche à l’autre, avec boucles et contrôles. Gratuit en usage personnel.",
       h1: "Automatisez la saisie de données répétitive",
       intro: "Recopier des valeurs d’un programme à un autre est lent et source d’erreurs. AutoFlow parcourt les enregistrements avec des boucles, le presse-papiers et la saisie de texte, et vérifie chaque étape pour que les erreurs arrêtent l’exécution.",
       steps: [
@@ -599,7 +599,7 @@ export const fr: SeoContent = {
     },
     "gs-auto-clicker": {
       title: "Alternative à GS Auto Clicker, Windows et Android | AutoFlow",
-      description: "Alternative à GS Auto Clicker : AutoFlow répète les clics par raccourci et ajoute clics multipoints, enregistrement et une app Android. Gratuit.",
+      description: "Alternative à GS Auto Clicker : AutoFlow répète les clics par raccourci et ajoute clics multipoints, enregistrement et une app Android. Gratuit en usage personnel.",
       h1: "Une alternative à GS Auto Clicker pour Windows et Android",
       intro: "GS Auto Clicker est un outil Windows léger pour répéter des clics de souris avec un raccourci. AutoFlow fait le même travail et ajoute des séquences multipoints, des cibles image et couleur, l’enregistrement et une version Android.",
       points: [
@@ -679,7 +679,7 @@ export const fr: SeoContent = {
     },
     tinytask: {
       title: "Alternative à TinyTask, enregistrement modifiable | AutoFlow",
-      description: "Alternative à TinyTask : enregistrez souris et clavier, modifiez chaque étape, ajoutez boucles, cibles image et raccourcis. Gratuit, avec Android.",
+      description: "Alternative à TinyTask : enregistrez souris et clavier, modifiez chaque étape, ajoutez boucles, cibles image et raccourcis. Gratuit en usage personnel.",
       h1: "Une alternative à TinyTask où les enregistrements se modifient",
       intro: "TinyTask est un enregistreur Windows réputé pour sa petite taille, qui rejoue ce que vous avez fait. AutoFlow enregistre aussi, mais transforme l’enregistrement en étapes modifiables : vous corrigez un clic au lieu de tout réenregistrer.",
       points: [
@@ -695,7 +695,7 @@ export const fr: SeoContent = {
     },
     "jitbit-macro-recorder": {
       title: "Alternative à Jitbit Macro Recorder, gratuite | AutoFlow",
-      description: "Alternative à Jitbit Macro Recorder : enregistrez, modifiez et rejouez des macros avec conditions, recherche d’image et planifications. Gratuit.",
+      description: "Alternative à Jitbit Macro Recorder : enregistrez, modifiez et rejouez des macros avec conditions, recherche d’image et planifications. Gratuit en usage personnel.",
       h1: "Une alternative à Jitbit Macro Recorder, gratuite à titre personnel",
       intro: "Jitbit Macro Recorder est un outil Windows payant pour enregistrer et modifier des macros. AutoFlow propose aussi l’enregistrement et un éditeur d’étapes, gratuitement pour un usage personnel, avec une licence Business pour le travail.",
       points: [

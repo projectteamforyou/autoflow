@@ -11,7 +11,7 @@ export const vi: SeoContent = {
     },
     alternatives: {
       nav: "Phần mềm thay thế",
-      title: "AutoFlow — lựa chọn thay thế các công cụ tự động hóa phổ biến",
+      title: "AutoFlow — thay thế các công cụ tự động hóa phổ biến",
       description: "Đang dùng auto click, phần mềm ghi macro, đổi phím hay ứng dụng tự động hóa Android? Xem AutoFlow làm cùng việc đó ra sao, miễn phí cho cá nhân.",
       h1: "Bạn đang tìm phần mềm thay thế?",
       lead: "Người dùng đến với AutoFlow từ auto click, phần mềm ghi macro, công cụ viết script, phần mềm đổi phím và ứng dụng tự động hóa Android. Dưới đây là những gì AutoFlow mang lại cho từng nhóm.",
@@ -164,7 +164,7 @@ export const vi: SeoContent = {
     "key-remapper": {
       kw: "Đổi phím",
       title: "Phần mềm đổi phím cho Windows | AutoFlow",
-      description: "Đổi phím bất kỳ thành phím khác, văn bản, ứng dụng, phím media hoặc kịch bản. Layer, hồ sơ theo ứng dụng và kiểm tra xung đột với Keyforge. Miễn phí.",
+      description: "Đổi phím bất kỳ thành phím khác, văn bản, ứng dụng, phím media hoặc kịch bản. Layer, hồ sơ theo ứng dụng và kiểm tra xung đột với Keyforge. Miễn phí cho cá nhân.",
       h1: "Đổi chức năng phím bất kỳ trên Windows với Keyforge",
       intro: "Keyforge, công cụ đổi phím của AutoFlow, biến bất kỳ phím nào thành phím khác, đoạn văn bản, trình mở ứng dụng, phím media hoặc cả một kịch bản — và tự động chuyển hồ sơ theo ứng dụng, thời gian hoặc thiết bị.",
       steps: [
@@ -252,7 +252,7 @@ export const vi: SeoContent = {
     "auto-swipe": {
       kw: "Tự động vuốt",
       title: "Tự động vuốt & cuộn trên Android | AutoFlow",
-      description: "Tự động vuốt và cuộn trên Android — cho ứng dụng đọc truyện, bảng tin và danh sách — với cài đặt thời gian, hướng và số lần lặp. Miễn phí.",
+      description: "Tự động vuốt và cuộn trên Android — cho ứng dụng đọc truyện, bảng tin và danh sách — với cài đặt thời gian, hướng và số lần lặp. Miễn phí cho cá nhân.",
       h1: "Tự động vuốt và cuộn trên Android",
       intro: "Tự động vuốt giúp lật trang, cuộn bảng tin và lướt danh sách theo hẹn giờ. Bước vuốt của AutoFlow đặt hướng, khoảng cách và tốc độ, và bạn có thể dừng bằng một chạm.",
       steps: [
@@ -318,7 +318,7 @@ export const vi: SeoContent = {
     "click-on-color": {
       kw: "Click theo màu pixel",
       title: "Click khi pixel đổi màu | AutoFlow",
-      description: "Chờ một pixel hoặc nút chuyển sang màu nhất định, rồi click hoặc nhấn phím. Kiểm tra màu pixel với dung sai và giới hạn thời gian. Miễn phí.",
+      description: "Chờ một pixel hoặc nút chuyển sang màu nhất định, rồi click hoặc nhấn phím. Kiểm tra màu pixel với dung sai và giới hạn thời gian. Miễn phí cho cá nhân.",
       h1: "Click khi pixel chuyển sang màu nhất định",
       intro: "Nhiều tác vụ bắt đầu khi có thứ gì đó đổi màu — nút được kích hoạt, thanh tiến trình đầy. AutoFlow kiểm tra một pixel với độ dung sai và giới hạn thời gian, rồi tiếp tục.",
       steps: [
@@ -538,7 +538,7 @@ export const vi: SeoContent = {
     "repeat-keypress": {
       kw: "Lặp phím tự động",
       title: "Tự động nhấn phím lặp lại | AutoFlow",
-      description: "Nhấn một phím liên tục theo khoảng thời gian, hoặc dùng chế độ lặp khi giữ và bật/tắt với Keyforge. Bắt đầu và dừng bằng phím tắt. Miễn phí.",
+      description: "Nhấn một phím liên tục theo khoảng thời gian, hoặc dùng chế độ lặp khi giữ và bật/tắt với Keyforge. Bắt đầu và dừng bằng phím tắt. Miễn phí cho cá nhân.",
       h1: "Tự động nhấn phím lặp lại",
       intro: "Một số việc cần nhấn một phím liên tục. AutoFlow lặp bất kỳ phím nào theo khoảng thời gian bạn chọn, còn Keyforge thêm chế độ lặp khi giữ và bật/tắt.",
       steps: [
