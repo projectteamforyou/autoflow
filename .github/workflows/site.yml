@@ -102,7 +102,18 @@ jobs:
           name: site-dist
           path: dist
 
+      - name: Cloudflare credentials present?
+        id: cf
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -n "$CF_TOKEN" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"; else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Deploy skipped::CLOUDFLARE_API_TOKEN is not set for this repository; deploy the site manually (docs/HANDOFF.md)."
+          fi
+
       - name: Deploy to Cloudflare Pages
+        if: steps.cf.outputs.ok == 'true'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

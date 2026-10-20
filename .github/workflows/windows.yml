@@ -54,7 +54,7 @@ jobs:
         run: pnpm --filter @autoflow/web build
 
       - name: Check web build output
-        shell: pwsh
+        shell: powershell
         run: |
           if (-not (Test-Path apps/web/dist/index.html)) { throw "apps/web/dist/index.html is missing - the desktop app needs the web app build." }
 
@@ -69,13 +69,13 @@ jobs:
             & $init -y --default-toolchain stable --profile minimal
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
-          $cargoBin | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+          [IO.File]::AppendAllText($env:GITHUB_PATH, "$cargoBin`n")
           & (Join-Path $cargoBin 'rustup.exe') toolchain install stable --profile minimal --target x86_64-pc-windows-msvc
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Decide signing mode
         id: mode
-        shell: pwsh
+        shell: powershell
         env:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -86,17 +86,17 @@ jobs:
           $missing = @('AZURE_CLIENT_ID', 'AZURE_TENANT_ID', 'AZURE_CLIENT_SECRET', 'AZURE_SIGN_ACCOUNT', 'AZURE_SIGN_PROFILE') |
             Where-Object { -not [Environment]::GetEnvironmentVariable($_) }
           if ($missing.Count -eq 0) {
-            "signed=true" >> $env:GITHUB_OUTPUT
-            "label=signed" >> $env:GITHUB_OUTPUT
+            [IO.File]::AppendAllText($env:GITHUB_OUTPUT, "signed=true`n")
+            [IO.File]::AppendAllText($env:GITHUB_OUTPUT, "label=signed`n")
             Write-Host "Signing is configured: every binary and installer will be signed and verified."
           } else {
-            "signed=false" >> $env:GITHUB_OUTPUT
-            "label=UNSIGNED" >> $env:GITHUB_OUTPUT
+            [IO.File]::AppendAllText($env:GITHUB_OUTPUT, "signed=false`n")
+            [IO.File]::AppendAllText($env:GITHUB_OUTPUT, "label=UNSIGNED`n")
             Write-Host "::warning title=UNSIGNED build::Azure Artifact Signing is not configured (missing: $($missing -join ', ')). Artifacts will be labelled UNSIGNED. See docs/WINDOWS_SIGNING.md."
           }
 
       - name: Install signing tools (C:\afsign)
-        shell: pwsh
+        shell: powershell
         run: |
           if ('${{ steps.mode.outputs.signed }}' -eq 'true') {
             powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/sign.ps1 -Install
@@ -108,7 +108,7 @@ jobs:
 
       - name: App version from tag
         id: version
-        shell: pwsh
+        shell: powershell
         run: |
           $ref = '${{ github.ref_name }}'
           $cfg = Join-Path $env:RUNNER_TEMP 'tauri.version.json'
@@ -116,16 +116,16 @@ jobs:
           if ($inputVersion -match '^\d+\.\d+\.\d+$') { $ref = "v$inputVersion" }
           if ((('${{ github.ref_type }}' -eq 'tag') -or $inputVersion) -and $ref -match '^v(\d+\.\d+\.\d+)$') {
             '{"version":"' + $Matches[1] + '"}' | Set-Content -Encoding ascii $cfg
-            "args=--config `"$cfg`"" >> $env:GITHUB_OUTPUT
-            "version=$($Matches[1])" >> $env:GITHUB_OUTPUT
+            [IO.File]::AppendAllText($env:GITHUB_OUTPUT, "args=--config `"$cfg`"`n")
+            [IO.File]::AppendAllText($env:GITHUB_OUTPUT, "version=$($Matches[1])`n")
           } else {
-            "args=" >> $env:GITHUB_OUTPUT
-            "version=dev" >> $env:GITHUB_OUTPUT
+            [IO.File]::AppendAllText($env:GITHUB_OUTPUT, "args=`n")
+            [IO.File]::AppendAllText($env:GITHUB_OUTPUT, "version=dev`n")
           }
 
       - name: Build installers (tauri build)
         working-directory: apps/desktop
-        shell: pwsh
+        shell: powershell
         env:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -140,7 +140,7 @@ jobs:
 
       - name: Collect artifacts
         id: collect
-        shell: pwsh
+        shell: powershell
         run: |
           $out = New-Item -ItemType Directory -Force -Path dist
           $files = @(Get-Item target/release/autoflow-desktop.exe)
@@ -159,7 +159,7 @@ jobs:
         # tauri patches target/release/autoflow-desktop.exe with bundle-type info for each bundle after signing it,
         # which drops the signature on the copy we ship as the portable build — sign that copy again.
         if: steps.mode.outputs.signed == 'true'
-        shell: pwsh
+        shell: powershell
         env:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -175,7 +175,7 @@ jobs:
 
       - name: Signature verification gate
         if: steps.mode.outputs.signed == 'true'
-        shell: pwsh
+        shell: powershell
         run: |
           $kits = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin'
           $signtool = Get-ChildItem $kits -Directory | Where-Object Name -match '^10\.' | Sort-Object { [version]$_.Name } -Descending |
@@ -198,7 +198,7 @@ jobs:
 
       - name: Mark unsigned build
         if: steps.mode.outputs.signed != 'true'
-        shell: pwsh
+        shell: powershell
         run: |
           @"
           THIS BUILD IS UNSIGNED.
@@ -208,7 +208,7 @@ jobs:
           Write-Host "::warning title=UNSIGNED artifacts::The uploaded files are NOT code-signed and are labelled -UNSIGNED."
 
       - name: SHA256SUMS
-        shell: pwsh
+        shell: powershell
         run: |
           $lines = Get-ChildItem dist -File | Where-Object Name -ne 'SHA256SUMS.txt' | Sort-Object Name | ForEach-Object {
             "{0}  {1}" -f (Get-FileHash -Algorithm SHA256 $_.FullName).Hash.ToLowerInvariant(), $_.Name

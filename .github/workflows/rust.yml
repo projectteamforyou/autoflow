@@ -71,18 +71,18 @@ jobs:
             & $init -y --default-toolchain stable --profile minimal
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
-          $cargoBin | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+          [IO.File]::AppendAllText($env:GITHUB_PATH, "$cargoBin`n")
           & (Join-Path $cargoBin 'rustup.exe') toolchain install stable --profile minimal --component clippy --target x86_64-pc-windows-msvc
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Stub frontend for generate_context!
         # apps/web/dist is built by the web pipeline; the type check only needs an index.html.
-        shell: pwsh
+        shell: powershell
         run: |
           $stub = Join-Path $env:RUNNER_TEMP 'stub-dist'
           New-Item -ItemType Directory -Force -Path $stub | Out-Null
           '<!doctype html><title>stub</title>' | Set-Content -Encoding ascii (Join-Path $stub 'index.html')
           $cfg = @{ build = @{ frontendDist = $stub } } | ConvertTo-Json -Compress
-          "TAURI_CONFIG=$cfg" >> $env:GITHUB_ENV
+          [IO.File]::AppendAllText($env:GITHUB_ENV, "TAURI_CONFIG=$cfg`n")
       - name: cargo test (engine)
         # windows_smoke needs an interactive desktop (clipboard, screen, hotkeys): skipped on the service runners.
         shell: powershell
