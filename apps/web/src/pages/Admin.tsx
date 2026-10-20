@@ -67,7 +67,7 @@ export function AdminPage() {
         ) : !me?.isAdmin ? (
           <>
             <Empty icon="Shield" title={t("admin.forbidden")} />
-            {me && <ClaimCard onClaimed={setMe} />}
+            {me ? <ClaimCard onClaimed={setMe} /> : <SignInCard onSignedIn={setMe} />}
           </>
         ) : (
           <>
@@ -79,6 +79,35 @@ export function AdminPage() {
         )}
       </div>
     </Shell>
+  );
+}
+
+/** Sign in (or create the operator account) right here, so /admin works on a fresh browser. */
+function SignInCard({ onSignedIn }: { onSignedIn: (u: User) => void }) {
+  const t = useT();
+  const toast = useStore((s) => s.toast);
+  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      onSignedIn(mode === "login" ? await auth.login(email, password) : await auth.signup(email, password));
+    } catch (err) {
+      toast("error", (err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <form className="card stack-sm" onSubmit={submit}>
+      <Seg value={mode} onChange={setMode} options={[{ value: "login", label: t("account.login") }, { value: "signup", label: t("account.signup") }]} />
+      <Field label={t("account.email")}><input className="input" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
+      <Field label={t("account.password")} hint={mode === "signup" ? t("account.passwordHint") : undefined}><input className="input" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} required minLength={mode === "signup" ? 10 : 1} value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
+      <div className="row end"><button className="btn primary" disabled={busy}>{busy ? t("common.loading") : mode === "login" ? t("account.login") : t("account.signup")}</button></div>
+    </form>
   );
 }
 

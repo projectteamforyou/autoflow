@@ -27,7 +27,8 @@ import { StagePage } from "../pages/Stage";
 function Guard({ children }: { children: JSX.Element }) {
   const onboarded = useStore((s) => s.settings.onboarded);
   const loc = useLocation();
-  if (!onboarded && !loc.pathname.startsWith("/import")) return <Navigate to="/welcome" replace />;
+  // Deep links that must work on a first visit (shared flows, payment return, operator page) skip onboarding.
+  if (!onboarded && !/^\/(import|admin|billing)/.test(loc.pathname)) return <Navigate to="/welcome" replace />;
   return children;
 }
 
