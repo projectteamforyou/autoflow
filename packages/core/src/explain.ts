@@ -3,12 +3,14 @@
  * ({ key, params }) that each surface renders in the user's language, plus an
  * English renderer used for logs, exports and as a fallback.
  */
-import type { Flow, Step, Target, Trigger } from "./schema.js";
+import type { Condition, DisplayRef, Flow, Step, Target, Trigger } from "./schema.js";
 import { hotkeyToString } from "./engine.js";
 
 export interface Phrase {
   key: string;
   params: Record<string, string | number>;
+  /** Params that are themselves phrases (targets, button names) so every UI can localize them. */
+  nested?: Record<string, Phrase>;
 }
 
 export interface ExplainLine {
@@ -17,11 +19,26 @@ export interface ExplainLine {
   phrase: Phrase;
 }
 
-const p = (key: string, params: Record<string, string | number> = {}): Phrase => ({ key, params });
+const p = (key: string, params: Record<string, string | number> = {}, nested?: Record<string, Phrase>): Phrase => (nested ? { key, params, nested } : { key, params });
+const button = (b: string): Phrase => ({ key: `button.${b}`, params: {} });
+
+/** "the primary display", "the second display", "display 3", "display “DISPLAY2”". */
+export function describeDisplay(ref: DisplayRef): Phrase {
+  if (typeof ref === "object") return p("display.index", { n: ref.index + 1 });
+  if (ref === "primary") return p("display.primary");
+  if (ref === "secondary") return p("display.secondary");
+  return p("display.id", { id: ref });
+}
 
 export function describeTarget(t: Target): Phrase {
   switch (t.kind) {
     case "point":
+      if (t.display !== undefined || t.space === "display") {
+        const display = describeDisplay(t.display ?? "primary");
+        return t.space === "normalized"
+          ? p("target.onDisplay.normalized", { x: Math.round(t.x * 100), y: Math.round(t.y * 100) }, { display })
+          : p("target.onDisplay.point", { x: Math.round(t.x), y: Math.round(t.y) }, { display });
+      }
       return t.space === "normalized" ? p("target.normalized", { x: Math.round(t.x * 100), y: Math.round(t.y * 100) }) : p(`target.point.${t.space}`, { x: Math.round(t.x), y: Math.round(t.y) });
     case "current":
       return p("target.current");
@@ -34,14 +51,29 @@ export function describeTarget(t: Target): Phrase {
   }
 }
 
+/** A condition; plain expressions keep their exact pre-scene wording. */
+export function describeCondition(c: Condition): Phrase {
+  const parts: Phrase[] = [];
+  if (c.scene) parts.push(p(c.scene.not ? "cond.notScene" : "cond.scene", { name: c.scene.name }));
+  if (c.pixel) parts.push(p(c.pixel.not ? "cond.notPixel" : "cond.pixel", { color: c.pixel.color }, { target: describeTarget(c.pixel.at) }));
+  if (!parts.length || (c.expr ?? "true").trim() !== "true") parts.push(p("cond.expr", { expr: c.expr ?? "true" }));
+  return parts.reduce((a, b) => p("cond.and", {}, { a, b }));
+}
+
+/** Params for "{expr}" slots: the raw expression for plain conditions, a nested phrase otherwise. */
+function condParams(c: Condition | undefined): [Record<string, string | number>, Record<string, Phrase> | undefined] {
+  if (!c || (!c.scene && !c.pixel)) return [{ expr: c?.expr ?? "" }, undefined];
+  return [{}, { expr: describeCondition(c) }];
+}
+
 export function describeStep(s: Step): Phrase {
   switch (s.type) {
     case "click":
-      return p(s.holdMs > 0 ? "explain.hold" : s.clicks === 2 ? "explain.doubleClick" : "explain.click", { button: s.button, target: renderEn(describeTarget(s.target)), ms: s.holdMs });
+      return p(s.holdMs > 0 ? "explain.hold" : s.clicks === 2 ? "explain.doubleClick" : "explain.click", { ms: s.holdMs }, { button: button(s.button), target: describeTarget(s.target) });
     case "move":
-      return p("explain.move", { target: renderEn(describeTarget(s.target)) });
+      return p("explain.move", {}, { target: describeTarget(s.target) });
     case "drag":
-      return p("explain.drag", { from: renderEn(describeTarget(s.from)), to: renderEn(describeTarget(s.to)) });
+      return p("explain.drag", {}, { from: describeTarget(s.from), to: describeTarget(s.to) });
     case "scroll":
       return p("explain.scroll", { dx: s.dx, dy: s.dy });
     case "key":
@@ -50,8 +82,10 @@ export function describeStep(s: Step): Phrase {
       return p("explain.type", { text: s.text.length > 40 ? `${s.text.slice(0, 40)}…` : s.text });
     case "wait":
       return p(s.jitterMs ? "explain.waitJitter" : "explain.wait", { s: fmtSec(s.ms), j: fmtSec(s.jitterMs) });
-    case "waitFor":
-      return p("explain.waitFor", { expr: s.condition.expr, s: fmtSec(s.timeoutMs) });
+    case "waitFor": {
+      const [params, nested] = condParams(s.condition);
+      return p("explain.waitFor", { ...params, s: fmtSec(s.timeoutMs) }, nested);
+    }
     case "setVar":
       return p("explain.setVar", { name: s.name, value: s.value });
     case "log":
@@ -78,6 +112,16 @@ export function describeStep(s: Step): Phrase {
       return p("explain.ocr", { var: s.resultVar });
     case "findImage":
       return p("explain.findImage", { ref: s.target.ref });
+    case "pixelCheck":
+      return s.color
+        ? p("explain.pixelCheck", { color: s.color, var: s.resultVar }, { target: describeTarget(s.at) })
+        : p("explain.pixelRead", { var: s.resultVar }, { target: describeTarget(s.at) });
+    case "waitForPixel": {
+      const key = `explain.waitForPixel${s.not ? "Not" : ""}${s.timeoutMs === undefined ? "Open" : ""}`;
+      return p(key, { color: s.color, s: fmtSec(s.timeoutMs ?? 0) }, { target: describeTarget(s.at) });
+    }
+    case "matchScene":
+      return p("explain.matchScene", { scenes: (s.scenes ?? []).join(", ") || "*", var: s.resultVar });
     case "runFlow":
       return p("explain.runFlow", { id: s.flowId });
     case "switchProfile":
@@ -88,10 +132,18 @@ export function describeStep(s: Step): Phrase {
       return p("explain.break");
     case "continue":
       return p("explain.continue");
-    case "if":
-      return p("explain.if", { expr: s.condition.expr });
-    case "loop":
-      return s.mode === "count" ? p("explain.loopCount", { n: s.count ?? 0 }) : s.mode === "while" ? p("explain.loopWhile", { expr: s.condition?.expr ?? "" }) : p("explain.loopForever");
+    case "if": {
+      const [params, nested] = condParams(s.condition);
+      return p("explain.if", params, nested);
+    }
+    case "loop": {
+      const cd = s.cooldownMs ? "Cooldown" : "";
+      const every: Record<string, string> = s.cooldownMs ? { every: fmtSec(s.cooldownMs) } : {};
+      if (s.mode === "count") return p(`explain.loopCount${cd}`, { n: s.count ?? 0, ...every });
+      if (s.mode === "forever") return p(`explain.loopForever${cd}`, every);
+      const [params, nested] = condParams(s.condition);
+      return p(`explain.loopWhile${cd}`, { ...params, ...every }, nested);
+    }
     case "forEach":
       return p("explain.forEach", { item: s.itemVar, list: s.list });
     case "try":
@@ -122,6 +174,7 @@ export function describeTrigger(t: Trigger): Phrase {
 
 export function explainFlow(flow: Flow): ExplainLine[] {
   const out: ExplainLine[] = [{ depth: 0, phrase: describeTrigger(flow.trigger) }];
+  if (flow.stage) out.push({ depth: 0, phrase: p(flow.stage.pauseOnTakeover === false ? "explain.stageNoPause" : "explain.stage", {}, { display: describeDisplay(flow.stage.display) }) });
   const walk = (list: Step[], depth: number) => {
     for (const s of list) {
       if (s.disabled) continue;
@@ -164,6 +217,18 @@ export const EXPLAIN_EN: Record<string, string> = {
   "target.region": "area ({x}, {y}) {w}×{h}",
   "target.element": "the “{name}” control",
   "target.image": "the image “{ref}”",
+  "target.onDisplay.normalized": "{x}% across, {y}% down {display}",
+  "target.onDisplay.point": "point ({x}, {y}) on {display}",
+  "display.primary": "the primary display",
+  "display.secondary": "the second display",
+  "display.index": "display {n}",
+  "display.id": "display “{id}”",
+  "cond.expr": "{expr}",
+  "cond.scene": "the screen shows scene “{name}”",
+  "cond.notScene": "the screen does not show scene “{name}”",
+  "cond.pixel": "{target} shows {color}",
+  "cond.notPixel": "{target} does not show {color}",
+  "cond.and": "{a} and {b}",
   "explain.click": "Click {button} at {target}",
   "explain.doubleClick": "Double-click {button} at {target}",
   "explain.hold": "Press and hold {button} at {target} for {ms} ms",
@@ -210,6 +275,15 @@ export const EXPLAIN_EN: Record<string, string> = {
   "explain.file.exists": "Check whether {path} exists",
   "explain.ocr": "Read text on screen into {var}",
   "explain.findImage": "Find image “{ref}” on screen",
+  "explain.pixelCheck": "Check whether {target} shows {color} (into {var})",
+  "explain.pixelRead": "Read the color at {target} into {var}",
+  "explain.waitForPixel": "Wait until {target} shows {color} (up to {s})",
+  "explain.waitForPixelNot": "Wait until {target} no longer shows {color} (up to {s})",
+  "explain.waitForPixelOpen": "Wait until {target} shows {color}",
+  "explain.waitForPixelNotOpen": "Wait until {target} no longer shows {color}",
+  "explain.matchScene": "Recognize which scene is showing ({scenes}) into {var}",
+  "explain.stage": "Plays on {display}; pauses as soon as you move the mouse",
+  "explain.stageNoPause": "Plays on {display}; keeps going when you move the mouse",
   "explain.runFlow": "Run flow {id}",
   "explain.switchProfile": "Switch input profile to {id}",
   "explain.stop": "Stop",
@@ -220,6 +294,9 @@ export const EXPLAIN_EN: Record<string, string> = {
   "explain.loopCount": "Repeat {n} times:",
   "explain.loopWhile": "Repeat while {expr}:",
   "explain.loopForever": "Repeat until stopped:",
+  "explain.loopCountCooldown": "Repeat {n} times, at most once every {every}:",
+  "explain.loopWhileCooldown": "Repeat while {expr}, at most once every {every}:",
+  "explain.loopForeverCooldown": "Repeat until stopped, at most once every {every}:",
   "explain.forEach": "For each {item} in {list}:",
   "explain.try": "Try:",
   "explain.catch": "If something fails:",
@@ -247,8 +324,17 @@ export const EXPLAIN_EN: Record<string, string> = {
   "trigger.notification": "When {app} posts a notification",
 };
 
+export const BUTTON_EN: Record<string, string> = { "button.left": "left", "button.right": "right", "button.middle": "middle", "button.x1": "back side button", "button.x2": "forward side button" };
+
+/** Renders a phrase (and its nested phrases) with a dictionary lookup. */
+export function renderPhrase(ph: Phrase, lookup: (key: string) => string | undefined): string {
+  const params: Record<string, string | number> = { ...ph.params };
+  for (const [k, sub] of Object.entries(ph.nested ?? {})) params[k] = renderPhrase(sub, lookup);
+  return format(lookup(ph.key) ?? ph.key, params);
+}
+
 export function renderEn(ph: Phrase): string {
-  return format(EXPLAIN_EN[ph.key] ?? ph.key, ph.params);
+  return renderPhrase(ph, (k) => EXPLAIN_EN[k] ?? BUTTON_EN[k]);
 }
 
 export function format(template: string, params: Record<string, string | number>): string {

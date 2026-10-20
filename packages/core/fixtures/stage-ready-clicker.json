@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "1.0",
+  "id": "tpl_stage-ready-clicker",
+  "name": "Two-monitor stage: click when ready",
+  "description": "Watches one spot on your second monitor and clicks it whenever it turns green (a ready button), at most twice a second. AutoFlow stays on your main monitor and pauses if you take over the mouse.",
+  "tags": [],
+  "icon": "target",
+  "color": "#2ECC71",
+  "targets": [
+    "windows",
+    "web"
+  ],
+  "mode": "pro",
+  "trigger": {
+    "type": "manual"
+  },
+  "hotkeys": {
+    "stop": {
+      "key": "Escape",
+      "modifiers": [
+        "ctrl",
+        "alt"
+      ]
+    }
+  },
+  "limits": {
+    "maxDurationMs": 3600000,
+    "maxActions": 100000,
+    "maxIterations": 1000000,
+    "countdownMs": 3000,
+    "preventOverlap": true,
+    "cooldownMs": 0
+  },
+  "variables": [],
+  "steps": [
+    {
+      "id": "watch",
+      "type": "loop",
+      "mode": "forever",
+      "cooldownMs": 500,
+      "body": [
+        {
+          "id": "ready",
+          "type": "if",
+          "condition": {
+            "expr": "true",
+            "pixel": {
+              "at": {
+                "kind": "point",
+                "x": 0.5,
+                "y": 0.68,
+                "space": "normalized"
+              },
+              "color": "#2ecc71",
+              "tolerance": 24
+            }
+          },
+          "then": [
+            {
+              "id": "press",
+              "type": "click",
+              "target": {
+                "kind": "point",
+                "x": 0.5,
+                "y": 0.68,
+                "space": "normalized"
+              },
+              "button": "left",
+              "clicks": 1,
+              "holdMs": 0,
+              "modifiers": []
+            },
+            {
+              "id": "log",
+              "type": "log",
+              "message": "Ready button clicked at {{time()}}",
+              "level": "info"
+            }
+          ],
+          "else": []
+        }
+      ]
+    }
+  ],
+  "stage": {
+    "display": "secondary",
+    "pauseOnTakeover": true
+  },
+  "onMissingDisplay": "ask",
+  "favorite": false,
+  "createdAt": "2026-10-19T00:00:00.000Z",
+  "updatedAt": "2026-10-19T00:00:00.000Z",
+  "revision": 0
+}

@@ -1,0 +1,27 @@
+# Rust workspace for the native side of AutoFlow.
+#
+# - crates/engine          : `autoflow_engine` — schema, safe expressions, executor, Windows backend
+# - apps/desktop/src-tauri : Tauri 2 shell for Windows (frontend = apps/web build)
+[workspace]
+resolver = "2"
+members = ["crates/engine", "apps/desktop/src-tauri"]
+
+[workspace.package]
+version = "1.0.0"
+edition = "2021"
+license = "UNLICENSED"
+authors = ["Project Team For You <projectteamforyou@gmail.com>"]
+rust-version = "1.80"
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "warn"
+
+[workspace.lints.clippy]
+unwrap_used = "warn"
+dbg_macro = "warn"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

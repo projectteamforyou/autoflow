@@ -1,0 +1,18 @@
+{
+  "name": "AutoFlow",
+  "tagline": "Automate anything you repeat — safely.",
+  "email": "projectteamforyou@gmail.com",
+  "androidPackage": "com.projectteamforyou.autoflow",
+  "windowsIdentifier": "com.projectteamforyou.autoflow",
+  "colors": {
+    "bg": "#0B0B1A",
+    "surface": "#13132A",
+    "primary": "#7C5CFF",
+    "accent": "#22C3A6",
+    "warning": "#F59E0B",
+    "danger": "#EF4444",
+    "text": "#F4F4FB",
+    "muted": "#A3A3C2"
+  },
+  "themeColor": "#0B0B1A"
+}

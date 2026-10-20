@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore: ["**/*.md", "docs/**", "store/**"]
+  # Browser smoke test (Chromium) runs weekly and on demand only.
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      smoke:
+        description: "Also run the Chromium smoke test (heavy)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  core-web:
+    name: Core & web app
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Core — build, typecheck, test
+        run: |
+          pnpm --filter @autoflow/core build
+          pnpm --filter @autoflow/core typecheck
+          pnpm --filter @autoflow/core test
+      - name: Fixtures are up to date
+        run: git diff --exit-code packages/core/fixtures
+      - name: Web — i18n gate
+        run: pnpm --filter @autoflow/web i18n:check
+      - name: Web — typecheck & build
+        run: pnpm --filter @autoflow/web build
+      - name: Web — Chromium smoke test
+        if: github.event_name == 'schedule' || inputs.smoke
+        run: |
+          pnpm --filter @autoflow/web exec playwright-core install --with-deps chromium
+          node apps/web/scripts/smoke.mjs

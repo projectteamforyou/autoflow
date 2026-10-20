@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main-window",
+  "description": "The AutoFlow web app in the main window: core IPC and the bridge event channel only. Native features go through AutoFlow's own commands (bridge.ts), never through generic plugin APIs.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

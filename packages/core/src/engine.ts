@@ -6,10 +6,34 @@
  *   breakpoints and single-stepping, per-step error policies, and pre-run checks
  *   (unsupported steps, risky steps needing confirmation, screen-geometry drift).
  * - Emits structured events so every surface can show live state and a run ledger.
+ * - Engine v2 (all opt-in through optional schema fields, identical in the Rust and Kotlin engines):
+ *   per-step timeouts (`stepTimeoutMs`), retry backoff curves with cap and jitter (`onError.backoff`,
+ *   `maxBackoffMs`, `jitter`), a deterministic step budget (`limits.maxSteps`), seeded humanization
+ *   of input actions (`humanize`) and richer trace events (see trace.ts).
+ * - Multi-monitor (opt-in, see displays.ts): display-relative targets are placed on absolute
+ *   virtual-desktop pixels here, a missing display follows `onMissingDisplay` (never a silent
+ *   wrong-screen click), Stage mode pauses when the user takes over the pointer, and scene / pixel
+ *   probes let conditions react to what a display shows. Loops can keep a `cooldownMs` rhythm.
  */
-import type { Flow, Platform, Step, Target, Hotkey } from "./schema.js";
+import type { Condition, DisplayRef, Flow, Humanize, OnError, Platform, Scene, Step, Target, Hotkey } from "./schema.js";
 import { walkSteps } from "./schema.js";
 import { evalExpr, interpolate, toStr, truthy, type ExprEnv, type Value } from "./expr.js";
+import {
+  colorDistance,
+  displayRefKey,
+  displayRefLabel,
+  findDisplay,
+  hashSimilarity,
+  onDisplay,
+  parseColor,
+  placePoint,
+  placeRect,
+  rectOnDisplay,
+  sortDisplays,
+  toHexColor,
+  type DisplayInfo,
+  type Rect,
+} from "./displays.js";
 import { compatibility, type CompatIssue } from "./capabilities.js";
 import { analyzeRisk, type RiskReport } from "./risk.js";
 
@@ -32,8 +56,13 @@ export type InputAction =
   | { type: "http"; method: string; url: string; headers: Record<string, string>; body?: string }
   | { type: "file"; op: string; path: string; dest?: string; content?: string }
   | { type: "ocr"; region: { x: number; y: number; w: number; h: number } }
-  | { type: "findImage"; ref: string; confidence: number; timeoutMs: number }
-  | { type: "switchProfile"; profileId: string };
+  /** `region` (virtual-desktop px) is set when the step is scoped to a display. */
+  | { type: "findImage"; ref: string; confidence: number; timeoutMs: number; region?: Rect }
+  | { type: "switchProfile"; profileId: string }
+  /** Probe: color of one virtual-desktop pixel as "#rrggbb". */
+  | { type: "pixel"; x: number; y: number }
+  /** Probe: dHash (16 hex digits) of a virtual-desktop rectangle. */
+  | { type: "sceneHash"; region: Rect };
 
 export interface ScreenInfo {
   width: number;
@@ -48,11 +77,20 @@ export interface Backend {
   /** Asks the user a yes/no question (confirm step). */
   confirm(message: string, signal: AbortSignal): Promise<boolean>;
   screen?(): Promise<ScreenInfo | undefined>;
+  /** Connected monitors (any order; the engine sorts them). Without it the primary screen is the only display. */
+  displays?(): Promise<DisplayInfo[]>;
+  /** Current pointer position in virtual-desktop px (Stage takeover detection); undefined when there is none. */
+  pointerPosition?(): Promise<{ x: number; y: number } | undefined>;
 }
 
 export interface Clock {
   now(): number;
   sleep(ms: number, signal: AbortSignal): Promise<void>;
+  /**
+   * Optional timer used to preempt a backend action that outlives its step timeout. Returns a
+   * cancel function. Without it, timeouts are still enforced at every sleep slice and step boundary.
+   */
+  setTimer?(ms: number, fn: () => void): () => void;
 }
 
 export const realClock: Clock = {
@@ -70,30 +108,90 @@ export const realClock: Clock = {
       };
       signal.addEventListener("abort", onAbort, { once: true });
     }),
+  setTimer: (ms, fn) => {
+    const t = setTimeout(fn, ms);
+    return () => clearTimeout(t);
+  },
 };
 
 /** Virtual clock for tests, previews and simulations: sleeping advances time instantly. */
 export function createVirtualClock(start = 0): Clock & { advance(ms: number): void } {
   let t = start;
+  const timers = new Set<{ at: number; fn: () => void }>();
+  const fire = () => {
+    for (const timer of [...timers].sort((a, b) => a.at - b.at)) {
+      if (timer.at > t) continue;
+      timers.delete(timer);
+      timer.fn();
+    }
+  };
   return {
     now: () => t,
     advance: (ms) => {
       t += ms;
+      fire();
     },
     sleep: async (ms, signal) => {
       if (signal.aborted) throw signal.reason;
       t += ms;
+      fire();
       await Promise.resolve();
       if (signal.aborted) throw signal.reason;
     },
+    setTimer: (ms, fn) => {
+      const timer = { at: t + ms, fn };
+      timers.add(timer);
+      return () => timers.delete(timer);
+    },
   };
+}
+
+/**
+ * mulberry32: tiny, fast, seedable PRNG returning [0, 1). Bit-identical implementations live in
+ * the Rust and Kotlin engines so seeded humanization replays the same everywhere.
+ */
+export function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Delay before retry `attempt` (1-based) under an onError policy. Draws one random number only
+ * when `jitter` > 0, so flows without jitter replay exactly as before.
+ */
+export function retryDelayMs(policy: Pick<OnError, "backoffMs" | "backoff" | "maxBackoffMs" | "jitter">, attempt: number, random: () => number): number {
+  const base = policy.backoffMs;
+  const mode = policy.backoff ?? "linear";
+  let d = mode === "fixed" ? base : mode === "linear" ? base * attempt : base * 2 ** (attempt - 1);
+  if (policy.maxBackoffMs !== undefined) d = Math.min(d, policy.maxBackoffMs);
+  const j = policy.jitter ?? 0;
+  if (j > 0) d -= Math.floor(d * j * random());
+  return Math.max(0, Math.floor(d));
+}
+
+/** Random pixel offset in [-max, max] (integer, no rounding ambiguity across languages). */
+function offset(max: number, rnd: () => number): number {
+  return Math.min(2 * max, Math.floor(rnd() * (2 * max + 1))) - max;
+}
+
+/** Applies the humanize offset to pixel point targets; other targets are returned unchanged. */
+export function humanizeTarget(t: Target, h: Pick<Humanize, "offsetPx">, rnd: () => number): Target {
+  if (h.offsetPx <= 0 || t.kind !== "point" || t.space === "normalized") return t;
+  const dx = offset(h.offsetPx, rnd);
+  const dy = offset(h.offsetPx, rnd);
+  return { ...t, x: t.x + dx, y: t.y + dy };
 }
 
 /* ------------------------------------------------------------------ events */
 
 export type RunState = "idle" | "preflight" | "countdown" | "running" | "paused" | "stopped" | "completed" | "failed";
 
-export type ErrorCategory = "validation" | "unsupported" | "permission" | "environment" | "target" | "limit" | "expression" | "action" | "user" | "internal";
+export type ErrorCategory = "validation" | "unsupported" | "permission" | "environment" | "target" | "limit" | "expression" | "action" | "user" | "internal" | "timeout" | "display";
 
 export interface RunError {
   stepId?: string;
@@ -106,11 +204,12 @@ export type RunEvent =
   | { type: "state"; state: RunState; at: number }
   | { type: "countdown"; remainingMs: number; at: number }
   | { type: "stepStart"; stepId: string; stepType: Step["type"]; path: string; at: number }
-  | { type: "stepEnd"; stepId: string; ok: boolean; durationMs: number; at: number }
+  | { type: "stepEnd"; stepId: string; ok: boolean; durationMs: number; at: number; attempts?: number; error?: RunError }
   | { type: "breakpoint"; stepId: string; at: number }
   | { type: "log"; level: "info" | "warn" | "error"; message: string; stepId?: string; at: number }
   | { type: "var"; name: string; value: Value; at: number }
-  | { type: "retry"; stepId: string; attempt: number; at: number }
+  | { type: "retry"; stepId: string; attempt: number; at: number; delayMs?: number; error?: string }
+  | { type: "timeout"; stepId: string; timeoutMs: number; at: number }
   | { type: "error"; error: RunError; at: number };
 
 export interface RunResult {
@@ -119,6 +218,8 @@ export interface RunResult {
   error?: RunError;
   actions: number;
   iterations: number;
+  /** Executed steps (attempts included), the quantity bounded by limits.maxSteps. */
+  steps: number;
   durationMs: number;
   vars: Record<string, Value>;
   startedAt: number;
@@ -137,6 +238,11 @@ export interface RunOptions {
   confirmRisk?: (report: RiskReport) => Promise<boolean>;
   /** Called when the recorded screen geometry differs from the live screen. */
   confirmScreenChange?: (recorded: ScreenInfo, live: ScreenInfo) => Promise<boolean>;
+  /**
+   * onMissingDisplay "ask": may the run use the primary display instead of the missing one (label
+   * such as `"secondary"`)? Without it the backend's confirm dialog asks. Asked once per display and run.
+   */
+  confirmMissingDisplay?: (label: string) => Promise<boolean>;
   /** Resolve flows for runFlow steps. */
   resolveFlow?: (flowId: string) => Flow | undefined;
   /** Honour step.breakpoint flags (Pro debugger). */
@@ -153,6 +259,22 @@ class Interrupt {
   constructor(public readonly kind: "break" | "continue" | "stop" | "goto", public readonly value?: string) {}
 }
 
+/** One active step timeout. */
+interface Deadline {
+  stepId: string;
+  path: string;
+  timeoutMs: number;
+  /** The step times out once the clock is strictly past this instant. */
+  at: number;
+  ctrl: AbortController;
+  unlink: () => void;
+}
+
+/** Thrown when a deadline passes; only the step that owns the deadline handles it. */
+class StepTimeout {
+  constructor(public readonly deadline: Deadline) {}
+}
+
 export class RunFailure extends Error {
   constructor(public readonly runError: RunError) {
     super(runError.message);
@@ -161,6 +283,7 @@ export class RunFailure extends Error {
 }
 
 const STOP_REASON = Symbol("stop");
+const TAKEOVER_PX = 24;
 const INPUT_TYPES = new Set<Step["type"]>(["click", "move", "drag", "scroll", "key", "type"]);
 /** Stop latency target is 500 ms; long waits are sliced so pause/stop/limits are observed quickly. */
 const SLICE_MS = 100;
@@ -178,8 +301,16 @@ export class FlowRun {
   private vars: Record<string, Value> = {};
   private actions = 0;
   private iterations = 0;
+  private stepCount = 0;
+  private readonly deadlines: Deadline[] = [];
+  private readonly humanize: Humanize | undefined;
+  private readonly humanRandom: () => number;
   private startedAt = 0;
   private callDepth = 0;
+  /** Where AutoFlow last put the pointer (Stage takeover detection). */
+  private lastPointer: { x: number; y: number } | undefined;
+  private readonly displayWarned = new Set<string>();
+  private readonly displayAnswers = new Map<string, boolean>();
   private readonly clock: Clock;
   private readonly env: ExprEnv;
 
@@ -187,10 +318,23 @@ export class FlowRun {
     this.id = `run_${Math.random().toString(36).slice(2, 10)}`;
     this.clock = opts.clock ?? realClock;
     this.env = { vars: this.vars, now: () => this.clock.now(), random: opts.random };
+    const h = flow.humanize;
+    this.humanize = h && (h.offsetPx > 0 || h.delayMs > 0) ? h : undefined;
+    this.humanRandom = h?.seed !== undefined ? mulberry32(h.seed) : (opts.random ?? Math.random);
+  }
+
+  /** Signal of the innermost active scope: aborted by stop or by an enclosing step timeout. */
+  private get signal(): AbortSignal {
+    return this.deadlines.length ? this.deadlines[this.deadlines.length - 1]!.ctrl.signal : this.ctrl.signal;
   }
 
   get currentState(): RunState {
     return this.state;
+  }
+
+  /** Live counters (HUDs): input actions, loop rounds and executed steps so far. */
+  get counters(): { actions: number; iterations: number; steps: number } {
+    return { actions: this.actions, iterations: this.iterations, steps: this.stepCount };
   }
 
   /** Static pre-run checks shared by every surface. */
@@ -280,6 +424,149 @@ export class FlowRun {
         if (!ok) throw new RunFailure({ message: `screen changed from ${rec.width}x${rec.height}@${rec.scale} to ${live.width}x${live.height}@${live.scale}`, category: "environment" });
       }
     }
+    // A missing stage fails (or falls back, or asks) before the countdown, not at the first click.
+    if (this.flow.stage) await this.display(this.flow.stage.display);
+  }
+
+  /* ---------------------------------------------------------- displays */
+
+  private async displayList(): Promise<DisplayInfo[]> {
+    if (this.backend.displays) return sortDisplays(await this.backend.displays());
+    const s = this.backend.screen ? await this.backend.screen() : undefined;
+    if (!s) return [];
+    const bounds = { x: 0, y: 0, w: s.width, h: s.height };
+    return [{ id: "primary", name: "Primary", primary: true, bounds, workArea: bounds, scale: s.scale, orientation: s.width >= s.height ? "landscape" : "portrait" }];
+  }
+
+  /** Resolves a display reference, applying `onMissingDisplay` when it is not connected. */
+  private async display(ref: DisplayRef): Promise<DisplayInfo> {
+    const list = await this.displayList();
+    const found = findDisplay(list, ref);
+    if (found) return found;
+    const key = displayRefKey(ref);
+    const label = displayRefLabel(ref);
+    const policy = this.flow.onMissingDisplay ?? "fail";
+    const primary = list[0];
+    let use = false;
+    if (primary && policy === "primary") use = true;
+    else if (primary && policy === "ask") {
+      let ok = this.displayAnswers.get(key);
+      if (ok === undefined) {
+        ok = this.opts.confirmMissingDisplay
+          ? await this.opts.confirmMissingDisplay(label)
+          : await this.backend.confirm(`Display ${label} is not connected. Use the primary display instead?`, this.signal);
+        this.displayAnswers.set(key, ok);
+      }
+      use = ok;
+    }
+    if (!use || !primary) throw new RunFailure({ message: `display ${label} is not connected`, category: "display" });
+    if (!this.displayWarned.has(key)) {
+      this.displayWarned.add(key);
+      this.emit({ type: "log", level: "warn", message: `display ${label} is not connected; using the primary display`, at: this.clock.now() });
+    }
+    return primary;
+  }
+
+  /**
+   * Places display-relative point/region/image targets on absolute pixels. Targets without a display
+   * reference (and outside Stage mode) are returned unchanged, so old flows behave exactly as before.
+   */
+  private async place(t: Target): Promise<Target> {
+    if (t.kind === "image") {
+      if (t.display === undefined) return t;
+      const d = await this.display(t.display);
+      const { display: _omit, ...rest } = t;
+      return { ...rest, region: t.region ? placeRect(d.bounds, t.region, "display") : { ...d.bounds } };
+    }
+    if ((t.kind !== "point" && t.kind !== "region") || t.space === "window") return t;
+    const stage = this.flow.stage?.display;
+    const ref = t.display ?? (t.space === "display" || (t.space === "normalized" && stage !== undefined) ? (stage ?? "primary") : undefined);
+    if (ref === undefined) return t;
+    const d = await this.display(ref);
+    if (t.kind === "point") {
+      const p = placePoint(d.bounds, t.x, t.y, t.space);
+      if (!onDisplay(d.bounds, p.x, p.y)) throw new RunFailure({ message: `point (${p.x}, ${p.y}) is outside display ${displayRefLabel(ref)}`, category: "display" });
+      return { kind: "point", x: p.x, y: p.y, space: "screen" };
+    }
+    const r = placeRect(d.bounds, t, t.space);
+    if (!rectOnDisplay(d.bounds, r)) throw new RunFailure({ message: `region (${r.x}, ${r.y}) ${r.w}x${r.h} is outside display ${displayRefLabel(ref)}`, category: "display" });
+    return { kind: "region", x: r.x, y: r.y, w: r.w, h: r.h, space: "screen", pick: t.pick };
+  }
+
+  /** Remembers where an input action left the pointer (unknown for non-pixel targets). */
+  private track(t: Target | undefined): void {
+    this.lastPointer = t && t.kind === "point" && t.space === "screen" ? { x: t.x, y: t.y } : undefined;
+  }
+
+  /**
+   * Stage mode guard: once AutoFlow has placed the pointer, a pointer that moved more than
+   * `takeoverPx` or left the stage display means the user took over — the run pauses.
+   */
+  private async checkTakeover(): Promise<void> {
+    const st = this.flow.stage;
+    const last = this.lastPointer;
+    if (!st || st.pauseOnTakeover === false || !this.backend.pointerPosition || !last) return;
+    const p = await this.backend.pointerPosition();
+    if (!p) return;
+    const limit = st.takeoverPx ?? TAKEOVER_PX;
+    const dx = p.x - last.x;
+    const dy = p.y - last.y;
+    const stage = await this.display(st.display);
+    const off = !onDisplay(stage.bounds, p.x, p.y);
+    if (!off && dx * dx + dy * dy <= limit * limit) return;
+    this.lastPointer = undefined;
+    this.emit({ type: "log", level: "warn", message: off ? "takeover: pointer left the stage display, run paused" : "takeover: pointer moved, run paused", at: this.clock.now() });
+    this.pause();
+    await this.gate();
+  }
+
+  /** Absolute pixel of a probe position (pixel conditions / steps). */
+  private async probePoint(at: Extract<Target, { kind: "point" }>): Promise<{ x: number; y: number }> {
+    if (at.space === "window") throw new RunFailure({ message: "pixel positions cannot be window-relative", category: "validation" });
+    const ref = at.display ?? (at.space === "screen" ? undefined : (this.flow.stage?.display ?? "primary"));
+    if (ref === undefined) return placePoint({ x: 0, y: 0, w: 0, h: 0 }, at.x, at.y, "screen");
+    const d = await this.display(ref);
+    const p = placePoint(d.bounds, at.x, at.y, at.space);
+    if (!onDisplay(d.bounds, p.x, p.y)) throw new RunFailure({ message: `point (${p.x}, ${p.y}) is outside display ${displayRefLabel(ref)}`, category: "display" });
+    return p;
+  }
+
+  private async readPixel(at: Extract<Target, { kind: "point" }>): Promise<[number, number, number]> {
+    const p = await this.probePoint(at);
+    const c = parseColor(await this.perform({ type: "pixel", x: p.x, y: p.y }));
+    if (!c) throw new RunFailure({ message: "this device cannot read screen pixels", category: "unsupported" });
+    return c;
+  }
+
+  private scene(name: string): Scene {
+    const s = this.flow.scenes?.find((x) => x.name === name);
+    if (!s) throw new RunFailure({ message: `scene "${name}" is not defined in this flow`, category: "validation" });
+    return s;
+  }
+
+  /** Similarity (0..1) between the live display region of a scene and its remembered hash. */
+  private async sceneSimilarity(s: Scene): Promise<number> {
+    const d = await this.display(s.display ?? this.flow.stage?.display ?? "primary");
+    const b = d.bounds;
+    const r = placeRect(b, s.region, "normalized");
+    r.w = Math.max(1, Math.min(r.w, b.x + b.w - r.x));
+    r.h = Math.max(1, Math.min(r.h, b.y + b.h - r.y));
+    const v = await this.perform({ type: "sceneHash", region: r });
+    if (typeof v !== "string" || !/^[0-9a-fA-F]{16}$/.test(v)) throw new RunFailure({ message: "this device cannot capture the screen for scenes", category: "unsupported" });
+    return hashSimilarity(v.toLowerCase(), s.hash);
+  }
+
+  /** Evaluates a condition: scene, then pixel, then expression (short-circuit AND). */
+  private async holds(c: Condition): Promise<boolean> {
+    if (c.scene) {
+      const showing = (await this.sceneSimilarity(this.scene(c.scene.name))) >= c.scene.minSimilarity;
+      if (showing === (c.scene.not === true)) return false;
+    }
+    if (c.pixel) {
+      const match = colorDistance(await this.readPixel(c.pixel.at), parseColor(c.pixel.color)!) <= c.pixel.tolerance;
+      if (match === (c.pixel.not === true)) return false;
+    }
+    return truthy(evalExpr(c.expr ?? "true", this.env));
   }
 
   private initVars(): void {
@@ -325,17 +612,63 @@ export class FlowRun {
     if (this.clock.now() - this.startedAt > this.flow.limits.maxDurationMs) {
       throw new RunFailure({ message: `maximum run time reached (${Math.round(this.flow.limits.maxDurationMs / 1000)}s)`, category: "limit" });
     }
+    this.checkDeadlines();
     while (this.pauseGate) await this.pauseGate;
     if (this.ctrl.signal.aborted) throw this.ctrl.signal.reason;
+  }
+
+  /** Outermost expired deadline wins, so an enclosing container's timeout is not swallowed inside. */
+  private checkDeadlines(): void {
+    const now = this.clock.now();
+    for (const d of this.deadlines) if (now > d.at) throw new StepTimeout(d);
+  }
+
+  /** Time until the nearest deadline expires (exclusive), so sleeps end exactly when it does. */
+  private untilDeadline(): number {
+    let min = Infinity;
+    const now = this.clock.now();
+    for (const d of this.deadlines) min = Math.min(min, d.at + 1 - now);
+    return Math.max(1, min);
   }
 
   private async sleep(ms: number): Promise<void> {
     let remaining = Math.max(0, ms);
     while (remaining > 0) {
       await this.gate();
-      const slice = Math.min(remaining, SLICE_MS);
-      await this.clock.sleep(slice, this.ctrl.signal);
+      const slice = Math.min(remaining, SLICE_MS, this.untilDeadline());
+      await this.clock.sleep(slice, this.signal);
       remaining -= slice;
+    }
+  }
+
+  private pushDeadline(step: Step, path: string, timeoutMs: number): Deadline {
+    const parent = this.signal;
+    const ctrl = new AbortController();
+    const d: Deadline = { stepId: step.id, path, timeoutMs, at: this.clock.now() + timeoutMs, ctrl, unlink: () => {} };
+    const onParent = () => ctrl.abort(parent.reason);
+    if (parent.aborted) onParent();
+    else parent.addEventListener("abort", onParent, { once: true });
+    // Preempts a backend action that hangs past the deadline (real clock; virtual clocks fire on advance).
+    const cancelTimer = this.clock.setTimer?.(timeoutMs + 1, () => ctrl.abort(new StepTimeout(d)));
+    d.unlink = () => {
+      parent.removeEventListener("abort", onParent);
+      cancelTimer?.();
+    };
+    this.deadlines.push(d);
+    return d;
+  }
+
+  private popDeadline(d: Deadline): void {
+    const i = this.deadlines.lastIndexOf(d);
+    if (i >= 0) this.deadlines.splice(i, 1);
+    d.unlink();
+  }
+
+  private countStep(): void {
+    const max = this.flow.limits.maxSteps;
+    this.stepCount++;
+    if (max !== undefined && this.stepCount > max) {
+      throw new RunFailure({ message: `maximum number of steps reached (${max})`, category: "limit" });
     }
   }
 
@@ -353,21 +686,44 @@ export class FlowRun {
     const policy = step.onError;
     let attempt = 0;
     for (;;) {
+      let deadline: Deadline | undefined;
       try {
-        await this.exec(step, path);
-        this.emit({ type: "stepEnd", stepId: step.id, ok: true, durationMs: this.clock.now() - t0, at: this.clock.now() });
+        this.countStep();
+        if (step.stepTimeoutMs !== undefined) deadline = this.pushDeadline(step, path, step.stepTimeoutMs);
+        try {
+          await this.exec(step, path);
+          // Work that finished after the deadline (an action the backend could not interrupt) still timed out.
+          if (deadline && this.clock.now() > deadline.at) throw new StepTimeout(deadline);
+        } catch (e) {
+          // A preempted backend action rejects with the abort reason of the timed-out scope.
+          if (deadline && !this.ctrl.signal.aborted && deadline.ctrl.signal.aborted && !(e instanceof StepTimeout) && !(e instanceof Interrupt)) {
+            const reason = deadline.ctrl.signal.reason;
+            if (reason instanceof StepTimeout) throw reason;
+          }
+          throw e;
+        } finally {
+          if (deadline) this.popDeadline(deadline);
+        }
+        this.emit({ type: "stepEnd", stepId: step.id, ok: true, durationMs: this.clock.now() - t0, at: this.clock.now(), ...(attempt > 0 ? { attempts: attempt + 1 } : {}) });
         return;
       } catch (e) {
         if (e instanceof Interrupt || e === STOP_REASON || this.ctrl.signal.aborted) throw e;
-        const err = toRunError(e, step.id, path);
+        // Somebody else's deadline (an enclosing step): let it unwind to its owner.
+        if (e instanceof StepTimeout && e.deadline !== deadline) throw e;
+        let err: RunError;
+        if (e instanceof StepTimeout) {
+          err = { stepId: step.id, path, message: `step timed out after ${e.deadline.timeoutMs} ms`, category: "timeout" };
+          this.emit({ type: "timeout", stepId: step.id, timeoutMs: e.deadline.timeoutMs, at: this.clock.now() });
+        } else err = toRunError(e, step.id, path);
         if (err.category === "limit") throw new RunFailure(err);
         if (policy?.strategy === "retry" && attempt < policy.retries) {
           attempt++;
-          this.emit({ type: "retry", stepId: step.id, attempt, at: this.clock.now() });
-          await this.sleep(policy.backoffMs * attempt);
+          const delayMs = retryDelayMs(policy, attempt, this.opts.random ?? Math.random);
+          this.emit({ type: "retry", stepId: step.id, attempt, at: this.clock.now(), delayMs, error: err.message });
+          await this.sleep(delayMs);
           continue;
         }
-        this.emit({ type: "stepEnd", stepId: step.id, ok: false, durationMs: this.clock.now() - t0, at: this.clock.now() });
+        this.emit({ type: "stepEnd", stepId: step.id, ok: false, durationMs: this.clock.now() - t0, at: this.clock.now(), attempts: attempt + 1, error: err });
         if (policy?.strategy === "continue") {
           this.emit({ type: "log", level: "warn", message: `step failed and was skipped: ${err.message}`, stepId: step.id, at: this.clock.now() });
           return;
@@ -393,8 +749,8 @@ export class FlowRun {
     }
   }
 
-  private text(s: string): string {
-    return interpolate(s, this.env, this.opts.secret);
+  private text(s: string, maskSecrets = false): string {
+    return interpolate(s, this.env, this.opts.secret, { maskSecrets });
   }
 
   private setVar(name: string, value: Value): void {
@@ -403,30 +759,60 @@ export class FlowRun {
   }
 
   private async perform(action: InputAction): Promise<Value | void> {
-    return this.backend.perform(action, this.ctrl.signal);
+    return this.backend.perform(action, this.signal);
+  }
+
+  /** Humanization: optional bounded random delay before an input action. */
+  private async humanDelay(): Promise<void> {
+    const h = this.humanize;
+    if (h && h.delayMs > 0) await this.sleep(Math.floor(this.humanRandom() * (h.delayMs + 1)));
+  }
+
+  /** Placement on displays, then humanization (in that order in every engine). */
+  private async target(t: Target): Promise<Target> {
+    const placed = await this.place(t);
+    return this.humanize ? humanizeTarget(placed, this.humanize, this.humanRandom) : placed;
   }
 
   private async exec(s: Step, path: string): Promise<void> {
-    if (INPUT_TYPES.has(s.type)) this.countAction();
+    if (INPUT_TYPES.has(s.type)) {
+      this.countAction();
+      await this.checkTakeover();
+      if (s.type !== "key") await this.humanDelay();
+    }
     switch (s.type) {
-      case "click":
-        await this.perform({ type: "click", target: s.target, button: s.button, clicks: s.clicks, holdMs: s.holdMs, modifiers: s.modifiers });
+      case "click": {
+        const target = await this.target(s.target);
+        await this.perform({ type: "click", target, button: s.button, clicks: s.clicks, holdMs: s.holdMs, modifiers: s.modifiers });
+        this.track(target);
         return;
-      case "move":
-        await this.perform({ type: "move", target: s.target, durationMs: s.durationMs });
+      }
+      case "move": {
+        const target = await this.target(s.target);
+        await this.perform({ type: "move", target, durationMs: s.durationMs });
+        this.track(target);
         return;
-      case "drag":
-        await this.perform({ type: "drag", from: s.from, to: s.to, durationMs: s.durationMs, button: s.button });
+      }
+      case "drag": {
+        const from = await this.target(s.from);
+        const to = await this.target(s.to);
+        await this.perform({ type: "drag", from, to, durationMs: s.durationMs, button: s.button });
+        this.track(to);
         return;
-      case "scroll":
-        await this.perform({ type: "scroll", dx: s.dx, dy: s.dy, target: s.target });
+      }
+      case "scroll": {
+        const target = s.target ? await this.place(s.target) : undefined;
+        await this.perform({ type: "scroll", dx: s.dx, dy: s.dy, target });
+        if (target) this.track(target);
         return;
+      }
       case "key":
         for (let i = 0; i < s.repeat; i++) {
           if (i > 0) {
             await this.gate();
             this.countAction();
           }
+          await this.humanDelay();
           await this.perform({ type: "key", key: s.key, modifiers: s.modifiers, action: s.action });
         }
         return;
@@ -441,7 +827,7 @@ export class FlowRun {
       case "waitFor": {
         const deadline = this.clock.now() + s.timeoutMs;
         for (;;) {
-          if (truthy(evalExpr(s.condition.expr, this.env))) return;
+          if (await this.holds(s.condition)) return;
           if (this.clock.now() >= deadline) throw new RunFailure({ stepId: s.id, path, message: `condition not met within ${s.timeoutMs} ms`, category: "target" });
           await this.sleep(s.pollMs);
         }
@@ -450,13 +836,14 @@ export class FlowRun {
         this.setVar(s.name, evalExpr(s.value, this.env));
         return;
       case "log":
-        this.emit({ type: "log", level: s.level, message: this.text(s.message), stepId: s.id, at: this.clock.now() });
+        // Log lines end up in the run ledger: secrets are verified but never written out.
+        this.emit({ type: "log", level: s.level, message: this.text(s.message, true), stepId: s.id, at: this.clock.now() });
         return;
       case "notify":
         await this.perform({ type: "notify", title: this.text(s.title), body: this.text(s.body) });
         return;
       case "confirm": {
-        const ok = await this.backend.confirm(this.text(s.message), this.ctrl.signal);
+        const ok = await this.backend.confirm(this.text(s.message), this.signal);
         if (s.resultVar) this.setVar(s.resultVar, ok);
         else if (!ok) throw new Interrupt("stop", "declined");
         return;
@@ -493,13 +880,47 @@ export class FlowRun {
         return;
       }
       case "ocr": {
-        const res = await this.perform({ type: "ocr", region: s.region });
+        const region = s.display === undefined ? s.region : placeRect((await this.display(s.display)).bounds, s.region, "display");
+        const res = await this.perform({ type: "ocr", region });
         this.setVar(s.resultVar, toStr((res ?? "") as Value));
         return;
       }
       case "findImage": {
-        const res = await this.perform({ type: "findImage", ref: s.target.ref, confidence: s.target.confidence, timeoutMs: s.timeoutMs });
+        // The search region is only passed for display-scoped steps (older flows keep searching the whole screen).
+        const placed = s.target.display === undefined ? undefined : await this.place(s.target);
+        const region = placed?.kind === "image" ? placed.region : undefined;
+        const res = await this.perform({ type: "findImage", ref: s.target.ref, confidence: s.target.confidence, timeoutMs: s.timeoutMs, ...(region ? { region } : {}) });
         this.setVar(s.resultVar, (res ?? null) as Value);
+        return;
+      }
+      case "pixelCheck": {
+        const c = await this.readPixel(s.at);
+        this.setVar(s.resultVar, s.color ? colorDistance(c, parseColor(s.color)!) <= s.tolerance : toHexColor(c[0], c[1], c[2]));
+        return;
+      }
+      case "waitForPixel": {
+        const deadline = s.timeoutMs === undefined ? undefined : this.clock.now() + s.timeoutMs;
+        const want = parseColor(s.color)!;
+        for (;;) {
+          const match = colorDistance(await this.readPixel(s.at), want) <= s.tolerance;
+          if (match !== (s.not === true)) return;
+          if (deadline !== undefined && this.clock.now() >= deadline) throw new RunFailure({ stepId: s.id, path, message: `pixel condition not met within ${s.timeoutMs} ms`, category: "target" });
+          await this.sleep(s.pollMs);
+        }
+      }
+      case "matchScene": {
+        const names = s.scenes ?? (this.flow.scenes ?? []).map((x) => x.name);
+        let bestName = "";
+        let bestSim = -1;
+        for (const name of names) {
+          const sim = await this.sceneSimilarity(this.scene(name));
+          if (sim > bestSim) {
+            bestSim = sim;
+            bestName = name;
+          }
+        }
+        this.setVar(s.resultVar, bestSim >= s.minSimilarity ? bestName : "");
+        if (s.similarityVar) this.setVar(s.similarityVar, Math.max(0, bestSim));
         return;
       }
       case "switchProfile":
@@ -528,15 +949,21 @@ export class FlowRun {
         await this.runList(s.body, path);
         return;
       case "if":
-        if (truthy(evalExpr(s.condition.expr, this.env))) await this.runList(s.then, `${path}.then`);
+        if (await this.holds(s.condition)) await this.runList(s.then, `${path}.then`);
         else await this.runList(s.else, `${path}.else`);
         return;
       case "loop": {
         let i = 0;
+        let roundStart = 0;
         for (;;) {
           if (s.mode === "count" && i >= (s.count ?? 0)) return;
-          if (s.mode === "while" && !truthy(evalExpr(s.condition!.expr, this.env))) return;
+          if (s.cooldownMs && i > 0) {
+            const rest = roundStart + s.cooldownMs - this.clock.now();
+            if (rest > 0) await this.sleep(rest);
+          }
+          if (s.mode === "while" && !(await this.holds(s.condition!))) return;
           this.countIteration();
+          roundStart = this.clock.now();
           if (s.indexVar) this.setVar(s.indexVar, i);
           try {
             await this.runList(s.body, `${path}.body`);
@@ -570,7 +997,7 @@ export class FlowRun {
         try {
           await this.runList(s.body, `${path}.body`);
         } catch (e) {
-          if (e instanceof Interrupt || e === STOP_REASON || this.ctrl.signal.aborted) throw e;
+          if (e instanceof Interrupt || e instanceof StepTimeout || e === STOP_REASON || this.ctrl.signal.aborted) throw e;
           const err = toRunError(e, s.id, path);
           if (err.category === "limit") throw e;
           if (s.errorVar) this.setVar(s.errorVar, err.message);
@@ -592,7 +1019,8 @@ export class FlowRun {
   private finish(status: RunResult["status"], reason?: string, error?: RunError): RunResult {
     this.setState(status);
     const endedAt = this.clock.now();
-    return { status, reason, error, actions: this.actions, iterations: this.iterations, durationMs: endedAt - this.startedAt, vars: { ...this.vars }, startedAt: this.startedAt, endedAt };
+    for (const d of this.deadlines.splice(0)) d.unlink();
+    return { status, reason, error, actions: this.actions, iterations: this.iterations, steps: this.stepCount, durationMs: endedAt - this.startedAt, vars: { ...this.vars }, startedAt: this.startedAt, endedAt };
   }
 
   private setState(s: RunState): void {
@@ -615,6 +1043,7 @@ function defaultFor(t: string): Value {
 
 function toRunError(e: unknown, stepId?: string, path?: string): RunError {
   if (e instanceof RunFailure) return { stepId: e.runError.stepId ?? stepId, path: e.runError.path ?? path, message: e.runError.message, category: e.runError.category };
+  if (e instanceof StepTimeout) return { stepId: e.deadline.stepId, path: e.deadline.path, message: `step timed out after ${e.deadline.timeoutMs} ms`, category: "timeout" };
   const err = e as { name?: string; message?: string; category?: ErrorCategory };
   if (err?.name === "ExprError") return { stepId, path, message: err.message ?? "expression error", category: "expression" };
   return { stepId, path, message: err?.message ?? String(e), category: err?.category ?? "action" };

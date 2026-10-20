@@ -1,0 +1,7 @@
+{
+  "name": "@autoflow/brand",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AutoFlow design tokens, logo and icon sources shared by the site, web app and native shells.",
+  "files": ["tokens.css", "logo.svg", "mark.svg", "brand.json"]
+}

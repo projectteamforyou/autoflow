@@ -1,0 +1,110 @@
+name: Site
+
+# Builds the marketing/SEO/legal site (apps/site), merges the web app (apps/web) under /app/,
+# verifies SEO integrity and deploys to Cloudflare Pages on pushes to main.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/site/**"
+      - "apps/web/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/site.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "apps/site/**"
+      - "apps/web/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/site.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: site-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SITE_URL: ${{ vars.SITE_URL || 'https://autoflowmacro.com' }}
+  API_ORIGIN: ${{ vars.API_ORIGIN || 'https://api.autoflowmacro.com' }}
+
+jobs:
+  build:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium for Open Graph images
+        run: pnpm --filter @autoflow/site exec playwright-core install --with-deps chromium
+
+      - name: Build shared core
+        run: pnpm --filter @autoflow/core build
+
+      - name: Typecheck site
+        run: pnpm --filter @autoflow/site typecheck
+
+      - name: Build site
+        run: pnpm --filter @autoflow/site build
+
+      - name: Verify SEO
+        run: pnpm --filter @autoflow/site verify
+
+      - name: Build web app (if present)
+        if: hashFiles('apps/web/package.json') != ''
+        env:
+          VITE_BASE: /app/
+          VITE_API_ORIGIN: ${{ env.API_ORIGIN }}
+        run: pnpm --filter "./apps/web" build
+
+      - name: Merge web app into /app/
+        if: hashFiles('apps/web/package.json') != ''
+        run: |
+          test -f apps/web/dist/index.html
+          mkdir -p apps/site/dist/app
+          cp -R apps/web/dist/. apps/site/dist/app/
+          # The site owns the shared manifest/icons; keep the SPA from overwriting them.
+          rm -f apps/site/dist/app/_headers apps/site/dist/app/_redirects
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site-dist
+          path: apps/site/dist
+          retention-days: 7
+
+  deploy:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: production
+      url: ${{ vars.SITE_URL || 'https://autoflowmacro.com' }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: site-dist
+          path: dist
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=autoflow --branch=main --commit-dirty=true

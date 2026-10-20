@@ -1,0 +1,1416 @@
+openapi: 3.1.0
+info:
+  title: AutoFlow API
+  version: 1.0.0
+  summary: Accounts, end-to-end encrypted sync, Atlas community templates, share links and the Copilot relay.
+  description: |
+    All endpoints speak JSON. Authenticate with `Authorization: Bearer <token>` (opaque session token
+    from signup/login; 30-day sliding expiry). No cookies are used.
+
+    Errors always have the shape `{ "error": { "code": string, "message": string, "details"?: any } }`.
+    Rate-limited responses are `429` with a `Retry-After` header.
+  license:
+    name: UNLICENSED
+servers:
+  - url: https://api.autoflow.app
+    description: Production (Railway)
+  - url: http://localhost:8080
+    description: Local development
+security:
+  - bearer: []
+tags:
+  - name: system
+  - name: auth
+  - name: account
+  - name: sync
+  - name: devices
+  - name: atlas
+  - name: admin
+  - name: shares
+  - name: ai
+  - name: billing
+
+paths:
+  /health:
+    get:
+      tags: [system]
+      summary: Liveness + database ping
+      security: []
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+        "503":
+          description: Database unreachable
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+
+  /v1/meta:
+    get:
+      tags: [system]
+      summary: Version, supported locales and limits
+      security: []
+      responses:
+        "200":
+          description: Metadata
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Meta" }
+
+  /v1/openapi.yaml:
+    get:
+      tags: [system]
+      summary: This document
+      security: []
+      responses:
+        "200":
+          description: OpenAPI 3.1 YAML
+          content:
+            application/yaml:
+              schema: { type: string }
+
+  /v1/auth/signup:
+    post:
+      tags: [auth]
+      summary: Create an account (sends a verification email)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email, maxLength: 254 }
+                password: { type: string, minLength: 10, maxLength: 256 }
+                displayName: { type: [string, "null"], maxLength: 60 }
+                locale: { $ref: "#/components/schemas/Locale" }
+      responses:
+        "201":
+          description: Account created and signed in
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResult" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "409": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/auth/login:
+    post:
+      tags: [auth]
+      summary: Sign in with email and password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        "200":
+          description: Signed in
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResult" }
+        "401": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/auth/logout:
+    post:
+      tags: [auth]
+      summary: Revoke the current session
+      responses:
+        "204": { description: Signed out }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/auth/logout-all:
+    post:
+      tags: [auth]
+      summary: Revoke every session of the account
+      responses:
+        "200":
+          description: Sessions revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  revoked: { type: integer }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/auth/sessions:
+    get:
+      tags: [auth]
+      summary: List active sessions
+      responses:
+        "200":
+          description: Sessions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessions:
+                    type: array
+                    items: { $ref: "#/components/schemas/SessionInfo" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/auth/verify-email:
+    post:
+      tags: [auth]
+      summary: Confirm an email address with the emailed token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TokenBody" }
+      responses:
+        "200":
+          description: Verified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verified: { type: boolean }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /v1/auth/verify-email/resend:
+    post:
+      tags: [auth]
+      summary: Send a new verification email
+      responses:
+        "202": { description: Sent (or already verified) }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/auth/password/forgot:
+    post:
+      tags: [auth]
+      summary: Email a password reset link (always 202, never reveals whether the account exists)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        "202": { description: Accepted }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/auth/password/reset:
+    post:
+      tags: [auth]
+      summary: Set a new password with a reset token (signs out all sessions)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token: { type: string }
+                password: { type: string, minLength: 10, maxLength: 256 }
+      responses:
+        "200": { description: Password changed }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /v1/auth/password/change:
+    post:
+      tags: [auth]
+      summary: Change the password (signs out other sessions)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword: { type: string }
+                newPassword: { type: string, minLength: 10, maxLength: 256 }
+      responses:
+        "200": { description: Password changed }
+        "401": { $ref: "#/components/responses/Error" }
+
+  /v1/me:
+    get:
+      tags: [account]
+      summary: Current user
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    patch:
+      tags: [account]
+      summary: Update display name, locale or usage type
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                displayName: { type: [string, "null"], maxLength: 60 }
+                locale: { $ref: "#/components/schemas/Locale" }
+                usageType: { type: string, enum: [personal, business], description: "Personal use is free; business use needs a Business plan after 2026-10-25 (KST)." }
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      tags: [account]
+      summary: Permanently delete the account and all its data (GDPR)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string }
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Error" }
+
+  /v1/me/export:
+    get:
+      tags: [account]
+      summary: Export all account data as JSON (GDPR)
+      responses:
+        "200":
+          description: Export document (served as an attachment)
+          content:
+            application/json:
+              schema: { type: object }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/sync:
+    get:
+      tags: [sync]
+      summary: Pull changes after a cursor (tombstones included)
+      parameters:
+        - name: since
+          in: query
+          description: Server sequence cursor from the previous page (`0` for a full pull).
+          schema: { type: string, pattern: "^\\d{1,19}$", default: "0" }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 500, default: 100 }
+      responses:
+        "200":
+          description: A page of changes
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, cursor, hasMore]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/SyncItem" }
+                  cursor: { type: string }
+                  hasMore: { type: boolean }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/sync/usage:
+    get:
+      tags: [sync]
+      summary: Quota usage
+      responses:
+        "200":
+          description: Usage
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: integer }
+                  bytes: { type: integer }
+                  limits:
+                    type: object
+                    properties:
+                      maxItems: { type: integer }
+                      maxBytes: { type: integer }
+                      maxItemBytes: { type: integer }
+
+  /v1/sync/items/{kind}/{id}:
+    parameters:
+      - name: kind
+        in: path
+        required: true
+        schema: { type: string, enum: [flow, profile, settings] }
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, pattern: "^[A-Za-z0-9_-]{1,64}$" }
+    get:
+      tags: [sync]
+      summary: Fetch one item (with ciphertext)
+      responses:
+        "200":
+          description: Item
+          headers:
+            ETag: { schema: { type: string }, description: Quoted revision }
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  item: { $ref: "#/components/schemas/SyncItem" }
+        "404": { $ref: "#/components/responses/Error" }
+    put:
+      tags: [sync]
+      summary: Create or update an encrypted item (optimistic concurrency)
+      parameters:
+        - name: If-Match
+          in: header
+          required: true
+          description: Revision the client based its change on; `0` to create.
+          schema: { type: string, example: '"3"' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ciphertext, iv, contentHash]
+              properties:
+                ciphertext: { type: string, contentEncoding: base64, description: "≤ 2 MB decoded" }
+                iv: { type: string, contentEncoding: base64, minLength: 12, maxLength: 64 }
+                contentHash: { type: string, pattern: "^[A-Za-z0-9+/=_-]{16,128}$" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  item: { $ref: "#/components/schemas/SyncItem" }
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  item: { $ref: "#/components/schemas/SyncItem" }
+        "402":
+          description: "`business_plan_required` — business use after 2026-10-25 23:59:59 KST without a valid Business plan (only while checkout is available). Reads, deletes, export and account deletion are never blocked."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "403":
+          description: Quota exceeded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "413": { $ref: "#/components/responses/Error" }
+        "428": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [sync]
+      summary: Delete an item (leaves a tombstone)
+      parameters:
+        - name: If-Match
+          in: header
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Tombstone
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  item: { $ref: "#/components/schemas/SyncItem" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /v1/devices:
+    get:
+      tags: [devices]
+      summary: List devices
+      responses:
+        "200":
+          description: Devices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  devices:
+                    type: array
+                    items: { $ref: "#/components/schemas/Device" }
+    post:
+      tags: [devices]
+      summary: Register this device (binds the current session to it)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, platform]
+              properties:
+                name: { type: string, maxLength: 60 }
+                platform: { type: string, enum: [windows, android, web, macos, linux, ios, other] }
+                appVersion: { type: [string, "null"], maxLength: 32 }
+      responses:
+        "201":
+          description: Registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  device: { $ref: "#/components/schemas/Device" }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /v1/devices/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [devices]
+      summary: Rename a device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 60 }
+      responses:
+        "200":
+          description: Renamed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  device: { $ref: "#/components/schemas/Device" }
+        "404": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [devices]
+      summary: Revoke a device (signs out its sessions)
+      responses:
+        "204": { description: Revoked }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /v1/atlas/categories:
+    get:
+      tags: [atlas]
+      security: []
+      summary: Template categories
+      responses:
+        "200":
+          description: Categories
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  categories: { type: array, items: { type: string } }
+
+  /v1/atlas/official:
+    get:
+      tags: [atlas]
+      security: []
+      summary: Official templates (from @autoflow/core, read-only)
+      responses:
+        "200":
+          description: Templates without flows
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  templates:
+                    type: array
+                    items: { $ref: "#/components/schemas/OfficialTemplate" }
+
+  /v1/atlas/official/{id}:
+    get:
+      tags: [atlas]
+      security: []
+      summary: One official template including its flow
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Template
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  template:
+                    allOf:
+                      - $ref: "#/components/schemas/OfficialTemplate"
+                      - type: object
+                        properties:
+                          flow: { $ref: "#/components/schemas/Flow" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /v1/atlas/templates:
+    get:
+      tags: [atlas]
+      security: []
+      summary: Browse and search published community templates
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 100 } }
+        - { name: category, in: query, schema: { type: string } }
+        - { name: platform, in: query, schema: { type: string, enum: [windows, android, web] } }
+        - { name: sort, in: query, schema: { type: string, enum: [popular, new, rating], default: popular } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        "200":
+          description: Page of templates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  templates:
+                    type: array
+                    items: { $ref: "#/components/schemas/TemplateSummary" }
+                  page: { type: integer }
+                  pageSize: { type: integer }
+                  total: { type: integer }
+    post:
+      tags: [atlas]
+      summary: Publish a flow (verified email required)
+      description: |
+        The server re-runs parseFlow → sanitizeForSharing → lintFlow (errors reject with 422) → analyzeRisk.
+        High-risk flows are stored as `pending_review` until a moderator approves them.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [flow, category]
+              properties:
+                flow: { $ref: "#/components/schemas/Flow" }
+                category: { type: string, enum: [clicking, keyboard, office, accessibility, testing, mobile, developer, wellbeing] }
+                locale: { $ref: "#/components/schemas/Locale" }
+      responses:
+        "201":
+          description: Published (or pending review)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  template: { $ref: "#/components/schemas/TemplateDetail" }
+                  warnings: { type: array, items: { $ref: "#/components/schemas/LintIssue" } }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/FlowRejected" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/atlas/templates/mine:
+    get:
+      tags: [atlas]
+      summary: My templates (any status)
+      responses:
+        "200":
+          description: Templates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  templates: { type: array, items: { $ref: "#/components/schemas/TemplateSummary" } }
+
+  /v1/atlas/templates/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ShortId"
+    get:
+      tags: [atlas]
+      security: [{}, { bearer: [] }]
+      summary: Template detail with flow and risk findings
+      responses:
+        "200":
+          description: Template
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  template: { $ref: "#/components/schemas/TemplateDetail" }
+        "404": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [atlas]
+      summary: Unpublish (author only)
+      responses:
+        "204": { description: Unpublished }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /v1/atlas/templates/{id}/install:
+    parameters:
+      - $ref: "#/components/parameters/ShortId"
+    post:
+      tags: [atlas]
+      security: [{}, { bearer: [] }]
+      summary: Count an install and return the flow (once per signed-in user)
+      responses:
+        "200":
+          description: Installed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  installs: { type: integer }
+                  flow: { $ref: "#/components/schemas/Flow" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /v1/atlas/templates/{id}/rating:
+    parameters:
+      - $ref: "#/components/parameters/ShortId"
+    get:
+      tags: [atlas]
+      summary: My rating
+      responses:
+        "200":
+          description: Stars or null
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stars: { type: [integer, "null"] }
+    put:
+      tags: [atlas]
+      summary: Rate 1–5 (one per user, updatable; not your own template)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [stars]
+              properties:
+                stars: { type: integer, minimum: 1, maximum: 5 }
+      responses:
+        "200":
+          description: New aggregate
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stars: { type: integer }
+                  average: { type: [number, "null"] }
+                  count: { type: integer }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /v1/atlas/templates/{id}/reports:
+    parameters:
+      - $ref: "#/components/parameters/ShortId"
+    post:
+      tags: [atlas]
+      summary: Report a template (auto-hidden after N reports, pending moderation)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, enum: [spam, malicious, cheating, inappropriate, copyright, broken, other] }
+                details: { type: string, maxLength: 1000 }
+      responses:
+        "202": { description: Report received }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /v1/admin/atlas/queue:
+    get:
+      tags: [admin]
+      summary: Moderation queue (admin role)
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+      responses:
+        "200":
+          description: Hidden, pending-review and reported templates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  queue:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        template: { $ref: "#/components/schemas/TemplateSummary" }
+                        pendingReports: { type: integer }
+                        reasons: { type: object, additionalProperties: { type: integer } }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /v1/admin/atlas/templates/{id}/moderate:
+    parameters:
+      - $ref: "#/components/parameters/ShortId"
+    post:
+      tags: [admin]
+      summary: Approve (publish, dismiss reports) or remove a template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action: { type: string, enum: [approve, remove] }
+      responses:
+        "200": { description: Done }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /v1/shares:
+    post:
+      tags: [shares]
+      security: [{}, { bearer: [] }]
+      summary: Create a short share link for a validated, sanitized flow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [flow]
+              properties:
+                flow: { $ref: "#/components/schemas/Flow" }
+                expiresInDays: { type: integer, minimum: 1, maximum: 365 }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  share: { $ref: "#/components/schemas/Share" }
+        "413": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/FlowRejected" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/shares/mine:
+    get:
+      tags: [shares]
+      summary: My share links
+      responses:
+        "200":
+          description: Shares
+          content:
+            application/json:
+              schema: { type: object }
+
+  /v1/shares/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ShortId"
+    get:
+      tags: [shares]
+      security: []
+      summary: Open a share link (404 once expired)
+      responses:
+        "200":
+          description: Share
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  share: { $ref: "#/components/schemas/Share" }
+        "404": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [shares]
+      summary: Delete my share link
+      responses:
+        "204": { description: Deleted }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /v1/ai/providers:
+    get:
+      tags: [ai]
+      security: []
+      summary: Allow-listed relay providers and paths
+      responses:
+        "200":
+          description: Providers
+          content:
+            application/json:
+              schema: { type: object }
+
+  /v1/ai/relay:
+    post:
+      tags: [ai]
+      summary: Relay one JSON request to an allow-listed AI provider with your own key
+      description: |
+        Hosts are fixed per provider (api.openai.com, api.anthropic.com, generativelanguage.googleapis.com,
+        openrouter.ai); no base URL can be supplied. The key in `X-Provider-Key` is used for this request
+        only and is never stored or logged. Streaming is not supported. The upstream status and body are
+        returned inside `upstream` (HTTP 200), so provider errors are not confused with API errors.
+      parameters:
+        - name: X-Provider-Key
+          in: header
+          required: true
+          schema: { type: string, minLength: 8, maxLength: 512 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider, path, body]
+              properties:
+                provider: { type: string, enum: [openai, anthropic, gemini, openrouter] }
+                path:
+                  type: string
+                  examples: [/v1/chat/completions, /v1/responses, /v1/messages, "/v1beta/models/gemini-2.0-flash:generateContent", /api/v1/chat/completions]
+                body: { type: object }
+      responses:
+        "200":
+          description: Upstream answered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  upstream:
+                    type: object
+                    properties:
+                      status: { type: integer }
+                      body: {}
+        "400": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Error" }
+        "504": { $ref: "#/components/responses/Error" }
+
+  /v1/billing/config:
+    get:
+      tags: [billing]
+      security: [{}]
+      summary: Plans, prices, policy dates and the public checkout parameters of enabled providers
+      description: Never contains secrets. `checkoutEnabled` is false until an operator saves payment keys.
+      responses:
+        "200":
+          description: Billing configuration
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BillingConfig" }
+
+  /v1/billing/status:
+    get:
+      tags: [billing]
+      summary: The caller's usage type, plan status, entitlement and recent orders
+      responses:
+        "200":
+          description: Status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BillingStatus" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/billing/checkout:
+    post:
+      tags: [billing]
+      summary: Create a pending one-time order (1 or 12 months of Business)
+      description: |
+        PortOne (KRW): returns the parameters for `PortOne.requestPayment`, including the server-minted `paymentId`.
+        PayPal (USD): creates the PayPal order and returns its approval link; `returnUrl` must be the app's `/billing/return` page on an allowed origin.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider, period]
+              properties:
+                provider: { type: string, enum: [portone, paypal] }
+                period: { type: string, enum: [month, year] }
+                returnUrl: { type: string, format: uri }
+      responses:
+        "201":
+          description: Pending order and provider parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  order: { $ref: "#/components/schemas/Order" }
+                  portone:
+                    type: object
+                    properties:
+                      storeId: { type: string }
+                      channelKey: { type: string }
+                      paymentId: { type: string }
+                      orderName: { type: string }
+                      totalAmount: { type: integer }
+                      currency: { type: string, enum: [CURRENCY_KRW] }
+                      payMethod: { type: string, enum: [CARD] }
+                  paypal:
+                    type: object
+                    properties:
+                      orderId: { type: string }
+                      approveUrl: { type: string, format: uri }
+        "409": { $ref: "#/components/responses/Error" }
+        "503": { description: "`billing_disabled` — the provider is not configured" }
+
+  /v1/billing/confirm:
+    post:
+      tags: [billing]
+      summary: Verify a payment with the provider and settle the order (idempotent)
+      description: PortOne is checked with `GET /payments/{paymentId}`; PayPal orders are checked and then captured. Amount, currency and status must match the pending order created by the server.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider, paymentId]
+              properties:
+                provider: { type: string, enum: [portone, paypal] }
+                paymentId: { type: string, description: "PortOne paymentId, or the PayPal order id (`token` on return)" }
+      responses:
+        "200":
+          description: Paid order and the updated status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  order: { $ref: "#/components/schemas/Order" }
+                  billing: { $ref: "#/components/schemas/BillingStatus" }
+        "402": { description: "`payment_failed`" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { description: "`payment_not_completed` (try again later) or `payment_mismatch` (rejected; PortOne payments are refunded)" }
+        "502": { $ref: "#/components/responses/Error" }
+
+  /v1/admin/billing/settings:
+    get:
+      tags: [admin]
+      summary: Payment settings (operators only; secrets shown only as set + last 4)
+      responses:
+        "200": { description: Settings }
+        "403": { $ref: "#/components/responses/Error" }
+    put:
+      tags: [admin]
+      summary: Update payment settings; secrets are encrypted at rest (AES-256-GCM). Audited.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                portone:
+                  type: object
+                  properties:
+                    enabled: { type: boolean }
+                    storeId: { type: string }
+                    channelKey: { type: string }
+                    apiSecret: { type: [string, "null"], description: "omit to keep, null to clear" }
+                paypal:
+                  type: object
+                  properties:
+                    enabled: { type: boolean }
+                    env: { type: string, enum: [live, sandbox] }
+                    clientId: { type: string }
+                    clientSecret: { type: [string, "null"] }
+                prices:
+                  type: object
+                  description: "Minor units per period and currency, e.g. { month: { KRW: 9900, USD: 799 } }"
+      responses:
+        "200": { description: Saved settings and changed field names }
+        "403": { $ref: "#/components/responses/Error" }
+        "503": { description: SETTINGS_ENCRYPTION_KEY is not configured }
+
+  /v1/admin/billing/orders:
+    get:
+      tags: [admin]
+      summary: Recent orders (operators only)
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+        - { name: status, in: query, schema: { type: string, enum: [pending, paid, failed, cancelled] } }
+      responses:
+        "200": { description: Orders }
+
+  /v1/admin/billing/users:
+    get:
+      tags: [admin]
+      summary: Look up a user's usage type, entitlement and orders by email (operators only)
+      parameters:
+        - { name: email, in: query, required: true, schema: { type: string, format: email } }
+      responses:
+        "200": { description: User billing details }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /v1/admin/billing/entitlements:
+    post:
+      tags: [admin]
+      summary: Grant (months or until) or revoke a Business entitlement (operators only; audited)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, action]
+              properties:
+                email: { type: string, format: email }
+                action: { type: string, enum: [grant, revoke] }
+                months: { type: integer, minimum: 1, maximum: 120 }
+                until: { type: string, format: date-time }
+                note: { type: string, maxLength: 300 }
+      responses:
+        "200": { description: New entitlement }
+
+  /v1/admin/billing/audit:
+    get:
+      tags: [admin]
+      summary: Admin audit log (operators only)
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+      responses:
+        "200": { description: Entries, newest first }
+
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      description: Opaque session token (`afs_…`).
+
+  parameters:
+    ShortId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, pattern: "^[0-9A-Za-z]{10}$" }
+
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: Missing, invalid or expired session
+      headers:
+        WWW-Authenticate: { schema: { type: string } }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    RateLimited:
+      description: Too many requests
+      headers:
+        Retry-After: { schema: { type: integer } }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Conflict:
+      description: Revision conflict; `error.details.current` holds the server copy (or null).
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/Error"
+              - type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      details:
+                        type: object
+                        properties:
+                          current:
+                            oneOf:
+                              - $ref: "#/components/schemas/SyncItem"
+                              - type: "null"
+    FlowRejected:
+      description: "`invalid_flow` (schema issues) or `lint_failed` (lint errors)"
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: {}
+
+    Locale:
+      type: string
+      enum: [en, ko, ja, zh-CN, zh-TW, es, fr, de, pt-BR, ru, vi, id]
+
+    Health:
+      type: object
+      properties:
+        status: { type: string, enum: [ok, degraded] }
+        db: { type: string, enum: [ok, unreachable] }
+
+    Meta:
+      type: object
+      properties:
+        name: { type: string }
+        version: { type: string }
+        schemaVersion: { type: string }
+        locales: { type: array, items: { $ref: "#/components/schemas/Locale" } }
+        templateCategories: { type: array, items: { type: string } }
+        relayProviders: { type: array, items: { type: string } }
+        limits: { type: object }
+
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string }
+        emailVerified: { type: boolean }
+        displayName: { type: [string, "null"] }
+        locale: { $ref: "#/components/schemas/Locale" }
+        role: { type: string, enum: [user, admin] }
+        usageType: { type: string, enum: [personal, business] }
+        isAdmin: { type: boolean, description: "Operator of this deployment (ADMIN_EMAILS, verified)" }
+        createdAt: { type: string, format: date-time }
+
+    Order:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        provider: { type: string, enum: [portone, paypal] }
+        plan: { type: string, enum: [business] }
+        period: { type: string, enum: [month, year] }
+        amount: { type: integer, description: "Minor units (KRW: won, USD: cents)" }
+        currency: { type: string, enum: [KRW, USD] }
+        status: { type: string, enum: [pending, paid, failed, cancelled] }
+        createdAt: { type: string, format: date-time }
+        paidAt: { type: [string, "null"], format: date-time }
+        validUntil: { type: [string, "null"], format: date-time }
+
+    BillingStatus:
+      type: object
+      properties:
+        usageType: { type: string, enum: [personal, business] }
+        status: { type: string, enum: [personal_free, business_free, business_active, business_required] }
+        entitlement:
+          type: [object, "null"]
+          properties:
+            plan: { type: string }
+            validUntil: { type: string, format: date-time }
+            active: { type: boolean }
+        checkoutEnabled: { type: boolean }
+        businessFreeUntil: { type: string }
+        orders: { type: array, items: { $ref: "#/components/schemas/Order" } }
+
+    BillingConfig:
+      type: object
+      properties:
+        checkoutEnabled: { type: boolean }
+        providers:
+          type: object
+          properties:
+            portone: { type: object, description: "{ enabled, storeId, channelKey, currency: KRW } or { enabled: false }" }
+            paypal: { type: object, description: "{ enabled, clientId, env, currency: USD } or { enabled: false }" }
+        plans: { type: object }
+        policy:
+          type: object
+          properties:
+            syncLaunchPrice: { type: object }
+            personalUse: { type: string, enum: [free] }
+            businessFreeUntil: { type: string, example: "2026-10-25T23:59:59+09:00" }
+            businessPlanRequiredFrom: { type: string }
+            timeZone: { type: string }
+
+    AuthResult:
+      type: object
+      properties:
+        user: { $ref: "#/components/schemas/User" }
+        session:
+          type: object
+          properties:
+            token: { type: string, description: "Opaque bearer token; store securely, shown once." }
+            expiresAt: { type: string, format: date-time }
+
+    SessionInfo:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        deviceId: { type: [string, "null"] }
+        userAgent: { type: [string, "null"] }
+        createdAt: { type: string, format: date-time }
+        lastUsedAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        current: { type: boolean }
+
+    TokenBody:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string }
+
+    SyncItem:
+      type: object
+      properties:
+        kind: { type: string, enum: [flow, profile, settings] }
+        id: { type: string }
+        revision: { type: integer }
+        deleted: { type: boolean }
+        contentHash: { type: [string, "null"] }
+        sizeBytes: { type: integer }
+        seq: { type: string, description: Server sequence (cursor) }
+        updatedAt: { type: string, format: date-time }
+        deviceId: { type: [string, "null"] }
+        ciphertext: { type: [string, "null"], description: Present on reads }
+        iv: { type: [string, "null"], description: Present on reads }
+
+    Device:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        platform: { type: string }
+        appVersion: { type: [string, "null"] }
+        createdAt: { type: string, format: date-time }
+        lastSeenAt: { type: string, format: date-time }
+        current: { type: boolean }
+
+    Flow:
+      type: object
+      description: An AutoFlow flow document (see packages/core flow.schema.json).
+      additionalProperties: true
+
+    LintIssue:
+      type: object
+      properties:
+        severity: { type: string, enum: [error, warning, info] }
+        stepId: { type: string }
+        key: { type: string }
+        params: { type: object }
+
+    Risk:
+      type: object
+      properties:
+        level: { type: string, enum: [low, medium, high] }
+        score: { type: integer }
+        permissions: { type: array, items: { type: string } }
+
+    TemplateSummary:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        category: { type: string }
+        locale: { type: string }
+        platforms: { type: array, items: { type: string } }
+        author:
+          type: object
+          properties:
+            name: { type: [string, "null"] }
+        risk: { $ref: "#/components/schemas/Risk" }
+        installs: { type: integer }
+        rating:
+          type: object
+          properties:
+            average: { type: [number, "null"] }
+            count: { type: integer }
+        status: { type: string, enum: [published, pending_review, hidden, removed] }
+        contentHash: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    TemplateDetail:
+      allOf:
+        - $ref: "#/components/schemas/TemplateSummary"
+        - type: object
+          properties:
+            flow: { $ref: "#/components/schemas/Flow" }
+            riskFindings: { type: array, items: { type: object } }
+            needsConfirm: { type: boolean }
+
+    OfficialTemplate:
+      type: object
+      properties:
+        id: { type: string }
+        category: { type: string }
+        platforms: { type: array, items: { type: string } }
+        name: { type: string }
+        description: { type: string }
+        nameKey: { type: string }
+        descriptionKey: { type: string }
+        difficulty: { type: string, enum: [easy, pro] }
+        verifiedAt: { type: string, format: date-time }
+        author: { type: string, const: AutoFlow }
+        risk: { $ref: "#/components/schemas/Risk" }
+
+    Share:
+      type: object
+      properties:
+        id: { type: string }
+        url: { type: string, format: uri }
+        flow: { $ref: "#/components/schemas/Flow" }
+        contentHash: { type: string }
+        risk:
+          allOf:
+            - $ref: "#/components/schemas/Risk"
+            - type: object
+              properties:
+                needsConfirm: { type: boolean }
+                findings: { type: array, items: { type: object } }
+        lint: { type: array, items: { $ref: "#/components/schemas/LintIssue" } }
+        views: { type: integer }
+        createdAt: { type: string, format: date-time }
+        expiresAt: { type: [string, "null"], format: date-time }
+        owned: { type: boolean }

@@ -1,6 +1,8 @@
 export * from "./schema.js";
 export * from "./expr.js";
+export { compileSafeRegex, RegexError, type SafeRegex } from "./safe-regex.js";
 export * from "./engine.js";
+export * from "./trace.js";
 export * from "./capabilities.js";
 export * from "./risk.js";
 export * from "./lint.js";
@@ -12,3 +14,9 @@ export * from "./share.js";
 export * from "./locales.js";
 export * from "./templates.js";
 export * from "./sandbox.js";
+export * from "./displays.js";
+export * from "./practice.js";
+export * from "./bridge.js";
+export * from "./ai-providers.js";
+export * from "./promo.js";
+export * from "./plans.js";

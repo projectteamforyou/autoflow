@@ -1,0 +1,39 @@
+{
+  "name": "@autoflow/api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "AutoFlow backend API — accounts, end-to-end encrypted sync, Atlas community templates, share links and an optional Copilot relay.",
+  "main": "./dist/index.js",
+  "files": [
+    "dist",
+    "migrations",
+    "openapi.yaml"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/index.js",
+    "migrate": "node dist/db/migrate-cli.js",
+    "migrate:dev": "tsx src/db/migrate-cli.ts",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@autoflow/core": "workspace:*",
+    "@hono/node-server": "^1.19.17",
+    "hono": "^4.13.13",
+    "postgres": "^3.4.9",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  }
+}

@@ -1,0 +1,55 @@
+/* AutoFlow design tokens — shared by the marketing site and the app. Dark-first, light supported. */
+:root {
+  --af-font: "Inter", "Pretendard", "Noto Sans KR", "Noto Sans JP", "Noto Sans SC", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --af-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+  --af-radius-sm: 8px;
+  --af-radius: 12px;
+  --af-radius-lg: 20px;
+  --af-primary: #7C5CFF;
+  --af-primary-600: #6A48F5;
+  --af-accent: #22C3A6;
+  --af-warning: #F59E0B;
+  --af-danger: #EF4444;
+  --af-success: #22C55E;
+  --af-gradient: linear-gradient(120deg, #7C5CFF 0%, #4F8BFF 50%, #22C3A6 100%);
+  --af-bg: #0B0B1A;
+  --af-bg-2: #0F0F22;
+  --af-surface: #14142B;
+  --af-surface-2: #1B1B36;
+  --af-border: rgba(255, 255, 255, 0.09);
+  --af-border-strong: rgba(255, 255, 255, 0.16);
+  --af-text: #F4F4FB;
+  --af-muted: #A3A3C2;
+  --af-subtle: #6E6E8F;
+  --af-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --af-focus: 0 0 0 3px rgba(124, 92, 255, 0.45);
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --af-bg: #F7F7FB;
+  --af-bg-2: #FFFFFF;
+  --af-surface: #FFFFFF;
+  --af-surface-2: #F1F1F8;
+  --af-border: rgba(15, 15, 40, 0.09);
+  --af-border-strong: rgba(15, 15, 40, 0.18);
+  --af-text: #12122A;
+  --af-muted: #55557A;
+  --af-subtle: #8A8AA8;
+  --af-shadow: 0 10px 30px rgba(20, 20, 60, 0.08);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --af-bg: #F7F7FB;
+    --af-bg-2: #FFFFFF;
+    --af-surface: #FFFFFF;
+    --af-surface-2: #F1F1F8;
+    --af-border: rgba(15, 15, 40, 0.09);
+    --af-border-strong: rgba(15, 15, 40, 0.18);
+    --af-text: #12122A;
+    --af-muted: #55557A;
+    --af-subtle: #8A8AA8;
+    --af-shadow: 0 10px 30px rgba(20, 20, 60, 0.08);
+    color-scheme: light;
+  }
+}

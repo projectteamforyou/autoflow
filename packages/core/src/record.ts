@@ -5,13 +5,16 @@
  * - pauses become `wait` steps (rounded, tiny gaps dropped),
  * - input into sensitive fields (password boxes, flagged apps) is never kept: it becomes
  *   {{secret:…}} so the value is supplied from the OS keystore at run time.
+ * - with the device's displays, points are stored relative to the monitor they happened on
+ *   (normalized + `display` id), so a recording replays on the same monitor wherever it moved.
  */
 import type { Step, Target } from "./schema.js";
 import { newId } from "./schema.js";
+import { onDisplay, sortDisplays, type DisplayInfo } from "./displays.js";
 
 export type RecordedEvent =
-  | { t: number; kind: "mouseDown" | "mouseUp"; x: number; y: number; button: "left" | "right" | "middle" | "x1" | "x2" }
-  | { t: number; kind: "wheel"; dx: number; dy: number; x: number; y: number }
+  | { t: number; kind: "mouseDown" | "mouseUp"; x: number; y: number; button: "left" | "right" | "middle" | "x1" | "x2"; displayId?: string }
+  | { t: number; kind: "wheel"; dx: number; dy: number; x: number; y: number; displayId?: string }
   | { t: number; kind: "keyDown" | "keyUp"; key: string; modifiers: ("ctrl" | "alt" | "shift" | "meta")[]; sensitive?: boolean };
 
 export interface RecordOptions {
@@ -25,6 +28,11 @@ export interface RecordOptions {
   screen?: { width: number; height: number };
   /** Hold time (ms) above which a click is stored as press-and-hold. */
   holdThresholdMs?: number;
+  /**
+   * Monitors at recording time (virtual-desktop px). When given, points become normalized
+   * coordinates of the display they happened on (the event's displayId, else the one containing it).
+   */
+  displays?: DisplayInfo[];
 }
 
 export function eventsToSteps(events: RecordedEvent[], opts: RecordOptions = {}): Step[] {
@@ -32,8 +40,15 @@ export function eventsToSteps(events: RecordedEvent[], opts: RecordOptions = {})
   const round = opts.roundMs ?? 10;
   const dragT = opts.dragThreshold ?? 8;
   const holdT = opts.holdThresholdMs ?? 450;
-  const point = (x: number, y: number): Target =>
-    opts.screen ? { kind: "point", x: +(x / opts.screen.width).toFixed(4), y: +(y / opts.screen.height).toFixed(4), space: "normalized" } : { kind: "point", x, y, space: "screen" };
+  const displays = opts.displays?.length ? sortDisplays(opts.displays) : undefined;
+  const point = (x: number, y: number, displayId?: string): Target => {
+    if (displays) {
+      const d = displays.find((m) => m.id === displayId) ?? displays.find((m) => onDisplay(m.bounds, x, y)) ?? displays[0]!;
+      const b = d.bounds;
+      return { kind: "point", x: +((x - b.x) / b.w).toFixed(4), y: +((y - b.y) / b.h).toFixed(4), space: "normalized", display: d.id };
+    }
+    return opts.screen ? { kind: "point", x: +(x / opts.screen.width).toFixed(4), y: +(y / opts.screen.height).toFixed(4), space: "normalized" } : { kind: "point", x, y, space: "screen" };
+  };
 
   const sorted = [...events].sort((a, b) => a.t - b.t);
   const steps: Step[] = [];
@@ -86,15 +101,15 @@ export function eventsToSteps(events: RecordedEvent[], opts: RecordOptions = {})
       const moved = Math.hypot(up.x - e.x, up.y - e.y) > dragT;
       const held = up.t - e.t;
       const prevStep = steps[steps.length - 1];
-      const isSecondClick = !moved && prevStep?.type === "click" && prevStep.clicks === 1 && prevStep.target.kind === "point" && sameSpot(prevStep.target, point(e.x, e.y)) && lastT !== undefined && e.t - lastT < 350;
+      const isSecondClick = !moved && prevStep?.type === "click" && prevStep.clicks === 1 && prevStep.target.kind === "point" && sameSpot(prevStep.target, point(e.x, e.y, e.displayId)) && lastT !== undefined && e.t - lastT < 350;
       if (!isSecondClick) pushWait(e.t);
-      if (moved) steps.push({ id: newId(), type: "drag", from: point(e.x, e.y), to: point(up.x, up.y), durationMs: Math.max(50, Math.round(held / round) * round), button: e.button });
+      if (moved) steps.push({ id: newId(), type: "drag", from: point(e.x, e.y, e.displayId), to: point(up.x, up.y, up.displayId), durationMs: Math.max(50, Math.round(held / round) * round), button: e.button });
       else {
         // merge quick second click at the same spot into a double click
         if (isSecondClick && prevStep?.type === "click") {
           prevStep.clicks = 2;
         } else {
-          steps.push({ id: newId(), type: "click", target: point(e.x, e.y), button: e.button, clicks: 1, holdMs: held >= holdT ? Math.round(held / round) * round : 0, modifiers: [] });
+          steps.push({ id: newId(), type: "click", target: point(e.x, e.y, e.displayId), button: e.button, clicks: 1, holdMs: held >= holdT ? Math.round(held / round) * round : 0, modifiers: [] });
         }
       }
       lastT = up.t;
@@ -105,7 +120,7 @@ export function eventsToSteps(events: RecordedEvent[], opts: RecordOptions = {})
       if (prev && prev.type === "scroll" && lastT !== undefined && e.t - lastT < 150) {
         prev.dx += e.dx;
         prev.dy += e.dy;
-      } else steps.push({ id: newId(), type: "scroll", dx: e.dx, dy: e.dy, target: point(e.x, e.y) });
+      } else steps.push({ id: newId(), type: "scroll", dx: e.dx, dy: e.dy, target: point(e.x, e.y, e.displayId) });
       lastT = e.t;
     }
   }
@@ -115,5 +130,5 @@ export function eventsToSteps(events: RecordedEvent[], opts: RecordOptions = {})
 }
 
 function sameSpot(a: Target, b: Target): boolean {
-  return a.kind === "point" && b.kind === "point" && Math.abs(a.x - b.x) < (a.space === "normalized" ? 0.005 : 4) && Math.abs(a.y - b.y) < (a.space === "normalized" ? 0.005 : 4);
+  return a.kind === "point" && b.kind === "point" && a.display === b.display && Math.abs(a.x - b.x) < (a.space === "normalized" ? 0.005 : 4) && Math.abs(a.y - b.y) < (a.space === "normalized" ? 0.005 : 4);
 }
