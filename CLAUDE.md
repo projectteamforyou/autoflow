@@ -27,6 +27,10 @@
 - **Android 빌드**는 러너에 JDK 21·17과 Android SDK(`C:\Android\sdk`, `ANDROID_HOME`)가 설치된 뒤에만 self-hosted로 옮깁니다. 그때 bash 단계는 `shell: bash`, `apt-get`·에뮬레이터 단계는 `ubuntu-latest`에 남깁니다. **현재는 아직 `ubuntu-latest`**.
 - 러너가 모두 꺼져 있으면 Windows 잡은 대기 상태로 남습니다(분은 소모되지 않음). PC를 켜면 이어서 실행됩니다.
 
+## 데스크톱(Tauri) 주의
+
+- `tauri.conf.json`의 `app.security.freezePrototype`는 **false 유지**. true면 `Object.prototype`이 얼어 zod가 로드 중 `TypeError`를 내고 창이 빈 화면이 됨(1.1.0·1.1.1 실제 증상).
+
 ## 릴리스 (태그 push는 자동화 프록시가 막으므로 수동 실행)
 
 - Windows: Actions → **windows** → Run workflow, `version: X.Y.Z` → Azure 서명·검증 후 GitHub Release, 이후 R2(`dl.autoflowmacro.com`) 업로드.
