@@ -61,19 +61,43 @@ function Install-Signing {
     Copy-Item -LiteralPath $PSCommandPath -Destination (Join-Path $Root 'sign.ps1') -Force
     Write-Host "Installed $Root\sign.ps1"
     if ($SkipDlib) { return }
+    $dest = Join-Path $Root 'dlib'
+    $marker = Join-Path $dest '.version'
+    # Self-hosted runners keep C:\afsign between jobs: reuse the dlib when the version matches.
+    if ((Test-Path (Join-Path $dest 'bin\x64\Azure.CodeSigning.Dlib.dll')) -and (Test-Path $marker) -and ((Get-Content -Raw $marker).Trim() -eq $DlibVersion)) {
+        Write-Host "dlib $DlibVersion already installed"
+        return
+    }
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    # Windows PowerShell's progress bar makes Invoke-WebRequest crawl on large files.
+    $ProgressPreference = 'SilentlyContinue'
     $id = $DlibPackage.ToLowerInvariant()
     $url = "https://api.nuget.org/v3-flatcontainer/$id/$DlibVersion/$id.$DlibVersion.nupkg"
     $zip = Join-Path $env:TEMP "$id.$DlibVersion.zip"
     Write-Host "Downloading $DlibPackage $DlibVersion"
-    Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
-    $dest = Join-Path $Root 'dlib'
+    $curl = Get-Command curl.exe -ErrorAction SilentlyContinue
+    for ($attempt = 1; $attempt -le 3; $attempt++) {
+        try {
+            if ($curl) {
+                & $curl.Source -fsSL --retry 3 --retry-delay 5 -o $zip $url
+                if ($LASTEXITCODE -ne 0) { throw "curl.exe exited with $LASTEXITCODE" }
+            } else {
+                Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing -TimeoutSec 300
+            }
+            break
+        } catch {
+            if ($attempt -eq 3) { throw }
+            Write-Host "Download failed ($($_.Exception.Message)); retrying ($attempt/3)"
+            Start-Sleep -Seconds (5 * $attempt)
+        }
+    }
     if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     [System.IO.Compression.ZipFile]::ExtractToDirectory($zip, $dest)
     Remove-Item -Force $zip
     $dll = Join-Path $dest 'bin\x64\Azure.CodeSigning.Dlib.dll'
     if (-not (Test-Path $dll)) { throw "dlib not found after extraction: $dll" }
+    Write-Utf8NoBom $marker $DlibVersion
     Write-Host "Installed dlib: $dll"
 }
 
