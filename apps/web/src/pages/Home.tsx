@@ -4,6 +4,7 @@ import { TEMPLATES, describeTrigger } from "@autoflow/core";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
 import { StudioPromoCard } from "../components/StudioPromo";
+import { TrialHero } from "../components/TrialBanner";
 import { FlowIcon, SafetyBadge } from "../components/ui";
 import { useStore } from "../lib/store";
 import { formatDuration, formatRelative, tp, useT } from "../i18n";
@@ -37,6 +38,7 @@ export function Home() {
   return (
     <Shell title={<h2>{t("nav.home")}</h2>}>
       <div className="page">
+        <TrialHero />
         <section className="hero">
           <h1>
             {t(greet)} <span className="gradient-text">{t("home.headline")}</span>
@@ -55,15 +57,6 @@ export function Home() {
               </button>
             ))}
           </div>
-          {!hasNativeBridge && (
-            <div className="callout info" style={{ marginTop: 18 }}>
-              <Icon name="Info" />
-              <div className="grow small">
-                {t("home.browserNote")}{" "}
-                <a href={`${SITE_URL}/download/`} target="_blank" rel="noopener">{t("home.getApps")}</a>
-              </div>
-            </div>
-          )}
         </section>
 
         <div className="grid cols-4">

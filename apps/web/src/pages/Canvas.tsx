@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { createFlow, eventsToSteps, newId, previewPoint, walkSteps, type Flow, type RecordedEvent, type RunEvent, type SandboxBackend, type SandboxEffect, type FlowRun } from "@autoflow/core";
 import { Shell } from "../components/Shell";
+import { TrialAfterRun } from "../components/TrialBanner";
 import { Icon } from "../components/Icon";
 import { Seg, Switch } from "../components/ui";
 import { useStore } from "../lib/store";
@@ -220,6 +221,10 @@ export function CanvasPage() {
   }, [shownEvents]);
   const t0 = shownEvents[0]?.at ?? 0;
 
+  // Last run on this canvas ended: point browser users at the real apps.
+  const lastState = [...events].reverse().find((e) => e.type === "state");
+  const runFinished = !myActive && !!lastState && lastState.type === "state" && (lastState.state === "completed" || lastState.state === "stopped");
+
   return (
     <Shell
       flush
@@ -255,6 +260,7 @@ export function CanvasPage() {
         </div>
       }
     >
+      {runFinished && <TrialAfterRun />}
       <div className="practice">
         <div className="stage-wrap">
           <div

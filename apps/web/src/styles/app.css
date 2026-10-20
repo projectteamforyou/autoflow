@@ -437,3 +437,16 @@ html.identify, html.identify body, html.identify #root { background: transparent
 .identify-badge { width: 92%; aspect-ratio: 1; border-radius: 28%; display: grid; place-items: center; background: rgba(11, 11, 26, .78); border: 4px solid #22C3A6; color: #fff; box-shadow: 0 10px 40px rgba(0, 0, 0, .45); position: relative; }
 .identify-badge b { font-size: min(48vw, 48vh); line-height: 1; font-weight: 800; font-family: system-ui, sans-serif; }
 .identify-badge span { position: absolute; top: 8%; right: 10%; font-size: min(12vw, 12vh); color: #fbbf24; }
+
+/* Browser trial: point people at the real apps */
+.trial-hero { display: flex; align-items: center; justify-content: space-between; gap: 18px 28px; flex-wrap: wrap; padding: 20px 22px; border-radius: 18px; border: 1px solid color-mix(in oklab, var(--af-primary) 35%, var(--af-border)); background: linear-gradient(120deg, color-mix(in oklab, var(--af-primary) 14%, var(--af-surface)), var(--af-surface) 65%); }
+.trial-hero-text { display: grid; gap: 6px; min-width: 0; flex: 1 1 340px; }
+.trial-hero-text h2 { font-size: 1.25rem; margin: 2px 0 0; }
+.trial-hero-text p { margin: 0; }
+.trial-hero-text .badge { justify-self: start; }
+.trial-hero-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.trial-chip { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 999px; font-size: 12.5px; text-decoration: none; color: var(--af-text); border: 1px solid color-mix(in oklab, var(--af-primary) 40%, var(--af-border)); background: color-mix(in oklab, var(--af-primary) 10%, transparent); white-space: nowrap; }
+.trial-chip b { color: var(--af-primary); font-weight: 650; }
+.trial-chip:hover { border-color: var(--af-primary); }
+@media (max-width: 640px) { .trial-chip span { display: none; } }
+.trial-after { margin: 10px 16px 0; }
