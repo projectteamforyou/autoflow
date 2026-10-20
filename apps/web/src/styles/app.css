@@ -444,6 +444,9 @@ html.identify, html.identify body, html.identify #root { background: transparent
 .trial-hero-text h2 { font-size: 1.25rem; margin: 2px 0 0; }
 .trial-hero-text p { margin: 0; }
 .trial-hero-text .badge { justify-self: start; }
+.trial-hero-biz { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: baseline; gap: 6px; margin-top: 4px !important; padding-top: 8px; border-top: 1px dashed color-mix(in oklab, var(--af-primary) 30%, var(--af-border)); }
+.trial-hero-biz svg { align-self: center; color: var(--af-primary); }
+.trial-hero-biz .text-link { font-weight: 600; white-space: nowrap; margin-left: 2px; }
 .trial-hero-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .trial-chip { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 999px; font-size: 12.5px; text-decoration: none; color: var(--af-text); border: 1px solid color-mix(in oklab, var(--af-primary) 40%, var(--af-border)); background: color-mix(in oklab, var(--af-primary) 10%, transparent); white-space: nowrap; }
 .trial-chip b { color: var(--af-primary); font-weight: 650; }

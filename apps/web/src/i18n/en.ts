@@ -81,6 +81,7 @@ export const en = {
   "trial.android": "Download for Android",
   "trial.more": "All downloads",
   "trial.otherOs": "The apps are for Windows 10/11 and Android. On other devices, keep using the web app.",
+  "trial.business": "Using it for work — at a company, for commercial or team use? That needs a Business license.",
   "trial.afterRun": "That ran on the virtual screen. Install the app to run the same flow on your real screen.",
   "business.title": "Business license",
   "business.headline": "AutoFlow for work",

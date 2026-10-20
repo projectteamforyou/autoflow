@@ -186,6 +186,7 @@
   "trial.android": "Android 版をダウンロード",
   "trial.more": "すべてのダウンロード",
   "trial.otherOs": "アプリは Windows 10/11 と Android 向けです。ほかの端末では Web アプリをお使いください。",
+  "trial.business": "会社・商用・団体など業務で使いますか?業務用には Business ライセンスが必要です。",
   "trial.afterRun": "いまの実行は仮想画面上でした。アプリを入れると、同じフローを実際の画面で実行できます。",
   "business.title": "Business ライセンス",
   "business.headline": "業務用 AutoFlow",
