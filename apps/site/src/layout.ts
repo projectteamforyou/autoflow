@@ -1,5 +1,6 @@
 import { LOCALES, STUDIO_URL, studioPromo, type LocaleCode } from "@autoflow/core";
 import type { Content } from "../content/types.js";
+import { SEO } from "../content/seo/index.js";
 import { API_ORIGIN, BRAND, BUSINESS, LINKS, LOCALE_BY_CODE, PAGES, SITE_URL, abs, pagePath, type PageId } from "./config.js";
 import { brand, icon, mark } from "./icons.js";
 import { esc, html } from "./util.js";
@@ -12,6 +13,8 @@ export interface Ctx {
   path: string;
   /** Whether this is the root x-default copy of the English home page. */
   isRoot?: boolean;
+  /** Path of this document in another locale, for pages outside PAGES (guides, alternatives). */
+  alt?: (lang: LocaleCode) => string;
 }
 
 export interface Assets {
@@ -40,8 +43,9 @@ export function altHref(lang: LocaleCode, page: PageId) {
 function head(ctx: Ctx, meta: HeadMeta, a: Assets): string {
   const loc = LOCALE_BY_CODE[ctx.lang];
   const url = abs(ctx.path);
-  const alternates =
-    meta.alternates && ctx.page !== "404"
+  const alternates = ctx.alt
+    ? [...LOCALES.map((l) => `<link rel="alternate" hreflang="${l.hreflang}" href="${abs(ctx.alt!(l.code))}">`), `<link rel="alternate" hreflang="x-default" href="${abs(ctx.alt("en"))}">`].join("")
+    : meta.alternates && ctx.page !== "404"
       ? [
           ...LOCALES.map((l) => `<link rel="alternate" hreflang="${l.hreflang}" href="${altHref(l.code, ctx.page as PageId)}">`),
           `<link rel="alternate" hreflang="x-default" href="${ctx.page === "home" ? `${SITE_URL}/` : altHref("en", ctx.page as PageId)}">`,
@@ -89,7 +93,7 @@ ${meta.jsonld.map((j) => `<script type="application/ld+json">${JSON.stringify(j)
 function header(ctx: Ctx): string {
   const { t, lang } = ctx;
   const home = pagePath(lang, "home");
-  const cur = (p: PageId) => (ctx.page === p ? ' aria-current="page"' : "");
+  const cur = (p: PageId) => (ctx.page === p && !ctx.alt ? ' aria-current="page"' : "");
   return html`<header class="site-header">
 <div class="wrap nav">
 <a class="brand" href="${home}">${mark(28, "hm")}<span>AutoFlow</span></a>
@@ -114,7 +118,7 @@ function langPicker(ctx: Ctx): string {
   const target: PageId = ctx.page === "404" ? "home" : ctx.page;
   return html`<details class="pop"><summary class="icon-btn" aria-label="${esc(t.a11y.language)}: ${esc(LOCALE_BY_CODE[lang].name)}">${icon("globe", 18)}<span class="lang-code">${lang.toUpperCase()}</span></summary>
 <div class="pop-panel"><ul class="lang-list">
-${LOCALES.map((l) => `<li><a href="${pagePath(l.code, target)}" hreflang="${l.hreflang}" lang="${l.code}" data-lang="${l.code}"${l.code === lang ? ' aria-current="true"' : ""}>${esc(l.name)}</a></li>`)}
+${LOCALES.map((l) => `<li><a href="${ctx.alt ? ctx.alt(l.code) : pagePath(l.code, target)}" hreflang="${l.hreflang}" lang="${l.code}" data-lang="${l.code}"${l.code === lang ? ' aria-current="true"' : ""}>${esc(l.name)}</a></li>`)}
 </ul></div></details>`;
 }
 
@@ -160,11 +164,11 @@ function footer(ctx: Ctx): string {
 <div class="wrap">
 <nav class="foot" aria-label="${esc(t.a11y.footerNav)}">
 <div><a class="brand" href="${pagePath(lang, "home")}">${mark(28, "fm")}<span>AutoFlow</span></a><p>${esc(t.footer.tagline)}</p><p>${esc(t.footer.made)}</p></div>
-<div><h2>${esc(t.footer.product)}</h2><ul>${(["features", "keyforge", "atlas", "safety", "pricing", "faq"] as PageId[]).map(l)}</ul></div>
+<div><h2>${esc(t.footer.product)}</h2><ul>${(["features", "keyforge", "atlas", "safety", "pricing", "faq"] as PageId[]).map(l)}<li><a href="/${lang}/guides/">${esc(SEO[lang].ui.guides.nav)}</a></li><li><a href="/${lang}/alternatives/">${esc(SEO[lang].ui.alternatives.nav)}</a></li></ul></div>
 <div><h2>${esc(t.footer.platforms)}</h2><ul>${l("windows")}${l("android")}<li><a href="${LINKS.app}">${esc(t.cta.openApp)}</a></li>${l("download")}${ext(LINKS.releases, t.footer.releases)}</ul></div>
 <div><h2>${esc(t.footer.legal)}</h2><ul>${l("privacy")}${l("terms")}<li><a href="mailto:${LINKS.email}">${esc(t.footer.contact)}</a></li></ul></div>
 </nav>
-<div class="foot-langs">${LOCALES.map((x) => `<a href="${pagePath(x.code, target)}" hreflang="${x.hreflang}" lang="${x.code}" data-lang="${x.code}"${x.code === lang ? ' aria-current="true"' : ""}>${esc(x.name)}</a>`)}</div>
+<div class="foot-langs">${LOCALES.map((x) => `<a href="${ctx.alt ? ctx.alt(x.code) : pagePath(x.code, target)}" hreflang="${x.hreflang}" lang="${x.code}" data-lang="${x.code}"${x.code === lang ? ' aria-current="true"' : ""}>${esc(x.name)}</a>`)}</div>
 ${statsBar(ctx)}
 ${businessInfo(ctx)}
 <div class="foot-bottom"><span>${esc(t.footer.rights)}</span><a href="mailto:${LINKS.email}">${LINKS.email}</a></div>

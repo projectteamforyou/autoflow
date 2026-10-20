@@ -13,6 +13,7 @@ import { API_ORIGIN, DIST, LASTMOD, PAGES, REPO, ROOT, SITE_URL, SKIP_OG, abs, p
 import { altHref, document, type Assets, type Ctx } from "./layout.js";
 import { renderOgImages, type OgJob } from "./og.js";
 import { RENDER, notFound, swatchCss } from "./pages.js";
+import { SEO_ROUTES, renderSeo, seoPath } from "./seo-pages.js";
 import { baseGraph, crumbsFor } from "./seo.js";
 import { cspHash, hash, minifyCss, tidy } from "./util.js";
 
@@ -85,6 +86,23 @@ for (const loc of LOCALES) {
       await emit("/", tidy(document(rootCtx, { ...meta, title: ROOT_TITLE, jsonld: [rootGraph] }, out.main, assets)));
       sitemap.push({ loc: `${SITE_URL}/`, alternates: alternatesFor("home") });
     }
+  }
+}
+
+/* ---------------------------------------------------------------- guides & alternatives */
+for (const loc of LOCALES) {
+  const lang = loc.code as LocaleCode;
+  for (const [kind, slug] of SEO_ROUTES) {
+    const alt = (l: LocaleCode) => seoPath(l, kind, slug);
+    const ctx: Ctx = { lang, t: CONTENT[lang], page: "features", path: alt(lang), alt };
+    const out = renderSeo(ctx, kind, slug);
+    const graph = baseGraph(ctx, out.title, out.description, out.crumbs, [], out.faq);
+    const meta = { title: out.title, description: out.description, ogImage: `/og/${lang}/features.png`, ogAlt: out.og.headline, jsonld: [graph], alternates: true };
+    await emit(ctx.path, tidy(document(ctx, meta, out.main, assets)));
+    sitemap.push({
+      loc: abs(ctx.path),
+      alternates: [...LOCALES.map((l) => ({ hreflang: l.hreflang, href: abs(alt(l.code)) })), { hreflang: "x-default", href: abs(alt("en")) }],
+    });
   }
 }
 
