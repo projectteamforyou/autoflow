@@ -76,3 +76,19 @@ export function TrialAfterRun() {
     </div>
   );
 }
+
+/** Download buttons after a Business purchase (/business): the licensed account now gets the real apps. */
+export function LicensedDownloads() {
+  const t = useT();
+  const links = useDownloadLinks();
+  if (hasNativeBridge) return null;
+  return (
+    <div className="callout info stack-sm">
+      <b>{t("business.downloadNow")}</b>
+      <div className="row wrap">
+        <a className="btn primary" href={links.windows}><Icon name="Download" size={16} /> {t("trial.windows")}</a>
+        <a className="btn" href={links.android}><Icon name="Smartphone" size={16} /> {t("trial.android")}</a>
+      </div>
+    </div>
+  );
+}

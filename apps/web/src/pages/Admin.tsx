@@ -84,7 +84,7 @@ export function AdminPage() {
 }
 
 /** Sign in (or create the operator account) right here, so /admin works on a fresh browser. */
-function SignInCard({ onSignedIn }: { onSignedIn: (u: User) => void }) {
+export function SignInCard({ onSignedIn }: { onSignedIn: (u: User) => void }) {
   const t = useT();
   const toast = useStore((s) => s.toast);
   const [mode, setMode] = useState<"login" | "signup">("login");

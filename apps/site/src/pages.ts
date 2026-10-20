@@ -4,6 +4,7 @@ import { LINKS, pagePath, type PageId } from "./config.js";
 import { brand, icon, mark } from "./icons.js";
 import { shareBar, type Ctx } from "./layout.js";
 import { crumbsFor } from "./seo.js";
+import { usageCopy } from "./usage.js";
 import { esc, html, md, brk } from "./util.js";
 
 export interface PageOut {
@@ -320,8 +321,17 @@ function safety(ctx: Ctx): PageOut {
 function download(ctx: Ctx): PageOut {
   const { t } = ctx;
   const d = t.download;
+  const u = usageCopy(ctx.lang);
   const main = html`${pageHero(ctx, "download", d.h1, d.lead, editionLine(ctx))}
-<section class="section-tight"><div class="wrap">
+<section class="section-tight usage"><div class="wrap">
+<h2 class="h2">${esc(u.q)}</h2>
+<p class="lead">${esc(u.lead)}</p>
+<div class="usage-grid">
+<a class="card usage-card" href="#downloads"><span class="tile">${icon("devices", 20)}</span><span><b>${esc(u.personal.title)}</b><small>${esc(u.personal.desc)}</small></span></a>
+<a class="card usage-card" href="${LINKS.app}#/business"><span class="tile">${icon("layers", 20)}</span><span><b>${esc(u.business.title)}</b><small>${esc(u.business.desc)}</small></span></a>
+</div>
+</div></section>
+<section class="section-tight" id="downloads"><div class="wrap">
 <div class="grid-3">
 <article class="card feature card-glow"><span class="tile">${brand("windows", 18)}</span><h2 class="h2">${esc(d.windows.h2)}</h2><p>${esc(d.windows.p)}</p><p class="muted">${esc(d.windows.meta)}</p><div class="cta-row">${ext(t, LINKS.windows, `${icon("download", 18)}<span>${esc(t.cta.windows)}</span>`, "btn btn-primary")}</div></article>
 <article class="card feature"><span class="tile">${brand("android", 18)}</span><h2 class="h2">${esc(d.android.h2)}</h2><p>${esc(d.android.p)}</p><p class="muted">${esc(d.android.meta)}</p><div class="cta-row">${ext(t, LINKS.android, `${brand("android", 18)}<span>${esc(t.cta.android)}</span>`, "btn btn-secondary")}</div></article>
@@ -345,7 +355,7 @@ function pricing(ctx: Ctx): PageOut {
 <section class="section-tight"><div class="wrap">
 <div class="plans">
 <article class="card plan card-glow"><h2>${esc(p.free.name)}</h2><div class="price"><b>${esc(p.free.price)}</b><span>${esc(p.free.period)}</span></div><p>${esc(p.free.desc)}</p>${list(p.free.items)}${ctaRow(ctx)}</article>
-<article class="card plan" id="business"><h2>${esc(p.sync.name)}</h2><div class="price"><b>${esc(price("month"))}</b><span>${esc(p.sync.period)}</span></div><p>${esc(p.sync.desc)}</p>${list(p.sync.items)}<p class="policy"><strong>${esc(p.sync.policy)}</strong></p><p class="muted">${esc(business)}</p><div class="cta-row"><a class="btn btn-secondary" href="${LINKS.app}#/settings">${icon("arrow", 18)}<span>${esc(p.sync.cta)}</span></a></div><div class="note">${icon("alert", 18)}<span>${md(p.sync.note)}</span></div></article>
+<article class="card plan" id="business"><h2>${esc(p.sync.name)}</h2><div class="price"><b>${esc(price("month"))}</b><span>${esc(p.sync.period)}</span></div><p>${esc(p.sync.desc)}</p>${list(p.sync.items)}<p class="policy"><strong>${esc(p.sync.policy)}</strong></p><p class="muted">${esc(business)}</p><div class="cta-row"><a class="btn btn-secondary" href="${LINKS.app}#/business">${icon("arrow", 18)}<span>${esc(p.sync.cta)}</span></a></div><div class="note">${icon("alert", 18)}<span>${md(p.sync.note)}</span></div></article>
 </div>
 <h2 class="h2 mt-l">${esc(p.promises.h2)}</h2>
 <div class="grid mt-l">${p.promises.items.map((x) => `<article class="card"><span class="tile">${icon("check", 20)}</span><h3>${esc(x.h3)}</h3><p>${esc(x.p)}</p></article>`)}</div>

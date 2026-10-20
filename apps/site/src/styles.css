@@ -500,3 +500,13 @@ ul { margin: 0; padding: 0; }
 @media (max-width: 860px) { .foot { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .row > *, .foot > * { min-width: 0; }
 .grid > *, .grid-3 > *, .split > * { min-width: 0; }
+
+/* Download page: "How will you use AutoFlow?" chooser */
+.usage .lead { margin: 10px 0 0; max-width: 78ch; text-align: left; }
+.usage-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; margin-top: 26px; }
+.usage-grid > * { min-width: 0; }
+.usage-card { display: flex; gap: 14px; align-items: flex-start; text-decoration: none; color: inherit; padding: 22px 24px; transition: border-color .15s, transform .15s; }
+.usage-card:hover { border-color: var(--af-primary); transform: translateY(-1px); }
+.usage-card b { display: block; font-size: 1.08rem; margin-bottom: 4px; }
+.usage-card small { display: block; color: var(--af-muted); font-size: 14.5px; line-height: 1.5; }
+#downloads { scroll-margin-top: 90px; }
