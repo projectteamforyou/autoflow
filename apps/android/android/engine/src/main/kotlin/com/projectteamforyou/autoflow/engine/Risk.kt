@@ -7,6 +7,36 @@ data class RiskReport(val score: Int, val level: String, val findings: List<Risk
 
 private val SENSITIVE_URL = Regex("(pay|checkout|bank|transfer|wallet|purchase|billing|order|captcha|login|signin|auth)", RegexOption.IGNORE_CASE)
 private val SECRET_REF = Regex("\\{\\{\\s*secret:")
+/** `{{...}}` interpolation: the real target is only known at run time, so keyword checks can be dodged. */
+private val DYNAMIC = Regex("\\{\\{")
+
+private fun isLocalIpv4(o: List<Int>): Boolean {
+    val a = o[0]
+    val b = o[1]
+    return a == 127 || a == 10 || a == 0 || (a == 172 && b in 16..31) || (a == 192 && b == 168) || (a == 169 && b == 254)
+}
+
+/**
+ * Same rule as isLocalNetworkUrl in packages/core/src/risk.ts: localhost, 127/8, 10/8, 172.16/12, 192.168/16,
+ * 169.254/16, 0/8, ::1, fc00::/7, fe80::/10 and IPv4-mapped IPv6. Never resolves DNS.
+ */
+fun isLocalNetworkUrl(url: String): Boolean {
+    var host = runCatching { java.net.URI(url.trim()).host }.getOrNull()?.lowercase() ?: return false
+    host = host.trimEnd('.')
+    if (host == "localhost" || host.endsWith(".localhost")) return true
+    // WHATWG URL parsing reads a bare number as an IPv4 address (http://2130706433/ is 127.0.0.1).
+    host.toLongOrNull()?.let { n -> return n in 0..0xFFFFFFFFL && isLocalIpv4(listOf((n shr 24).toInt() and 255, (n shr 16).toInt() and 255)) }
+    Regex("^(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})$").matchEntire(host)?.let { m -> return isLocalIpv4(m.groupValues.drop(1).map { it.toInt() }) }
+    if (host.startsWith("[") && host.endsWith("]")) {
+        val bytes = runCatching { java.net.InetAddress.getByName(host.substring(1, host.length - 1)).address }.getOrNull() ?: return false
+        if (bytes.size == 4) return isLocalIpv4(bytes.map { it.toInt() and 255 })
+        val u = bytes.map { it.toInt() and 255 }
+        if (u.subList(0, 15).all { it == 0 } && (u[15] == 0 || u[15] == 1)) return true
+        if ((u[0] and 0xfe) == 0xfc || (u[0] == 0xfe && (u[1] and 0xc0) == 0x80)) return true
+        if (u.subList(0, 10).all { it == 0 } && u[10] == 0xff && u[11] == 0xff) return isLocalIpv4(u.subList(12, 16))
+    }
+    return false
+}
 
 private fun stepFindings(s: Step): List<RiskFinding> {
     val f = ArrayList<RiskFinding>()
@@ -15,15 +45,23 @@ private fun stepFindings(s: Step): List<RiskFinding> {
         is Step.File -> when (s.op) {
             "delete" -> add("risk.fileDelete", 35, true)
             "write", "move" -> add("risk.fileWrite", 20, true)
-            "append", "copy" -> add("risk.fileWrite", 12, false)
+            // append grows/creates files and copy can overwrite its destination: both change files.
+            "append", "copy" -> add("risk.fileWrite", 12, true)
             else -> add("risk.fileRead", 6, false)
         }
         is Step.Http -> {
             if (s.method == "GET") add("risk.networkRead", 8, false) else add("risk.networkSend", 25, true)
             if (SENSITIVE_URL.containsMatchIn(s.url)) add("risk.sensitiveUrl", 20, true)
+            if (DYNAMIC.containsMatchIn(s.url)) add("risk.dynamicUrl", 10, true)
+            // Even a GET leaks whatever variables or secrets are interpolated into its headers.
+            if (s.headers.values.any { DYNAMIC.containsMatchIn(it) }) add("risk.requestVars", 10, true)
+            if (isLocalNetworkUrl(s.url)) add("risk.localNetwork", 15, true)
         }
         is Step.LaunchApp -> add("risk.launchApp", 10, false)
-        is Step.OpenUrl -> if (SENSITIVE_URL.containsMatchIn(s.url)) add("risk.sensitiveUrl", 15, true)
+        is Step.OpenUrl -> {
+            if (SENSITIVE_URL.containsMatchIn(s.url)) add("risk.sensitiveUrl", 15, true)
+            if (DYNAMIC.containsMatchIn(s.url)) add("risk.dynamicUrl", 10, true)
+        }
         is Step.Type -> if (SECRET_REF.containsMatchIn(s.text)) add("risk.secretInput", 10, false)
         is Step.Window -> if (s.op == "close") add("risk.windowClose", 12, false)
         is Step.AndroidGlobal -> if (s.action == "lockScreen" || s.action == "powerDialog") add("risk.systemAction", 10, false)

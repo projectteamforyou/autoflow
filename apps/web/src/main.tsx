@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./app/App";
-import { initialLocale, setLocale } from "./i18n";
+import { initialLocale, setLocale, t } from "./i18n";
 import { useStore } from "./lib/store";
 import { shell } from "./platform";
 import { installExternalLinks } from "./lib/site";
@@ -48,7 +48,7 @@ async function boot() {
     const { registerSW } = await import("virtual:pwa-register");
     const update = registerSW({
       onNeedRefresh() {
-        useStore.getState().toast("info", "AutoFlow update ready", { label: "Reload", run: () => void update(true) });
+        useStore.getState().toast("info", t("app.updateReady"), { label: t("app.reload"), run: () => void update(true) });
       },
     });
   }

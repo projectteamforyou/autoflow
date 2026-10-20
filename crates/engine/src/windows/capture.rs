@@ -116,7 +116,7 @@ pub fn find_on_screen(
     loop {
         let shot = capture(x, y, w, h)?;
         let img = Gray::from_bgra(shot.w, shot.h, &shot.bgra);
-        if let Some((mx, my, score)) = find_template(&img, &tpl) {
+        if let Some((mx, my, score)) = find_template(&img, &tpl, control)? {
             if f64::from(score) >= confidence {
                 let cx = x + i32::try_from(mx + tpl.w / 2).unwrap_or(0);
                 let cy = y + i32::try_from(my + tpl.h / 2).unwrap_or(0);

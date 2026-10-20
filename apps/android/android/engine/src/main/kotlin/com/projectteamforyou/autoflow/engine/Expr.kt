@@ -22,6 +22,7 @@ const val MAX_SOURCE = 2000
 const val MAX_DEPTH = 64
 const val MAX_STEPS = 20_000
 const val MAX_STRING = 1_000_000
+private const val MAX_SAFE_INT = 9_007_199_254_740_991.0
 const val MAX_LIST = 100_000
 
 private sealed class Tok(val p: Int) {
@@ -336,12 +337,14 @@ val FUNCTIONS: Map<String, ExprFn> = mapOf(
         arity("range", a, 1, 2)
         val lo = if (a.size == 1) 0.0 else toNum(a[0])
         val hi = if (a.size == 1) toNum(a[0]) else toNum(a[1])
+        // Past 2^53 `i += 1.0` no longer changes `i`, so bounds must be safe integers in magnitude.
+        if (!(Math.abs(lo) <= MAX_SAFE_INT && Math.abs(hi) <= MAX_SAFE_INT)) throw ExprError("range bounds out of range")
         if (hi - lo > MAX_LIST) throw ExprError("range too large")
         val out = ArrayList<Value>()
-        var i = lo
-        while (i < hi) {
-            out.add(Value.Num(i))
-            i += 1.0
+        var k = 0.0
+        while (lo + k < hi) {
+            out.add(Value.Num(lo + k))
+            k += 1.0
         }
         Value.VList(out)
     },
