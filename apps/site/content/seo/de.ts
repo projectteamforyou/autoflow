@@ -5,14 +5,14 @@ export const de: SeoContent = {
     guides: {
       nav: "Anleitungen",
       title: "Automatisierung: Autoklicker, Makros, Tasten | AutoFlow",
-      description: "Schritt-für-Schritt-Anleitungen: automatisch klicken, Maus- und Tastatur-Makros, Tasten neu belegen, Android-Autotapper und mehr mit AutoFlow – privat kostenlos.",
+      description: "Anleitungen: automatisch klicken, Maus- und Tastatur-Makros, Tasten neu belegen, Android-Autotapper und mehr mit AutoFlow – privat kostenlos.",
       h1: "Anleitungen zur Automatisierung",
       lead: "Wählen Sie die Aufgabe, die Sie nicht mehr von Hand erledigen möchten. Jede Anleitung zeigt, wie Sie sie in AutoFlow unter Windows, Android oder im Web einrichten – mit Tipps, damit alles sicher bleibt.",
     },
     alternatives: {
       nav: "Alternativen",
       title: "AutoFlow als Alternative zu bekannten Automatisierungstools",
-      description: "Sie nutzen einen Autoklicker, Makro-Rekorder, Tasten-Remapper oder eine Android-Automatisierungs-App? AutoFlow erledigt dieselben Aufgaben – privat kostenlos.",
+      description: "Sie nutzen einen Autoklicker, Makro-Rekorder, Tasten-Remapper oder eine Android-App? AutoFlow erledigt dieselben Aufgaben – privat kostenlos.",
       h1: "Auf der Suche nach einer Alternative?",
       lead: "Viele kommen zu AutoFlow von Autoklickern, Makro-Rekordern, Skriptsprachen, Tasten-Remappern und Android-Automatisierungs-Apps. Das bietet AutoFlow für jeden dieser Nutzertypen.",
     },
@@ -164,7 +164,7 @@ export const de: SeoContent = {
     "key-remapper": {
       kw: "Tasten neu belegen",
       title: "Tasten neu belegen unter Windows | AutoFlow",
-      description: "Jede Taste neu belegen: auf eine andere Taste, Text, App, Medientaste oder einen Flow. Ebenen, App-Profile und Konfliktprüfung mit Keyforge. Privat kostenlos.",
+      description: "Tasten neu belegen: auf eine andere Taste, Text, App, Medientaste oder einen Flow. Ebenen, App-Profile, Konfliktprüfung mit Keyforge. Privat kostenlos.",
       h1: "Jede Taste unter Windows neu belegen mit Keyforge",
       intro: "Keyforge, das Remapping-Tool von AutoFlow, macht aus jeder Taste eine andere Taste, einen Textbaustein, einen App-Starter, eine Medientaste oder einen ganzen Flow – und wechselt Profile automatisch nach App, Uhrzeit oder Gerät.",
       steps: [
@@ -296,7 +296,7 @@ export const de: SeoContent = {
     "click-on-image": {
       kw: "Auf Bild klicken",
       title: "Bild auf dem Bildschirm finden und klicken | AutoFlow",
-      description: "Klicks per Bilderkennung: AutoFlow findet eine Schaltfläche oder ein Symbol auf dem Bildschirm und klickt darauf, auch wenn das Fenster wandert. Ohne Code, privat kostenlos.",
+      description: "Klicks per Bilderkennung: AutoFlow findet einen Button oder ein Symbol am Bildschirm und klickt darauf, auch wenn das Fenster wandert. Privat kostenlos.",
       h1: "Ein Bild auf dem Bildschirm finden und anklicken",
       intro: "Feste Koordinaten versagen, sobald sich ein Fenster verschiebt. Die Bildsuche findet eine Schaltfläche oder ein Symbol auf dem Bildschirm und klickt dort, wo es tatsächlich ist – mit einstellbarer Toleranz.",
       steps: [
@@ -428,7 +428,7 @@ export const de: SeoContent = {
     "idle-game-auto-tap": {
       kw: "Idle- & Clicker-Spiele",
       title: "Autoklicker für Idle- & Clicker-Spiele | AutoFlow",
-      description: "Tippen und Klicken in Idle- und Clicker-Spielen automatisieren, mit Bild- und Farbprüfung, auf einem zweiten Monitor oder unter Android. Fair-Play-Regeln gelten.",
+      description: "Tippen und Klicken in Idle- und Clicker-Spielen automatisieren, mit Bild- und Farbprüfung, auf dem 2. Monitor oder unter Android. Fair-Play-Regeln gelten.",
       h1: "Automatisch klicken in Idle- und Clicker-Spielen",
       intro: "Idle- und Clicker-Spiele leben von Wiederholung. AutoFlow kann tippen, Belohnungen einsammeln und auf Bildschirme reagieren – und bleibt dabei fair: Es klickt nur so, wie Sie es tun würden, und greift nie auf den Spielspeicher zu.",
       steps: [
@@ -450,7 +450,7 @@ export const de: SeoContent = {
     "multi-monitor-automation": {
       kw: "Multi-Monitor-Automatisierung",
       title: "Auf dem 2. Monitor automatisieren | AutoFlow",
-      description: "Einen Flow auf einem Monitor laufen lassen, während Sie am anderen arbeiten. Stage kennt Ihre Monitore, pausiert bei Mausbewegung und klickt nie auf den falschen.",
+      description: "Ein Flow läuft auf einem Monitor, während Sie am anderen arbeiten. Stage kennt Ihre Monitore, pausiert bei Mausbewegung und klickt nie auf den falschen.",
       h1: "Auf einem Monitor automatisieren, auf dem anderen arbeiten",
       intro: "Mit Stage läuft ein Flow auf einem Monitor, während AutoFlow auf einem anderen bleibt. Sie wählen den Monitor auf einer maßstabsgetreuen Karte, verfolgen ein Live-HUD, und der Lauf pausiert, sobald Sie die Maus übernehmen.",
       steps: [
@@ -560,7 +560,7 @@ export const de: SeoContent = {
     "no-code-rpa": {
       kw: "No-Code-RPA",
       title: "No-Code-Desktop-Automatisierung (RPA) | AutoFlow",
-      description: "Desktop-Arbeit ohne Code automatisieren: visuelle Flows mit Bedingungen, Schleifen, Variablen, Dateien, HTTP, OCR und Bildsuche, plus Protokoll jedes Laufs.",
+      description: "Desktop-Arbeit ohne Code automatisieren: visuelle Flows mit Bedingungen, Schleifen, Variablen, Dateien, HTTP, OCR, Bildsuche und Protokoll jedes Laufs.",
       h1: "No-Code-Desktop-Automatisierung für die tägliche Arbeit",
       intro: "Robotergestützte Prozessautomatisierung muss kein Großprojekt sein. AutoFlow bietet 34 Schritttypen – Bedingungen, Schleifen, Variablen, Dateien, HTTP, OCR und Bildsuche – in einem visuellen Editor, mit einem Protokoll jedes Laufs.",
       steps: [
@@ -583,7 +583,7 @@ export const de: SeoContent = {
   alts: {
     "op-auto-clicker": {
       title: "OP Auto Clicker Alternative – kostenlos & Android | AutoFlow",
-      description: "Suchen Sie eine Alternative zu OP Auto Clicker? AutoFlow klickt ebenfalls im festen Intervall und bietet Bildziele, Aufzeichnung, Hotkeys und eine Android-App.",
+      description: "Alternative zu OP Auto Clicker gesucht? AutoFlow klickt ebenfalls im festen Intervall und bietet Bildziele, Aufzeichnung, Hotkeys und eine Android-App.",
       h1: "Eine OP-Auto-Clicker-Alternative, die mehr kann als klicken",
       intro: "OP Auto Clicker ist ein beliebter kostenloser Autoklicker für Windows, der Klicks im festen Intervall wiederholt. Wenn Sie denselben einfachen Klicker plus Bildziele, Aufzeichnung, Zeitpläne und eine passende Android-App möchten, deckt AutoFlow das ab.",
       points: [
@@ -599,7 +599,7 @@ export const de: SeoContent = {
     },
     "gs-auto-clicker": {
       title: "GS Auto Clicker Alternative für Windows & Android | AutoFlow",
-      description: "Eine Alternative zu GS Auto Clicker? AutoFlow wiederholt Klicks per Hotkey und bietet Mehrpunkt-Klicks, Aufzeichnung und eine Android-App. Privat kostenlos.",
+      description: "Alternative zu GS Auto Clicker: AutoFlow wiederholt Klicks per Hotkey und bietet Mehrpunkt-Klicks, Aufzeichnung und eine Android-App. Privat kostenlos.",
       h1: "Eine GS-Auto-Clicker-Alternative für Windows und Android",
       intro: "GS Auto Clicker ist ein schlankes Windows-Tool, das Mausklicks per Hotkey wiederholt. AutoFlow erledigt dasselbe und bietet zusätzlich Mehrpunkt-Abläufe, Bild- und Farbziele, Aufzeichnung und eine Android-Version.",
       points: [
@@ -679,7 +679,7 @@ export const de: SeoContent = {
     },
     tinytask: {
       title: "TinyTask Alternative mit bearbeitbaren Aufnahmen | AutoFlow",
-      description: "TinyTask-Alternative: Maus und Tastatur aufzeichnen, dann jeden Schritt bearbeiten, Schleifen, Bildziele und Hotkeys ergänzen. Privat kostenlos, mit Android.",
+      description: "TinyTask-Alternative: Maus und Tastatur aufzeichnen, jeden Schritt bearbeiten, Schleifen, Bildziele und Hotkeys ergänzen. Privat kostenlos, mit Android.",
       h1: "Eine TinyTask-Alternative mit bearbeitbaren Aufzeichnungen",
       intro: "TinyTask ist ein berühmt winziger Windows-Rekorder, der abspielt, was Sie getan haben. AutoFlow zeichnet ebenfalls auf, macht daraus aber bearbeitbare Schritte – so korrigieren Sie einen Klick, statt alles neu aufzunehmen.",
       points: [
@@ -838,7 +838,7 @@ export const de: SeoContent = {
       ],
     },
     tasker: {
-      title: "Tasker Alternative – einfachere Android-Automatisierung | AutoFlow",
+      title: "Tasker Alternative – einfacher für Android | AutoFlow",
       description: "Eine einfachere Tasker-Alternative? AutoFlow automatisiert Antippen, Wischen und Routinen unter Android mit visuellem Editor und schwebendem Stopp-Button.",
       h1: "Eine einfachere Tasker-Alternative für Antippen und Routinen",
       intro: "Tasker ist eine leistungsstarke, altbewährte Android-Automatisierungs-App mit tiefgehenden System-Auslösern. Wenn Sie vor allem Antippen, Wischen und einfache Routinen mit weniger Einrichtung automatisieren möchten, ist AutoFlow die leichtere Option.",

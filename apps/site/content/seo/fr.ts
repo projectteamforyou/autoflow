@@ -4,15 +4,15 @@ export const fr: SeoContent = {
   ui: {
     guides: {
       nav: "Guides",
-      title: "Guides d’automatisation : auto clicker, macros, touches | AutoFlow",
-      description: "Guides pas à pas : clic automatique, macros souris et clavier, remapper les touches, tap automatique sur Android et plus avec AutoFlow, gratuit pour un usage personnel.",
+      title: "Guides : auto clicker, macros, remappage | AutoFlow",
+      description: "Guides pas à pas : clic automatique, macro clavier et souris, remapper les touches, tap auto sur Android et plus, avec AutoFlow, gratuit en usage perso.",
       h1: "Guides d’automatisation",
       lead: "Choisissez la tâche que vous ne voulez plus faire à la main. Chaque guide montre comment la configurer dans AutoFlow sur Windows, Android ou le web, avec des conseils pour rester en sécurité.",
     },
     alternatives: {
       nav: "Alternatives",
       title: "AutoFlow, une alternative aux outils d’automatisation connus",
-      description: "Vous utilisez un auto clicker, un enregistreur de macros, un outil pour remapper les touches ou une app Android ? AutoFlow fait le même travail, gratuit à titre personnel.",
+      description: "Auto clicker, enregistreur de macros, remappage de touches ou app Android ? AutoFlow fait le même travail, gratuit pour un usage personnel.",
       h1: "Vous cherchez une alternative ?",
       lead: "On arrive sur AutoFlow depuis des auto clickers, des enregistreurs de macros, des langages de script, des outils de remappage et des apps d’automatisation Android. Voici ce qu’il apporte à chaque profil.",
     },
@@ -54,7 +54,7 @@ export const fr: SeoContent = {
     "auto-clicker": {
       kw: "Auto clicker",
       title: "Auto clicker gratuit pour Windows et Android | AutoFlow",
-      description: "Un auto clicker prêt en quelques secondes : choisissez un point, un intervalle dès 50 ms, et répétez par nombre, durée ou jusqu’à l’arrêt. Gratuit à titre personnel.",
+      description: "Auto clicker gratuit prêt en secondes : un point, un intervalle dès 50 ms, répétition par nombre, durée ou jusqu’à l’arrêt. Gratuit en usage perso.",
       h1: "Auto clicker gratuit pour Windows et Android",
       intro: "Un auto clicker répète un clic de souris ou un tap à l’écran à votre place. Dans AutoFlow, vous répondez à quatre questions — quoi, où, à quelle vitesse et combien de fois — et le clic automatique est prêt, avec un raccourci pour le lancer et Halt pour l’arrêter instantanément.",
       steps: [
@@ -76,7 +76,7 @@ export const fr: SeoContent = {
     "mouse-macro": {
       kw: "Macro souris",
       title: "Créer une macro souris : clics, glisser, défiler | AutoFlow",
-      description: "Créez des macros souris avec clics, doubles clics, glisser-déposer et défilement, lancées par un raccourci. Éditeur visuel sans code, gratuit à titre personnel.",
+      description: "Macros souris avec clics, doubles clics, glisser-déposer et défilement, lancées par un raccourci. Éditeur visuel sans code, gratuit en usage perso.",
       h1: "Créez des macros souris sans écrire de code",
       intro: "Une macro souris enchaîne clics, glisser-déposer, défilements et pauses en une seule action à rejouer. AutoFlow vous permet de la construire visuellement, étape par étape, ou de l’enregistrer une fois puis de modifier le résultat.",
       steps: [
@@ -98,7 +98,7 @@ export const fr: SeoContent = {
     "keyboard-macro": {
       kw: "Macro clavier",
       title: "Logiciel de macro clavier pour Windows | AutoFlow",
-      description: "Créez des macros clavier : combinaisons de touches, texte saisi, pauses et conditions, lancées par un raccourci. Éditeur visuel et enregistreur, gratuit à titre personnel.",
+      description: "Macro clavier : combinaisons de touches, texte, pauses et conditions, lancées par un raccourci. Éditeur visuel et enregistreur, gratuit en usage perso.",
       h1: "Macros clavier pour la saisie répétitive et les raccourcis",
       intro: "Les macros clavier rejouent frappes, raccourcis et texte pour qu’une longue séquence tienne en une seule touche. AutoFlow les combine avec des étapes souris, des conditions et des variables quand vous avez besoin de plus.",
       steps: [
@@ -120,7 +120,7 @@ export const fr: SeoContent = {
     "macro-recorder": {
       kw: "Enregistreur de macros",
       title: "Enregistreur de macros souris et clavier gratuit | AutoFlow",
-      description: "Enregistreur de macros : enregistrez souris et clavier une fois, modifiez chaque étape, changez la vitesse, rejouez par raccourci. Gratuit à titre personnel.",
+      description: "Enregistreur de macros : enregistrez souris et clavier une fois, modifiez chaque étape et la vitesse, rejouez par raccourci. Gratuit en usage perso.",
       h1: "Enregistrez souris et clavier, puis modifiez chaque étape",
       intro: "Un enregistreur de macros capture ce que vous faites et le rejoue. AutoFlow transforme l’enregistrement en étapes modifiables : vous corrigez un clic, changez une pause ou ajoutez une boucle sans tout réenregistrer.",
       steps: [
@@ -142,7 +142,7 @@ export const fr: SeoContent = {
     "auto-typer": {
       kw: "Saisie automatique",
       title: "Auto typer : taper du texte automatiquement | AutoFlow",
-      description: "Tapez du texte automatiquement par raccourci ou planification : messages, modèles, listes ligne par ligne, avec délai entre les touches. Gratuit à titre personnel.",
+      description: "Tapez du texte automatiquement par raccourci ou planification : messages, modèles, listes ligne par ligne, délai entre touches. Gratuit en usage perso.",
       h1: "Auto typer : laissez AutoFlow taper pour vous",
       intro: "Un auto typer saisit du texte à votre place — un message fixe, un modèle avec variables ou une liste ligne par ligne. AutoFlow tape via l’entrée clavier normale, il fonctionne donc dans la plupart des champs de texte.",
       steps: [
@@ -164,7 +164,7 @@ export const fr: SeoContent = {
     "key-remapper": {
       kw: "Remapper les touches",
       title: "Remapper les touches sous Windows | AutoFlow",
-      description: "Remappez n’importe quelle touche vers une autre touche, du texte, une app, une touche média ou un flux. Couches, profils par app, gratuit à titre personnel.",
+      description: "Remappez toute touche vers une autre touche, du texte, une app, une touche média ou un flux. Couches et profils par app, gratuit en usage perso.",
       h1: "Remappez n’importe quelle touche sous Windows avec Keyforge",
       intro: "Keyforge, l’outil de remappage d’AutoFlow, transforme n’importe quelle touche en une autre touche, un extrait de texte, un lanceur d’app, une touche média ou un flux complet — et change de profil automatiquement selon l’app, l’heure ou l’appareil.",
       steps: [
@@ -186,7 +186,7 @@ export const fr: SeoContent = {
     "mouse-button-remap": {
       kw: "Remapper les boutons de souris",
       title: "Remapper les boutons de souris et latéraux | AutoFlow",
-      description: "Attribuez boutons latéraux, appuis doubles et longs et sens de molette à des touches, raccourcis, apps ou flux, avec profils par app. Gratuit à titre personnel.",
+      description: "Attribuez boutons latéraux, appuis doubles ou longs et molette à des touches, raccourcis, apps ou flux, avec profils par app. Gratuit en usage perso.",
       h1: "Remappez les boutons de souris, boutons latéraux et molette",
       intro: "Les boutons supplémentaires de la souris sont surtout utiles quand ils font ce dont vous avez besoin. Keyforge associe boutons latéraux, doubles clics, appuis longs et sens de molette à des touches, raccourcis, apps ou flux.",
       steps: [
@@ -208,7 +208,7 @@ export const fr: SeoContent = {
     "text-expander": {
       kw: "Expansion de texte",
       title: "Expanseur de texte gratuit pour Windows | AutoFlow",
-      description: "Tapez une abréviation et obtenez une phrase complète, une signature, une adresse ou la date du jour. Expansion de texte avec Keyforge, gratuit à titre personnel.",
+      description: "Tapez une abréviation, obtenez une phrase, une signature, une adresse ou la date du jour. Expansion de texte avec Keyforge, gratuit en usage perso.",
       h1: "Expansion de texte : tapez moins, dites plus",
       intro: "Un expanseur de texte remplace un court déclencheur comme ;sig par une signature, une adresse ou une réponse complète. Keyforge le fait dans tout le système et peut insérer des dates et d’autres valeurs dynamiques.",
       steps: [
@@ -252,7 +252,7 @@ export const fr: SeoContent = {
     "auto-swipe": {
       kw: "Balayage automatique",
       title: "Balayage et défilement automatiques Android | AutoFlow",
-      description: "Balayez et faites défiler automatiquement sur Android — liseuses, fils, listes — avec réglage du rythme, de la direction et des répétitions. Gratuit à titre personnel.",
+      description: "Balayage et défilement automatiques sur Android (liseuses, fils, listes) : rythme, direction et répétitions réglables. Gratuit en usage perso.",
       h1: "Balayages et défilement automatiques sur Android",
       intro: "Le balayage automatique tourne les pages, fait défiler les fils et parcourt les listes selon un minuteur. Les étapes de balayage d’AutoFlow définissent la direction, la distance et la vitesse, et un seul tap suffit pour arrêter.",
       steps: [
@@ -274,7 +274,7 @@ export const fr: SeoContent = {
     "scheduled-clicks": {
       kw: "Clics planifiés",
       title: "Planifier des clics et tâches à heure fixe | AutoFlow",
-      description: "Lancez clics, touches ou flux complets à une heure précise, chaque jour, ou à l’ouverture d’une app. Planification Windows et Android, gratuite à titre personnel.",
+      description: "Lancez clics, touches ou flux à une heure précise, chaque jour ou à l’ouverture d’une app. Planification Windows et Android, gratuite en usage perso.",
       h1: "Planifiez des clics et des tâches à heure fixe",
       intro: "Certains clics doivent avoir lieu à une heure précise — un pointage quotidien, un export de rapport, un rappel. AutoFlow déclenche des flux selon une planification, au lancement d’une app ou, sur Android, au début de la charge.",
       steps: [
@@ -296,7 +296,7 @@ export const fr: SeoContent = {
     "click-on-image": {
       kw: "Cliquer sur une image",
       title: "Trouver une image à l’écran et cliquer dessus | AutoFlow",
-      description: "Clics par reconnaissance d’image : AutoFlow trouve un bouton ou une icône à l’écran et clique dessus, même si la fenêtre bouge. Sans code, gratuit à titre personnel.",
+      description: "Clic par reconnaissance d’image : AutoFlow trouve un bouton ou une icône à l’écran et clique dessus, même si la fenêtre bouge. Sans code, gratuit.",
       h1: "Trouvez une image à l’écran et cliquez dessus",
       intro: "Les coordonnées fixes ne marchent plus dès qu’une fenêtre bouge. La recherche d’image trouve un bouton ou une icône à l’écran et clique là où il se trouve réellement, avec une tolérance réglable.",
       steps: [
@@ -340,7 +340,7 @@ export const fr: SeoContent = {
     "screen-text-ocr": {
       kw: "Texte à l’écran (OCR)",
       title: "Lire du texte à l’écran par OCR et agir | AutoFlow",
-      description: "Lisez par OCR le texte d’une zone de l’écran dans une variable, puis cliquez, tapez ou faites un choix selon sa valeur. Sans code, gratuit à titre personnel.",
+      description: "Lisez par OCR le texte d’une zone de l’écran dans une variable, puis cliquez, tapez ou décidez selon sa valeur. Sans code, gratuit en usage perso.",
       h1: "Lisez le texte à l’écran et agissez en conséquence",
       intro: "Quand la valeur dont vous avez besoin n’est visible qu’à l’écran, l’OCR la lit. AutoFlow capture une zone, reconnaît le texte et le stocke dans une variable que votre flux peut comparer, taper ou journaliser.",
       steps: [
@@ -362,7 +362,7 @@ export const fr: SeoContent = {
     "form-filling": {
       kw: "Remplissage de formulaires",
       title: "Remplir des formulaires automatiquement | AutoFlow",
-      description: "Remplissez des formulaires automatiquement : passez d’un champ à l’autre, saisissez des valeurs et validez, dans les apps et navigateurs. Gratuit à titre personnel.",
+      description: "Remplissez des formulaires automatiquement : champ par champ, valeurs de variables ou de listes, puis envoi, dans apps et navigateurs. Gratuit.",
       h1: "Remplissez des formulaires automatiquement",
       intro: "Remplir encore et encore le même formulaire est un travail idéal pour l’automatisation. AutoFlow passe d’un champ à l’autre, saisit les valeurs et clique sur Envoyer — dans les navigateurs comme dans les logiciels de bureau.",
       steps: [
@@ -384,7 +384,7 @@ export const fr: SeoContent = {
     "data-entry": {
       kw: "Automatiser la saisie de données",
       title: "Automatiser la saisie de données sans code | AutoFlow",
-      description: "Automatisez la saisie répétitive entre applications : copier, coller, taper et cliquer d’un enregistrement à l’autre, avec boucles et contrôles. Gratuit à titre personnel.",
+      description: "Automatisez la saisie répétitive entre applications : copier, coller, taper et cliquer d’une fiche à l’autre, avec boucles et contrôles. Gratuit.",
       h1: "Automatisez la saisie de données répétitive",
       intro: "Recopier des valeurs d’un programme à un autre est lent et source d’erreurs. AutoFlow parcourt les enregistrements avec des boucles, le presse-papiers et la saisie de texte, et vérifie chaque étape pour que les erreurs arrêtent l’exécution.",
       steps: [
@@ -450,7 +450,7 @@ export const fr: SeoContent = {
     "multi-monitor-automation": {
       kw: "Automatisation multi-écrans",
       title: "Automatiser sur un 2e écran pendant le travail | AutoFlow",
-      description: "Lancez un flux sur un écran pendant que vous utilisez l’autre. Stage cartographie vos écrans, se met en pause quand vous touchez la souris et ne vise jamais le mauvais.",
+      description: "Un flux sur un écran pendant que vous utilisez l’autre. Stage cartographie vos écrans, s’arrête si vous touchez la souris et ne vise jamais le mauvais.",
       h1: "Automatisez sur un écran, travaillez sur l’autre",
       intro: "Stage permet de jouer un flux sur un écran pendant qu’AutoFlow reste sur un autre. Vous choisissez l’écran sur une carte à l’échelle, suivez un HUD en direct, et l’exécution se met en pause dès que vous reprenez la souris.",
       steps: [
@@ -516,7 +516,7 @@ export const fr: SeoContent = {
     "clipboard-automation": {
       kw: "Automatisation du presse-papiers",
       title: "Presse-papiers auto : copier, transformer, coller | AutoFlow",
-      description: "Copiez du texte, nettoyez-le ou reformatez-le avec des expressions et collez-le ailleurs automatiquement. Étapes presse-papiers pour Windows, gratuit à titre personnel.",
+      description: "Copiez du texte, nettoyez-le ou reformatez-le avec des expressions, puis collez-le ailleurs automatiquement. Pour Windows, gratuit en usage perso.",
       h1: "Copiez, transformez et collez automatiquement",
       intro: "Beaucoup de tâches se résument à « copier ceci, le modifier un peu, le coller là ». AutoFlow lit le presse-papiers dans une variable, le transforme avec des expressions simples et colle le résultat.",
       steps: [
@@ -538,7 +538,7 @@ export const fr: SeoContent = {
     "repeat-keypress": {
       kw: "Répéter une touche",
       title: "Répéter une touche automatiquement | AutoFlow",
-      description: "Appuyez sur une touche en boucle à intervalle fixe, ou utilisez les modes maintien et bascule de Keyforge. Démarrage/arrêt par raccourci. Gratuit à titre personnel.",
+      description: "Appuyez sur une touche en boucle à intervalle fixe, ou en mode maintien/bascule avec Keyforge. Démarrage et arrêt par raccourci. Gratuit en usage perso.",
       h1: "Répétez une touche automatiquement",
       intro: "Certaines tâches demandent d’appuyer encore et encore sur la même touche. AutoFlow répète n’importe quelle touche à l’intervalle choisi, et Keyforge ajoute les modes « répéter tant que maintenu » et bascule.",
       steps: [
@@ -560,7 +560,7 @@ export const fr: SeoContent = {
     "no-code-rpa": {
       kw: "RPA sans code",
       title: "Automatisation de bureau sans code (RPA) | AutoFlow",
-      description: "Automatisez le travail sur PC sans code : flux visuels avec conditions, boucles, variables, fichiers, HTTP, OCR et recherche d’image, plus un journal complet.",
+      description: "Automatisez le travail sur PC sans code : flux visuels avec conditions, boucles, variables, fichiers, HTTP, OCR, recherche d’image et journal complet.",
       h1: "Automatisation de bureau sans code pour le travail quotidien",
       intro: "L’automatisation robotisée des processus n’a pas à être un projet d’entreprise. AutoFlow vous offre 34 types d’étapes — conditions, boucles, variables, fichiers, HTTP, OCR et recherche d’image — dans un éditeur visuel, avec un journal de chaque exécution.",
       steps: [
@@ -582,8 +582,8 @@ export const fr: SeoContent = {
   },
   alts: {
     "op-auto-clicker": {
-      title: "Alternative à OP Auto Clicker, gratuite et Android | AutoFlow",
-      description: "Vous cherchez une alternative à OP Auto Clicker ? AutoFlow clique aussi à intervalle fixe, et ajoute cibles image, enregistrement, raccourcis et une app Android.",
+      title: "Alternative à OP Auto Clicker, gratuite + Android | AutoFlow",
+      description: "Une alternative à OP Auto Clicker ? AutoFlow clique aussi à intervalle fixe, et ajoute cibles image, enregistrement, raccourcis et une app Android.",
       h1: "Une alternative à OP Auto Clicker qui va au-delà du clic",
       intro: "OP Auto Clicker est un auto clicker gratuit et populaire pour Windows qui répète des clics à intervalle fixe. Si vous voulez le même clicker simple, plus des cibles image, l’enregistrement, des planifications et une app Android assortie, AutoFlow s’en charge.",
       points: [
@@ -599,7 +599,7 @@ export const fr: SeoContent = {
     },
     "gs-auto-clicker": {
       title: "Alternative à GS Auto Clicker, Windows et Android | AutoFlow",
-      description: "Une alternative à GS Auto Clicker ? AutoFlow répète les clics par raccourci et ajoute clics multipoints, enregistrement et une app Android. Gratuit à titre personnel.",
+      description: "Alternative à GS Auto Clicker : AutoFlow répète les clics par raccourci et ajoute clics multipoints, enregistrement et une app Android. Gratuit.",
       h1: "Une alternative à GS Auto Clicker pour Windows et Android",
       intro: "GS Auto Clicker est un outil Windows léger pour répéter des clics de souris avec un raccourci. AutoFlow fait le même travail et ajoute des séquences multipoints, des cibles image et couleur, l’enregistrement et une version Android.",
       points: [
@@ -614,7 +614,7 @@ export const fr: SeoContent = {
       ],
     },
     "speed-autoclicker": {
-      title: "Alternative à Speed AutoClicker, maîtrisée et sûre | AutoFlow",
+      title: "Alternative à Speed AutoClicker, plus maîtrisée | AutoFlow",
       description: "Une alternative à Speed AutoClicker ? AutoFlow clique dès 50 ms avec décalage aléatoire, limites et Halt instantané, plus cibles image et Android.",
       h1: "Une alternative à Speed AutoClicker axée sur le contrôle",
       intro: "Speed AutoClicker est connu pour ses cadences de clic très élevées sur Windows. AutoFlow adopte une approche plus maîtrisée : intervalles dès 50 ms, aléatoire, limites d’exécution et arrêt instantané, avec cibles image et une app Android.",
@@ -630,7 +630,7 @@ export const fr: SeoContent = {
       ],
     },
     "murgaa-auto-clicker": {
-      title: "Alternative à Murgaa Auto Clicker avec enregistreur | AutoFlow",
+      title: "Alternative à Murgaa Auto Clicker + enregistreur | AutoFlow",
       description: "Alternative à Murgaa Auto Clicker : AutoFlow répète les clics, enregistre souris et clavier, et ajoute cibles image, planifications et une app Android.",
       h1: "Une alternative à Murgaa Auto Clicker avec un éditeur complet",
       intro: "Murgaa Auto Clicker est un clicker et enregistreur Windows de longue date. AutoFlow propose les deux aussi, et transforme les enregistrements en étapes modifiables avec conditions, planifications et contrôles de sécurité.",
@@ -678,8 +678,8 @@ export const fr: SeoContent = {
       ],
     },
     tinytask: {
-      title: "Alternative à TinyTask, enregistrements modifiables | AutoFlow",
-      description: "Alternative à TinyTask : enregistrez souris et clavier, puis modifiez chaque étape, ajoutez boucles, cibles image et raccourcis. Gratuit à titre personnel, avec Android.",
+      title: "Alternative à TinyTask, enregistrement modifiable | AutoFlow",
+      description: "Alternative à TinyTask : enregistrez souris et clavier, modifiez chaque étape, ajoutez boucles, cibles image et raccourcis. Gratuit, avec Android.",
       h1: "Une alternative à TinyTask où les enregistrements se modifient",
       intro: "TinyTask est un enregistreur Windows réputé pour sa petite taille, qui rejoue ce que vous avez fait. AutoFlow enregistre aussi, mais transforme l’enregistrement en étapes modifiables : vous corrigez un clic au lieu de tout réenregistrer.",
       points: [
@@ -695,7 +695,7 @@ export const fr: SeoContent = {
     },
     "jitbit-macro-recorder": {
       title: "Alternative à Jitbit Macro Recorder, gratuite | AutoFlow",
-      description: "Alternative à Jitbit Macro Recorder : enregistrez, modifiez et rejouez des macros avec conditions, recherche d’image et planifications. Gratuit à titre personnel.",
+      description: "Alternative à Jitbit Macro Recorder : enregistrez, modifiez et rejouez des macros avec conditions, recherche d’image et planifications. Gratuit.",
       h1: "Une alternative à Jitbit Macro Recorder, gratuite à titre personnel",
       intro: "Jitbit Macro Recorder est un outil Windows payant pour enregistrer et modifier des macros. AutoFlow propose aussi l’enregistrement et un éditeur d’étapes, gratuitement pour un usage personnel, avec une licence Business pour le travail.",
       points: [
@@ -727,7 +727,7 @@ export const fr: SeoContent = {
     },
     "macro-express": {
       title: "Alternative à Macro Express, moderne et gratuite | AutoFlow",
-      description: "Alternative à Macro Express : créez des macros Windows avec un éditeur visuel moderne, un enregistreur, l’expansion de texte et des raccourcis. Gratuit à titre personnel.",
+      description: "Alternative à Macro Express : macros Windows avec éditeur visuel moderne, enregistreur, expansion de texte et raccourcis. Gratuit en usage perso.",
       h1: "Une alternative moderne à Macro Express",
       intro: "Macro Express est un outil de macros payant et établi de longue date pour Windows. AutoFlow propose macros, expansion de texte et raccourcis dans un éditeur moderne, gratuit pour un usage personnel et disponible aussi sur Android.",
       points: [
@@ -743,7 +743,7 @@ export const fr: SeoContent = {
     },
     "power-automate-desktop": {
       title: "Alternative à Power Automate Desktop, plus légère | AutoFlow",
-      description: "Une alternative plus légère à Power Automate Desktop pour les tâches perso : flux visuels, enregistreur, recherche d’image et OCR sur Windows, plus Android.",
+      description: "Alternative plus légère à Power Automate Desktop pour les tâches perso : flux visuels, enregistreur, recherche d’image, OCR sur Windows, et Android.",
       h1: "Une alternative plus légère à Power Automate Desktop",
       intro: "Power Automate Desktop est l’outil RPA de bureau de Microsoft. Pour les tâches personnelles et les petites équipes qui veulent plus léger, AutoFlow propose des flux visuels, un enregistreur, la recherche d’image et l’OCR, et une app Android.",
       points: [
@@ -759,7 +759,7 @@ export const fr: SeoContent = {
     },
     uipath: {
       title: "Alternative à UiPath pour particuliers et PME | AutoFlow",
-      description: "Besoin de plus simple qu’UiPath ? AutoFlow automatise les tâches de bureau avec un éditeur visuel, un enregistreur et la recherche d’image. Gratuit à titre personnel.",
+      description: "Plus simple qu’UiPath : AutoFlow automatise les tâches de bureau avec un éditeur visuel, un enregistreur et la recherche d’image. Gratuit en usage perso.",
       h1: "Une alternative plus simple à UiPath pour les tâches personnelles",
       intro: "UiPath est une plateforme d’automatisation pour les entreprises. Si vous voulez seulement automatiser votre propre travail sur PC, AutoFlow propose un éditeur visuel, un enregistreur, la recherche d’image, l’OCR et des planifications sans mettre en place de plateforme.",
       points: [
@@ -775,7 +775,7 @@ export const fr: SeoContent = {
     },
     "x-mouse-button-control": {
       title: "Alternative à X-Mouse Button Control | AutoFlow Keyforge",
-      description: "Alternative à X-Mouse Button Control : remappez boutons de souris, molette et touches avec profils par app, couches et macros complètes dans AutoFlow Keyforge.",
+      description: "Alternative à X-Mouse Button Control : remappez boutons, molette et touches avec profils par app, couches et macros complètes dans AutoFlow Keyforge.",
       h1: "Une alternative à X-Mouse Button Control avec macros intégrées",
       intro: "X-Mouse Button Control est un outil gratuit et populaire pour remapper les boutons de souris par application sous Windows. Keyforge, dans AutoFlow, remappe aussi boutons et touches avec des profils par app, et n’importe quel bouton peut lancer un flux complet.",
       points: [
@@ -791,7 +791,7 @@ export const fr: SeoContent = {
     },
     "powertoys-keyboard-manager": {
       title: "Alternative à PowerToys Keyboard Manager | AutoFlow",
-      description: "Alternative à PowerToys Keyboard Manager : remappez touches et raccourcis avec couches, expansion de texte, boutons de souris et profils par app dans Keyforge.",
+      description: "Alternative à PowerToys Keyboard Manager : remappez touches et raccourcis avec couches, expansion de texte, boutons de souris, profils par app.",
       h1: "Une alternative à PowerToys Keyboard Manager avec couches et macros",
       intro: "PowerToys Keyboard Manager est l’outil gratuit de Microsoft pour remapper touches et raccourcis. Keyforge, dans AutoFlow, ajoute couches, expansion de texte, boutons de souris, modes de répétition et la possibilité de lancer des flux complets.",
       points: [
@@ -807,7 +807,7 @@ export const fr: SeoContent = {
     },
     sharpkeys: {
       title: "Alternative à SharpKeys, sans registre | AutoFlow",
-      description: "Alternative à SharpKeys : remappez les touches en direct sans modifier le registre ni redémarrer, avec couches, profils par app et boutons de souris dans Keyforge.",
+      description: "Alternative à SharpKeys : remappez les touches en direct, sans registre ni redémarrage, avec couches, profils par app et boutons de souris (Keyforge).",
       h1: "Une alternative à SharpKeys qui remappe sans redémarrer",
       intro: "SharpKeys écrit les remappages de touches dans le registre Windows, ce qui demande une déconnexion pour s’appliquer. Keyforge remappe en direct pendant qu’AutoFlow tourne — désactivez-le et votre clavier redevient normal instantanément.",
       points: [
@@ -822,8 +822,8 @@ export const fr: SeoContent = {
       ],
     },
     textexpander: {
-      title: "Alternative à TextExpander, gratuite à titre perso | AutoFlow",
-      description: "Alternative à TextExpander pour Windows : extraits avec dates et valeurs dynamiques, déclencheurs partout, plus remappage et macros. Gratuit à titre personnel.",
+      title: "Alternative à TextExpander, gratuite en perso | AutoFlow",
+      description: "Alternative à TextExpander pour Windows : extraits avec dates et valeurs dynamiques, déclencheurs partout, remappage et macros. Gratuit en usage perso.",
       h1: "Une alternative à TextExpander pour Windows",
       intro: "TextExpander est un service par abonnement pour des extraits de texte sur plusieurs appareils. Keyforge, dans AutoFlow, développe les extraits dans tout le système sous Windows, gratuitement pour un usage personnel, et les associe au remappage et aux macros.",
       points: [
@@ -838,7 +838,7 @@ export const fr: SeoContent = {
       ],
     },
     tasker: {
-      title: "Alternative à Tasker : automatisation Android simple | AutoFlow",
+      title: "Alternative à Tasker, Android plus simple | AutoFlow",
       description: "Une alternative plus simple à Tasker ? AutoFlow automatise taps, balayages et routines sur Android avec un éditeur visuel et un bouton d’arrêt flottant.",
       h1: "Une alternative plus simple à Tasker pour les taps et routines",
       intro: "Tasker est une app d’automatisation Android puissante et ancienne, avec des déclencheurs système poussés. Si votre objectif principal est d’automatiser des taps, des balayages et des routines simples avec moins de configuration, AutoFlow est une option plus légère.",
@@ -855,7 +855,7 @@ export const fr: SeoContent = {
     },
     macrodroid: {
       title: "Alternative à MacroDroid pour l’écran | AutoFlow",
-      description: "Alternative à MacroDroid axée sur l’automatisation à l’écran : taps, balayages, vérifications d’image et de texte sur Android, avec les mêmes flux sur Windows.",
+      description: "Alternative à MacroDroid axée sur l’écran : taps, balayages, vérifications d’image et de texte sur Android, avec les mêmes flux sur Windows.",
       h1: "Une alternative à MacroDroid pour l’automatisation à l’écran",
       intro: "MacroDroid est une app Android connue, construite autour de déclencheurs, d’actions et de contraintes. AutoFlow se concentre sur ce qui se passe à l’écran — taps, balayages et lecture de texte — et partage ses flux avec son app Windows.",
       points: [
@@ -903,7 +903,7 @@ export const fr: SeoContent = {
     },
     uwsc: {
       title: "Alternative à UWSC : automatisation visuelle | AutoFlow",
-      description: "Alternative à UWSC : automatisez les tâches Windows avec un éditeur visuel, un enregistreur, la recherche d’image et l’OCR, disponible en japonais. Gratuit à titre personnel.",
+      description: "Alternative à UWSC : automatisez Windows avec éditeur visuel, enregistreur, recherche d’image et OCR, disponible en japonais. Gratuit en usage perso.",
       h1: "Une alternative à UWSC avec un éditeur visuel",
       intro: "UWSC est un outil de script d’automatisation Windows utilisé de longue date au Japon. AutoFlow automatise les mêmes types de tâches de bureau avec un éditeur visuel, un enregistreur, la recherche d’image et l’OCR, avec une interface entièrement en japonais.",
       points: [
