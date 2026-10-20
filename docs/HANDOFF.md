@@ -1,8 +1,8 @@
 # AutoFlow — 인수인계 (새 채팅에서 이어서 작업용)
 
-갱신: 2026-10-20 18:00 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#13
+갱신: 2026-10-20 20:00 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#19
 
-## 1. 현재 배포 상태 (1.1.1)
+## 1. 현재 배포 상태 (Windows 1.1.2 · Android 1.1.1)
 | 항목 | 값 |
 |---|---|
 | 사이트 (12개 언어, 710페이지 — 가이드 24·대체 프로그램 21 × 12개 언어 포함) | https://autoflowmacro.com |
@@ -65,6 +65,12 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
 - 엔진(TS·Rust·Kotlin 동기화): 대기 없는 루프에서도 정지, 표현식 비용 제한, range() 2^53 초과 거부, Safety Score(동적 URL·헤더 변수·내부망·파일 append/copy 확인)
 - Windows: 눌린 키 해제·Halt 수식키 무시, 글라이드/이미지 검색 중단, Keyforge 반복 정지, UNC 경로·HTTP 리디렉션 차단, 클립보드 경계, 비상정지 키 검증
 - 웹: Canvas 실시간 로그, 업데이트 알림 유지(12개 언어), 세션 토큰은 발급한 API 주소로만
+
+## 7-1. 랜딩·다운로드 (PR #19)
+- `/`(영어 x-default)는 저장된 언어(`af-lang`) → 브라우저 언어 순으로 `/<lang>/`에 바로 이동(인라인 스크립트, CSP 해시는 `build.ts`). 언어 선택기에 언어 이름 표시
+- 히어로: 슬로건(`home.slogan`)과 마우스+키보드 칩(`home.inputs`) 12개 언어
+- 줄바꿈: 짧은 블록은 `text-wrap: balance`(법률 문서 `.prose`만 pretty). 검사 `node apps/site/scripts/check-short-lines.cjs http://localhost:PORT` → 0건 유지
+- 다운로드 리다이렉트 `/v1/stats/download/windows` → `…Setup-x64.exe?v=<latest.json 버전>`(브라우저 캐시의 옛 설치 파일 방지). 릴리스 후 `latest.json`만 갱신하면 됨
 
 ## 8. 러너 메모
 - 회사 PC 러너(FELIXLEE*)는 **LocalSystem** 계정(WiX MSI ICE 검사에 필요). Rust는 `CARGO_HOME=C:\Rust\cargo`
