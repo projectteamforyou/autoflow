@@ -16,6 +16,10 @@ on:
         description: 'Release version (e.g. 1.0.0). Empty = dev build, artifacts only. Set = GitHub Release v<version> is created from this commit.'
         type: string
         default: ''
+      runner_label:
+        description: 'Extra runner label to pin the build to one PC group (e.g. OFFICE). Empty = any self-hosted Windows runner.'
+        type: string
+        default: ''
 
 permissions:
   contents: write
@@ -32,7 +36,7 @@ jobs:
   build:
     name: Build, sign and verify
     # Organization runners (home: 부산집업무용, 부산집업무용-2 / office: FELIXLEE, FELIXLEE-2), Windows service.
-    runs-on: [self-hosted, Windows]
+    runs-on: ${{ fromJSON(inputs.runner_label != '' && format('["self-hosted","Windows","{0}"]', inputs.runner_label) || '["self-hosted","Windows"]') }}
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
