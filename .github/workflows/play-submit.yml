@@ -18,6 +18,10 @@ on:
         default: completed
 permissions:
   contents: read
+concurrency:
+  group: play-submit-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   submit:
     runs-on: ubuntu-latest

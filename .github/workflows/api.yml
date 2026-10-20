@@ -2,12 +2,14 @@ name: API
 
 on:
   push:
+    branches: [main]
     paths:
       - "apps/api/**"
       - "packages/core/**"
       - "pnpm-lock.yaml"
       - ".github/workflows/api.yml"
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "apps/api/**"
       - "packages/core/**"
@@ -23,6 +25,7 @@ concurrency:
 
 jobs:
   test:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -67,6 +70,8 @@ jobs:
         run: pnpm --filter @autoflow/api build
 
   docker:
+    # Image build only on the default branch (Railway builds the real image on deploy).
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     needs: test
     timeout-minutes: 15

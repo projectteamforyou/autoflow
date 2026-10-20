@@ -9,9 +9,13 @@ on:
         description: 'Render and upload screenshots + feature graphics too (off = text and video links only, ~1 min)'
         type: choice
         options: ['on', 'off']
-        default: 'on'
+        default: 'off'
 permissions:
   contents: read
+concurrency:
+  group: play-listing-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   listing:
     runs-on: ubuntu-latest

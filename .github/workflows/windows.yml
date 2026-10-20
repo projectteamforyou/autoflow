@@ -22,7 +22,7 @@ permissions:
 
 concurrency:
   group: windows-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   TAURI_CLI_VERSION: "2.12.3"
@@ -31,7 +31,8 @@ env:
 jobs:
   build:
     name: Build, sign and verify
-    runs-on: windows-latest
+    # Organization runners (home: 부산집업무용, 부산집업무용-2 / office: FELIXLEE, FELIXLEE-2), Windows service.
+    runs-on: [self-hosted, Windows]
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
@@ -57,11 +58,20 @@ jobs:
         run: |
           if (-not (Test-Path apps/web/dist/index.html)) { throw "apps/web/dist/index.html is missing - the desktop app needs the web app build." }
 
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-pc-windows-msvc
-
-      - uses: Swatinem/rust-cache@v2
+      - name: Rust toolchain (rustup if missing)
+        # Self-hosted runners: install rustup once if absent; stable + MSVC target are kept up to date.
+        shell: powershell
+        run: |
+          $cargoBin = Join-Path $env:USERPROFILE '.cargo\bin'
+          if (-not (Get-Command rustup -ErrorAction SilentlyContinue) -and -not (Test-Path (Join-Path $cargoBin 'rustup.exe'))) {
+            $init = Join-Path $env:RUNNER_TEMP 'rustup-init.exe'
+            Invoke-WebRequest -UseBasicParsing https://win.rustup.rs/x86_64 -OutFile $init
+            & $init -y --default-toolchain stable --profile minimal
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          $cargoBin | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+          & (Join-Path $cargoBin 'rustup.exe') toolchain install stable --profile minimal --target x86_64-pc-windows-msvc
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Decide signing mode
         id: mode

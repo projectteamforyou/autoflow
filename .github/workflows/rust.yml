@@ -12,6 +12,7 @@ on:
       - "Cargo.lock"
       - ".github/workflows/rust.yml"
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "crates/**"
       - "apps/desktop/**"
@@ -35,7 +36,9 @@ env:
 jobs:
   engine:
     name: Engine (fmt, clippy, test) on Ubuntu
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -51,13 +54,26 @@ jobs:
 
   windows:
     name: Engine tests + desktop check on Windows
-    runs-on: windows-latest
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    # Organization runners (home: 부산집업무용, 부산집업무용-2 / office: FELIXLEE, FELIXLEE-2), Windows service, no desktop.
+    runs-on: [self-hosted, Windows]
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
-      - uses: Swatinem/rust-cache@v2
+      - name: Rust toolchain (rustup if missing)
+        # Self-hosted runners: install rustup once if absent; stable + clippy are kept up to date.
+        shell: powershell
+        run: |
+          $cargoBin = Join-Path $env:USERPROFILE '.cargo\bin'
+          if (-not (Get-Command rustup -ErrorAction SilentlyContinue) -and -not (Test-Path (Join-Path $cargoBin 'rustup.exe'))) {
+            $init = Join-Path $env:RUNNER_TEMP 'rustup-init.exe'
+            Invoke-WebRequest -UseBasicParsing https://win.rustup.rs/x86_64 -OutFile $init
+            & $init -y --default-toolchain stable --profile minimal
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          $cargoBin | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+          & (Join-Path $cargoBin 'rustup.exe') toolchain install stable --profile minimal --component clippy --target x86_64-pc-windows-msvc
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Stub frontend for generate_context!
         # apps/web/dist is built by the web pipeline; the type check only needs an index.html.
         shell: pwsh
@@ -67,8 +83,16 @@ jobs:
           '<!doctype html><title>stub</title>' | Set-Content -Encoding ascii (Join-Path $stub 'index.html')
           $cfg = @{ build = @{ frontendDist = $stub } } | ConvertTo-Json -Compress
           "TAURI_CONFIG=$cfg" >> $env:GITHUB_ENV
-      - name: cargo test (engine, incl. Win32 smoke tests)
-        run: cargo test -p autoflow_engine
+      - name: cargo test (engine)
+        # windows_smoke needs an interactive desktop (clipboard, screen, hotkeys): skipped on the service runners.
+        shell: powershell
+        run: |
+          if ('${{ runner.environment }}' -eq 'self-hosted') {
+            cargo test -p autoflow_engine --lib --test conformance --test displays --test engine --test expr --test fixtures
+          } else {
+            cargo test -p autoflow_engine
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: cargo clippy (engine + desktop, Windows)
         run: cargo clippy -p autoflow_engine -p autoflow-desktop --all-targets -- -D warnings
       - name: cargo check (desktop)

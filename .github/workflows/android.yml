@@ -22,12 +22,16 @@ on:
       smoke:
         description: 'Install the debug APK on an Android emulator (API 35) and check it starts. Runs after the build, never blocks the Play upload.'
         type: boolean
-        default: true
+        default: false
   push:
     tags: ['v*']
 # least-privilege GITHUB_TOKEN (read-only checkout; nothing here writes to the repo)
 permissions:
   contents: read
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   android:
     runs-on: ubuntu-latest
@@ -233,7 +237,8 @@ jobs:
   # but read it before pressing "release" in Play Console.
   smoke:
     needs: android
-    if: github.event_name == 'push' || inputs.smoke
+    # Emulator smoke test (~15 min): on demand only.
+    if: inputs.smoke
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:

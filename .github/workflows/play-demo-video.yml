@@ -19,7 +19,7 @@ permissions:
   contents: read
 concurrency:
   group: play-demo-video
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   video:
     runs-on: ubuntu-latest
