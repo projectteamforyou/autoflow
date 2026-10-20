@@ -21,6 +21,7 @@ import { Onboarding } from "../pages/Onboarding";
 import { NewFlowPage } from "../pages/NewFlow";
 import { ImportFlowPage } from "../pages/ImportFlow";
 import { BillingReturnPage } from "../pages/Billing";
+import { BusinessPage } from "../pages/Business";
 import { AdminPage } from "../pages/Admin";
 import { StagePage } from "../pages/Stage";
 
@@ -28,7 +29,7 @@ function Guard({ children }: { children: JSX.Element }) {
   const onboarded = useStore((s) => s.settings.onboarded);
   const loc = useLocation();
   // Deep links that must work on a first visit (shared flows, payment return, operator page) skip onboarding.
-  if (!onboarded && !/^\/(import|admin|billing)/.test(loc.pathname)) return <Navigate to="/welcome" replace />;
+  if (!onboarded && !/^\/(import|admin|billing|business)/.test(loc.pathname)) return <Navigate to="/welcome" replace />;
   return children;
 }
 
@@ -91,6 +92,7 @@ export function App() {
         <Route path="/fleet" element={<Guard><FleetPage /></Guard>} />
         <Route path="/settings" element={<Guard><SettingsPage /></Guard>} />
         <Route path="/billing/return" element={<BillingReturnPage />} />
+        <Route path="/business" element={<Guard><BusinessPage /></Guard>} />
         <Route path="/admin" element={<Guard><AdminPage /></Guard>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

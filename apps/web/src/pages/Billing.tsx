@@ -21,6 +21,7 @@ import {
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
 import { EditionNote } from "../components/Edition";
+import { LicensedDownloads } from "../components/TrialBanner";
 import { Seg } from "../components/ui";
 import { ApiError, auth, type User } from "../lib/api";
 import { billingApi, providerForLocale, startCheckout, type BillingConfig, type BillingStatus, type LicenseDto, type OrderDto } from "../lib/billing";
@@ -125,7 +126,8 @@ function RedeemForm({ onDone }: { onDone: (s: BillingStatus) => void }) {
   );
 }
 
-export function BillingSection({ user, onUser }: { user: User; onUser: (u: User) => void }) {
+/** `purchase`: the /business page — buy buttons show for personal accounts too; paying switches the account to business. */
+export function BillingSection({ user, onUser, purchase = false }: { user: User; onUser: (u: User) => void; purchase?: boolean }) {
   const t = useT();
   const loc = useLocale();
   const toast = useStore((s) => s.toast);
@@ -167,6 +169,8 @@ export function BillingSection({ user, onUser }: { user: User; onUser: (u: User)
     if (!consent) return toast("info", t("billing.consentNeeded"));
     setBusy(true);
     try {
+      // Buying a Business license means the account is used for work.
+      if (user.usageType !== "business") onUser(await auth.update({ usageType: "business" }));
       const r = await startCheckout(provider, period);
       if (r.kind === "failed") toast("warning", t("billing.failed", { message: r.message }));
       else if (r.kind === "confirm") {
@@ -191,6 +195,7 @@ export function BillingSection({ user, onUser }: { user: User; onUser: (u: User)
   const prices = config?.plans.business.prices ?? BUSINESS_PRICES;
   const currency = PROVIDER_CURRENCY[provider];
   const isBusiness = user.usageType === "business";
+  const canBuy = isBusiness || purchase;
   const st = status?.status;
   const licensed = st === "business_active";
 
@@ -214,17 +219,18 @@ export function BillingSection({ user, onUser }: { user: User; onUser: (u: User)
 
       {failed && <p className="small muted">{t("billing.unavailable")}</p>}
       {newKey && <IssuedKey licenseKey={newKey} />}
+      {purchase && licensed && <LicensedDownloads />}
 
-      {isBusiness && config && (!config.checkoutEnabled || !providerReady) && (
+      {canBuy && config && (!config.checkoutEnabled || !providerReady) && (
         <div className="callout info small"><Icon name="Info" size={16} /> {t("billing.checkoutOff", { email: BILLING_CONTACT_EMAIL })}</div>
       )}
 
-      {isBusiness && config?.checkoutEnabled && providerReady && (
+      {canBuy && config?.checkoutEnabled && providerReady && (
         hasNativeBridge ? (
           // Native shells hand checkout to the browser, where the payment pages and the return URL work.
           <div className="row wrap">
             <span className="small muted">{t("billing.openBrowser")}</span>
-            <a className="btn sm" href={`${SITE_URL}/app/#/settings`} target="_blank" rel="noopener"><Icon name="ExternalLink" size={14} /> {t("billing.openBrowserBtn")}</a>
+            <a className="btn sm" href={`${SITE_URL}/app/#/business`} target="_blank" rel="noopener"><Icon name="ExternalLink" size={14} /> {t("billing.openBrowserBtn")}</a>
           </div>
         ) : (
           <div className="stack-sm">
@@ -245,6 +251,10 @@ export function BillingSection({ user, onUser }: { user: User; onUser: (u: User)
             <small className="hint">{t("billing.oneTime")}</small>
           </div>
         )
+      )}
+
+      {!canBuy && !licensed && (
+        <div className="row wrap"><Link className="btn sm primary" to="/business"><Icon name="BadgeCheck" size={14} /> {t("business.cta")}</Link></div>
       )}
 
       <RedeemForm onDone={onRedeemed} />

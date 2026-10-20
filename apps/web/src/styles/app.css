@@ -450,3 +450,18 @@ html.identify, html.identify body, html.identify #root { background: transparent
 .trial-chip:hover { border-color: var(--af-primary); }
 @media (max-width: 640px) { .trial-chip span { display: none; } }
 .trial-after { margin: 10px 16px 0; }
+
+/* /business purchase page */
+.business-hero { display: grid; gap: 10px; padding: 24px; border-radius: 18px; border: 1px solid var(--af-border); background: linear-gradient(135deg, color-mix(in oklab, var(--af-primary) 16%, var(--af-surface)), var(--af-surface) 70%); }
+.business-hero .badge { justify-self: start; }
+.business-hero h1 { font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.1rem); margin: 0; }
+.business-hero p { margin: 0; }
+.business-points { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 6px; }
+.business-points li { display: flex; gap: 8px; align-items: flex-start; }
+.business-points li > svg { color: var(--af-primary); flex: none; margin-top: 3px; }
+.business-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.business-steps li { display: flex; align-items: center; gap: 8px; color: var(--af-muted); font-size: 14px; }
+.business-steps li > span { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; border: 1px solid var(--af-border); }
+.business-steps li.current { color: var(--af-text); font-weight: 600; }
+.business-steps li.current > span { background: var(--af-primary); border-color: transparent; color: #fff; }
+.business-steps li.done > span { background: color-mix(in oklab, var(--af-success, #22C55E) 20%, transparent); border-color: transparent; color: var(--af-success, #22C55E); }
