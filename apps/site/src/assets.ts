@@ -135,6 +135,10 @@ export async function copyPublic() {
   for (const f of await readdir(join(PUBLIC, "img"))) {
     if (f.endsWith(".webp")) await copyFile(join(PUBLIC, "img", f), out("img", f));
   }
+  // Root files such as search-engine verification files (BingSiteAuth.xml) are served as-is.
+  for (const f of await readdir(PUBLIC, { withFileTypes: true })) {
+    if (f.isFile() && !f.name.startsWith(".")) await copyFile(join(PUBLIC, f.name), out(f.name));
+  }
 }
 
 /* ------------------------------------------------------------------ Cloudflare Pages + crawlers */

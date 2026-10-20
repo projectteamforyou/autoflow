@@ -56,6 +56,7 @@ function head(ctx: Ctx, meta: HeadMeta, a: Assets): string {
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>${esc(meta.title)}</title>
 <meta name="description" content="${esc(meta.description)}">
+<meta name="naver-site-verification" content="01d7ee398c46ab4fd713cbe76f427b66c73cb8d6">
 ${meta.noindex ? '<meta name="robots" content="noindex, follow">' : `<link rel="canonical" href="${url}">`}
 ${alternates}
 <meta name="color-scheme" content="dark light">
