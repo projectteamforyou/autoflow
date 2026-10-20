@@ -4,6 +4,7 @@ import { LOCALES, hotkeyToString, type LocaleCode } from "@autoflow/core";
 import { Icon } from "./Icon";
 import { Modal } from "./ui";
 import { StudioPromoLink } from "./StudioPromo";
+import { TrialChip } from "./TrialBanner";
 import { EditionNote } from "./Edition";
 import { useStore } from "../lib/store";
 import { useDialogs } from "../lib/dialog";
@@ -77,6 +78,7 @@ export function Shell({ children, flush, title, actions }: { children: ReactNode
         <header className="topbar">
           <div className="grow row" style={{ minWidth: 0 }}>{title}</div>
           {actions}
+          <TrialChip />
           <LangMenu />
           <ThemeToggle />
         </header>
