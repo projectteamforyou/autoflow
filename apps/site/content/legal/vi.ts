@@ -142,7 +142,7 @@ export const terms: Terms = {
     ),
     service: sec(
       "2. Dịch vụ",
-      "AutoFlow cho phép bạn tạo, chạy thử, chạy và chia sẻ các tác vụ tự động (“luồng”) như auto click, macro, phím tắt, đổi phím và thói quen. Tính năng có thể khác nhau giữa các nền tảng. Dịch vụ miễn phí; một số tính năng tùy chọn như đồng bộ mã hóa cần tài khoản.",
+      "AutoFlow cho phép bạn tạo, chạy thử, chạy và chia sẻ tự động hóa (“luồng”) như auto click, macro, phím tắt, đổi phím, thói quen. Tính năng có thể khác nhau giữa các nền tảng. Dịch vụ miễn phí cho cá nhân; mọi mục đích khác cần giấy phép Business (Mục 10). Một số tính năng như đồng bộ mã hóa cần tài khoản.",
     ),
     eligibility: sec(
       "3. Điều kiện và tài khoản",
@@ -150,7 +150,7 @@ export const terms: Terms = {
     ),
     license: sec(
       "4. Giấy phép",
-      "Chúng tôi cấp cho bạn giấy phép cá nhân, toàn cầu, không độc quyền, không thể chuyển nhượng và có thể thu hồi để cài đặt và sử dụng Dịch vụ cho mục đích cá nhân hoặc công việc theo các Điều khoản này. Bạn không được bán, cấp phép lại, phân phối lại ứng dụng hoặc dịch ngược vượt quá mức pháp luật cho phép.",
+      "Chúng tôi cấp cho bạn giấy phép cá nhân, toàn cầu, không độc quyền, không chuyển nhượng, có thể thu hồi để cài đặt và sử dụng Dịch vụ theo Điều khoản này: miễn phí cho cá nhân, và chỉ dùng ngoài mục đích cá nhân khi có giấy phép Business hợp lệ (Mục 10). Bạn không được bán, cấp phép lại, phân phối lại ứng dụng, hoặc dịch ngược vượt mức pháp luật cho phép.",
     ),
     acceptable: sec(
       "5. Sử dụng hợp lệ",
@@ -181,14 +181,14 @@ export const terms: Terms = {
     ),
     sync: sec(
       "9. Đồng bộ và tính sẵn sàng",
-      "Đồng bộ mã hóa là tùy chọn và hiện miễn phí trong giai đoạn ra mắt. Chúng tôi cố gắng duy trì Dịch vụ, nhưng Dịch vụ có thể gián đoạn do bảo trì, sự cố hoặc lý do ngoài tầm kiểm soát. Vì đồng bộ được mã hóa đầu cuối, chúng tôi không thể khôi phục dữ liệu nếu bạn mất khóa. Hãy lưu bản xuất của các luồng quan trọng.",
+      "Đồng bộ mã hóa là tùy chọn. Miễn phí cho cá nhân; dùng đồng bộ ngoài mục đích cá nhân thuộc giấy phép Business (Mục 10). Chúng tôi cố gắng duy trì Dịch vụ, nhưng có thể gián đoạn do bảo trì, sự cố hoặc ngoài tầm kiểm soát. Đồng bộ mã hóa đầu cuối nên nếu mất khóa chúng tôi không thể khôi phục dữ liệu. Hãy lưu bản xuất các luồng quan trọng.",
     ),
     fees: sec(
-      "10. Phí, gói trả phí và hoàn tiền",
-      "Ứng dụng AutoFlow, tự động hóa cục bộ, Halt và tính năng xuất đều miễn phí. Đồng bộ mã hóa miễn phí (₩0) trong giai đoạn ra mắt. Sử dụng đồng bộ cho mục đích cá nhân (cá nhân, phi thương mại) là miễn phí. Sử dụng ngoài mục đích cá nhân — cho doanh nghiệp, tổ chức hoặc bất kỳ mục đích thương mại nào — miễn phí đến 23:59 ngày 25 tháng 10 năm 2026 theo giờ Hàn Quốc; sau đó, việc sử dụng đồng bộ ngoài mục đích cá nhân cần gói Business trả phí. Bạn chọn loại sử dụng trong ứng dụng và phải giữ cho thông tin này chính xác.",
-      "Gói Business được bán theo hình thức mua một lần cho 1 hoặc 12 tháng, thanh toán qua PortOne (thẻ bằng won Hàn Quốc qua KCP) hoặc PayPal (đô la Mỹ). Giá, bao gồm thuế nếu có, được hiển thị trước khi thanh toán. Không tự động gia hạn và chúng tôi không lưu thẻ của bạn; lần mua mới sẽ kéo dài thời hạn hiện tại.",
+      "10. Phí, giấy phép Business và hoàn tiền",
+      "AutoFlow miễn phí cho cá nhân, tức là dùng bởi một người cho mục đích phi thương mại của riêng họ. Mọi mục đích khác (“dùng ngoài cá nhân”) — cho doanh nghiệp, tổ chức, cơ quan, hoặc mục đích thương mại, kể cả nhân viên, cộng tác viên dùng cho công việc — từ 00:00 ngày 20/10/2026 (giờ Hàn Quốc) cần giấy phép Business trả phí cho từng tài khoản. Bạn chọn loại sử dụng trong app và phải khai đúng, cập nhật chính xác. Tính năng app vẫn dùng offline với mọi loại; giấy phép Business dựa vào sự tự giác với tính năng offline, còn đồng bộ sẽ chặn upload mới với tài khoản doanh nghiệp không có license hợp lệ.",
+      "giấy phép Business bán theo gói 1 hoặc 12 tháng, thanh toán một lần. App tiếng Hàn thanh toán qua PortOne (KCP, won); các ngôn ngữ khác qua PayPal (USD). Giá (đã gồm thuế nếu có) hiển thị trước khi thanh toán. Không tự động gia hạn, chúng tôi không lưu thẻ; mua thêm sẽ cộng dồn thời hạn. Mỗi lần mua nhận một key license làm bằng chứng. Key do chúng tôi cấp chỉ kích hoạt một lần cho một tài khoản, và gia hạn giấy phép Business cho tài khoản đó đúng thời hạn key.",
       "Rút lại yêu cầu mua: theo Luật Bảo vệ Người tiêu dùng trong Thương mại Điện tử của Hàn Quốc, bạn có thể rút lại giao dịch mua trong vòng 7 ngày kể từ ngày thanh toán và được hoàn tiền toàn bộ. Vì gói Business là nội dung số được cung cấp ngay từ khi thanh toán, quyền rút lại chấm dứt khi bạn bắt đầu sử dụng sau khi thanh toán (ví dụ tải dữ liệu lên đồng bộ cho mục đích doanh nghiệp), với điều kiện bạn đã đồng ý điều này khi thanh toán; trước đó, bạn có thể rút lại bất cứ lúc nào. Nếu dịch vụ khác với nội dung đã hiển thị, quảng cáo hoặc thỏa thuận, bạn có thể rút lại trong vòng 3 tháng kể từ khi nhận dịch vụ, hoặc trong vòng 30 ngày kể từ khi bạn biết hoặc có thể biết điều đó. Hãy yêu cầu hoàn tiền qua {email}; chúng tôi hoàn tiền qua phương thức thanh toán ban đầu trong vòng 3 ngày làm việc sau khi xác nhận việc rút lại.",
-      "Nếu chúng tôi không thể cung cấp đồng bộ vì lý do thuộc về chúng tôi, hoặc ngừng gói trả phí, chúng tôi sẽ hoàn lại phần thời hạn chưa sử dụng theo tỷ lệ. Không thanh toán không bao giờ khóa dữ liệu của bạn: việc xem, xuất và xóa dữ liệu đã đồng bộ luôn khả dụng. Nếu thay đổi giá hoặc ra mắt tính năng trả phí mới, chúng tôi sẽ thông báo trước, thay đổi không áp dụng cho thời hạn đã thanh toán, và tự động hóa cục bộ, Halt cùng tính năng xuất vẫn miễn phí.",
+      "Nếu chúng tôi không thể cung cấp đồng bộ do lỗi của mình, hoặc ngừng bán giấy phép Business, chúng tôi sẽ hoàn lại phần thời hạn chưa dùng theo tỷ lệ. Không thanh toán không bao giờ khóa dữ liệu: luôn xem, xuất, xóa được dữ liệu đã đồng bộ. Nếu thay đổi giá hoặc có tính năng trả phí mới, chúng tôi sẽ thông báo trước, không áp dụng cho thời hạn đã thanh toán, và dùng cá nhân cho tự động hóa cục bộ, Halt, xuất dữ liệu vẫn miễn phí.",
       "Mục 14 (không bồi thường) cũng áp dụng cho các gói trả phí, nhưng không giới hạn việc hoàn tiền nêu trong mục này hay các quyền của bạn theo pháp luật bảo vệ người tiêu dùng.",
     ),
     ip: sec(

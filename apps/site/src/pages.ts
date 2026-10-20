@@ -1,4 +1,4 @@
-import { BUSINESS_FREE_UNTIL, BUSINESS_PRICES, TEMPLATES, analyzeRisk, formatPolicyDate, formatPrice, preferredProvider, PROVIDER_CURRENCY, type Template, type TemplateCategory } from "@autoflow/core";
+import { BUSINESS_PRICES, TEMPLATES, analyzeRisk, formatPrice, preferredProvider, PROVIDER_CURRENCY, type Template, type TemplateCategory } from "@autoflow/core";
 import type { Content, Section } from "../content/types.js";
 import { LINKS, pagePath, type PageId } from "./config.js";
 import { brand, icon, mark } from "./icons.js";
@@ -30,12 +30,19 @@ function img(name: string, eager = false, sizes = "(max-width: 880px) 100vw, 560
 const ext = (t: Content, href: string, inner: string, cls: string) =>
   `<a class="${cls}" href="${href}" rel="noopener noreferrer" target="_blank">${inner}<span class="sr-only"> ${esc(t.a11y.newTab)}</span></a>`;
 
+/** "Personal edition · For individual users · Work use? Business license" under every download button row. */
+export function editionLine(ctx: Ctx) {
+  const { t, lang } = ctx;
+  return `<p class="edition"><span class="edition-badge">${icon("check", 13)}${esc(t.edition.badge)}</span><span class="edition-note">${esc(t.edition.note)}</span><a href="${pagePath(lang, "pricing")}">${esc(t.edition.business)}</a></p>`;
+}
+
 export function ctaRow(ctx: Ctx, withWeb = true) {
   const { t } = ctx;
   return html`<div class="cta-row">
 ${ext(t, LINKS.windows, `${brand("windows", 18)}<span>${esc(t.cta.windows)}</span>`, "btn btn-primary")}
 ${ext(t, LINKS.android, `${brand("android", 18)}<span>${esc(t.cta.android)}</span>`, "btn btn-secondary")}
 </div>
+${editionLine(ctx)}
 ${withWeb ? `<div class="hero-sub"><a class="text-link" href="${LINKS.app}">${esc(t.cta.webLong)}${icon("arrow", 16)}</a><span>${esc(t.cta.note)}</span></div>` : ""}`;
 }
 
@@ -313,7 +320,7 @@ function safety(ctx: Ctx): PageOut {
 function download(ctx: Ctx): PageOut {
   const { t } = ctx;
   const d = t.download;
-  const main = html`${pageHero(ctx, "download", d.h1, d.lead)}
+  const main = html`${pageHero(ctx, "download", d.h1, d.lead, editionLine(ctx))}
 <section class="section-tight"><div class="wrap">
 <div class="grid-3">
 <article class="card feature card-glow"><span class="tile">${brand("windows", 18)}</span><h2 class="h2">${esc(d.windows.h2)}</h2><p>${esc(d.windows.p)}</p><p class="muted">${esc(d.windows.meta)}</p><div class="cta-row">${ext(t, LINKS.windows, `${icon("download", 18)}<span>${esc(t.cta.windows)}</span>`, "btn btn-primary")}</div></article>
@@ -329,16 +336,16 @@ ${shareSection(ctx, d.seo.title)}`;
 function pricing(ctx: Ctx): PageOut {
   const { t } = ctx;
   const p = t.pricing;
-  // Policy date and Business prices come from @autoflow/core (plans.ts), the same source the app and API use.
+  // Business prices come from @autoflow/core (plans.ts), the same source the app and API use. The
+  // currency follows the payment provider fixed per language: Korean → PortOne (KRW), others → PayPal (USD).
   const currency = PROVIDER_CURRENCY[preferredProvider(ctx.lang)];
   const price = (period: "month" | "year") => formatPrice(BUSINESS_PRICES[period][currency], currency, ctx.lang);
-  const policy = p.sync.policy.replace("{date}", formatPolicyDate(BUSINESS_FREE_UNTIL, ctx.lang));
   const business = p.sync.business.replace("{month}", price("month")).replace("{year}", price("year"));
   const main = html`${pageHero(ctx, "pricing", p.h1, p.lead)}
 <section class="section-tight"><div class="wrap">
 <div class="plans">
 <article class="card plan card-glow"><h2>${esc(p.free.name)}</h2><div class="price"><b>${esc(p.free.price)}</b><span>${esc(p.free.period)}</span></div><p>${esc(p.free.desc)}</p>${list(p.free.items)}${ctaRow(ctx)}</article>
-<article class="card plan"><h2>${esc(p.sync.name)}</h2><div class="price"><b>${esc(p.sync.price)}</b><span>${esc(p.sync.period)}</span></div><p>${esc(p.sync.desc)}</p>${list(p.sync.items)}<p class="policy"><strong>${esc(policy)}</strong></p><p class="muted">${esc(business)}</p><div class="note">${icon("alert", 18)}<span>${md(p.sync.note)}</span></div></article>
+<article class="card plan" id="business"><h2>${esc(p.sync.name)}</h2><div class="price"><b>${esc(price("month"))}</b><span>${esc(p.sync.period)}</span></div><p>${esc(p.sync.desc)}</p>${list(p.sync.items)}<p class="policy"><strong>${esc(p.sync.policy)}</strong></p><p class="muted">${esc(business)}</p><div class="cta-row"><a class="btn btn-secondary" href="${LINKS.app}#/settings">${icon("arrow", 18)}<span>${esc(p.sync.cta)}</span></a></div><div class="note">${icon("alert", 18)}<span>${md(p.sync.note)}</span></div></article>
 </div>
 <h2 class="h2 mt-l">${esc(p.promises.h2)}</h2>
 <div class="grid mt-l">${p.promises.items.map((x) => `<article class="card"><span class="tile">${icon("check", 20)}</span><h3>${esc(x.h3)}</h3><p>${esc(x.p)}</p></article>`)}</div>

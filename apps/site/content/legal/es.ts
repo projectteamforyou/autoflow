@@ -142,7 +142,7 @@ export const terms: Terms = {
     ),
     service: sec(
       "2. El Servicio",
-      "AutoFlow te permite crear, ensayar, ejecutar y compartir automatizaciones («flujos») como autoclics, macros, atajos, reasignación de teclas y rutinas. Las funciones pueden variar según la plataforma. El Servicio es gratuito; algunas funciones opcionales, como la sincronización cifrada, requieren cuenta.",
+      "AutoFlow te permite crear, ensayar, ejecutar y compartir automatizaciones («flujos») como autoclicks, macros, atajos, reasignación de teclas y rutinas. Las funciones pueden variar según la plataforma. El Servicio es gratis para uso personal; cualquier otro uso requiere licencia Business (Sección 10). Funciones opcionales como la sincronización cifrada requieren cuenta.",
     ),
     eligibility: sec(
       "3. Requisitos y cuentas",
@@ -150,7 +150,7 @@ export const terms: Terms = {
     ),
     license: sec(
       "4. Licencia",
-      "Te concedemos una licencia personal, mundial, no exclusiva, intransferible y revocable para instalar y usar el Servicio con fines personales o profesionales conforme a estos Términos. No puedes vender, sublicenciar ni redistribuir las apps, ni aplicarles ingeniería inversa salvo en la medida en que la ley lo permita pese a esta restricción.",
+      "Te otorgamos una licencia personal, mundial, no exclusiva, intransferible y revocable para instalar y usar el Servicio conforme a estos Términos: gratis para uso personal, y para uso no personal solo mientras tengas una licencia Business válida (Sección 10). No puedes vender, sublicenciar ni redistribuir las apps, ni aplicarles ingeniería inversa salvo en lo permitido por la ley.",
     ),
     acceptable: sec(
       "5. Uso aceptable",
@@ -181,14 +181,14 @@ export const terms: Terms = {
     ),
     sync: sec(
       "9. Sincronización y disponibilidad",
-      "La sincronización cifrada es opcional y actualmente gratuita durante el lanzamiento. Trabajamos para mantener el Servicio disponible, pero puede interrumpirse por mantenimiento, fallos o causas ajenas a nuestro control. Como la sincronización está cifrada de extremo a extremo, no podemos recuperar datos si pierdes tus claves. Guarda exportaciones de los flujos importantes.",
+      "La sincronización cifrada es opcional. Es gratis para uso personal; el uso no personal de la sincronización está cubierto por la licencia Business (Sección 10). Trabajamos para mantener el Servicio disponible, pero puede interrumpirse por mantenimiento, fallos o causas fuera de nuestro control. Como la sincronización es cifrada de extremo a extremo, no podemos recuperar datos si pierdes tus claves. Guarda exportaciones de los flujos importantes.",
     ),
     fees: sec(
-      "10. Precio, planes de pago y reembolsos",
-      "Las apps de AutoFlow, la automatización local, Halt y la exportación son gratuitas. La sincronización cifrada es gratuita (₩0) durante el lanzamiento. El uso personal (individual y no comercial) de la sincronización es gratuito. El uso no personal —para una empresa, una organización o cualquier fin comercial— es gratuito hasta el 25 de octubre de 2026 a las 23:59, hora de Corea; después, el uso no personal de la sincronización requiere el plan de pago Business. Eliges tu tipo de uso en la app y debes mantenerlo veraz.",
-      "El plan Business se vende como compra única de 1 o 12 meses, pagada a través de PortOne (pago con tarjeta en wones coreanos mediante KCP) o PayPal (dólares estadounidenses). El precio, con los impuestos aplicables, se muestra antes de pagar. No hay renovación automática y no guardamos tu tarjeta; una nueva compra amplía tu periodo actual.",
+      "10. Precio, licencia Business y reembolsos",
+      "AutoFlow es gratis para uso personal, es decir, el uso por una persona para fines propios y no comerciales. Cualquier otro uso («uso no personal») —para una empresa, organización u organismo público, o con fines comerciales o de lucro, incluido el uso por empleados o contratistas para su trabajo— requiere una licencia Business de pago por cada cuenta de usuario a partir del 20 de octubre de 2026, 00:00 hora de Corea. Debes elegir el tipo de uso en la app y mantenerlo veraz y actualizado. Las funciones de la app siguen disponibles sin conexión elijas lo que elijas: la licencia Business se basa en la buena fe para funciones offline y se aplica técnicamente a la sincronización, donde las nuevas subidas de cuentas empresariales sin licencia válida se pausan.",
+      "La licencia Business se vende como compra única de 1 o 12 meses. En la app en coreano se paga por PortOne (pago con tarjeta KCP en wones); en los demás idiomas, por PayPal (dólares estadounidenses). El precio, con impuestos incluidos, se muestra antes de pagar. No hay renovación automática y no guardamos tu tarjeta; una nueva compra amplía tu periodo actual. Cada compra incluye una clave de licencia como comprobante. Una clave emitida por nosotros puede activarse una vez, en una cuenta, y extiende la licencia Business de esa cuenta por su periodo.",
       "Desistimiento: según la Ley coreana de Protección del Consumidor en el Comercio Electrónico, puedes desistir de una compra en los 7 días siguientes al pago y recibir el reembolso íntegro. Como el plan Business es contenido digital que se presta desde el momento del pago, el derecho de desistimiento termina cuando empiezas a usarlo tras el pago (por ejemplo, al subir datos a la sincronización para uso empresarial), siempre que lo hayas aceptado al pagar; hasta entonces puedes desistir en cualquier momento. Si el servicio difiere de lo mostrado, anunciado o acordado, puedes desistir en los 3 meses siguientes a recibirlo o en los 30 días siguientes a cuando lo supiste o pudiste saberlo. Solicita los reembolsos en {email}; reembolsamos por el mismo medio de pago en un plazo de 3 días hábiles desde que confirmamos el desistimiento.",
-      "Si no podemos prestar la sincronización por causas que nos sean imputables, o si dejamos de ofrecer el plan de pago, reembolsamos la parte no utilizada de tu periodo de forma proporcional. No pagar nunca bloquea tus datos: leer, exportar y eliminar los datos sincronizados siempre sigue siendo posible. Si cambiamos los precios o añadimos nuevas funciones de pago, lo anunciaremos con antelación, no se aplicará a periodos ya pagados y la automatización local, Halt y la exportación seguirán siendo gratuitas.",
+      "Si no podemos prestar la sincronización por causas atribuibles a nosotros, o si dejamos de ofrecer la licencia Business, reembolsamos la parte no utilizada de tu periodo de forma proporcional. No pagar nunca bloquea tus datos: leer, exportar y borrar los datos sincronizados siempre es posible. Si cambiamos precios o añadimos nuevas funciones de pago, lo anunciaremos con antelación, no se aplicará a periodos ya pagados y el uso personal de la automatización local, Halt y la exportación seguirá siendo gratis.",
       "La sección 14 (sin compensación) también se aplica a los planes de pago, pero no limita los reembolsos descritos en esta sección ni tus derechos según la normativa de protección del consumidor.",
     ),
     ip: sec(

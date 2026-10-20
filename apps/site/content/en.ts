@@ -41,15 +41,16 @@ export const en = {
     web: "Use in browser",
     webLong: "No install? Open AutoFlow in your browser",
     openApp: "Open web app",
-    note: "Free · No account needed · Works offline",
+    note: "Free for personal use · No account needed · Works offline",
     learnMore: "Learn more",
   },
+  edition: { badge: "Personal edition", note: "For individual users", business: "Work use? Business license" },
   share: {
     heading: "Share AutoFlow",
     native: "Share…",
     copy: "Copy link",
     copied: "Link copied",
-    text: "AutoFlow — automate anything you repeat, safely. Free on Windows, Android and the web.",
+    text: "AutoFlow — automate anything you repeat, safely. Free for personal use on Windows, Android and the web.",
   },
   footer: {
     stats: { statsTitle: "Live stats", visits: "Total visits", online: "Online now", downloads: "Downloads" },
@@ -122,7 +123,7 @@ export const en = {
   home: {
     seo: {
       title: "AutoFlow — Free auto clicker, macros & key remapping",
-      description: "Auto clicker, macros, hotkeys and key remapping for Windows, Android and the web. Rehearse any flow in your browser first. Free, private, with a Halt key.",
+      description: "Auto clicker, macros, hotkeys and key remapping for Windows, Android and the web. Try flows in your browser first. Free for personal use, with a Halt key.",
     },
     eyebrow: "New — Practice Canvas: rehearse any flow on a virtual screen",
     h1a: "Automate anything you repeat.",
@@ -223,7 +224,7 @@ export const en = {
     },
     final: {
       h2: "Your first flow is thirty seconds away.",
-      lead: "Free on every platform. No account, no credit card, no catch.",
+      lead: "Free for personal use on every platform. No account, no credit card.",
     },
   },
   features: {
@@ -284,7 +285,7 @@ export const en = {
   windows: {
     seo: {
       title: "AutoFlow for Windows — auto clicker & macro recorder",
-      description: "A free auto clicker, macro recorder and key remapper for Windows 10 and 11. Global hotkeys, window layouts, Keyforge profiles and a Halt key.",
+      description: "An auto clicker, macro recorder and key remapper for Windows 10 and 11, free for personal use. Global hotkeys, window layouts, Keyforge and a Halt key.",
     },
     h1: "AutoFlow for Windows",
     lead: "A native engine that sends real input, listens for global hotkeys and stops the instant you press Ctrl+Alt+Esc.",
@@ -308,7 +309,7 @@ export const en = {
   android: {
     seo: {
       title: "AutoFlow for Android — auto tapper & routines",
-      description: "Automate taps, swipes and routines on Android with a floating stop button. Free, private and transparent about its Accessibility permission.",
+      description: "Automate taps, swipes and routines on Android with a floating stop button. Free for personal use, private and open about its Accessibility permission.",
     },
     h1: "AutoFlow for Android",
     lead: "Taps, swipes and daily routines that run on your phone — with a stop button that floats above everything.",
@@ -402,10 +403,10 @@ export const en = {
   download: {
     seo: {
       title: "Download AutoFlow — Windows, Android & web app",
-      description: "Get AutoFlow free: the Windows installer and the Android app from our official download server, or open the web app in your browser — no account needed.",
+      description: "Get AutoFlow, free for personal use: the Windows installer and Android app from our official download server, or the web app in your browser.",
     },
     h1: "Get AutoFlow",
-    lead: "Free on every platform. Your flows move between them through files, links or optional encrypted sync.",
+    lead: "Free for personal use on every platform. Your flows move between them through files, links or optional encrypted sync.",
     windows: { h2: "Windows", p: "Installer for Windows 10 and 11 (64-bit). Global hotkeys, Keyforge and real input.", meta: "Official download · dl.autoflowmacro.com" },
     android: { h2: "Android", p: "Taps, swipes and routines with a floating stop button. Requires the Accessibility permission you control.", meta: "Direct APK · Google Play coming soon" },
     web: { h2: "Web app", p: "The full editor, Atlas and Practice Canvas in your browser. Install it as an app from the address bar.", meta: "Works offline after the first visit" },
@@ -414,32 +415,32 @@ export const en = {
   },
   pricing: {
     seo: {
-      title: "Pricing — AutoFlow is free | No ads, no tracking",
-      description: "Everything AutoFlow ships today is free on Windows, Android and the web. Sync is free during launch; local automation and export stay free forever.",
+      title: "Pricing — free for personal use | AutoFlow",
+      description: "AutoFlow is free for personal use on Windows, Android and the web. Business, commercial and work use needs a Business license from US$7.99 a month.",
     },
-    h1: "Free. Actually free.",
-    lead: "Everything AutoFlow ships today costs nothing — no trial, no seat limits, no ads.",
+    h1: "Free for personal use.",
+    lead: "Personal use is free. Work use needs a Business license.",
     free: {
-      name: "Free",
+      name: "Personal",
       price: "$0",
       period: "forever",
-      desc: "Everything currently in AutoFlow, on every platform.",
-      items: ["Easy and Pro modes with all 34 step types", "Recorder, hotkeys and triggers", "Keyforge remapping, layers and snippets", "Practice Canvas and Ledger", "Atlas templates and share links", "Copilot with your own key or a local model", "Guardrails, Safety Score and Halt"],
+      desc: "Every feature on every platform, for individual non-commercial use.",
+      items: ["Easy and Pro modes with all 34 step types", "Recorder, hotkeys and triggers", "Keyforge remapping, layers and snippets", "Practice Canvas and Ledger", "Atlas templates and share links", "Copilot with your own key or a local model", "Guardrails, Safety Score and Halt", "Encrypted sync, free for personal use"],
     },
     sync: {
-      name: "Encrypted sync",
-      price: "₩0",
-      period: "free during launch",
-      desc: "Optional account that syncs flows between your devices, end-to-end encrypted.",
-      items: ["Encrypted on your device before upload", "Conflicts keep both versions", "Delete your account and data at any time"],
-      note: "Sync runs on servers that cost us money, so it may become a paid option later. If that happens we will announce it well in advance, and nothing already synced will be held hostage.",
-      policy: "Personal use is free. Non-personal (business) use is free until {date}.",
-      business: "After that, business use needs the Business plan: {month} a month or {year} a year — one-time payments, no auto-renewal.",
+      name: "Business",
+      period: "/ month",
+      desc: "License for business, commercial and organizational use — plus encrypted sync across devices.",
+      items: ["Commercial and team use of every feature", "Encrypted sync: encrypted on device before upload", "Both versions kept on conflict", "Monthly or yearly pass, no auto-renew", "Delete account and data any time"],
+      note: "Synced data is never held hostage: reading, exporting and deleting always work, paid or not.",
+      policy: "Personal use is free. Any other use requires a Business license.",
+      business: "{month} a month or {year} a year — one-time payments, no auto-renewal. Buy in the app's Settings, or activate a license key there.",
+      cta: "Get a Business license",
     },
     promises: {
       h2: "Promises that never change",
       items: [
-        { h3: "Local automation stays free", p: "Building and running flows on your own device will never be paywalled." },
+        { h3: "Personal use stays free", p: "Building and running flows on your own device for personal use will never be charged." },
         { h3: "Halt is never a feature tier", p: "The emergency stop and every safety check are on for everyone, always." },
         { h3: "Your data can always leave", p: "Export every flow as a file at any time, from any plan." },
         { h3: "No ads, no data sales", p: "We do not show ads and we do not sell or rent your information." },
@@ -454,7 +455,8 @@ export const en = {
     h1: "Frequently asked questions",
     lead: "Can’t find your answer? Write to us at {email}.",
     items: [
-      { q: "Is AutoFlow really free?", a: "Yes. Everything AutoFlow ships today is free on Windows, Android and the web, with no ads. Optional encrypted sync is free during launch; local automation, Halt and export will always stay free." },
+      { q: "Is AutoFlow really free?", a: "For personal use, yes: every feature on Windows, Android and the web, with no ads. Any other use — business, commercial, organizational or for work — needs a Business license: US$7.99 a month or US$79.99 a year, as one-time passes with no auto-renewal. All features keep working offline either way; for business accounts without a license, only new sync uploads pause." },
+      { q: "What counts as business use?", a: "Anything that isn't personal: using AutoFlow for your job or employer, as a freelancer or contractor, in a company, school, public body or other organization, or for any commercial purpose. Each person who uses it that way needs a Business license. A license key you receive can be activated in the app under Settings › Plan & billing." },
       { q: "Do I need an account?", a: "No. AutoFlow works fully offline without an account. You only need one if you want encrypted sync between devices or to publish templates to Atlas." },
       { q: "How do I stop a running flow?", a: "Press Ctrl+Alt+Esc on Windows or tap the floating stop button on Android. Halt stops any flow in under half a second, and the Pulse bar always shows what is running." },
       { q: "Why does the Android app need the Accessibility permission?", a: "Android only lets apps perform taps and swipes for you through an Accessibility service. AutoFlow uses it to run the gestures in your flows and, only when a step asks for it, to read on-screen text. It never collects personal data, and you can switch it off at any time in Settings › Accessibility." },
@@ -473,7 +475,7 @@ export const en = {
     lead: "The page you were looking for doesn’t exist or has moved.",
     back: "Back to home",
   },
-  legalUi: { contents: "Contents", effective: "Effective date: 19 October 2026", updated: "Last updated: 19 October 2026", other: "Also read" },
+  legalUi: { contents: "Contents", effective: "Effective date: 20 October 2026", updated: "Last updated: 20 October 2026", other: "Also read" },
   templates: {
     "auto-clicker": { n: "Classic auto clicker", d: "Left-clicks the centre of the screen 100 times, four times a second. Ctrl+Alt+Esc stops it." },
     "multi-point": { n: "Three-point click cycle", d: "Clicks three positions in order, then repeats until you stop it." },

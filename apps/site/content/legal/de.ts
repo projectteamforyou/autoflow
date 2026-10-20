@@ -142,7 +142,7 @@ export const terms: Terms = {
     ),
     service: sec(
       "2. Der Dienst",
-      "Mit AutoFlow erstellen, proben, starten und teilen Sie Automatisierungen („Flows“) wie Autoklicks, Makros, Hotkeys, Tastenbelegungen und Routinen. Der Funktionsumfang kann je Plattform variieren. Der Dienst ist kostenlos; optionale Funktionen wie der verschlüsselte Sync erfordern ein Konto.",
+      "Mit AutoFlow kannst du Automatisierungen („Flows“) wie Autoklicks, Makros, Hotkeys, Tastenbelegung und Routinen erstellen, proben, ausführen und teilen. Funktionen können je Plattform variieren. Der Dienst ist für private Nutzung kostenlos; jede andere Nutzung erfordert eine Business-Lizenz (Abschnitt 10). Optionale Funktionen wie verschlüsselter Sync benötigen ein Konto.",
     ),
     eligibility: sec(
       "3. Voraussetzungen und Konten",
@@ -150,7 +150,7 @@ export const terms: Terms = {
     ),
     license: sec(
       "4. Lizenz",
-      "Wir räumen Ihnen eine persönliche, weltweite, nicht ausschließliche, nicht übertragbare und widerrufliche Lizenz ein, den Dienst gemäß diesen Bedingungen privat oder geschäftlich zu installieren und zu nutzen. Sie dürfen die Apps nicht verkaufen, unterlizenzieren oder weiterverbreiten und nicht zurückentwickeln, soweit das Gesetz dies nicht trotz dieser Beschränkung erlaubt.",
+      "Wir gewähren dir eine persönliche, weltweite, nicht-exklusive, nicht übertragbare, widerrufbare Lizenz, den Dienst gemäß diesen Bedingungen zu installieren und zu nutzen: kostenlos für private Nutzung, und für nicht-private Nutzung nur mit gültiger Business-Lizenz (Abschnitt 10). Die Apps dürfen nicht verkauft, unterlizenziert oder weitergegeben werden und nicht zurückentwickelt werden, außer soweit das Gesetz dies trotz dieser Einschränkung erlaubt.",
     ),
     acceptable: sec(
       "5. Zulässige Nutzung",
@@ -181,14 +181,14 @@ export const terms: Terms = {
     ),
     sync: sec(
       "9. Sync und Verfügbarkeit",
-      "Der verschlüsselte Sync ist optional und zum Start derzeit kostenlos. Wir bemühen uns um eine hohe Verfügbarkeit, der Dienst kann aber wegen Wartung, Störungen oder Umständen außerhalb unserer Kontrolle unterbrochen werden. Da der Sync Ende-zu-Ende-verschlüsselt ist, können wir Daten bei Schlüsselverlust nicht wiederherstellen. Bewahren Sie Exporte wichtiger Flows auf.",
+      "Verschlüsselter Sync ist optional. Für private Nutzung kostenlos; nicht-private Nutzung von Sync ist durch die Business-Lizenz (Abschnitt 10) abgedeckt. Wir bemühen uns um Verfügbarkeit, aber der Dienst kann durch Wartung, Störungen oder außerhalb unserer Kontrolle unterbrochen werden. Da Sync Ende-zu-Ende-verschlüsselt ist, können wir Daten bei Schlüsselverlust nicht wiederherstellen. Bewahre wichtige Flows als Export auf.",
     ),
     fees: sec(
-      "10. Entgelte, kostenpflichtige Tarife und Erstattungen",
-      "Die AutoFlow-Apps, lokale Automatisierung, Halt und Export sind kostenlos. Die verschlüsselte Synchronisierung ist während der Startphase kostenlos (₩0). Die private (individuelle, nicht kommerzielle) Nutzung der Synchronisierung ist kostenlos. Die nicht private Nutzung – für ein Unternehmen, eine Organisation oder einen sonstigen kommerziellen Zweck – ist bis zum 25. Oktober 2026, 23:59 Uhr koreanischer Zeit, kostenlos; danach erfordert die nicht private Nutzung der Synchronisierung den kostenpflichtigen Business-Tarif. Sie wählen Ihre Nutzungsart in der App und müssen sie zutreffend halten.",
-      "Der Business-Tarif wird als Einmalkauf für 1 oder 12 Monate verkauft und über PortOne (Kartenzahlung in koreanischen Won über KCP) oder PayPal (US-Dollar) bezahlt. Der Preis einschließlich etwaiger Steuern wird vor der Zahlung angezeigt. Es gibt keine automatische Verlängerung, und wir speichern Ihre Karte nicht; ein weiterer Kauf verlängert Ihren laufenden Zeitraum.",
+      "10. Entgelte, Business-Lizenz und Erstattungen",
+      "AutoFlow ist für private Nutzung kostenlos, das heißt für Einzelpersonen zur eigenen, nicht-kommerziellen Verwendung. Jede andere Nutzung („nicht-private Nutzung“) – für Unternehmen, Organisationen oder Behörden oder für kommerzielle oder gewinnorientierte Zwecke, einschließlich Nutzung durch Mitarbeiter oder Auftragnehmer für ihre Arbeit – erfordert ab dem 20. Oktober 2026, 00:00 Uhr Korea-Zeit, eine kostenpflichtige Business-Lizenz pro Nutzerkonto. Du wählst deinen Nutzungstyp in der App und musst ihn wahrheitsgemäß auswählen und aktuell halten. Die App-Funktionen bleiben offline immer verfügbar: Die Business-Lizenz basiert bei Offline-Funktionen auf Vertrauen und wird für Sync technisch durchgesetzt, wobei neue Uploads bei Geschäftskonten ohne gültige Lizenz pausieren.",
+      "Die Business-Lizenz wird als Einmalkauf für 1 oder 12 Monate verkauft. In der koreanischen App erfolgt die Zahlung über PortOne (KCP-Kartenzahlung in Won), in allen anderen Sprachen über PayPal (US-Dollar). Der Preis inkl. Steuern wird vor der Zahlung angezeigt. Es gibt keine automatische Verlängerung und wir speichern keine Kartendaten; ein neuer Kauf verlängert den aktuellen Zeitraum. Jeder Kauf enthält einen Lizenzschlüssel als Nachweis. Ein von uns ausgestellter Lizenzschlüssel kann einmal auf ein Konto aktiviert werden und verlängert dessen Business-Lizenz um die jeweilige Laufzeit.",
       "Widerruf: Nach dem koreanischen Gesetz zum Verbraucherschutz im elektronischen Handel können Sie einen Kauf innerhalb von 7 Tagen nach der Zahlung widerrufen und erhalten den vollen Betrag zurück. Da der Business-Tarif ein digitaler Inhalt ist, der ab der Zahlung bereitgestellt wird, erlischt das Widerrufsrecht, sobald Sie ihn nach der Zahlung nutzen (zum Beispiel durch Uploads in die Synchronisierung für geschäftliche Zwecke), sofern Sie dem beim Bezahlen zugestimmt haben; bis dahin können Sie jederzeit widerrufen. Weicht der Dienst von dem ab, was angezeigt, beworben oder vereinbart wurde, können Sie innerhalb von 3 Monaten nach Erhalt oder innerhalb von 30 Tagen ab dem Zeitpunkt widerrufen, zu dem Sie davon wussten oder wissen konnten. Erstattungen fordern Sie unter {email} an; wir erstatten über das ursprüngliche Zahlungsmittel innerhalb von 3 Werktagen nach Bestätigung des Widerrufs.",
-      "Können wir die Synchronisierung aus Gründen, die wir zu vertreten haben, nicht bereitstellen, oder stellen wir den kostenpflichtigen Tarif ein, erstatten wir den ungenutzten Teil Ihres Zeitraums anteilig. Nicht zu zahlen sperrt Ihre Daten nie: Lesen, Exportieren und Löschen synchronisierter Daten bleiben immer möglich. Ändern wir Preise oder führen neue kostenpflichtige Funktionen ein, kündigen wir dies vorher an; es gilt nicht für bereits bezahlte Zeiträume, und lokale Automatisierung, Halt und Export bleiben kostenlos.",
+      "Können wir den Sync aus von uns zu vertretenden Gründen nicht bereitstellen oder stellen wir die Business-Lizenz ein, erstatten wir den ungenutzten Teil deines Zeitraums anteilig. Nicht zu zahlen sperrt deine Daten nie: Lesen, Exportieren und Löschen synchronisierter Daten bleibt immer möglich. Bei Preisänderungen oder neuen kostenpflichtigen Funktionen kündigen wir dies vorher an; es gilt nicht für bereits bezahlte Zeiträume, und private Nutzung von lokaler Automatisierung, Halt und Export bleibt kostenlos.",
       "Abschnitt 14 (kein Schadensersatz) gilt auch für kostenpflichtige Tarife, schränkt aber weder die in diesem Abschnitt beschriebenen Erstattungen noch Ihre Rechte nach dem Verbraucherschutzrecht ein.",
     ),
     ip: sec(

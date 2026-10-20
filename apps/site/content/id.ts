@@ -36,15 +36,16 @@ export const id: Content = {
     web: "Pakai di browser",
     webLong: "Tak mau instal? Buka AutoFlow langsung di browser",
     openApp: "Buka aplikasi web",
-    note: "Gratis · Tanpa akun · Bisa offline",
+    note: "Gratis untuk penggunaan pribadi · Tanpa akun · Berfungsi offline",
     learnMore: "Selengkapnya",
   },
+  edition: { badge: "Edisi Pribadi", note: "Untuk pengguna individu", business: "Untuk kerja? Lisensi Business" },
   share: {
     heading: "Bagikan AutoFlow",
     native: "Bagikan…",
     copy: "Salin tautan",
     copied: "Tautan disalin",
-    text: "AutoFlow — otomatiskan semua yang Anda ulang, dengan aman. Gratis di Windows, Android, dan web.",
+    text: "AutoFlow — otomatisasi semua tugas berulang Anda, dengan aman. Gratis untuk penggunaan pribadi di Windows, Android, dan web.",
   },
   footer: {
     stats: { statsTitle: "Statistik langsung", visits: "Total kunjungan", online: "Online sekarang", downloads: "Unduhan" },
@@ -117,7 +118,7 @@ export const id: Content = {
   home: {
     seo: {
       title: "AutoFlow — Auto clicker, makro & remap tombol gratis",
-      description: "Auto clicker, makro, pintasan, dan remap tombol untuk Windows, Android, dan web. Coba alur apa pun di browser dulu. Gratis, privat, dan punya tombol Halt.",
+      description: "Auto clicker, makro, pintasan, dan remap tombol untuk Windows, Android, dan web. Coba alur di browser dulu. Gratis untuk pribadi, dengan tombol Halt.",
     },
     eyebrow: "Baru — Practice Canvas: latih alur apa pun di layar virtual",
     h1a: "Otomatiskan semua yang Anda ulang.",
@@ -218,7 +219,7 @@ export const id: Content = {
     },
     final: {
       h2: "Alur pertama Anda tinggal tiga puluh detik lagi.",
-      lead: "Gratis di semua platform. Tanpa akun, tanpa kartu kredit, tanpa jebakan.",
+      lead: "Gratis untuk penggunaan pribadi di semua platform. Tanpa akun, tanpa kartu kredit.",
     },
   },
   features: {
@@ -279,7 +280,7 @@ export const id: Content = {
   windows: {
     seo: {
       title: "AutoFlow untuk Windows — auto clicker & perekam makro",
-      description: "Auto clicker, perekam makro, dan remap tombol gratis untuk Windows 10 dan 11. Pintasan global, tata letak jendela, profil Keyforge, dan tombol Halt.",
+      description: "Auto clicker, perekam makro, dan remap tombol untuk Windows 10 & 11, gratis untuk penggunaan pribadi. Pintasan global, Keyforge, dan tombol Halt.",
     },
     h1: "AutoFlow untuk Windows",
     lead: "Mesin native yang mengirim input asli, mendengarkan pintasan global, dan berhenti begitu Anda menekan Ctrl+Alt+Esc.",
@@ -303,7 +304,7 @@ export const id: Content = {
   android: {
     seo: {
       title: "AutoFlow untuk Android — auto tap & rutinitas",
-      description: "Otomatiskan ketuk, geser, dan rutinitas di Android dengan tombol berhenti melayang. Gratis, privat, dan transparan soal izin aksesibilitas.",
+      description: "Otomatisasi ketukan, geser, dan rutinitas di Android dengan tombol berhenti melayang. Gratis untuk pribadi, izin Aksesibilitas dijelaskan terbuka.",
     },
     h1: "AutoFlow untuk Android",
     lead: "Ketuk, geser, dan rutinitas harian yang berjalan di ponsel Anda — dengan tombol berhenti yang melayang di atas segalanya.",
@@ -397,10 +398,10 @@ export const id: Content = {
   download: {
     seo: {
       title: "Unduh AutoFlow — Windows, Android & aplikasi web",
-      description: "Dapatkan AutoFlow gratis: installer Windows dan aplikasi Android dari server unduhan resmi, atau buka aplikasi web di browser — tanpa akun.",
+      description: "Dapatkan AutoFlow gratis untuk penggunaan pribadi: installer Windows dan aplikasi Android dari server resmi, atau aplikasi web di browser Anda.",
     },
     h1: "Dapatkan AutoFlow",
-    lead: "Gratis di semua platform. Alur berpindah antarperangkat lewat file, tautan, atau sinkronisasi terenkripsi opsional.",
+    lead: "Gratis untuk penggunaan pribadi di semua platform. Alur Anda berpindah lewat file, tautan, atau sinkronisasi terenkripsi opsional.",
     windows: { h2: "Windows", p: "Installer untuk Windows 10 dan 11 (64-bit). Pintasan global, Keyforge, dan input asli.", meta: "Unduhan resmi · dl.autoflowmacro.com" },
     android: { h2: "Android", p: "Ketuk, geser, dan rutinitas dengan tombol berhenti melayang. Memerlukan izin aksesibilitas yang Anda kendalikan.", meta: "APK langsung · segera di Google Play" },
     web: { h2: "Aplikasi web", p: "Editor lengkap, Atlas, dan Practice Canvas di browser. Pasang sebagai aplikasi dari bilah alamat.", meta: "Bisa offline setelah kunjungan pertama" },
@@ -409,32 +410,32 @@ export const id: Content = {
   },
   pricing: {
     seo: {
-      title: "Harga — AutoFlow gratis | Tanpa iklan & pelacakan",
-      description: "Semua fitur AutoFlow hari ini gratis di Windows, Android, dan web. Sinkronisasi gratis selama peluncuran; otomatisasi lokal dan ekspor gratis selamanya.",
+      title: "Harga — gratis untuk pribadi | AutoFlow",
+      description: "AutoFlow gratis untuk penggunaan pribadi di Windows, Android, dan web. Untuk bisnis, komersial, atau kerja butuh lisensi Business mulai US$7.99/bulan.",
     },
-    h1: "Gratis. Sungguh gratis.",
-    lead: "Semua yang ditawarkan AutoFlow hari ini tidak dipungut biaya — tanpa masa uji coba, tanpa batas pengguna, tanpa iklan.",
+    h1: "Gratis untuk pribadi.",
+    lead: "Penggunaan pribadi gratis. Untuk kerja butuh lisensi Business.",
     free: {
-      name: "Gratis",
+      name: "Pribadi",
       price: "Rp0",
       period: "selamanya",
-      desc: "Semua yang ada di AutoFlow saat ini, di setiap platform.",
-      items: ["Mode Mudah dan Pro dengan ke-34 jenis langkah", "Perekam, pintasan, dan pemicu", "Remap, layer, dan potongan teks Keyforge", "Practice Canvas dan Ledger", "Templat Atlas dan tautan berbagi", "Copilot dengan kunci sendiri atau model lokal", "Guardrails, nilai keamanan, dan Halt"],
+      desc: "Semua fitur di semua platform, untuk penggunaan individu non-komersial.",
+      items: ["Mode Mudah dan Pro dengan ke-34 jenis langkah", "Perekam, pintasan, dan pemicu", "Remap, layer, dan potongan teks Keyforge", "Practice Canvas dan Ledger", "Templat Atlas dan tautan berbagi", "Copilot dengan kunci sendiri atau model lokal", "Guardrails, nilai keamanan, dan Halt", "Sinkronisasi terenkripsi, gratis untuk pribadi"],
     },
     sync: {
-      name: "Sinkronisasi terenkripsi",
-      price: "₩0",
-      period: "gratis selama peluncuran",
-      desc: "Akun opsional untuk menyinkronkan alur antarperangkat dengan enkripsi end-to-end.",
-      items: ["Dienkripsi di perangkat sebelum diunggah", "Saat konflik, kedua versi disimpan", "Hapus akun dan data kapan saja"],
-      note: "Sinkronisasi berjalan di server yang memerlukan biaya, jadi bisa saja menjadi opsi berbayar nanti. Jika itu terjadi, kami akan mengumumkannya jauh-jauh hari — dan tak ada data yang sudah Anda sinkronkan yang akan disandera.",
-      policy: "Penggunaan pribadi gratis. Penggunaan non-pribadi (bisnis) gratis hingga {date}.",
-      business: "Setelah itu, penggunaan bisnis memerlukan paket Business: {month} per bulan atau {year} per tahun — pembayaran sekali tanpa perpanjangan otomatis.",
+      name: "Business",
+      period: "/ bulan",
+      desc: "Lisensi untuk bisnis, komersial, dan organisasi — plus sinkronisasi terenkripsi antar perangkat.",
+      items: ["Semua fitur untuk bisnis & tim", "Sinkronisasi terenkripsi: dienkripsi di perangkat sebelum diunggah", "Kedua versi disimpan jika konflik", "Paket bulanan atau tahunan, tanpa perpanjangan otomatis", "Hapus akun & data kapan saja"],
+      note: "Data sinkron tidak pernah disandera: baca, ekspor, dan hapus selalu bisa, bayar atau tidak.",
+      policy: "Penggunaan pribadi gratis. Penggunaan lain butuh lisensi Business.",
+      business: "{month} per bulan atau {year} per tahun — pembayaran sekali, tanpa perpanjangan otomatis. Beli di Setelan aplikasi, atau aktivasi kunci lisensi di sana.",
+      cta: "Dapatkan lisensi Business",
     },
     promises: {
       h2: "Janji yang tidak berubah",
       items: [
-        { h3: "Otomatisasi lokal tetap gratis", p: "Membuat dan menjalankan alur di perangkat sendiri tidak akan pernah berbayar." },
+        { h3: "Penggunaan pribadi tetap gratis", p: "Membuat dan menjalankan alur di perangkat sendiri untuk pribadi tidak akan pernah dipungut biaya." },
         { h3: "Halt bukan fitur berbayar", p: "Henti darurat dan semua pemeriksaan keamanan aktif untuk semua orang, selalu." },
         { h3: "Data Anda selalu bisa dibawa pergi", p: "Ekspor semua alur sebagai file kapan saja, di paket apa pun." },
         { h3: "Tanpa iklan, tanpa jual data", p: "Kami tidak menampilkan iklan dan tidak menjual atau menyewakan informasi Anda." },
@@ -449,7 +450,8 @@ export const id: Content = {
     h1: "Pertanyaan umum",
     lead: "Belum menemukan jawabannya? Kirim email ke {email}.",
     items: [
-      { q: "Apakah AutoFlow benar-benar gratis?", a: "Ya. Semua yang ditawarkan AutoFlow hari ini gratis di Windows, Android, dan web, tanpa iklan. Sinkronisasi terenkripsi opsional gratis selama peluncuran; otomatisasi lokal, Halt, dan ekspor akan selalu gratis." },
+      { q: "Apakah AutoFlow benar-benar gratis?", a: "Untuk penggunaan pribadi, ya: semua fitur di Windows, Android, dan web gratis tanpa iklan. Penggunaan lain — bisnis, komersial, organisasi, atau kerja — butuh lisensi Business: US$7.99/bulan atau US$79.99/tahun, pembayaran sekali tanpa perpanjangan otomatis. Semua fitur tetap berfungsi offline; akun bisnis tanpa lisensi hanya tidak bisa upload sinkronisasi baru." },
+      { q: "Apa saja yang termasuk penggunaan bisnis?", a: "Segala yang bukan pribadi: memakai AutoFlow untuk pekerjaan atau atasan, sebagai freelancer/kontraktor, di perusahaan, sekolah, instansi publik, organisasi, atau tujuan komersial apa pun. Setiap orang yang memakai seperti itu butuh lisensi Business. Kunci lisensi yang diterima bisa diaktifkan di aplikasi pada Setelan › Paket & pembayaran." },
       { q: "Apakah saya perlu akun?", a: "Tidak. AutoFlow berjalan sepenuhnya offline tanpa akun. Akun hanya diperlukan untuk sinkronisasi terenkripsi antarperangkat atau menerbitkan templat ke Atlas." },
       { q: "Bagaimana cara menghentikan alur yang sedang berjalan?", a: "Tekan Ctrl+Alt+Esc di Windows atau ketuk tombol berhenti melayang di Android. Halt menghentikan alur apa pun dalam kurang dari setengah detik, dan bilah Pulse selalu menunjukkan apa yang sedang berjalan." },
       { q: "Mengapa aplikasi Android butuh izin aksesibilitas?", a: "Android hanya mengizinkan aplikasi mengetuk dan menggeser untuk Anda melalui layanan aksesibilitas. AutoFlow memakainya untuk menjalankan gestur dalam alur Anda dan — hanya bila langkah memintanya — membaca teks di layar. Ia tak pernah mengumpulkan data pribadi, dan Anda bisa mematikannya kapan saja di Setelan › Aksesibilitas." },
@@ -468,7 +470,7 @@ export const id: Content = {
     lead: "Halaman yang Anda cari tidak ada atau sudah dipindahkan.",
     back: "Kembali ke beranda",
   },
-  legalUi: { contents: "Daftar isi", effective: "Tanggal berlaku: 19 Oktober 2026", updated: "Terakhir diperbarui: 19 Oktober 2026", other: "Baca juga" },
+  legalUi: { contents: "Daftar isi", effective: "Tanggal berlaku: 20 Oktober 2026", updated: "Terakhir diperbarui: 20 Oktober 2026", other: "Baca juga" },
   templates: {
     "auto-clicker": { n: "Auto clicker klasik", d: "Klik kiri di tengah layar 100 kali, empat kali per detik. Ctrl+Alt+Esc untuk berhenti." },
     "multi-point": { n: "Siklus klik tiga titik", d: "Klik tiga posisi secara berurutan, lalu ulangi sampai Anda menghentikannya." },

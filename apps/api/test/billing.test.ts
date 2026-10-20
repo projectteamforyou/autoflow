@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { BUSINESS_PRICES } from "@autoflow/core";
+import { BUSINESS_PRICES, LICENSE_KEY_PATTERN, generateLicenseKey } from "@autoflow/core";
 import { SecretBox } from "../src/lib/secrets.js";
 import { b64, makeApp, useTestDb, type AppOptions, type TestApp } from "./helpers.js";
 
@@ -10,8 +10,8 @@ beforeEach(async () => {
   await db.sql`DELETE FROM app_settings`;
 });
 
-const BEFORE_CUTOFF = new Date("2026-10-25T14:59:59Z"); // 23:59:59 KST, last free second
-const AFTER_CUTOFF = new Date("2026-10-25T15:00:00Z"); // 00:00 KST on the 26th
+const BEFORE_CUTOFF = new Date("2026-10-19T14:59:59Z"); // 2026-10-19 23:59:59 KST, last free second
+const AFTER_CUTOFF = new Date("2026-10-19T15:00:00Z"); // 2026-10-20 00:00 KST: Business license required
 const PORTONE_SECRET = "portone-api-secret-ABCD1234wxyz";
 const PAYPAL_SECRET = "paypal-client-secret-EFGH5678";
 
@@ -73,7 +73,7 @@ describe("billing config and usage type", () => {
     expect(r.json).toMatchObject({
       checkoutEnabled: false,
       providers: { portone: { enabled: false }, paypal: { enabled: false } },
-      policy: { personalUse: "free", businessFreeUntil: "2026-10-25T23:59:59+09:00", syncLaunchPrice: { KRW: 0, USD: 0 } },
+      policy: { personalUse: "free", businessFreeUntil: "2026-10-19T23:59:59+09:00", syncLaunchPrice: { KRW: 0, USD: 0 } },
       plans: { business: { prices: BUSINESS_PRICES } },
     });
 
@@ -160,7 +160,7 @@ describe("admin billing settings", () => {
 });
 
 describe("entitlement gate", () => {
-  it("blocks only business sync writes after 2026-10-25 KST without a plan, and never reads, deletes or export", async () => {
+  it("blocks only business sync writes from 2026-10-20 KST without a plan, and never reads, deletes or export", async () => {
     const c = clock(BEFORE_CUTOFF);
     const t = app({ now: c.now });
     const op = await operator(t);
@@ -193,7 +193,7 @@ describe("entitlement gate", () => {
     // An operator grant (audited) unblocks; a revoke blocks again.
     const grant = await t.call("POST", "/v1/admin/billing/entitlements", { token: op.token, body: { email: biz.email, action: "grant", months: 1, note: "invoice #12" } });
     expect(grant.status).toBe(200);
-    expect(grant.json.entitlement.validUntil).toBe("2026-11-25T15:00:00.000Z");
+    expect(grant.json.entitlement.validUntil).toBe("2026-11-19T15:00:00.000Z");
     expect((await t.call("PUT", "/v1/sync/items/flow/d", { token: biz.token, body: payload(), headers: { "If-Match": "0" } })).status).toBe(201);
     expect((await t.call("GET", "/v1/billing/status", { token: biz.token })).json.status).toBe("business_active");
     await t.call("POST", "/v1/admin/billing/entitlements", { token: op.token, body: { email: biz.email, action: "revoke" } });
@@ -242,9 +242,23 @@ describe("PortOne checkout and verification", () => {
     ]);
     expect([a.status, b.status]).toEqual([200, 200]);
     expect(a.json.order.status).toBe("paid");
-    expect(a.json.billing).toMatchObject({ status: "business_active", entitlement: { validUntil: "2026-11-25T15:00:00.000Z" } });
+    // Exactly one of the racing confirmations settled the order, and only it carries the key.
+    const keys = [a.json.licenseKey, b.json.licenseKey].filter(Boolean);
+    expect(keys).toHaveLength(1);
+    expect(keys[0]).toMatch(LICENSE_KEY_PATTERN);
+    expect(a.json.billing).toMatchObject({ status: "business_active", entitlement: { validUntil: "2026-11-19T15:00:00.000Z" } });
     const again = await t.call("POST", "/v1/billing/confirm", { token: biz.token, body: { provider: "portone", paymentId } });
-    expect(again.json.billing.entitlement.validUntil).toBe("2026-11-25T15:00:00.000Z");
+    expect(again.json.billing.entitlement.validUntil).toBe("2026-11-19T15:00:00.000Z");
+    expect(again.json.licenseKey).toBeNull();
+    expect(again.json.billing.licenseKeys).toHaveLength(1);
+    expect(again.json.billing.licenseKeys[0]).toMatchObject({ source: "purchase", period: "month", key: `AFB-•••••-•••••-•••••-•${keys[0].slice(-4)}` });
+    // Only the hash is stored; the order's key is already applied, so it cannot be redeemed again.
+    const [stored] = await db.sql<{ key_hash: string; status: string }[]>`SELECT key_hash, status FROM license_keys WHERE redeemed_by = (SELECT id FROM users WHERE email = ${biz.email})`;
+    expect(stored!.status).toBe("redeemed");
+    expect(JSON.stringify(stored)).not.toContain(keys[0].slice(4, 9));
+    const reuse = await t.call("POST", "/v1/billing/redeem", { token: biz.token, body: { key: keys[0] } });
+    expect(reuse.status).toBe(409);
+    expect(reuse.json.error.code).toBe("license_key_used");
     const [count] = await db.sql<{ n: number }[]>`SELECT count(*)::int AS n FROM orders WHERE provider_payment_id = ${paymentId}`;
     expect(count!.n).toBe(1);
 
@@ -253,7 +267,7 @@ describe("PortOne checkout and verification", () => {
     paidTotal = BUSINESS_PRICES.year.KRW;
     const year = await t.call("POST", "/v1/billing/checkout", { token: biz.token, body: { provider: "portone", period: "year" } });
     const ok = await t.call("POST", "/v1/billing/confirm", { token: biz.token, body: { provider: "portone", paymentId: year.json.portone.paymentId } });
-    expect(ok.json.billing.entitlement.validUntil).toBe("2027-11-25T15:00:00.000Z");
+    expect(ok.json.billing.entitlement.validUntil).toBe("2027-11-19T15:00:00.000Z");
 
     // Writes are allowed again; the admin order list shows both.
     expect((await t.call("PUT", "/v1/sync/items/flow/x", { token: biz.token, body: payload(), headers: { "If-Match": "0" } })).status).toBe(201);
@@ -372,9 +386,9 @@ describe("PayPal checkout and capture", () => {
     const r = await t.call("POST", "/v1/billing/confirm", { token: biz.token, body: { provider: "paypal", paymentId: state.id } });
     expect(r.status, r.text).toBe(200);
     expect(r.json.order).toMatchObject({ status: "paid", amount: 799, currency: "USD" });
-    expect(r.json.billing.entitlement.validUntil).toBe("2026-11-25T15:00:00.000Z");
+    expect(r.json.billing.entitlement.validUntil).toBe("2026-11-19T15:00:00.000Z");
     const again = await t.call("POST", "/v1/billing/confirm", { token: biz.token, body: { provider: "paypal", paymentId: state.id } });
-    expect(again.json.billing.entitlement.validUntil).toBe("2026-11-25T15:00:00.000Z");
+    expect(again.json.billing.entitlement.validUntil).toBe("2026-11-19T15:00:00.000Z");
     expect(state.captured).toBe(1);
   });
 
@@ -403,5 +417,112 @@ describe("PayPal checkout and capture", () => {
     expect(r.status).toBe(409);
     expect(r.json.error.code).toBe("payment_not_completed");
     expect(state.captured).toBe(0);
+  });
+});
+
+describe("license keys", () => {
+  it("lets operators issue keys once in plaintext, list them masked and revoke unused ones (audited)", async () => {
+    const t = app({ now: () => AFTER_CUTOFF });
+    const op = await operator(t);
+    const someone = await t.signup({ verified: true });
+    expect((await t.call("POST", "/v1/admin/billing/license-keys", { token: someone.token, body: { period: "month", count: 1 } })).status).toBe(403);
+    expect((await t.call("POST", "/v1/admin/billing/license-keys", { token: op.token, body: { period: "month", count: 51 } })).status).toBe(400);
+    expect((await t.call("POST", "/v1/admin/billing/license-keys", { token: op.token, body: { period: "week", count: 1 } })).status).toBe(400);
+
+    const issued = await t.call("POST", "/v1/admin/billing/license-keys", { token: op.token, body: { period: "year", count: 3, note: "ACME Corp, PO 77" } });
+    expect(issued.status, issued.text).toBe(201);
+    expect(issued.headers.get("cache-control")).toBe("no-store");
+    const keys = issued.json.keys as { key: string; license: { id: string; key: string; status: string; note: string } }[];
+    expect(keys).toHaveLength(3);
+    expect(new Set(keys.map((k) => k.key)).size).toBe(3);
+    for (const k of keys) {
+      expect(k.key).toMatch(LICENSE_KEY_PATTERN);
+      expect(k.license).toMatchObject({ status: "issued", period: "year", note: "ACME Corp, PO 77", key: `AFB-•••••-•••••-•••••-•${k.key.slice(-4)}` });
+    }
+
+    const list = await t.call("GET", "/v1/admin/billing/license-keys?status=issued", { token: op.token });
+    expect(list.status).toBe(200);
+    for (const k of keys) expect(list.text).not.toContain(k.key);
+    expect(list.text).not.toContain("key_hash");
+    expect(list.json.keys.filter((k: { note: string }) => k.note === "ACME Corp, PO 77")).toHaveLength(3);
+
+    const rev = await t.call("POST", `/v1/admin/billing/license-keys/${keys[2]!.license.id}/revoke`, { token: op.token });
+    expect(rev.status).toBe(200);
+    expect(rev.json.key.status).toBe("revoked");
+    expect((await t.call("POST", `/v1/admin/billing/license-keys/${keys[2]!.license.id}/revoke`, { token: op.token })).status).toBe(409);
+    expect((await t.call("POST", "/v1/admin/billing/license-keys/00000000-0000-0000-0000-000000000000/revoke", { token: op.token })).status).toBe(404);
+
+    const audit = await t.call("GET", "/v1/admin/billing/audit", { token: op.token });
+    expect(audit.json.entries.slice(0, 2).map((e: { action: string }) => e.action)).toEqual(["billing.license.revoke", "billing.license.issue"]);
+    for (const k of keys) expect(audit.text).not.toContain(k.key);
+    expect(audit.json.entries[1].details).toMatchObject({ count: 3, period: "year", note: "ACME Corp, PO 77" });
+  });
+
+  it("redeems a key exactly once — also under races — and rejects wrong, unknown and revoked keys", async () => {
+    const t = app({ now: () => AFTER_CUTOFF });
+    const op = await operator(t);
+    await configure(t, op.token, { portone: true });
+    const issued = await t.call("POST", "/v1/admin/billing/license-keys", { token: op.token, body: { period: "month", count: 2 } });
+    const [k1, k2] = issued.json.keys as { key: string; license: { id: string } }[];
+
+    // A personal user redeeming becomes a licensed business account.
+    const user = await t.signup();
+    expect((await t.call("POST", "/v1/billing/redeem", { body: { key: k1!.key } })).status).toBe(401);
+    const typo = k1!.key.slice(0, -1) + (k1!.key.endsWith("0") ? "1" : "0");
+    const bad = await t.call("POST", "/v1/billing/redeem", { token: user.token, body: { key: typo } });
+    expect(bad.status).toBe(400);
+    expect(bad.json.error.code).toBe("invalid_license_key");
+    const unknown = await t.call("POST", "/v1/billing/redeem", { token: user.token, body: { key: generateLicenseKey() } });
+    expect(unknown.status).toBe(404);
+    expect(unknown.json.error.code).toBe("invalid_license_key");
+
+    // Forgiving input: lower case, no dashes.
+    const ok = await t.call("POST", "/v1/billing/redeem", { token: user.token, body: { key: k1!.key.toLowerCase().replace(/-/g, " ") } });
+    expect(ok.status, ok.text).toBe(200);
+    expect(ok.json.redeemed).toMatchObject({ period: "month", validUntil: "2026-11-19T15:00:00.000Z" });
+    expect(ok.json.billing).toMatchObject({ usageType: "business", status: "business_active", entitlement: { validUntil: "2026-11-19T15:00:00.000Z" } });
+    expect(ok.json.billing.licenseKeys[0]).toMatchObject({ source: "key", period: "month" });
+    expect((await t.call("GET", "/v1/me", { token: user.token })).json.user.usageType).toBe("business");
+    expect((await t.call("PUT", "/v1/sync/items/flow/a", { token: user.token, body: payload(), headers: { "If-Match": "0" } })).status).toBe(201);
+
+    const twice = await t.call("POST", "/v1/billing/redeem", { token: user.token, body: { key: k1!.key } });
+    expect(twice.status).toBe(409);
+    expect(twice.json.error.code).toBe("license_key_used");
+
+    // Two accounts racing for the same key: exactly one wins.
+    const a = await t.signup();
+    const b = await t.signup();
+    const results = await Promise.all([
+      t.call("POST", "/v1/billing/redeem", { token: a.token, body: { key: k2!.key } }),
+      t.call("POST", "/v1/billing/redeem", { token: b.token, body: { key: k2!.key } }),
+    ]);
+    expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
+    const loser = results[0]!.status === 200 ? b : a;
+    expect((await t.call("GET", "/v1/billing/status", { token: loser.token })).json.entitlement).toBeNull();
+    const [row] = await db.sql<{ status: string; n: number }[]>`SELECT status, count(*)::int AS n FROM license_keys WHERE id = ${k2!.license.id} GROUP BY status`;
+    expect(row).toMatchObject({ status: "redeemed", n: 1 });
+
+    // A redeemed key cannot be revoked; an unused revoked key cannot be redeemed.
+    expect((await t.call("POST", `/v1/admin/billing/license-keys/${k2!.license.id}/revoke`, { token: op.token })).status).toBe(409);
+    const more = await t.call("POST", "/v1/admin/billing/license-keys", { token: op.token, body: { period: "month", count: 1 } });
+    const k3 = more.json.keys[0] as { key: string; license: { id: string } };
+    await t.call("POST", `/v1/admin/billing/license-keys/${k3.license.id}/revoke`, { token: op.token });
+    const revoked = await t.call("POST", "/v1/billing/redeem", { token: a.token, body: { key: k3.key } });
+    expect(revoked.status).toBe(410);
+    expect(revoked.json.error.code).toBe("license_key_revoked");
+
+    // The admin list shows who redeemed what.
+    const list = await t.call("GET", "/v1/admin/billing/license-keys?status=redeemed", { token: op.token });
+    expect(list.json.keys.map((k: { redeemedByEmail: string }) => k.redeemedByEmail)).toContain(user.email);
+  });
+
+  it("extends a running entitlement instead of restarting it", async () => {
+    const t = app({ now: () => AFTER_CUTOFF });
+    const op = await operator(t);
+    const user = await businessUser(t);
+    await t.call("POST", "/v1/admin/billing/entitlements", { token: op.token, body: { email: user.email, action: "grant", months: 1 } });
+    const issued = await t.call("POST", "/v1/admin/billing/license-keys", { token: op.token, body: { period: "year", count: 1 } });
+    const r = await t.call("POST", "/v1/billing/redeem", { token: user.token, body: { key: issued.json.keys[0].key } });
+    expect(r.json.billing.entitlement.validUntil).toBe("2027-11-19T15:00:00.000Z");
   });
 });

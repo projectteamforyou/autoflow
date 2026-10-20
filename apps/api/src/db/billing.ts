@@ -180,6 +180,127 @@ export async function insertAudit(db: Db, e: { actorId: string; actorEmail: stri
 
 export async function listAudit(db: Db, limit: number): Promise<AuditEntry[]> {
   const rows = await db<{ id: string; actor_id: string | null; actor_email: string; action: string; target: string | null; details: Record<string, unknown>; ip: string | null; created_at: Date }[]>`
-    SELECT id::text, actor_id, actor_email, action, target, details, ip, created_at FROM admin_audit_log ORDER BY id DESC LIMIT ${limit}`;
+    SELECT id::text, actor_id, actor_email, action, target, details, ip, created_at FROM admin_audit_log ORDER BY admin_audit_log.id DESC LIMIT ${limit}`;
   return rows.map((r) => ({ id: r.id, actorId: r.actor_id, actorEmail: r.actor_email, action: r.action, target: r.target, details: r.details, ip: r.ip, createdAt: r.created_at }));
+}
+
+/* -------------------------------------------------------------- license keys */
+
+export type LicenseKeyStatus = "issued" | "redeemed" | "revoked";
+
+export interface LicenseKey {
+  id: string;
+  keyHint: string;
+  plan: PlanId;
+  period: BillingPeriod;
+  status: LicenseKeyStatus;
+  orderId: string | null;
+  issuedBy: string | null;
+  redeemedBy: string | null;
+  redeemedByEmail: string | null;
+  redeemedAt: Date | null;
+  validUntil: Date | null;
+  revokedAt: Date | null;
+  note: string | null;
+  createdAt: Date;
+}
+
+interface LicenseKeyRow {
+  id: string;
+  key_hint: string;
+  plan: PlanId;
+  period: BillingPeriod;
+  status: LicenseKeyStatus;
+  order_id: string | null;
+  issued_by: string | null;
+  redeemed_by: string | null;
+  redeemed_by_email?: string | null;
+  redeemed_at: Date | null;
+  valid_until: Date | null;
+  revoked_at: Date | null;
+  note: string | null;
+  created_at: Date;
+}
+
+/** Never selects key_hash: it has no business leaving the database layer. */
+const LICENSE_COLS = ["id", "key_hint", "plan", "period", "status", "order_id", "issued_by", "redeemed_by", "redeemed_at", "valid_until", "revoked_at", "note", "created_at"];
+
+const mapLicenseKey = (r: LicenseKeyRow): LicenseKey => ({
+  id: r.id,
+  keyHint: r.key_hint,
+  plan: r.plan,
+  period: r.period,
+  status: r.status,
+  orderId: r.order_id,
+  issuedBy: r.issued_by,
+  redeemedBy: r.redeemed_by,
+  redeemedByEmail: r.redeemed_by_email ?? null,
+  redeemedAt: r.redeemed_at,
+  validUntil: r.valid_until,
+  revokedAt: r.revoked_at,
+  note: r.note,
+  createdAt: r.created_at,
+});
+
+export async function insertLicenseKey(
+  db: Db,
+  k: { keyHash: string; keyHint: string; period: BillingPeriod; orderId?: string | null; issuedBy?: string | null; note?: string | null; redeemedBy?: string | null; redeemedAt?: Date | null; validUntil?: Date | null },
+): Promise<LicenseKey> {
+  const status: LicenseKeyStatus = k.redeemedAt ? "redeemed" : "issued";
+  const rows = await db<LicenseKeyRow[]>`
+    INSERT INTO license_keys (key_hash, key_hint, plan, period, status, order_id, issued_by, note, redeemed_by, redeemed_at, valid_until)
+    VALUES (${k.keyHash}, ${k.keyHint}, 'business', ${k.period}, ${status}, ${k.orderId ?? null}, ${k.issuedBy ?? null}, ${k.note ?? null}, ${k.redeemedBy ?? null}, ${k.redeemedAt ?? null}, ${k.validUntil ?? null})
+    RETURNING ${db(LICENSE_COLS)}`;
+  return mapLicenseKey(rows[0]!);
+}
+
+/**
+ * issued → redeemed, exactly once: concurrent redemptions of the same key serialize on the row
+ * and only the first still sees `status = 'issued'`.
+ */
+export async function claimLicenseKey(db: Db, keyHash: string, userId: string, at: Date): Promise<LicenseKey | null> {
+  const rows = await db<LicenseKeyRow[]>`
+    UPDATE license_keys SET status = 'redeemed', redeemed_by = ${userId}, redeemed_at = ${at}
+    WHERE key_hash = ${keyHash} AND status = 'issued'
+    RETURNING ${db(LICENSE_COLS)}`;
+  return rows[0] ? mapLicenseKey(rows[0]) : null;
+}
+
+export async function setLicenseKeyValidUntil(db: Db, id: string, validUntil: Date): Promise<void> {
+  await db`UPDATE license_keys SET valid_until = ${validUntil} WHERE id = ${id}`;
+}
+
+export async function findLicenseKeyByHash(db: Db, keyHash: string): Promise<LicenseKey | null> {
+  const rows = await db<LicenseKeyRow[]>`SELECT ${db(LICENSE_COLS)} FROM license_keys WHERE key_hash = ${keyHash}`;
+  return rows[0] ? mapLicenseKey(rows[0]) : null;
+}
+
+export async function listLicenseKeys(db: Db, opts: { limit: number; status?: LicenseKeyStatus }): Promise<LicenseKey[]> {
+  const rows = opts.status
+    ? await db<LicenseKeyRow[]>`
+        SELECT k.id, k.key_hint, k.plan, k.period, k.status, k.order_id, k.issued_by, k.redeemed_by, k.redeemed_at, k.valid_until, k.revoked_at, k.note, k.created_at, u.email AS redeemed_by_email FROM license_keys k LEFT JOIN users u ON u.id = k.redeemed_by
+        WHERE k.status = ${opts.status} ORDER BY k.created_at DESC, k.id LIMIT ${opts.limit}`
+    : await db<LicenseKeyRow[]>`
+        SELECT k.id, k.key_hint, k.plan, k.period, k.status, k.order_id, k.issued_by, k.redeemed_by, k.redeemed_at, k.valid_until, k.revoked_at, k.note, k.created_at, u.email AS redeemed_by_email FROM license_keys k LEFT JOIN users u ON u.id = k.redeemed_by
+        ORDER BY k.created_at DESC, k.id LIMIT ${opts.limit}`;
+  return rows.map(mapLicenseKey);
+}
+
+export async function listUserLicenseKeys(db: Db, userId: string, limit: number): Promise<LicenseKey[]> {
+  const rows = await db<LicenseKeyRow[]>`SELECT ${db(LICENSE_COLS)} FROM license_keys WHERE redeemed_by = ${userId} ORDER BY redeemed_at DESC LIMIT ${limit}`;
+  return rows.map(mapLicenseKey);
+}
+
+/** issued → revoked. Redeemed keys are history; take an entitlement away with the entitlement tool. */
+export async function revokeLicenseKey(db: Db, id: string, at: Date): Promise<LicenseKey | null> {
+  const rows = await db<LicenseKeyRow[]>`
+    UPDATE license_keys SET status = 'revoked', revoked_at = ${at}
+    WHERE id = ${id} AND status = 'issued'
+    RETURNING ${db(LICENSE_COLS)}`;
+  return rows[0] ? mapLicenseKey(rows[0]) : null;
+}
+
+export async function getLicenseKey(db: Db, id: string): Promise<LicenseKey | null> {
+  const rows = await db<LicenseKeyRow[]>`SELECT ${db(LICENSE_COLS)} FROM license_keys WHERE id = ${id}`;
+  return rows[0] ? mapLicenseKey(rows[0]) : null;
 }

@@ -36,15 +36,16 @@ export const ko: Content = {
     web: "브라우저에서 사용",
     webLong: "설치 없이 브라우저에서 바로 써 보기",
     openApp: "웹 앱 열기",
-    note: "무료 · 계정 필요 없음 · 오프라인에서도 작동",
+    note: "개인 사용 무료 · 계정 필요 없음 · 오프라인에서도 작동",
     learnMore: "자세히 보기",
   },
+  edition: { badge: "개인용", note: "개인 사용자 전용", business: "업무용은 Business 라이선스" },
   share: {
     heading: "AutoFlow 공유하기",
     native: "공유…",
     copy: "링크 복사",
     copied: "링크를 복사했어요",
-    text: "AutoFlow — 반복하는 일은 모두 자동으로, 안전하게. Windows·Android·웹에서 무료.",
+    text: "AutoFlow — 반복하는 일은 모두 자동으로, 안전하게. Windows·Android·웹에서 개인 사용 무료.",
   },
   footer: {
     stats: { statsTitle: "실시간 현황", visits: "누적 접속", online: "지금 접속 중", downloads: "다운로드" },
@@ -117,7 +118,7 @@ export const ko: Content = {
   home: {
     seo: {
       title: "AutoFlow — 무료 오토 클릭커·매크로·키 매핑",
-      description: "Windows·Android·웹에서 쓰는 무료 오토 클릭커, 매크로, 단축키, 키 매핑. 브라우저에서 먼저 시험해 보고, Halt 키로 언제든 멈추세요.",
+      description: "Windows·Android·웹에서 쓰는 오토 클릭커, 매크로, 단축키, 키 매핑. 브라우저에서 먼저 시험해 보세요. 개인 사용은 무료이며 Halt 키로 언제든 멈춥니다.",
     },
     eyebrow: "새 기능 — Practice Canvas: 가상 화면에서 어떤 플로우든 미리 실행",
     h1a: "반복하는 일은 모두 자동으로.",
@@ -218,7 +219,7 @@ export const ko: Content = {
     },
     final: {
       h2: "첫 플로우까지 30초면 충분합니다.",
-      lead: "모든 플랫폼에서 무료. 계정도, 카드도, 함정도 없습니다.",
+      lead: "모든 플랫폼에서 개인 사용은 무료. 계정도, 카드도 필요 없습니다.",
     },
   },
   features: {
@@ -279,7 +280,7 @@ export const ko: Content = {
   windows: {
     seo: {
       title: "Windows용 AutoFlow — 오토 클릭커·매크로 녹화",
-      description: "Windows 10·11용 무료 오토 클릭커, 매크로 녹화기, 키 매핑 도구. 전역 단축키, 창 배치, Keyforge 프로필, 그리고 Halt 키.",
+      description: "Windows 10·11용 오토 클릭커, 매크로 녹화기, 키 매핑 도구. 개인 사용은 무료입니다. 전역 단축키, 창 배치, Keyforge 프로필, Halt 키.",
     },
     h1: "Windows용 AutoFlow",
     lead: "실제 입력을 보내고, 어디서든 단축키를 듣고, Ctrl+Alt+Esc를 누르는 순간 멈추는 네이티브 엔진.",
@@ -303,7 +304,7 @@ export const ko: Content = {
   android: {
     seo: {
       title: "Android용 AutoFlow — 자동 탭·루틴",
-      description: "떠 있는 정지 버튼과 함께 Android에서 탭, 스와이프, 루틴을 자동화하세요. 무료이며, 접근성 권한을 어떻게 쓰는지 투명하게 밝힙니다.",
+      description: "떠 있는 정지 버튼과 함께 Android에서 탭, 스와이프, 루틴을 자동화하세요. 개인 사용은 무료이며, 접근성 권한을 투명하게 설명합니다.",
     },
     h1: "Android용 AutoFlow",
     lead: "휴대폰에서 실행되는 탭, 스와이프, 일상 루틴. 모든 화면 위에 떠 있는 정지 버튼과 함께.",
@@ -397,10 +398,10 @@ export const ko: Content = {
   download: {
     seo: {
       title: "AutoFlow 다운로드 — Windows, Android, 웹 앱",
-      description: "AutoFlow를 무료로 받으세요. Windows 설치 파일과 Android 앱은 공식 다운로드 서버에서, 웹 앱은 브라우저에서 바로. 계정 필요 없음.",
+      description: "개인 사용은 무료. Windows 설치 파일과 Android 앱은 공식 다운로드 서버에서, 웹 앱은 브라우저에서 바로 — 계정은 필요 없습니다.",
     },
     h1: "AutoFlow 받기",
-    lead: "모든 플랫폼에서 무료. 플로우는 파일, 링크, 또는 선택형 암호화 동기화로 기기 사이를 오갑니다.",
+    lead: "모든 플랫폼에서 개인 사용은 무료. 플로우는 파일, 링크, 또는 선택형 암호화 동기화로 기기 사이를 오갑니다.",
     windows: { h2: "Windows", p: "Windows 10·11(64비트)용 설치 파일. 전역 단축키, Keyforge, 실제 입력.", meta: "공식 다운로드 · dl.autoflowmacro.com" },
     android: { h2: "Android", p: "탭, 스와이프, 루틴과 떠 있는 정지 버튼. 직접 관리하는 접근성 권한이 필요합니다.", meta: "APK 직접 설치 · Google Play 준비 중" },
     web: { h2: "웹 앱", p: "전체 편집기, Atlas, Practice Canvas를 브라우저에서. 주소창에서 앱으로 설치할 수도 있어요.", meta: "첫 방문 이후 오프라인에서도 작동" },
@@ -409,32 +410,32 @@ export const ko: Content = {
   },
   pricing: {
     seo: {
-      title: "요금 — AutoFlow는 무료 | 광고·추적 없음",
-      description: "지금 AutoFlow가 제공하는 모든 기능은 Windows·Android·웹에서 무료입니다. 동기화는 출시 기간 무료, 로컬 자동화와 내보내기는 영원히 무료.",
+      title: "요금 — 개인은 무료 | AutoFlow",
+      description: "AutoFlow는 개인 사용이라면 Windows·Android·웹에서 무료입니다. 업무·상업·단체 사용에는 월 ₩9,900부터 Business 라이선스가 필요합니다.",
     },
-    h1: "무료. 정말로 무료.",
-    lead: "지금 AutoFlow가 제공하는 모든 것은 무료입니다. 체험판도, 사용자 수 제한도, 광고도 없습니다.",
+    h1: "개인은 무료.",
+    lead: "개인 사용은 무료, 업무용은 Business 라이선스가 필요합니다.",
     free: {
-      name: "무료",
+      name: "개인용",
       price: "₩0",
       period: "영원히",
-      desc: "현재 AutoFlow의 모든 기능, 모든 플랫폼에서.",
-      items: ["34가지 단계를 모두 쓰는 쉬운·프로 모드", "녹화, 단축키, 트리거", "Keyforge 재매핑, 레이어, 문자열 확장", "Practice Canvas와 Ledger", "Atlas 템플릿과 공유 링크", "내 키나 로컬 모델로 쓰는 Copilot", "Guardrails, 안전 점수, Halt"],
+      desc: "개인의 비영리 사용이라면 모든 플랫폼의 모든 기능을 무료로.",
+      items: ["34가지 단계를 모두 쓰는 쉬운·프로 모드", "녹화, 단축키, 트리거", "Keyforge 재매핑, 레이어, 문자열 확장", "Practice Canvas와 Ledger", "Atlas 템플릿과 공유 링크", "내 키나 로컬 모델로 쓰는 Copilot", "Guardrails, 안전 점수, Halt", "암호화 동기화(개인 사용 무료)"],
     },
     sync: {
-      name: "암호화 동기화",
-      price: "₩0",
-      period: "출시 기간 무료",
-      desc: "기기 간에 플로우를 종단간 암호화로 동기화하는 선택형 계정.",
-      items: ["업로드 전에 기기에서 암호화", "충돌 시 두 버전 모두 보존", "계정과 데이터는 언제든 삭제 가능"],
-      note: "동기화는 비용이 드는 서버에서 운영되므로 나중에 유료 옵션이 될 수 있습니다. 그렇게 되면 충분히 미리 알려 드리며, 이미 동기화한 데이터를 볼모로 잡는 일은 없습니다.",
-      policy: "개인 사용은 무료입니다. 비개인(업무) 사용은 {date}까지 무료입니다.",
-      business: "이후 업무 사용에는 Business 플랜이 필요합니다. 월 {month} 또는 연 {year}이며, 자동 갱신 없는 1회 결제입니다.",
+      name: "Business",
+      period: "/ 월",
+      desc: "업무·상업·단체 사용을 위한 라이선스. 기기 간 암호화 동기화도 함께 씁니다.",
+      items: ["모든 기능의 업무·팀 사용", "암호화 동기화: 업로드 전에 기기에서 암호화", "충돌 시 두 버전 모두 보존", "월간·연간 이용권, 자동 갱신 없음", "계정과 데이터는 언제든 삭제 가능"],
+      note: "동기화한 데이터를 볼모로 잡지 않습니다. 결제 여부와 관계없이 열람·내보내기·삭제는 언제나 가능합니다.",
+      policy: "개인 사용은 무료입니다. 그 밖의 모든 사용에는 Business 라이선스가 필요합니다.",
+      business: "월 {month} 또는 연 {year}, 자동 갱신 없는 1회 결제입니다. 앱 설정에서 구매하거나 라이선스 키를 등록하세요.",
+      cta: "Business 라이선스 받기",
     },
     promises: {
       h2: "절대 바뀌지 않는 약속",
       items: [
-        { h3: "로컬 자동화는 계속 무료", p: "내 기기에서 플로우를 만들고 실행하는 기능은 절대 유료화하지 않습니다." },
+        { h3: "개인 사용은 계속 무료", p: "내 기기에서 개인적으로 플로우를 만들고 실행하는 데에는 절대 요금을 받지 않습니다." },
         { h3: "Halt는 요금제 기능이 아닙니다", p: "비상 정지와 모든 안전 검사는 누구에게나, 언제나 켜져 있습니다." },
         { h3: "데이터는 언제든 가져갈 수 있습니다", p: "어떤 요금제에서든 모든 플로우를 언제든 파일로 내보낼 수 있습니다." },
         { h3: "광고도, 데이터 판매도 없습니다", p: "광고를 보여 주지 않으며, 사용자 정보를 판매하거나 빌려주지 않습니다." },
@@ -449,7 +450,8 @@ export const ko: Content = {
     h1: "자주 묻는 질문",
     lead: "찾는 답이 없나요? {email}로 편하게 문의하세요.",
     items: [
-      { q: "AutoFlow는 정말 무료인가요?", a: "네. 지금 AutoFlow가 제공하는 모든 기능은 Windows·Android·웹에서 광고 없이 무료입니다. 선택형 암호화 동기화는 출시 기간 동안 무료이며, 로컬 자동화·Halt·내보내기는 앞으로도 계속 무료입니다." },
+      { q: "AutoFlow는 정말 무료인가요?", a: "개인 사용이라면 네. Windows·Android·웹의 모든 기능을 광고 없이 무료로 쓸 수 있습니다. 업무·상업·단체 등 그 밖의 사용에는 Business 라이선스(월 ₩9,900 또는 연 ₩99,000, 자동 갱신 없는 1회 결제)가 필요합니다. 어느 쪽이든 모든 기능은 오프라인에서 그대로 작동하며, 라이선스가 없는 업무용 계정은 새 동기화 업로드만 멈춥니다." },
+      { q: "어떤 경우가 업무용 사용인가요?", a: "개인 사용이 아닌 모든 경우입니다. 직장이나 고용주를 위해, 프리랜서·외주 작업으로, 회사·학교·공공기관 등 단체에서, 또는 영리 목적으로 쓰는 경우가 해당합니다. 이렇게 쓰는 사람마다 Business 라이선스가 필요합니다. 받은 라이선스 키는 앱의 설정 › 요금제 및 결제에서 등록할 수 있습니다." },
       { q: "계정이 필요한가요?", a: "아니요. AutoFlow는 계정 없이 오프라인에서 완전히 동작합니다. 기기 간 암호화 동기화나 Atlas에 템플릿을 공개할 때만 계정이 필요합니다." },
       { q: "실행 중인 플로우는 어떻게 멈추나요?", a: "Windows에서는 Ctrl+Alt+Esc를, Android에서는 떠 있는 정지 버튼을 누르세요. Halt는 어떤 플로우든 0.5초 안에 멈추며, Pulse 막대가 지금 무엇이 실행 중인지 항상 보여 줍니다." },
       { q: "Android 앱은 왜 접근성 권한이 필요한가요?", a: "Android에서는 접근성 서비스를 통해서만 앱이 사용자 대신 탭과 스와이프를 할 수 있습니다. AutoFlow는 플로우의 제스처를 실행하고, 단계가 요구할 때만 화면의 글자를 읽는 데 이 권한을 씁니다. 개인정보는 절대 수집하지 않으며, 설정 › 접근성에서 언제든 끌 수 있습니다." },
@@ -468,7 +470,7 @@ export const ko: Content = {
     lead: "찾으시는 페이지가 없거나 옮겨졌습니다.",
     back: "홈으로 돌아가기",
   },
-  legalUi: { contents: "목차", effective: "시행일: 2026년 10월 19일", updated: "최종 수정: 2026년 10월 19일", other: "함께 읽기" },
+  legalUi: { contents: "목차", effective: "시행일: 2026년 10월 20일", updated: "최종 수정: 2026년 10월 20일", other: "함께 읽기" },
   templates: {
     "auto-clicker": { n: "기본 오토 클릭커", d: "화면 중앙을 1초에 4번씩, 총 100번 왼쪽 클릭합니다. Ctrl+Alt+Esc로 멈춥니다." },
     "multi-point": { n: "세 지점 순환 클릭", d: "세 위치를 순서대로 클릭하고, 멈출 때까지 반복합니다." },

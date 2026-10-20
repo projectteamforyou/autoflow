@@ -158,6 +158,12 @@ ul { margin: 0; padding: 0; }
 .hero .lead { text-shadow: 0 0 22px var(--af-bg), 0 0 6px var(--af-bg); }
 .cta-row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 34px; }
 .hero-sub { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px 18px; margin-top: 18px; font-size: 14px; color: var(--af-muted); }
+.edition { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 10px; margin: 14px 0 0; font-size: 13px; color: var(--af-muted); }
+.edition-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--af-border); background: var(--af-surface-2, transparent); color: var(--af-text, inherit); font-weight: 600; white-space: nowrap; }
+.edition a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.edition a:hover { color: var(--af-text, inherit); }
+.page-hero .edition { justify-content: flex-start; }
+.final .edition { color: #C4C4DC; }
 .hero-visual { position: relative; margin: clamp(48px, 7vw, 80px) auto 0; max-width: 1120px; padding: 0 0 clamp(48px, 7vw, 96px); }
 .hero-visual::before { content: ""; position: absolute; inset: 8% 6% 18%; z-index: -1; background: radial-gradient(50% 50% at 50% 50%, rgba(124, 92, 255, 0.55), transparent 70%); filter: blur(40px); opacity: 0.7; }
 
@@ -375,12 +381,12 @@ ul { margin: 0; padding: 0; }
 .cat { scroll-margin-top: 90px; }
 
 /* pricing */
-.plans { display: grid; grid-template-columns: 1.15fr 1fr; gap: 18px; align-items: stretch; }
-@media (max-width: 880px) { .plans { grid-template-columns: 1fr; } }
+.plans { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 18px; align-items: stretch; }
+@media (max-width: 880px) { .plans { grid-template-columns: minmax(0, 1fr); } }
 .plan { padding: clamp(24px, 4vw, 36px); }
 .plan h2 { font-size: 1.3rem; }
-.price { display: flex; align-items: baseline; gap: 10px; margin-top: 14px; }
-.price b { font-size: 3.4rem; font-weight: 760; letter-spacing: -0.05em; line-height: 1; }
+.price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-top: 14px; }
+.price b { font-size: clamp(2.6rem, 12vw, 3.4rem); font-weight: 760; letter-spacing: -0.05em; line-height: 1; }
 .price span { color: var(--af-muted); }
 .plan .list { margin-top: 22px; }
 .plan .note { margin-top: 22px; }

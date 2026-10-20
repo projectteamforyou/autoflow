@@ -142,7 +142,7 @@ export const terms: Terms = {
     ),
     service: sec(
       "2. Layanan",
-      "AutoFlow memungkinkan Anda membuat, melatih, menjalankan, dan membagikan otomatisasi (“alur”) seperti klik otomatis, makro, pintasan, remap tombol, dan rutinitas. Fitur dapat berbeda di tiap platform. Layanan ini gratis; fitur opsional seperti sinkronisasi terenkripsi memerlukan akun.",
+      "AutoFlow memungkinkan Anda membuat, melatih, menjalankan, dan membagikan otomatisasi (“alur”) seperti auto click, makro, pintasan, remap tombol, dan rutinitas. Fitur dapat berbeda di tiap platform. Layanan ini gratis untuk penggunaan pribadi; penggunaan lain memerlukan lisensi Business (Bagian 10). Fitur opsional seperti sinkronisasi terenkripsi memerlukan akun.",
     ),
     eligibility: sec(
       "3. Syarat dan akun",
@@ -150,7 +150,7 @@ export const terms: Terms = {
     ),
     license: sec(
       "4. Lisensi",
-      "Kami memberi Anda lisensi pribadi, berlaku di seluruh dunia, noneksklusif, tidak dapat dialihkan, dan dapat dicabut untuk memasang dan memakai Layanan bagi keperluan pribadi maupun bisnis sesuai Ketentuan ini. Anda tidak boleh menjual, mensublisensikan, mendistribusikan ulang aplikasi, atau merekayasa baliknya melebihi yang diizinkan hukum.",
+      "Kami memberikan Anda lisensi pribadi, berlaku global, noneksklusif, tidak dapat dialihkan, dan dapat dicabut untuk memasang dan menggunakan Layanan sesuai Ketentuan ini: gratis untuk penggunaan pribadi, dan untuk penggunaan non-pribadi hanya selama Anda memiliki lisensi Business yang valid (Bagian 10). Anda tidak boleh menjual, mensublisensikan, atau mendistribusikan ulang aplikasi, atau merekayasa balik kecuali diizinkan hukum.",
     ),
     acceptable: sec(
       "5. Penggunaan yang diizinkan",
@@ -181,14 +181,14 @@ export const terms: Terms = {
     ),
     sync: sec(
       "9. Sinkronisasi dan ketersediaan",
-      "Sinkronisasi terenkripsi bersifat opsional dan saat ini gratis selama peluncuran. Kami berupaya menjaga Layanan tetap tersedia, tetapi Layanan dapat terganggu karena pemeliharaan, kegagalan, atau hal di luar kendali kami. Karena sinkronisasi dienkripsi end-to-end, kami tak dapat memulihkan data jika Anda kehilangan kunci. Simpan ekspor alur yang penting bagi Anda.",
+      "Sinkronisasi terenkripsi bersifat opsional. Gratis untuk penggunaan pribadi; penggunaan non-pribadi untuk sinkronisasi diatur oleh lisensi Business (Bagian 10). Kami berupaya menjaga Layanan tetap tersedia, namun bisa terganggu karena pemeliharaan, kegagalan, atau sebab di luar kendali kami. Karena sinkronisasi terenkripsi end-to-end, kami tidak dapat memulihkan data jika Anda kehilangan kunci. Simpan ekspor alur penting Anda.",
     ),
     fees: sec(
-      "10. Biaya, paket berbayar, dan pengembalian dana",
-      "Aplikasi AutoFlow, otomatisasi lokal, Halt, dan ekspor gratis. Sinkronisasi terenkripsi gratis (₩0) selama masa peluncuran. Penggunaan sinkronisasi untuk keperluan pribadi (perorangan, non-komersial) gratis. Penggunaan non-pribadi — untuk bisnis, organisasi, atau tujuan komersial apa pun — gratis hingga 25 Oktober 2026 pukul 23.59 waktu Korea; setelah itu, penggunaan sinkronisasi non-pribadi memerlukan paket berbayar Business. Anda memilih jenis penggunaan di aplikasi dan wajib menjaganya tetap akurat.",
-      "Paket Business dijual sebagai pembelian sekali untuk 1 atau 12 bulan, dibayar melalui PortOne (kartu dalam won Korea melalui KCP) atau PayPal (dolar AS). Harga, termasuk pajak yang berlaku, ditampilkan sebelum Anda membayar. Tidak ada perpanjangan otomatis dan kami tidak menyimpan kartu Anda; pembelian baru memperpanjang periode Anda saat ini.",
+      "10. Biaya, lisensi Business, dan pengembalian dana",
+      "AutoFlow gratis untuk penggunaan pribadi, yaitu penggunaan oleh individu untuk tujuan non-komersial. Penggunaan lain (“penggunaan non-pribadi”) — untuk bisnis, organisasi, instansi publik, atau tujuan komersial/berorientasi profit, termasuk penggunaan oleh karyawan atau kontraktor untuk pekerjaan — memerlukan lisensi Business berbayar untuk setiap akun pengguna mulai 20 Oktober 2026, 00:00 waktu Korea. Anda memilih jenis penggunaan di aplikasi dan harus memilih dengan jujur serta menjaga tetap akurat. Fitur aplikasi tetap tersedia offline apa pun pilihan Anda: lisensi Business berbasis kepercayaan untuk fitur offline dan diterapkan secara teknis untuk sinkronisasi, di mana upload baru oleh akun bisnis tanpa lisensi valid akan dihentikan.",
+      "Lisensi Business dijual sebagai pembelian sekali untuk 1 atau 12 bulan. Di aplikasi berbahasa Korea dibayar lewat PortOne (kartu KCP, won Korea); di bahasa lain lewat PayPal (dolar AS). Harga, termasuk pajak, ditampilkan sebelum pembayaran. Tidak ada perpanjangan otomatis dan kami tidak menyimpan kartu Anda; pembelian baru memperpanjang periode aktif Anda. Setiap pembelian disertai kunci lisensi sebagai bukti. Kunci lisensi dari kami dapat diaktifkan sekali pada satu akun, dan memperpanjang masa lisensi Business akun tersebut sesuai periodenya.",
       "Pembatalan pembelian: berdasarkan Undang-Undang Perlindungan Konsumen dalam Perdagangan Elektronik Korea, Anda dapat membatalkan pembelian dalam 7 hari setelah pembayaran dan menerima pengembalian dana penuh. Karena paket Business adalah konten digital yang diberikan sejak pembayaran, hak pembatalan berakhir setelah Anda mulai menggunakannya setelah pembayaran (misalnya mengunggah data ke sinkronisasi untuk keperluan bisnis), asalkan Anda telah menyetujui hal ini saat membayar; sebelum itu Anda dapat membatalkan kapan saja. Jika layanan berbeda dari yang ditampilkan, diiklankan, atau disepakati, Anda dapat membatalkan dalam 3 bulan sejak menerimanya, atau dalam 30 hari sejak Anda mengetahui atau seharusnya dapat mengetahuinya. Ajukan pengembalian dana ke {email}; kami mengembalikan dana melalui metode pembayaran semula dalam 3 hari kerja setelah pembatalan dikonfirmasi.",
-      "Jika kami tidak dapat menyediakan sinkronisasi karena alasan yang menjadi tanggung jawab kami, atau kami menghentikan paket berbayar, kami mengembalikan bagian periode yang belum terpakai secara proporsional. Tidak membayar tidak pernah mengunci data Anda: membaca, mengekspor, dan menghapus data yang sudah disinkronkan selalu tetap tersedia. Jika kami mengubah harga atau memperkenalkan fitur berbayar baru, kami akan mengumumkannya terlebih dahulu, perubahan itu tidak berlaku untuk periode yang sudah dibayar, dan otomatisasi lokal, Halt, serta ekspor tetap gratis.",
+      "Jika kami tidak dapat menyediakan sinkronisasi karena alasan yang menjadi tanggung jawab kami, atau kami menghentikan lisensi Business, kami mengembalikan bagian periode yang belum terpakai secara proporsional. Tidak membayar tidak pernah mengunci data Anda: membaca, ekspor, dan hapus data sinkron tetap selalu tersedia. Jika kami mengubah harga atau menambah fitur berbayar baru, kami akan mengumumkannya sebelumnya, tidak berlaku untuk periode yang sudah dibayar, dan penggunaan pribadi otomatisasi lokal, Halt, serta ekspor tetap gratis.",
       "Bagian 14 (tidak ada kompensasi) juga berlaku untuk paket berbayar, tetapi tidak membatasi pengembalian dana yang dijelaskan dalam bagian ini maupun hak Anda menurut hukum perlindungan konsumen.",
     ),
     ip: sec(

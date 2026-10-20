@@ -36,15 +36,16 @@ export const fr: Content = {
     web: "Utiliser dans le navigateur",
     webLong: "Pas envie d’installer ? Ouvrez AutoFlow dans votre navigateur",
     openApp: "Ouvrir l’app web",
-    note: "Gratuit · Sans compte · Fonctionne hors ligne",
+    note: "Gratuit pour usage personnel · Aucun compte requis · Fonctionne hors ligne",
     learnMore: "En savoir plus",
   },
+  edition: { badge: "Édition personnelle", note: "Réservé aux utilisateurs individuels", business: "Usage pro ? Licence Business" },
   share: {
     heading: "Partager AutoFlow",
     native: "Partager…",
     copy: "Copier le lien",
     copied: "Lien copié",
-    text: "AutoFlow : automatisez tout ce que vous répétez, en toute sécurité. Gratuit sur Windows, Android et le web.",
+    text: "AutoFlow — automatisez toutes vos tâches répétitives, en toute sécurité. Gratuit pour usage personnel sur Windows, Android et le web.",
   },
   footer: {
     stats: { statsTitle: "Statistiques en direct", visits: "Visites totales", online: "En ligne maintenant", downloads: "Téléchargements" },
@@ -117,7 +118,7 @@ export const fr: Content = {
   home: {
     seo: {
       title: "AutoFlow — Autoclicker, macros et remappage gratuits",
-      description: "Autoclicker, macros, raccourcis et remappage de touches pour Windows, Android et le web. Testez vos flux dans le navigateur. Gratuit, privé, avec Halt.",
+      description: "Auto clicker, macros, raccourcis et remappage de touches pour Windows, Android et le web. Gratuit pour usage personnel, avec touche Halt.",
     },
     eyebrow: "Nouveau — Practice Canvas : répétez n’importe quel flux sur un écran virtuel",
     h1a: "Automatisez tout ce que vous répétez.",
@@ -218,7 +219,7 @@ export const fr: Content = {
     },
     final: {
       h2: "Votre premier flux est à trente secondes.",
-      lead: "Gratuit sur toutes les plateformes. Sans compte, sans carte bancaire, sans piège.",
+      lead: "Gratuit pour usage personnel sur toutes les plateformes. Aucun compte, aucune carte.",
     },
   },
   features: {
@@ -279,7 +280,7 @@ export const fr: Content = {
   windows: {
     seo: {
       title: "AutoFlow pour Windows — autoclicker et macros",
-      description: "Autoclicker, enregistreur de macros et remappeur de touches gratuit pour Windows 10 et 11. Raccourcis globaux, fenêtres, profils Keyforge et touche Halt.",
+      description: "Auto clicker, macros et remappage de touches pour Windows 10 et 11, gratuit pour usage personnel. Raccourcis globaux, Keyforge et touche Halt.",
     },
     h1: "AutoFlow pour Windows",
     lead: "Un moteur natif qui envoie de vraies entrées, écoute les raccourcis globaux et s’arrête dès que vous appuyez sur Ctrl+Alt+Échap.",
@@ -303,7 +304,7 @@ export const fr: Content = {
   android: {
     seo: {
       title: "AutoFlow pour Android — appuis automatiques et routines",
-      description: "Automatisez appuis, balayages et routines sur Android avec un bouton d’arrêt flottant. Gratuit, privé et transparent sur l’autorisation d’accessibilité.",
+      description: "Automatisez tap, swipe et routines sur Android avec un bouton d’arrêt flottant. Gratuit pour usage personnel, permission Accessibilité expliquée.",
     },
     h1: "AutoFlow pour Android",
     lead: "Appuis, balayages et routines quotidiennes sur votre téléphone — avec un bouton d’arrêt qui flotte au-dessus de tout.",
@@ -397,10 +398,10 @@ export const fr: Content = {
   download: {
     seo: {
       title: "Télécharger AutoFlow — Windows, Android et web",
-      description: "Obtenez AutoFlow gratuitement : l’installeur Windows et l’app Android depuis notre serveur officiel, ou l’app web dans votre navigateur, sans compte.",
+      description: "AutoFlow gratuit pour usage personnel : installeur Windows et app Android sur notre serveur officiel, ou app web dans votre navigateur.",
     },
     h1: "Obtenir AutoFlow",
-    lead: "Gratuit sur toutes les plateformes. Vos flux passent de l’une à l’autre par fichier, par lien ou via la synchro chiffrée facultative.",
+    lead: "Gratuit pour usage personnel sur toutes les plateformes. Vos flux circulent via fichiers, liens ou synchro chiffrée optionnelle.",
     windows: { h2: "Windows", p: "Installateur pour Windows 10 et 11 (64 bits). Raccourcis globaux, Keyforge et vraies entrées.", meta: "Téléchargement officiel · dl.autoflowmacro.com" },
     android: { h2: "Android", p: "Appuis, balayages et routines avec bouton d’arrêt flottant. Nécessite l’autorisation d’accessibilité, que vous contrôlez.", meta: "APK direct · Google Play bientôt" },
     web: { h2: "App web", p: "L’éditeur complet, Atlas et Practice Canvas dans votre navigateur. Installez-la comme une app depuis la barre d’adresse.", meta: "Fonctionne hors ligne après la première visite" },
@@ -409,32 +410,32 @@ export const fr: Content = {
   },
   pricing: {
     seo: {
-      title: "Tarifs — AutoFlow est gratuit | Sans pub ni pistage",
-      description: "Tout ce qu’AutoFlow propose aujourd’hui est gratuit sur Windows, Android et le web. Synchro gratuite au lancement ; local et export gratuits pour toujours.",
+      title: "Tarifs — gratuit pour usage personnel | AutoFlow",
+      description: "AutoFlow est gratuit pour usage personnel sur Windows, Android et le web. Usage professionnel ou commercial : licence Business dès US$7.99/mois.",
     },
-    h1: "Gratuit. Vraiment.",
-    lead: "Tout ce qu’AutoFlow propose aujourd’hui ne coûte rien — ni période d’essai, ni limite de postes, ni publicité.",
+    h1: "Gratuit pour usage personnel.",
+    lead: "L’usage personnel est gratuit. L’usage professionnel requiert une licence Business.",
     free: {
-      name: "Gratuit",
+      name: "Personnel",
       price: "0 €",
       period: "pour toujours",
-      desc: "Tout ce qu’offre AutoFlow aujourd’hui, sur toutes les plateformes.",
-      items: ["Modes facile et Pro avec les 34 types d’étapes", "Enregistreur, raccourcis et déclencheurs", "Remappage, couches et extraits Keyforge", "Practice Canvas et Ledger", "Modèles Atlas et liens de partage", "Copilot avec votre clé ou un modèle local", "Guardrails, score de sécurité et Halt"],
+      desc: "Toutes les fonctions sur toutes les plateformes, pour un usage individuel non commercial.",
+      items: ["Modes facile et Pro avec les 34 types d’étapes", "Enregistreur, raccourcis et déclencheurs", "Remappage, couches et extraits Keyforge", "Practice Canvas et Ledger", "Modèles Atlas et liens de partage", "Copilot avec votre clé ou un modèle local", "Guardrails, score de sécurité et Halt", "Synchro chiffrée, gratuite pour usage personnel"],
     },
     sync: {
-      name: "Synchro chiffrée",
-      price: "₩0",
-      period: "gratuit pendant le lancement",
-      desc: "Un compte facultatif pour synchroniser vos flux entre appareils, chiffrés de bout en bout.",
-      items: ["Chiffrement sur l’appareil avant l’envoi", "En cas de conflit, les deux versions sont conservées", "Supprimez compte et données à tout moment"],
-      note: "La synchro tourne sur des serveurs qui nous coûtent de l’argent ; elle pourrait donc devenir payante plus tard. Si c’est le cas, nous l’annoncerons longtemps à l’avance, et rien de ce que vous avez déjà synchronisé ne sera pris en otage.",
-      policy: "L’usage personnel est gratuit. L’usage non personnel (professionnel) est gratuit jusqu’au {date}.",
-      business: "Ensuite, l’usage professionnel nécessite l’offre Business : {month} par mois ou {year} par an, en paiement unique sans renouvellement automatique.",
+      name: "Business",
+      period: "/ mois",
+      desc: "Licence pour usage professionnel, commercial ou en organisation — inclut la synchro chiffrée entre appareils.",
+      items: ["Utilisation commerciale et en équipe de toutes les fonctions", "Synchro chiffrée : chiffrée sur l’appareil avant envoi", "Les deux versions conservées en cas de conflit", "Pass mensuel ou annuel, sans renouvellement automatique", "Suppression du compte et des données à tout moment"],
+      note: "Les données synchronisées ne sont jamais bloquées : lecture, export et suppression restent possibles, paiement ou non.",
+      policy: "L’usage personnel est gratuit. Tout autre usage requiert une licence Business.",
+      business: "{month} par mois ou {year} par an — paiement unique, sans renouvellement automatique. Achetez dans les réglages de l’app ou activez une clé de licence.",
+      cta: "Obtenir une licence Business",
     },
     promises: {
       h2: "Des promesses qui ne changent pas",
       items: [
-        { h3: "L’automatisation locale reste gratuite", p: "Créer et exécuter des flux sur votre propre appareil ne sera jamais payant." },
+        { h3: "L’usage personnel reste gratuit", p: "Créer et exécuter des flux sur votre appareil pour usage personnel ne sera jamais payant." },
         { h3: "Halt n’est pas une option payante", p: "L’arrêt d’urgence et tous les contrôles de sécurité sont actifs pour tout le monde, toujours." },
         { h3: "Vos données peuvent toujours partir", p: "Exportez tous vos flux en fichier à tout moment, quelle que soit la formule." },
         { h3: "Ni pub ni revente de données", p: "Nous n’affichons pas de publicité et ne vendons ni ne louons vos informations." },
@@ -449,7 +450,8 @@ export const fr: Content = {
     h1: "Questions fréquentes",
     lead: "Vous ne trouvez pas votre réponse ? Écrivez-nous à {email}.",
     items: [
-      { q: "AutoFlow est-il vraiment gratuit ?", a: "Oui. Tout ce qu’AutoFlow propose aujourd’hui est gratuit sur Windows, Android et le web, sans publicité. La synchro chiffrée facultative est gratuite pendant le lancement ; l’automatisation locale, Halt et l’export resteront toujours gratuits." },
+      { q: "AutoFlow est-il vraiment gratuit ?", a: "Pour usage personnel, oui : toutes les fonctions sur Windows, Android et le web, sans publicité. Tout autre usage — professionnel, commercial, organisationnel ou pour le travail — requiert une licence Business : US$7.99/mois ou US$79.99/an, paiement unique sans renouvellement automatique. Toutes les fonctions restent disponibles hors ligne ; pour les comptes professionnels sans licence, seuls les nouveaux envois en synchro sont suspendus." },
+      { q: "Qu’est-ce qu’un usage professionnel ?", a: "Tout ce qui n’est pas personnel : utiliser AutoFlow pour votre travail ou employeur, en freelance ou sous-traitance, en entreprise, école, organisme public ou autre organisation, ou à toute fin commerciale. Chaque utilisateur dans ce cas doit avoir une licence Business. Une clé de licence reçue peut être activée dans l’app sous Réglages › Offre et facturation." },
       { q: "Faut-il un compte ?", a: "Non. AutoFlow fonctionne entièrement hors ligne et sans compte. Il n’en faut un que pour la synchro chiffrée entre appareils ou pour publier des modèles dans Atlas." },
       { q: "Comment arrêter un flux en cours ?", a: "Appuyez sur Ctrl+Alt+Échap sous Windows ou touchez le bouton d’arrêt flottant sous Android. Halt arrête n’importe quel flux en moins d’une demi-seconde, et la barre Pulse montre toujours ce qui tourne." },
       { q: "Pourquoi l’app Android demande-t-elle l’autorisation d’accessibilité ?", a: "Android ne permet aux apps d’appuyer et de balayer à votre place que via un service d’accessibilité. AutoFlow l’utilise pour exécuter les gestes de vos flux et, seulement si une étape le demande, pour lire le texte à l’écran. Il ne collecte jamais de données personnelles, et vous pouvez le désactiver à tout moment dans Paramètres › Accessibilité." },
@@ -468,7 +470,7 @@ export const fr: Content = {
     lead: "La page que vous cherchez n’existe pas ou a été déplacée.",
     back: "Retour à l’accueil",
   },
-  legalUi: { contents: "Sommaire", effective: "Date d’entrée en vigueur : 19 octobre 2026", updated: "Dernière mise à jour : 19 octobre 2026", other: "À lire aussi" },
+  legalUi: { contents: "Sommaire", effective: "Date d’entrée en vigueur : 20 octobre 2026", updated: "Dernière mise à jour : 20 octobre 2026", other: "À lire aussi" },
   templates: {
     "auto-clicker": { n: "Autoclicker classique", d: "Clique 100 fois au centre de l’écran, quatre fois par seconde. Ctrl+Alt+Échap l’arrête." },
     "multi-point": { n: "Cycle de clics sur trois points", d: "Clique sur trois positions dans l’ordre, puis recommence jusqu’à ce que vous l’arrêtiez." },

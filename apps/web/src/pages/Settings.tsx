@@ -1,6 +1,6 @@
 import { SITE_URL } from "../lib/site";
 import { useEffect, useState } from "react";
-import { BUSINESS_FREE_UNTIL, LOCALES, formatPolicyDate, type LocaleCode } from "@autoflow/core";
+import { LOCALES, type LocaleCode } from "@autoflow/core";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
 import { Field, HotkeyInput, Seg, Switch, download } from "../components/ui";
@@ -14,6 +14,7 @@ import { usePublicStats } from "../lib/stats";
 import { hasNativeBridge, invoke } from "../platform";
 import { Link } from "react-router-dom";
 import { BillingPolicy, BillingSection } from "./Billing";
+import { EditionNote } from "../components/Edition";
 
 export function SettingsPage() {
   const t = useT();
@@ -97,6 +98,7 @@ export function SettingsPage() {
         <section className="card stack-sm">
           <h3><Icon name="Info" size={16} /> {t("settings.about")}</h3>
           <div className="small muted">AutoFlow {__APP_VERSION__} · {t("settings.madeBy")}</div>
+          <EditionNote />
           <LiveStats />
           <BusinessInfo />
           <div className="row wrap small">
@@ -218,7 +220,7 @@ function AccountSection() {
       const r = await syncNow();
       toast("success", t("sync.done", { up: r.uploaded, down: r.downloaded, conflicts: r.conflicts }));
     } catch (e) {
-      if (e instanceof ApiError && e.code === "business_plan_required") toast("warning", t("billing.requiredBody", { date: formatPolicyDate(BUSINESS_FREE_UNTIL, getLocale()) }));
+      if (e instanceof ApiError && e.code === "business_plan_required") toast("warning", t("billing.requiredBody"));
       else toast("error", (e as Error).message);
     } finally {
       setBusy(false);

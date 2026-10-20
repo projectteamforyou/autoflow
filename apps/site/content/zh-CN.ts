@@ -36,15 +36,16 @@ export const zhCN: Content = {
     web: "在浏览器中使用",
     webLong: "不想安装？直接在浏览器中打开 AutoFlow",
     openApp: "打开网页版",
-    note: "免费 · 无需注册 · 可离线使用",
+    note: "个人使用免费 · 无需注册 · 可离线使用",
     learnMore: "了解更多",
   },
+  edition: { badge: "个人版", note: "仅限个人用户", business: "工作用途需 Business 许可" },
   share: {
     heading: "分享 AutoFlow",
     native: "分享…",
     copy: "复制链接",
     copied: "链接已复制",
-    text: "AutoFlow——把重复的事交给自动化，安全可控。Windows、Android 和网页版均免费。",
+    text: "AutoFlow——把重复的事交给自动化，安全可控。Windows、Android 和网页版个人使用免费。",
   },
   footer: {
     stats: { statsTitle: "实时统计", visits: "累计访问", online: "当前在线", downloads: "下载" },
@@ -117,7 +118,7 @@ export const zhCN: Content = {
   home: {
     seo: {
       title: "AutoFlow——免费连点器、宏与按键映射",
-      description: "适用于 Windows、Android 和网页的免费自动连点器、宏、快捷键与按键映射。先在浏览器里试运行，随时用 Halt 键一键停止。",
+      description: "适用于 Windows、Android 和网页的自动连点器、宏、快捷键与按键映射。先在浏览器里试运行，随时用 Halt 键一键停止。个人使用免费。",
     },
     eyebrow: "新功能——Practice Canvas：在虚拟屏幕上预演任何流程",
     h1a: "重复的事，统统自动化。",
@@ -218,7 +219,7 @@ export const zhCN: Content = {
     },
     final: {
       h2: "你的第一个流程，只需三十秒。",
-      lead: "全平台免费。无需账号，无需信用卡，没有套路。",
+      lead: "全平台个人使用免费。无需账号，无需信用卡。",
     },
   },
   features: {
@@ -279,7 +280,7 @@ export const zhCN: Content = {
   windows: {
     seo: {
       title: "AutoFlow Windows 版——连点器与宏录制",
-      description: "适用于 Windows 10 和 11 的免费自动连点器、宏录制和按键映射工具。全局快捷键、窗口布局、Keyforge 配置，以及 Halt 键。",
+      description: "适用于 Windows 10 和 11 的自动连点器、宏录制和按键映射工具，个人使用免费。全局快捷键、窗口布局、Keyforge 配置，以及 Halt 键。",
     },
     h1: "AutoFlow Windows 版",
     lead: "原生引擎：发送真实输入，随时响应全局快捷键，按下 Ctrl+Alt+Esc 的瞬间就停止。",
@@ -303,7 +304,7 @@ export const zhCN: Content = {
   android: {
     seo: {
       title: "AutoFlow Android 版——自动点按与例程",
-      description: "在 Android 上自动执行点按、滑动和日常例程，配有悬浮停止按钮。免费，并公开说明如何使用无障碍权限。",
+      description: "在 Android 上自动执行点按、滑动和日常例程，配有悬浮停止按钮。个人使用免费，并公开说明如何使用无障碍权限。",
     },
     h1: "AutoFlow Android 版",
     lead: "在手机上运行的点按、滑动和日常例程——还有一个悬浮在所有界面之上的停止按钮。",
@@ -397,10 +398,10 @@ export const zhCN: Content = {
   download: {
     seo: {
       title: "下载 AutoFlow——Windows、Android 与网页版",
-      description: "免费获取 AutoFlow：Windows 安装包和 Android 应用来自官方下载服务器，网页版可直接在浏览器中打开，无需账户。",
+      description: "个人使用免费获取 AutoFlow：Windows 安装包和 Android 应用来自官方下载服务器，网页版可直接在浏览器中打开，无需账户。",
     },
     h1: "获取 AutoFlow",
-    lead: "全平台免费。流程可以通过文件、链接或可选的加密同步在设备之间流转。",
+    lead: "全平台个人使用免费。流程可以通过文件、链接或可选的加密同步在设备之间流转。",
     windows: { h2: "Windows", p: "适用于 Windows 10 和 11（64 位）的安装包。全局快捷键、Keyforge 和真实输入。", meta: "官方下载 · dl.autoflowmacro.com" },
     android: { h2: "Android", p: "点按、滑动和例程，配有悬浮停止按钮。需要由你掌控的无障碍权限。", meta: "APK 直接安装 · Google Play 即将上线" },
     web: { h2: "网页版", p: "在浏览器中使用完整编辑器、Atlas 和 Practice Canvas。还能从地址栏安装为应用。", meta: "首次访问后可离线使用" },
@@ -409,32 +410,32 @@ export const zhCN: Content = {
   },
   pricing: {
     seo: {
-      title: "价格——AutoFlow 免费 | 无广告、无追踪",
-      description: "AutoFlow 目前提供的所有功能在 Windows、Android 和网页上都免费。同步在发布期间免费，本地自动化和导出永久免费。",
+      title: "价格——个人免费 | AutoFlow",
+      description: "AutoFlow 在 Windows、Android 和网页个人使用免费。商业、工作用途需 Business 许可，最低 US$7.99/月。",
     },
-    h1: "免费。真的免费。",
-    lead: "AutoFlow 目前提供的一切都不收费——没有试用期，没有人数限制，没有广告。",
+    h1: "个人免费。",
+    lead: "个人使用免费，工作用途需 Business 许可。",
     free: {
-      name: "免费",
+      name: "个人",
       price: "¥0",
       period: "永久",
-      desc: "AutoFlow 当前的全部功能，覆盖所有平台。",
-      items: ["简单与专业模式，34 种步骤全部可用", "录制、快捷键和触发器", "Keyforge 映射、层和文本扩展", "Practice Canvas 与 Ledger", "Atlas 模板与分享链接", "使用自有密钥或本地模型的 Copilot", "Guardrails、安全评分与 Halt"],
+      desc: "所有平台的全部功能，限个人非商业用途。",
+      items: ["简单与专业模式，34 种步骤全部可用", "录制、快捷键和触发器", "Keyforge 映射、层和文本扩展", "Practice Canvas 与 Ledger", "Atlas 模板与分享链接", "使用自有密钥或本地模型的 Copilot", "Guardrails、安全评分与 Halt", "加密同步，个人使用免费"],
     },
     sync: {
-      name: "加密同步",
-      price: "₩0",
-      period: "发布期间免费",
-      desc: "可选账号，在设备之间以端到端加密方式同步流程。",
-      items: ["上传前在设备上加密", "发生冲突时保留两个版本", "随时删除账号和数据"],
-      note: "同步运行在需要我们付费的服务器上，将来可能会成为付费选项。如果真有那一天，我们会提前很久通知，也绝不会拿你已经同步的数据要挟你。",
-      policy: "个人使用免费。非个人（商业）使用在 {date} 前免费。",
-      business: "此后商业使用需要 Business 方案：每月 {month} 或每年 {year}，一次性付款，不自动续费。",
+      name: "Business",
+      period: "/ 月",
+      desc: "适用于商业、企业和组织用途的许可，含多设备加密同步。",
+      items: ["全部功能的商业与团队使用", "加密同步：上传前本地加密", "冲突时保留两个版本", "月付或年付，无自动续费", "随时可删除账号和数据"],
+      note: "同步数据绝不被锁定：无论付费与否，均可随时读取、导出和删除。",
+      policy: "个人使用免费。其他用途需 Business 许可。",
+      business: "每月 {month} 或每年 {year}，一次性付款，无自动续费。可在应用设置购买或激活许可证密钥。",
+      cta: "获取 Business 许可",
     },
     promises: {
       h2: "永远不变的承诺",
       items: [
-        { h3: "本地自动化始终免费", p: "在自己的设备上创建和运行流程，永远不会收费。" },
+        { h3: "个人使用始终免费", p: "在自己设备上为个人用途创建和运行流程永不收费。" },
         { h3: "Halt 不是付费功能", p: "紧急停止和所有安全检查对所有人始终开启。" },
         { h3: "数据随时可以带走", p: "无论哪种方案，随时都能把所有流程导出为文件。" },
         { h3: "无广告，不卖数据", p: "我们不展示广告，也不出售或出租你的信息。" },
@@ -449,7 +450,8 @@ export const zhCN: Content = {
     h1: "常见问题",
     lead: "没找到答案？欢迎写信至 {email}。",
     items: [
-      { q: "AutoFlow 真的免费吗？", a: "是的。AutoFlow 目前提供的所有功能在 Windows、Android 和网页上都免费，且没有广告。可选的加密同步在发布期间免费；本地自动化、Halt 和导出将永远免费。" },
+      { q: "AutoFlow 真的免费吗？", a: "个人使用当然免费：Windows、Android 和网页所有功能无广告。其他用途（商业、企业、组织或工作）需 Business 许可：US$7.99/月或 US$79.99/年，均为一次性付费无自动续费。无论哪种用途，所有功能离线可用；无许可的商业账号仅暂停新同步上传。" },
+      { q: "哪些属于商业用途？", a: "非个人用途均属商业：为工作、雇主、自由职业、外包、公司、学校、公共机构或任何商业目的使用 AutoFlow。每位此类用户都需 Business 许可。收到的许可证密钥可在应用设置 › 方案与付费中激活。" },
       { q: "需要注册账号吗？", a: "不需要。AutoFlow 无需账号即可完全离线使用。只有在设备间加密同步或向 Atlas 发布模板时才需要账号。" },
       { q: "如何停止正在运行的流程？", a: "在 Windows 上按 Ctrl+Alt+Esc，在 Android 上点按悬浮停止按钮。Halt 能在半秒内停止任何流程，Pulse 栏也会始终显示正在运行什么。" },
       { q: "为什么 Android 版需要无障碍权限？", a: "在 Android 上，应用只能通过无障碍服务代替你点按和滑动。AutoFlow 用它来执行流程中的手势，并且只在步骤需要时读取屏幕文字。它从不收集个人数据，你可以随时在“设置 › 无障碍”中关闭。" },
@@ -468,7 +470,7 @@ export const zhCN: Content = {
     lead: "你要找的页面不存在或已被移动。",
     back: "返回首页",
   },
-  legalUi: { contents: "目录", effective: "生效日期：2026 年 10 月 19 日", updated: "最后更新：2026 年 10 月 19 日", other: "另请阅读" },
+  legalUi: { contents: "目录", effective: "生效日期：2026 年 10 月 20 日", updated: "最后更新：2026 年 10 月 20 日", other: "另请阅读" },
   templates: {
     "auto-clicker": { n: "经典连点器", d: "以每秒 4 次的速度左键点击屏幕中心，共 100 次。按 Ctrl+Alt+Esc 停止。" },
     "multi-point": { n: "三点循环点击", d: "按顺序点击三个位置，然后循环，直到你停止。" },

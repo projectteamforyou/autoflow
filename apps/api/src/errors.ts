@@ -30,6 +30,9 @@ export type ErrorCode =
   | "payment_not_completed"
   | "payment_mismatch"
   | "payment_failed"
+  | "invalid_license_key"
+  | "license_key_used"
+  | "license_key_revoked"
   | "upstream_timeout"
   | "service_unavailable"
   | "internal_error";

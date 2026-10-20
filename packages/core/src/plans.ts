@@ -3,12 +3,14 @@
  * API (entitlement gate, checkout amounts), the web app (Billing section) and the site (pricing
  * copy) read them from.
  *
- * Policy:
- * - Sync itself costs ₩0 during the launch period.
- * - Personal (individual, non-commercial) use is free.
- * - Non-personal use (business, organisation, commercial) is free until BUSINESS_FREE_UNTIL
- *   (2026-10-25, end of day in Asia/Seoul); after that, writes to Sync need a Business plan.
+ * Policy ("license approach"):
+ * - Personal (individual, non-commercial) use of AutoFlow is free, including Sync.
+ * - Any other use (business, organisation, commercial, work) needs a Business license from
+ *   BUSINESS_PLAN_REQUIRED_FROM (2026-10-20 00:00 in Asia/Seoul). Local features stay available
+ *   (honour-based licence); the only technical gate is Sync writes for business accounts, and
+ *   only while a payment provider is configured.
  * - Reads, export and deletion are never blocked, paid or not.
+ * - A Business license can also be delivered as a license key (see license.ts).
  *
  * Payments are one-time purchases of 1 or 12 months of Business entitlement (no stored cards,
  * no auto-renewal); a purchase extends whatever entitlement is still running.
@@ -47,13 +49,13 @@ export const BUSINESS_PRICES: PriceTable = {
   year: { KRW: 99_000, USD: 7_999 },
 };
 
-/** Sync costs nothing during the launch period. */
+/** Sync itself costs nothing for personal use; business use is covered by the Business license. */
 export const SYNC_LAUNCH_PRICE: Record<Currency, number> = { KRW: 0, USD: 0 };
 
-/** Last moment non-personal use is free: 2026-10-25 23:59:59 in Seoul (KST, UTC+9). */
-export const BUSINESS_FREE_UNTIL = "2026-10-25T23:59:59+09:00";
-/** First instant a Business plan is required (exclusive end of the free period). */
-export const BUSINESS_PLAN_REQUIRED_FROM = "2026-10-26T00:00:00+09:00";
+/** Last moment non-personal use was free: 2026-10-19 23:59:59 in Seoul (KST, UTC+9). */
+export const BUSINESS_FREE_UNTIL = "2026-10-19T23:59:59+09:00";
+/** First instant a Business license is required (exclusive end of the free period). */
+export const BUSINESS_PLAN_REQUIRED_FROM = "2026-10-20T00:00:00+09:00";
 const REQUIRED_FROM_MS = Date.parse(BUSINESS_PLAN_REQUIRED_FROM);
 
 export const POLICY_TIME_ZONE = "Asia/Seoul";

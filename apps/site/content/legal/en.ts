@@ -142,7 +142,7 @@ export const terms: Terms = {
     ),
     service: sec(
       "2. The Service",
-      "AutoFlow lets you create, rehearse, run and share automations (“flows”) such as auto-clicking, macros, hotkeys, key remapping and routines. Features may differ by platform. The Service is free; optional features such as encrypted sync require an account.",
+      "AutoFlow lets you create, rehearse, run and share automations (“flows”) such as auto-clicking, macros, hotkeys, key remapping and routines. Features may differ by platform. The Service is free for personal use; any other use requires a Business license (Section 10). Optional features such as encrypted sync require an account.",
     ),
     eligibility: sec(
       "3. Eligibility and accounts",
@@ -150,7 +150,7 @@ export const terms: Terms = {
     ),
     license: sec(
       "4. Licence",
-      "We grant you a personal, worldwide, non-exclusive, non-transferable, revocable licence to install and use the Service for personal or business purposes in accordance with these Terms. You may not sell, sublicense or redistribute the apps, or reverse engineer them except to the extent the law allows despite this restriction.",
+      "We grant you a personal, worldwide, non-exclusive, non-transferable, revocable licence to install and use the Service in accordance with these Terms: free of charge for personal use, and for non-personal use only while you hold a valid Business license (Section 10). You may not sell, sublicense or redistribute the apps, or reverse engineer them except to the extent the law allows despite this restriction.",
     ),
     acceptable: sec(
       "5. Acceptable use",
@@ -181,14 +181,14 @@ export const terms: Terms = {
     ),
     sync: sec(
       "9. Sync and availability",
-      "Encrypted sync is optional and currently free during launch. We work to keep the Service available, but it may be interrupted for maintenance, failures or reasons beyond our control. Because sync is end-to-end encrypted, we cannot recover data if you lose your keys. Keep exports of flows that matter to you.",
+      "Encrypted sync is optional. It is free for personal use; non-personal use of sync is covered by the Business license (Section 10). We work to keep the Service available, but it may be interrupted for maintenance, failures or reasons beyond our control. Because sync is end-to-end encrypted, we cannot recover data if you lose your keys. Keep exports of flows that matter to you.",
     ),
     fees: sec(
-      "10. Fees, paid plans and refunds",
-      "The AutoFlow apps, local automation, Halt and export are free. Encrypted sync is free (₩0) during the launch period. Personal (individual, non-commercial) use of sync is free. Non-personal use — for a business, an organisation or any commercial purpose — is free until October 25, 2026, 23:59 Korea time; after that, non-personal use of sync requires a paid Business plan. You choose your usage type in the app and must keep it accurate.",
-      "The Business plan is sold as a one-time purchase of 1 or 12 months, paid through PortOne (KCP card payments in Korean won) or PayPal (US dollars). The price, including any taxes, is shown before you pay. There is no automatic renewal and we do not store your card; a new purchase extends your current period.",
+      "10. Fees, Business license and refunds",
+      "AutoFlow is free for personal use, meaning use by an individual for their own non-commercial purposes. Any other use (“non-personal use”) — for a business, an organisation or a public body, or for any commercial or for-profit purpose, including use by employees or contractors for their work — requires a paid Business license for each user account from October 20, 2026, 00:00 Korea time. You choose your usage type in the app and must choose it truthfully and keep it accurate. App features remain available offline whatever you choose: the Business license is honour-based for offline features and is enforced for sync, where new uploads by business accounts without a valid license are paused.",
+      "The Business license is sold as a one-time purchase of 1 or 12 months. In the Korean-language app it is paid through PortOne (KCP card payments in Korean won); in all other languages through PayPal (US dollars). The price, including any taxes, is shown before you pay. There is no automatic renewal and we do not store your card; a new purchase extends your current period. Each purchase comes with a license key as proof of license. A license key issued by us can be activated once, on one account, and extends that account's Business license by its period.",
       "Withdrawal: under the Korean Act on Consumer Protection in Electronic Commerce, you may withdraw a purchase within 7 days of payment for a full refund. Because the Business plan is digital content that is provided from the moment of payment, the right of withdrawal ends once you start using it after payment (for example by uploading to sync for business use), provided you agreed to this at checkout; until then you can withdraw at any time. If the service differs from what was displayed, advertised or agreed, you may withdraw within 3 months of receiving it, or within 30 days of when you learned or could have learned of this. Request refunds at {email}; we refund through the original payment method within 3 business days of confirming the withdrawal.",
-      "If we cannot provide sync for reasons attributable to us, or we discontinue the paid plan, we refund the unused part of your period pro rata. Not paying never locks your data: reading, exporting and deleting synced data always remain available. If we change prices or introduce new paid features, we will announce it in advance, it will not apply to periods already paid for, and local automation, Halt and export will remain free.",
+      "If we cannot provide sync for reasons attributable to us, or we discontinue the Business license, we refund the unused part of your period pro rata. Not paying never locks your data: reading, exporting and deleting synced data always remain available. If we change prices or introduce new paid features, we will announce it in advance, it will not apply to periods already paid for, and personal use of local automation, Halt and export will remain free.",
       "Section 14 (no compensation) also applies to paid plans, but it does not limit the refunds described in this section or your rights under consumer-protection law.",
     ),
     ip: sec(

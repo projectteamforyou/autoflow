@@ -36,15 +36,16 @@ export const vi: Content = {
     web: "Dùng trên trình duyệt",
     webLong: "Không muốn cài? Mở AutoFlow ngay trên trình duyệt",
     openApp: "Mở ứng dụng web",
-    note: "Miễn phí · Không cần tài khoản · Chạy cả khi offline",
+    note: "Miễn phí cho cá nhân · Không cần tài khoản · Dùng offline",
     learnMore: "Tìm hiểu thêm",
   },
+  edition: { badge: "Bản cá nhân", note: "Dành cho người dùng cá nhân", business: "Dùng cho công việc? Cần giấy phép Business" },
   share: {
     heading: "Chia sẻ AutoFlow",
     native: "Chia sẻ…",
     copy: "Sao chép liên kết",
     copied: "Đã sao chép liên kết",
-    text: "AutoFlow — tự động hóa mọi việc lặp lại, an toàn. Miễn phí trên Windows, Android và web.",
+    text: "AutoFlow — tự động hóa mọi thao tác lặp lại, an toàn. Miễn phí cho cá nhân trên Windows, Android và web.",
   },
   footer: {
     stats: { statsTitle: "Thống kê trực tiếp", visits: "Tổng lượt truy cập", online: "Đang trực tuyến", downloads: "Lượt tải" },
@@ -117,7 +118,7 @@ export const vi: Content = {
   home: {
     seo: {
       title: "AutoFlow — Auto click, macro và đổi phím miễn phí",
-      description: "Auto click, macro, phím tắt và đổi phím cho Windows, Android và web. Chạy thử mọi luồng trên trình duyệt trước. Miễn phí, riêng tư, có phím Halt.",
+      description: "Auto clicker, macro, phím tắt và đổi phím cho Windows, Android, web. Thử luồng trước trên trình duyệt. Miễn phí cá nhân, có phím Halt.",
     },
     eyebrow: "Mới — Practice Canvas: chạy thử mọi luồng trên màn hình ảo",
     h1a: "Tự động hóa mọi việc bạn lặp lại.",
@@ -218,7 +219,7 @@ export const vi: Content = {
     },
     final: {
       h2: "Luồng đầu tiên chỉ cách bạn ba mươi giây.",
-      lead: "Miễn phí trên mọi nền tảng. Không tài khoản, không thẻ, không chiêu trò.",
+      lead: "Miễn phí cho cá nhân trên mọi nền tảng. Không cần tài khoản hay thẻ.",
     },
   },
   features: {
@@ -279,7 +280,7 @@ export const vi: Content = {
   windows: {
     seo: {
       title: "AutoFlow cho Windows — auto click và ghi macro",
-      description: "Auto click, ghi macro và đổi phím miễn phí cho Windows 10 và 11. Phím tắt toàn cục, sắp xếp cửa sổ, hồ sơ Keyforge và phím Halt.",
+      description: "Auto clicker, ghi macro và đổi phím cho Windows 10, 11, miễn phí cá nhân. Phím tắt toàn cục, bố cục cửa sổ, Keyforge, phím Halt.",
     },
     h1: "AutoFlow cho Windows",
     lead: "Engine gốc gửi thao tác thật, nghe phím tắt ở mọi nơi và dừng ngay khi bạn nhấn Ctrl+Alt+Esc.",
@@ -303,7 +304,7 @@ export const vi: Content = {
   android: {
     seo: {
       title: "AutoFlow cho Android — tự động chạm và thói quen",
-      description: "Tự động chạm, vuốt và chạy thói quen trên Android với nút dừng nổi. Miễn phí, riêng tư và minh bạch về quyền trợ năng.",
+      description: "Tự động hóa chạm, vuốt, thói quen trên Android với nút dừng nổi. Miễn phí cá nhân, minh bạch về quyền Trợ năng.",
     },
     h1: "AutoFlow cho Android",
     lead: "Chạm, vuốt và thói quen hằng ngày chạy ngay trên điện thoại — kèm nút dừng nổi trên mọi màn hình.",
@@ -397,10 +398,10 @@ export const vi: Content = {
   download: {
     seo: {
       title: "Tải AutoFlow — Windows, Android và ứng dụng web",
-      description: "Nhận AutoFlow miễn phí: bản cài Windows và ứng dụng Android từ máy chủ chính thức, hoặc mở ứng dụng web trong trình duyệt, không cần tài khoản.",
+      description: "Tải AutoFlow miễn phí cho cá nhân: cài đặt Windows, app Android từ máy chủ chính thức, hoặc dùng web app trên trình duyệt.",
     },
     h1: "Tải AutoFlow",
-    lead: "Miễn phí trên mọi nền tảng. Luồng di chuyển giữa các thiết bị qua tệp, liên kết hoặc đồng bộ mã hóa tùy chọn.",
+    lead: "Miễn phí cá nhân trên mọi nền tảng. Luồng di chuyển qua tệp, liên kết hoặc đồng bộ mã hóa tùy chọn.",
     windows: { h2: "Windows", p: "Bộ cài cho Windows 10 và 11 (64-bit). Phím tắt toàn cục, Keyforge và thao tác thật.", meta: "Tải chính thức · dl.autoflowmacro.com" },
     android: { h2: "Android", p: "Chạm, vuốt và thói quen với nút dừng nổi. Cần quyền trợ năng do bạn kiểm soát.", meta: "APK trực tiếp · sắp có trên Google Play" },
     web: { h2: "Ứng dụng web", p: "Trình chỉnh sửa đầy đủ, Atlas và Practice Canvas ngay trong trình duyệt. Cài như ứng dụng từ thanh địa chỉ.", meta: "Chạy offline sau lần truy cập đầu tiên" },
@@ -409,32 +410,32 @@ export const vi: Content = {
   },
   pricing: {
     seo: {
-      title: "Giá — AutoFlow miễn phí | Không quảng cáo, không theo dõi",
-      description: "Mọi thứ AutoFlow có hôm nay đều miễn phí trên Windows, Android và web. Đồng bộ miễn phí khi ra mắt; tự động hóa cục bộ và xuất dữ liệu miễn phí mãi.",
+      title: "Giá — miễn phí cá nhân | AutoFlow",
+      description: "AutoFlow miễn phí cho cá nhân trên Windows, Android, web. Dùng cho doanh nghiệp, thương mại cần giấy phép Business từ US$7.99/tháng.",
     },
-    h1: "Miễn phí. Thật sự miễn phí.",
-    lead: "Mọi thứ AutoFlow đang cung cấp đều không tốn đồng nào — không dùng thử, không giới hạn người dùng, không quảng cáo.",
+    h1: "Miễn phí cá nhân.",
+    lead: "Dùng cá nhân miễn phí. Dùng cho công việc cần giấy phép Business.",
     free: {
-      name: "Miễn phí",
+      name: "Cá nhân",
       price: "0 ₫",
       period: "mãi mãi",
-      desc: "Mọi tính năng hiện có của AutoFlow, trên mọi nền tảng.",
-      items: ["Chế độ Dễ và Pro với đủ 34 loại bước", "Ghi thao tác, phím tắt và kích hoạt", "Đổi phím, lớp và đoạn văn bản Keyforge", "Practice Canvas và Ledger", "Mẫu Atlas và liên kết chia sẻ", "Copilot dùng khóa riêng hoặc mô hình cục bộ", "Guardrails, điểm an toàn và Halt"],
+      desc: "Mọi tính năng trên mọi nền tảng cho cá nhân phi thương mại.",
+      items: ["Chế độ Dễ và Pro với đủ 34 loại bước", "Ghi thao tác, phím tắt và kích hoạt", "Đổi phím, lớp và đoạn văn bản Keyforge", "Practice Canvas và Ledger", "Mẫu Atlas và liên kết chia sẻ", "Copilot dùng khóa riêng hoặc mô hình cục bộ", "Guardrails, điểm an toàn và Halt", "Đồng bộ mã hóa, miễn phí cá nhân"],
     },
     sync: {
-      name: "Đồng bộ mã hóa",
-      price: "₩0",
-      period: "miễn phí giai đoạn ra mắt",
-      desc: "Tài khoản tùy chọn để đồng bộ luồng giữa các thiết bị, mã hóa đầu cuối.",
-      items: ["Mã hóa trên thiết bị trước khi tải lên", "Khi xung đột, giữ cả hai phiên bản", "Xóa tài khoản và dữ liệu bất cứ lúc nào"],
-      note: "Đồng bộ chạy trên máy chủ tốn chi phí, nên sau này có thể trở thành tùy chọn trả phí. Nếu vậy, chúng tôi sẽ báo trước rất lâu, và không dữ liệu nào bạn đã đồng bộ bị giữ làm con tin.",
-      policy: "Sử dụng cá nhân miễn phí. Sử dụng ngoài mục đích cá nhân (doanh nghiệp) miễn phí đến hết {date}.",
-      business: "Sau đó, sử dụng cho doanh nghiệp cần gói Business: {month}/tháng hoặc {year}/năm — thanh toán một lần, không tự động gia hạn.",
+      name: "Business",
+      period: "/ tháng",
+      desc: "Giấy phép cho doanh nghiệp, thương mại, tổ chức — kèm đồng bộ mã hóa đa thiết bị.",
+      items: ["Dùng thương mại, nhóm với mọi tính năng", "Đồng bộ mã hóa: mã hóa trên thiết bị trước khi tải lên", "Giữ cả hai phiên bản khi xung đột", "Mua theo tháng hoặc năm, không tự động gia hạn", "Xóa tài khoản và dữ liệu bất cứ lúc nào"],
+      note: "Dữ liệu đã đồng bộ không bao giờ bị giữ làm con tin: luôn xem, xuất, xóa được dù trả phí hay không.",
+      policy: "Dùng cá nhân miễn phí. Mọi mục đích khác cần giấy phép Business.",
+      business: "{month}/tháng hoặc {year}/năm — thanh toán một lần, không tự động gia hạn. Mua hoặc kích hoạt key trong Cài đặt.",
+      cta: "Mua giấy phép Business",
     },
     promises: {
       h2: "Những lời hứa không đổi",
       items: [
-        { h3: "Tự động hóa cục bộ luôn miễn phí", p: "Tạo và chạy luồng trên thiết bị của bạn sẽ không bao giờ phải trả phí." },
+        { h3: "Dùng cá nhân luôn miễn phí", p: "Tạo và chạy luồng trên thiết bị cá nhân sẽ không bao giờ bị tính phí." },
         { h3: "Halt không phải tính năng trả phí", p: "Dừng khẩn cấp và mọi kiểm tra an toàn luôn bật cho tất cả mọi người." },
         { h3: "Dữ liệu luôn mang đi được", p: "Xuất mọi luồng thành tệp bất cứ lúc nào, ở bất kỳ gói nào." },
         { h3: "Không quảng cáo, không bán dữ liệu", p: "Chúng tôi không hiện quảng cáo và không bán hay cho thuê thông tin của bạn." },
@@ -449,7 +450,8 @@ export const vi: Content = {
     h1: "Câu hỏi thường gặp",
     lead: "Chưa thấy câu trả lời? Viết cho chúng tôi tại {email}.",
     items: [
-      { q: "AutoFlow có thật sự miễn phí không?", a: "Có. Mọi thứ AutoFlow đang cung cấp đều miễn phí trên Windows, Android và web, không quảng cáo. Đồng bộ mã hóa tùy chọn miễn phí trong giai đoạn ra mắt; tự động hóa cục bộ, Halt và xuất dữ liệu sẽ luôn miễn phí." },
+      { q: "AutoFlow có thật sự miễn phí không?", a: "Dùng cá nhân thì có: mọi tính năng trên Windows, Android, web, không quảng cáo. Dùng cho doanh nghiệp, thương mại, tổ chức hay công việc cần giấy phép Business: US$7.99/tháng hoặc US$79.99/năm, thanh toán một lần, không tự động gia hạn. Mọi tính năng vẫn dùng offline; tài khoản doanh nghiệp không có license chỉ bị dừng upload đồng bộ mới." },
+      { q: "Thế nào là dùng cho doanh nghiệp?", a: "Bất cứ gì không phải cá nhân: dùng AutoFlow cho công việc, cho công ty, tổ chức, trường học, cơ quan, hoặc mục đích thương mại, kể cả freelancer hay hợp đồng. Ai dùng như vậy đều cần giấy phép Business. Nhập key license trong app tại Cài đặt › Gói & thanh toán." },
       { q: "Có cần tài khoản không?", a: "Không. AutoFlow chạy hoàn toàn offline mà không cần tài khoản. Bạn chỉ cần tài khoản để đồng bộ mã hóa giữa các thiết bị hoặc đăng mẫu lên Atlas." },
       { q: "Làm sao dừng một luồng đang chạy?", a: "Nhấn Ctrl+Alt+Esc trên Windows hoặc chạm nút dừng nổi trên Android. Halt dừng mọi luồng trong chưa đầy nửa giây, và thanh Pulse luôn cho biết cái gì đang chạy." },
       { q: "Vì sao ứng dụng Android cần quyền trợ năng?", a: "Android chỉ cho phép ứng dụng chạm và vuốt thay bạn qua dịch vụ trợ năng. AutoFlow dùng nó để thực hiện cử chỉ trong luồng và chỉ đọc chữ trên màn hình khi một bước yêu cầu. Nó không bao giờ thu thập dữ liệu cá nhân, và bạn có thể tắt bất cứ lúc nào trong Cài đặt › Hỗ trợ tiếp cận." },
@@ -468,7 +470,7 @@ export const vi: Content = {
     lead: "Trang bạn tìm không tồn tại hoặc đã được chuyển đi.",
     back: "Về trang chủ",
   },
-  legalUi: { contents: "Mục lục", effective: "Ngày hiệu lực: 19 tháng 10 năm 2026", updated: "Cập nhật lần cuối: 19 tháng 10 năm 2026", other: "Xem thêm" },
+  legalUi: { contents: "Mục lục", effective: "Ngày hiệu lực: 20 tháng 10 năm 2026", updated: "Cập nhật lần cuối: 20 tháng 10 năm 2026", other: "Xem thêm" },
   templates: {
     "auto-clicker": { n: "Auto click cơ bản", d: "Nhấp chuột trái vào giữa màn hình 100 lần, bốn lần mỗi giây. Ctrl+Alt+Esc để dừng." },
     "multi-point": { n: "Chu kỳ nhấp ba điểm", d: "Nhấp lần lượt ba vị trí rồi lặp lại cho đến khi bạn dừng." },
