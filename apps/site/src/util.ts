@@ -150,7 +150,7 @@ function fixBlock(parts: string[], texts: number[], max: number): void {
   if (gap.k === texts.length - 1 || idx !== lastIdx) {
     const lt = parts[lastIdx]!;
     const w = /([^\s;]+)(\s*)$/.exec(lt);
-    if (w && /\p{L}-\p{L}/u.test(w[1]!) && !/[<>&]/.test(w[1]!) && w[1]!.length <= max - 8 && lastLen + prevLen + 1 <= 20) parts[lastIdx] = lt.slice(0, w.index) + w[1]!.replace(/(?<=\p{L})-(?=\p{L})/gu, "\u2011") + w[2];
+    if (w && /[\p{L}\p{N}]-[\p{L}\p{N}]/u.test(w[1]!) && !/[<>&]/.test(w[1]!) && w[1]!.length <= max - 8 && lastLen + prevLen + 1 <= 20) parts[lastIdx] = lt.slice(0, w.index) + w[1]!.replace(/(?<=[\p{L}\p{N}])-(?=[\p{L}\p{N}])/gu, "\u2011") + w[2];
   }
 }
 
