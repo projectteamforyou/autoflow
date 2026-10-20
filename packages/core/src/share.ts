@@ -33,8 +33,12 @@ export async function flowContentHash(flow: Flow): Promise<string> {
 
 /** Header names whose values are credentials. */
 const CREDENTIAL_HEADER = /^(authorization|proxy-authorization|cookie|x-api-key|api-key|x-auth-token|x-access-token)$|token|secret|apikey|api-key|password|session/i;
-/** A value that only references secrets (or is empty) carries nothing sensitive. */
-const SECRET_ONLY = /^\s*(?:[A-Za-z-]+\s+)?(?:\{\{\s*secret:[^}]+\}\}\s*)*$/;
+/**
+ * A value that only references secrets (or is empty/whitespace) carries nothing sensitive. An auth
+ * scheme word is allowed only in front of at least one placeholder ("Bearer {{secret:x}}"); a bare
+ * word such as `sk-ABCdef ` is a literal credential and must not pass as "secret-only".
+ */
+const SECRET_ONLY = /^\s*(?:(?:(?:Bearer|Basic|Token|Digest)\s+)?(?:\{\{\s*secret:[^}]+\}\}\s*)+)?$/i;
 
 /** Secret name used in place of a literal credential header when sharing. */
 export function headerSecretName(header: string): string {

@@ -4,6 +4,7 @@ use crate::schema::{walk_steps, FileOp, Flow, HttpMethod, LoopMode, Step, StepKi
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
+use std::net::Ipv4Addr;
 use std::sync::OnceLock;
 
 /// Risk grade.
@@ -61,6 +62,40 @@ fn secret_ref() -> &'static Regex {
     R.get_or_init(|| Regex::new(r"\{\{\s*secret:").unwrap())
 }
 
+/// `{{...}}` interpolation: the real target is only known at run time (`DYNAMIC` in risk.ts).
+fn is_dynamic(s: &str) -> bool {
+    s.contains("{{")
+}
+
+fn is_local_ipv4(ip: Ipv4Addr) -> bool {
+    let [a, b, ..] = ip.octets();
+    a == 127 || a == 10 || a == 0 || (a == 172 && (16..=31).contains(&b)) || (a == 192 && b == 168) || (a == 169 && b == 254)
+}
+
+/// True when an http URL points at this machine or a private / link-local network (`isLocalNetworkUrl`):
+/// localhost, 127/8, 10/8, 172.16/12, 192.168/16, 169.254/16, `::1`, fc00::/7, fe80::/10.
+/// The `url` crate is the WHATWG parser, like `new URL()` in TS, so both agree on odd spellings.
+pub fn is_local_network_url(raw: &str) -> bool {
+    let Ok(u) = url::Url::parse(raw) else { return false };
+    match u.host() {
+        Some(url::Host::Domain(d)) => {
+            let d = d.to_ascii_lowercase();
+            let d = d.strip_suffix('.').unwrap_or(&d);
+            d == "localhost" || d.ends_with(".localhost")
+        }
+        Some(url::Host::Ipv4(ip)) => is_local_ipv4(ip),
+        Some(url::Host::Ipv6(ip)) => {
+            let h = ip.segments();
+            ip.is_loopback()
+                || ip.is_unspecified()
+                || (h[0] & 0xfe00) == 0xfc00
+                || (h[0] & 0xffc0) == 0xfe80
+                || ip.to_ipv4_mapped().is_some_and(is_local_ipv4)
+        }
+        None => false,
+    }
+}
+
 fn step_findings(s: &Step) -> Vec<RiskFinding> {
     let f =
         |key: &str, weight: u32, needs_confirm: bool| RiskFinding { step_id: Some(s.id.clone()), key: key.into(), weight, needs_confirm };
@@ -69,10 +104,11 @@ fn step_findings(s: &Step) -> Vec<RiskFinding> {
         StepKind::File { op, .. } => out.push(match op {
             FileOp::Delete => f("risk.fileDelete", 35, true),
             FileOp::Write | FileOp::Move => f("risk.fileWrite", 20, true),
-            FileOp::Append | FileOp::Copy => f("risk.fileWrite", 12, false),
+            // append grows/creates files and copy can overwrite its destination: both change files.
+            FileOp::Append | FileOp::Copy => f("risk.fileWrite", 12, true),
             FileOp::Read | FileOp::Exists => f("risk.fileRead", 6, false),
         }),
-        StepKind::Http { method, url, .. } => {
+        StepKind::Http { method, url, headers, .. } => {
             if *method == HttpMethod::Get {
                 out.push(f("risk.networkRead", 8, false));
             } else {
@@ -81,11 +117,24 @@ fn step_findings(s: &Step) -> Vec<RiskFinding> {
             if sensitive_url().is_match(url) {
                 out.push(f("risk.sensitiveUrl", 20, true));
             }
+            if is_dynamic(url) {
+                out.push(f("risk.dynamicUrl", 10, true));
+            }
+            // Even a GET leaks whatever variables or secrets are interpolated into its headers.
+            if headers.values().any(|v| is_dynamic(v)) {
+                out.push(f("risk.requestVars", 10, true));
+            }
+            if is_local_network_url(url) {
+                out.push(f("risk.localNetwork", 15, true));
+            }
         }
         StepKind::LaunchApp { .. } => out.push(f("risk.launchApp", 10, false)),
         StepKind::OpenUrl { url } => {
             if sensitive_url().is_match(url) {
                 out.push(f("risk.sensitiveUrl", 15, true));
+            }
+            if is_dynamic(url) {
+                out.push(f("risk.dynamicUrl", 10, true));
             }
         }
         StepKind::Type { text, .. } => {
@@ -178,4 +227,81 @@ pub fn analyze_risk(flow: &Flow) -> RiskReport {
     };
     let needs_confirm = findings.iter().any(|f| f.needs_confirm);
     RiskReport { score, level, findings, needs_confirm, permissions: perms.into_iter().collect() }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn flow(steps: serde_json::Value) -> Flow {
+        let v = serde_json::json!({
+            "schemaVersion": "1.0", "id": "f", "name": "x", "steps": steps,
+            "createdAt": "2026-10-19T00:00:00.000Z", "updatedAt": "2026-10-19T00:00:00.000Z",
+        });
+        match crate::schema::parse_flow(&v) {
+            Ok(f) => f,
+            Err(issues) => panic!("invalid test flow: {issues:?}"),
+        }
+    }
+
+    fn keys(r: &RiskReport) -> Vec<&str> {
+        r.findings.iter().map(|f| f.key.as_str()).collect()
+    }
+
+    #[test]
+    fn dynamic_open_url_needs_confirm() {
+        let r = analyze_risk(&flow(serde_json::json!([{ "id": "o", "type": "openUrl", "url": "https://my{{'ba'}}nk.com/x" }])));
+        assert!(r.needs_confirm, "{r:?}");
+        assert!(keys(&r).contains(&"risk.dynamicUrl"));
+        let r = analyze_risk(&flow(serde_json::json!([{ "id": "o", "type": "openUrl", "url": "https://example.com/" }])));
+        assert!(!r.needs_confirm);
+    }
+
+    #[test]
+    fn http_get_with_vars_or_local_host_needs_confirm() {
+        let get = |url: &str, headers: serde_json::Value| {
+            analyze_risk(&flow(serde_json::json!([{ "id": "h", "type": "http", "method": "GET", "url": url, "headers": headers }])))
+        };
+        assert!(!get("https://example.com/data", serde_json::json!({})).needs_confirm);
+        let r = get("https://example.com/?q={{name}}", serde_json::json!({}));
+        assert!(r.needs_confirm && keys(&r).contains(&"risk.dynamicUrl"));
+        let r = get("https://example.com/", serde_json::json!({ "Authorization": "Bearer {{secret:tok}}" }));
+        assert!(r.needs_confirm && keys(&r).contains(&"risk.requestVars"));
+        for u in [
+            "http://localhost:8080/",
+            "http://LOCALHOST./",
+            "http://api.localhost/",
+            "http://127.0.0.1/",
+            "http://2130706433/",
+            "http://10.1.2.3/",
+            "http://172.16.0.1/",
+            "http://172.31.255.255/",
+            "http://192.168.0.1/admin",
+            "http://169.254.169.254/latest/meta-data",
+            "http://0.0.0.0/",
+            "http://[::1]/",
+            "http://[fc00::1]/",
+            "http://[fd12:3456::1]/",
+            "http://[fe80::1]/",
+            "http://[::ffff:192.168.1.1]/",
+        ] {
+            let r = get(u, serde_json::json!({}));
+            assert!(r.needs_confirm && keys(&r).contains(&"risk.localNetwork"), "{u}: {r:?}");
+        }
+        for u in ["http://172.32.0.1/", "http://8.8.8.8/", "http://[2001:db8::1]/", "https://localhost.example.com/"] {
+            assert!(!is_local_network_url(u), "{u}");
+        }
+    }
+
+    #[test]
+    fn append_and_copy_need_confirm() {
+        for op in ["append", "copy"] {
+            let r = analyze_risk(&flow(
+                serde_json::json!([{ "id": "f", "type": "file", "op": op, "path": "a.txt", "dest": "b.txt", "content": "x" }]),
+            ));
+            assert!(r.needs_confirm, "{op}: {r:?}");
+        }
+        let r = analyze_risk(&flow(serde_json::json!([{ "id": "f", "type": "file", "op": "read", "path": "a.txt" }])));
+        assert!(!r.needs_confirm);
+    }
 }

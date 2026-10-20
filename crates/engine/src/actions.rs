@@ -1,10 +1,14 @@
 //! File and HTTP actions shared by native backends.
 //!
 //! - File steps require absolute paths (a leading `~` expands to the user's home folder) and
-//!   never follow the process working directory.
+//!   never follow the process working directory. UNC / network paths (`\\host\share`, `//host`)
+//!   are refused: opening them makes Windows authenticate to the remote host (NTLM hash leak).
+//!   Only the local long-path form `\\?\C:\…` is accepted.
 //! - HTTP steps allow only `http`/`https`, time out after 30 s, cap bodies at 10 MB and treat
-//!   4xx/5xx responses as failures so `try`/`catch` and error policies see them. Requests run on
-//!   a helper thread so a stop request returns within one slice even while the network hangs.
+//!   4xx/5xx responses as failures so `try`/`catch` and error policies see them. Redirects are
+//!   never followed (a 3xx is a failure), so a public URL cannot bounce the request to a service on
+//!   this PC or the local network. Requests run on a helper thread so a stop request returns
+//!   within one slice even while the network hangs.
 
 use crate::engine::{BackendError, ErrorCategory, RunControl, SLICE_MS};
 use crate::schema::{FileOp, HttpMethod};
@@ -33,11 +37,31 @@ fn home_dir() -> Option<PathBuf> {
     std::env::var_os("USERPROFILE").or_else(|| std::env::var_os("HOME")).map(PathBuf::from)
 }
 
-/// Resolves a step path: `~` → home, must be absolute afterwards.
+fn is_sep(b: u8) -> bool {
+    b == b'\\' || b == b'/'
+}
+
+/// True for UNC, device and other network-style paths (`\\host\share`, `//host/share`,
+/// `\\?\UNC\…`, `\\.\pipe\…`). The local long-path form `\\?\C:\…` is not one.
+pub fn is_network_path(path: &str) -> bool {
+    let b = path.as_bytes();
+    if b.len() < 2 || !is_sep(b[0]) || !is_sep(b[1]) {
+        return false;
+    }
+    // `\\?\X:\…` (verbatim local drive) is the only allowed double-separator prefix.
+    let local_verbatim =
+        b.len() >= 6 && b[2] == b'?' && is_sep(b[3]) && b[4].is_ascii_alphabetic() && b[5] == b':' && (b.len() == 6 || is_sep(b[6]));
+    !local_verbatim
+}
+
+/// Resolves a step path: `~` → home, must be absolute afterwards. Network paths are refused.
 pub fn resolve_path(raw: &str) -> Result<PathBuf, BackendError> {
     let trimmed = raw.trim();
     if trimmed.is_empty() {
         return Err(BackendError::new(ErrorCategory::Validation, "file path is empty"));
+    }
+    if is_network_path(trimmed) {
+        return Err(BackendError::new(ErrorCategory::Validation, "files on network paths cannot be used"));
     }
     let path = if let Some(rest) = trimmed.strip_prefix('~') {
         let home = home_dir().ok_or_else(|| BackendError::new(ErrorCategory::Environment, "home folder is unknown"))?;
@@ -113,7 +137,7 @@ pub fn check_launch_target(app: &str) -> Result<(), BackendError> {
     if app.is_empty() {
         return Err(BackendError::new(ErrorCategory::Validation, "app is empty"));
     }
-    if app.starts_with("\\\\") || app.starts_with("//") {
+    if is_network_path(app) {
         return Err(BackendError::new(ErrorCategory::Validation, "programs on network paths cannot be launched"));
     }
     if let Some(colon) = app.find(':') {
@@ -172,6 +196,8 @@ fn http_blocking(method: HttpMethod, url: &str, headers: &IndexMap<String, Strin
     let agent: Agent = Agent::config_builder()
         .timeout_global(Some(HTTP_TIMEOUT))
         .http_status_as_error(false)
+        // Never follow redirects: the URL was checked, the Location header was not.
+        .max_redirects(0)
         .user_agent(concat!("AutoFlow/", env!("CARGO_PKG_VERSION")))
         .build()
         .into();
@@ -200,6 +226,10 @@ fn http_blocking(method: HttpMethod, url: &str, headers: &IndexMap<String, Strin
         }
     };
     let status = resp.status();
+    if status.is_redirection() {
+        let to = resp.headers().get("location").and_then(|v| v.to_str().ok()).unwrap_or("?").to_owned();
+        return Err(BackendError::action(format!("HTTP {} redirect to {to} (redirects are not followed)", status.as_u16())));
+    }
     let text = resp
         .body_mut()
         .with_config()
@@ -278,6 +308,57 @@ mod tests {
             let e = check_launch_target(bad).expect_err(bad);
             assert_eq!(e.category, Some(ErrorCategory::Validation), "{bad}");
         }
+    }
+
+    #[test]
+    fn network_paths_are_refused() {
+        for bad in [
+            "\\\\attacker\\share\\x.txt",
+            "//attacker/share/x.txt",
+            "\\/attacker/share",
+            "\\\\?\\UNC\\attacker\\share\\x.txt",
+            "\\\\.\\pipe\\x",
+            "\\\\?\\attacker",
+            "  \\\\attacker\\share",
+        ] {
+            assert!(is_network_path(bad.trim()), "{bad}");
+            let e = resolve_path(bad).expect_err(bad);
+            assert_eq!(e.category, Some(ErrorCategory::Validation), "{bad}");
+            let e = file_action(FileOp::Exists, bad, None, None).expect_err(bad);
+            assert_eq!(e.category, Some(ErrorCategory::Validation), "{bad}");
+            let e = file_action(FileOp::Copy, &std::env::temp_dir().join("x").to_string_lossy(), Some(bad), None).expect_err(bad);
+            assert_eq!(e.category, Some(ErrorCategory::Validation), "{bad}");
+        }
+        for ok in ["C:\\Users\\me\\a.txt", "\\\\?\\C:\\Users\\me\\a.txt", "\\\\?\\d:/x", "/home/me/a.txt", "~/a.txt", "\\x"] {
+            assert!(!is_network_path(ok), "{ok}");
+        }
+        assert!(check_launch_target("\\\\?\\C:\\tools\\app.exe").is_ok());
+    }
+
+    #[cfg(feature = "net")]
+    #[test]
+    fn redirects_are_not_followed() {
+        use std::io::{Read as _, Write as _};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("bind");
+        let port = listener.local_addr().expect("addr").port();
+        let server = std::thread::spawn(move || {
+            let mut hits = 0;
+            listener.set_nonblocking(false).expect("blocking");
+            if let Ok((mut s, _)) = listener.accept() {
+                hits += 1;
+                let mut buf = [0u8; 2048];
+                let _n = s.read(&mut buf);
+                let body = format!(
+                    "HTTP/1.1 302 Found\r\nLocation: http://127.0.0.1:{port}/internal\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+                );
+                let _w = s.write_all(body.as_bytes());
+            }
+            hits
+        });
+        let c = RunControl::new();
+        let e = http_action(&c, HttpMethod::Get, &format!("http://127.0.0.1:{port}/start"), &IndexMap::new(), None).expect_err("redirect");
+        assert!(e.message.contains("redirect"), "{}", e.message);
+        assert_eq!(server.join().expect("server"), 1, "the redirect target must not be requested");
     }
 
     #[test]

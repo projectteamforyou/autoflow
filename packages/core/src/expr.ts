@@ -262,8 +262,23 @@ function toNum(v: Value): number {
   return n;
 }
 
-function eq(a: Value, b: Value): boolean {
-  if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every((x, i) => eq(x, b[i]!));
+/** Evaluation step budget shared by the evaluator and the deep comparisons it triggers. */
+interface Budget {
+  steps: number;
+}
+
+function spend(budget: Budget): void {
+  if (++budget.steps > MAX_STEPS) throw new ExprError("expression too expensive");
+}
+
+/**
+ * Deep equality. Every element comparison is charged to the evaluator's step budget: lists can share
+ * sub-lists (`setVar v = [v, v]` doubles the logical size each time), so the walk is exponential in
+ * nesting depth and must be bounded like everything else.
+ */
+function eq(a: Value, b: Value, budget: Budget): boolean {
+  spend(budget);
+  if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every((x, i) => eq(x, b[i]!, budget));
   if (typeof a === "number" || typeof b === "number") {
     if (a === null || b === null) return a === b;
     const x = Number(a);
@@ -287,7 +302,7 @@ export interface ExprEnv {
   random?: () => number;
 }
 
-type Fn = (args: Value[], env: ExprEnv) => Value;
+type Fn = (args: Value[], env: ExprEnv, budget: Budget) => Value;
 const arity = (name: string, args: Value[], min: number, max = min) => {
   if (args.length < min || args.length > max) throw new ExprError(`${name}() expects ${min === max ? min : `${min}-${max}`} argument(s)`);
 };
@@ -297,9 +312,9 @@ export const FUNCTIONS: Record<string, Fn> = {
   upper: (a) => (arity("upper", a, 1), toStr(a[0]!).toUpperCase()),
   lower: (a) => (arity("lower", a, 1), toStr(a[0]!).toLowerCase()),
   trim: (a) => (arity("trim", a, 1), toStr(a[0]!).trim()),
-  contains: (a) => {
+  contains: (a, _env, budget) => {
     arity("contains", a, 2);
-    return Array.isArray(a[0]) ? a[0].some((x) => eq(x, a[1]!)) : toStr(a[0]!).includes(toStr(a[1]!));
+    return Array.isArray(a[0]) ? a[0].some((x) => eq(x, a[1]!, budget)) : toStr(a[0]!).includes(toStr(a[1]!));
   },
   startsWith: (a) => (arity("startsWith", a, 2), toStr(a[0]!).startsWith(toStr(a[1]!))),
   endsWith: (a) => (arity("endsWith", a, 2), toStr(a[0]!).endsWith(toStr(a[1]!))),
@@ -379,9 +394,13 @@ export const FUNCTIONS: Record<string, Fn> = {
   range: (a) => {
     arity("range", a, 1, 2);
     const [lo, hi] = a.length === 1 ? [0, toNum(a[0]!)] : [toNum(a[0]!), toNum(a[1]!)];
+    // Beyond 2^53 `i++` stops changing `i` (1e17 + 1 === 1e17), so an `i < hi` loop would never end.
+    // Bounds must be finite and within the safe-integer range; the loop runs on a counter regardless.
+    const safe = (x: number) => Math.abs(x) <= Number.MAX_SAFE_INTEGER; // false for NaN / ±Infinity
+    if (!safe(lo) || !safe(hi)) throw new ExprError("range() bounds out of range");
     if (hi - lo > MAX_LIST) throw new ExprError("range too large");
     const out: number[] = [];
-    for (let i = lo; i < hi; i++) out.push(i);
+    for (let k = 0; k < MAX_LIST && lo + k < hi; k++) out.push(lo + k);
     return out;
   },
   /**
@@ -401,9 +420,9 @@ export const FUNCTIONS: Record<string, Fn> = {
 export const FUNCTION_NAMES = Object.keys(FUNCTIONS);
 
 export function evaluate(node: Node, env: ExprEnv): Value {
-  let steps = 0;
+  const budget: Budget = { steps: 0 };
   const ev = (n: Node): Value => {
-    if (++steps > MAX_STEPS) throw new ExprError("expression too expensive");
+    spend(budget);
     switch (n.k) {
       case "lit":
         return n.v;
@@ -426,7 +445,7 @@ export function evaluate(node: Node, env: ExprEnv): Value {
         return s[i < 0 ? s.length + i : i] ?? null;
       }
       case "call":
-        return guard(FUNCTIONS[n.fn]!(n.args.map(ev), env));
+        return guard(FUNCTIONS[n.fn]!(n.args.map(ev), env, budget));
       case "bin": {
         if (n.op === "&&") {
           const a = ev(n.a);
@@ -458,9 +477,9 @@ export function evaluate(node: Node, env: ExprEnv): Value {
             return toNum(a) % d;
           }
           case "==":
-            return eq(a, b);
+            return eq(a, b, budget);
           case "!=":
-            return !eq(a, b);
+            return !eq(a, b, budget);
           case "<":
           case "<=":
           case ">":

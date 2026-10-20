@@ -794,14 +794,19 @@ fn call(name: &str, a: &[Value], env: &ExprEnv<'_>) -> Result<Value, ExprError> 
         "range" => {
             arity(name, a, 1, 2)?;
             let (lo, hi) = if a.len() == 1 { (0.0, to_num(&a[0])?) } else { (to_num(&a[0])?, to_num(&a[1])?) };
+            // Past 2^53 `i += 1.0` no longer changes `i`, so bounds must be safe integers in magnitude.
+            const MAX_SAFE: f64 = 9_007_199_254_740_991.0;
+            if !(lo.abs() <= MAX_SAFE && hi.abs() <= MAX_SAFE) {
+                return Err(ExprError::new("range bounds out of range"));
+            }
             if hi - lo > MAX_LIST as f64 {
                 return Err(ExprError::new("range too large"));
             }
             let mut out = Vec::new();
-            let mut i = lo;
-            while i < hi {
-                out.push(Value::Num(i));
-                i += 1.0;
+            let mut k = 0.0;
+            while lo + k < hi {
+                out.push(Value::Num(lo + k));
+                k += 1.0;
             }
             Value::List(out)
         }
@@ -1138,5 +1143,7 @@ mod tests {
         assert_eq!(parse(&long).expect_err("long").message, "expression too long");
         assert_eq!(ev("len(range(100000))").expect("ok"), Value::Num(100_000.0));
         assert_eq!(ev("range(100001)").expect_err("big").message, "range too large");
+        assert_eq!(ev("range(1e17, 1e17 + 32)").expect_err("huge").message, "range bounds out of range");
+        assert_eq!(ev("len(range(0.5, 3))").expect("fractional range"), Value::Num(3.0));
     }
 }

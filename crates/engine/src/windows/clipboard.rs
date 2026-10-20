@@ -3,7 +3,7 @@
 use crate::engine::{BackendError, ErrorCategory};
 use ::windows::Win32::Foundation::{GlobalFree, HANDLE, HGLOBAL};
 use ::windows::Win32::System::DataExchange::{CloseClipboard, EmptyClipboard, GetClipboardData, OpenClipboard, SetClipboardData};
-use ::windows::Win32::System::Memory::{GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_MOVEABLE};
+use ::windows::Win32::System::Memory::{GlobalAlloc, GlobalLock, GlobalSize, GlobalUnlock, GMEM_MOVEABLE};
 use ::windows::Win32::System::Ole::CF_UNICODETEXT;
 use std::time::Duration;
 
@@ -42,8 +42,10 @@ pub fn get_text() -> Result<String, BackendError> {
         if p.is_null() {
             return Ok(String::new());
         }
+        // Never read past the allocation, even when another app stored text without a NUL.
+        let max = (GlobalSize(hg) / 2).min(64 * 1024 * 1024);
         let mut len = 0usize;
-        while *p.add(len) != 0 && len < 64 * 1024 * 1024 {
+        while len < max && *p.add(len) != 0 {
             len += 1;
         }
         let text = String::from_utf16_lossy(std::slice::from_raw_parts(p, len));

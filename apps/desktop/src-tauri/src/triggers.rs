@@ -9,15 +9,19 @@ use crate::platform;
 use crate::runs::{self, Origin};
 use crate::state::{emit, lock, AppState};
 use autoflow_engine::bridge::{BridgeEvent, HotkeyAction, TriggerFailure, TriggersSynced};
-use autoflow_engine::keys::canonical_key;
+use autoflow_engine::keys::{canonical_key, is_modifier, is_printable};
 use autoflow_engine::schedule::Schedule;
-use autoflow_engine::schema::{parse_flow, AppEventKind, DeviceEventKind, Flow, Hotkey, HotkeyScope, Trigger};
+use autoflow_engine::schema::{
+    default_stop_hotkey, parse_flow, AppEventKind, DeviceEventKind, Flow, Hotkey, HotkeyScope, Modifier, Trigger,
+};
 use std::collections::{HashMap, HashSet};
 use std::time::Duration;
 use tauri::{AppHandle, Manager};
 
 /// Hotkey id of the emergency stop.
 pub const HALT_ID: i32 = 1;
+/// First id of the emergency stop with extra modifiers (ids `2..=16`, below flow ids at 100).
+const HALT_VARIANT_ID: i32 = 2;
 
 /// What a registered hotkey does.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -59,17 +63,82 @@ fn now_ms() -> u64 {
     u64::try_from(std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis())).unwrap_or(0)
 }
 
+/// Checks an emergency stop combination: a real, non-modifier key with at least one modifier,
+/// and never a plain character with only Shift (that would swallow typing system-wide).
+pub fn check_emergency(h: &Hotkey) -> Result<(), String> {
+    let key = canonical_key(&h.key).filter(|k| !k.is_empty()).ok_or_else(|| format!("unknown key \"{}\"", h.key))?;
+    if is_modifier(&key) {
+        return Err("the emergency stop needs a key besides the modifiers".into());
+    }
+    if h.modifiers.is_empty() {
+        return Err("the emergency stop needs at least one modifier (Ctrl, Alt, Shift or Win)".into());
+    }
+    if is_printable(&key) && h.modifiers.iter().all(|m| *m == Modifier::Shift) {
+        return Err("Shift plus a character cannot be the emergency stop".into());
+    }
+    Ok(())
+}
+
+/// The emergency stop plus every combination with extra modifiers held, so Halt still fires
+/// while a flow holds Shift/Win/… down (`RegisterHotKey` matches modifiers exactly). Variants
+/// another app already uses are skipped silently.
+fn halt_hotkeys(emergency: &Hotkey) -> Vec<(i32, Hotkey)> {
+    let extra: Vec<Modifier> =
+        [Modifier::Ctrl, Modifier::Alt, Modifier::Shift, Modifier::Meta].into_iter().filter(|m| !emergency.modifiers.contains(m)).collect();
+    let mut out = vec![(HALT_ID, emergency.clone())];
+    for (id, mask) in (HALT_VARIANT_ID..).zip(1u32..(1 << extra.len())) {
+        let mut h = emergency.clone();
+        h.modifiers.extend(extra.iter().enumerate().filter(|(i, _)| mask & (1 << i) != 0).map(|(_, m)| *m));
+        out.push((id, h));
+    }
+    out
+}
+
+fn is_halt_variant(id: i32) -> bool {
+    (HALT_VARIANT_ID..100).contains(&id)
+}
+
+/// Emergency stops to try, in order: `wanted` (when valid), the one registered before, then the
+/// default Ctrl+Alt+Esc — so a bad or taken combination never leaves the app without Halt.
+fn emergency_candidates(wanted: Option<Hotkey>, previous: Hotkey) -> Vec<Hotkey> {
+    let mut out: Vec<Hotkey> = Vec::new();
+    for h in wanted.into_iter().chain([previous, default_stop_hotkey()]) {
+        if check_emergency(&h).is_ok() && !out.iter().any(|o| combo(o) == combo(&h)) {
+            out.push(h);
+        }
+    }
+    out
+}
+
 /// Registers only the emergency stop (at startup, before the web app syncs).
 pub fn register_halt(app: &AppHandle) -> Result<(), String> {
     let state = app.state::<AppState>();
     let emergency = lock(&state.emergency).clone();
     let hk = lock(&state.hotkeys);
     let hk = hk.as_ref().ok_or("global hotkeys are unavailable")?;
-    lock(&state.triggers).bindings.insert(HALT_ID, Binding::Halt);
-    match hk.set(vec![(HALT_ID, emergency)]).into_iter().next() {
-        Some((_, r)) => r,
-        None => Err("hotkey registration failed".into()),
+    let mut first_err = None;
+    for candidate in emergency_candidates(None, emergency) {
+        let halts = halt_hotkeys(&candidate);
+        {
+            let mut t = lock(&state.triggers);
+            for (id, _) in &halts {
+                t.bindings.insert(*id, Binding::Halt);
+            }
+        }
+        match hk.set(halts).into_iter().find(|(id, _)| *id == HALT_ID) {
+            Some((_, Ok(()))) => {
+                *lock(&state.emergency) = candidate;
+                return Ok(());
+            }
+            Some((_, Err(e))) => {
+                first_err.get_or_insert(e);
+            }
+            None => {
+                first_err.get_or_insert_with(|| "hotkey registration failed".into());
+            }
+        }
     }
+    Err(first_err.unwrap_or_else(|| "hotkey registration failed".into()))
 }
 
 fn fail(failed: &mut Vec<TriggerFailure>, flow: &str, reason: String) {
@@ -98,10 +167,19 @@ pub fn sync(app: &AppHandle, flows: &[serde_json::Value], emergency: Hotkey) -> 
             lib.insert(f.id.clone(), f.clone());
         }
     }
-    *lock(&state.emergency) = emergency.clone();
+    let previous = lock(&state.emergency).clone();
+    let wanted = match check_emergency(&emergency) {
+        Ok(()) => Some(emergency.clone()),
+        Err(reason) => {
+            fail(&mut failed, "emergency", format!("{}: {reason}", emergency.to_display_string()));
+            None
+        }
+    };
+    let candidates = emergency_candidates(wanted, previous);
+    let emergency = candidates.first().cloned().unwrap_or_else(default_stop_hotkey);
 
     let mut table = TriggerTable::default();
-    let mut hotkeys: Vec<(i32, Hotkey)> = vec![(HALT_ID, emergency.clone())];
+    let mut hotkeys: Vec<(i32, Hotkey)> = Vec::new();
     let mut owner: HashMap<String, (String, i32)> = HashMap::new();
     owner.insert(combo(&emergency), ("emergency stop".into(), HALT_ID));
     table.bindings.insert(HALT_ID, Binding::Halt);
@@ -167,11 +245,47 @@ pub fn sync(app: &AppHandle, flows: &[serde_json::Value], emergency: Hotkey) -> 
         }
     }
 
-    let results = match lock(&state.hotkeys).as_ref() {
-        Some(hk) => hk.set(hotkeys),
-        None => hotkeys.iter().map(|(id, _)| (*id, Err("global hotkeys are unavailable".to_owned()))).collect(),
-    };
+    // Try the requested emergency stop first; if Windows refuses it, fall back to the previous
+    // one (then the default) so Halt is never lost.
+    let mut results = Vec::new();
+    let mut effective = emergency.clone();
+    let mut halt_error: Option<String> = None;
+    for (n, candidate) in candidates.iter().enumerate() {
+        let halts: Vec<(i32, Hotkey)> = halt_hotkeys(candidate)
+            .into_iter()
+            .filter(|(id, h)| *id == HALT_ID || !owner.get(&combo(h)).is_some_and(|(_, other)| *other != HALT_ID))
+            .collect();
+        for (id, _) in &halts {
+            table.bindings.insert(*id, Binding::Halt);
+        }
+        let all: Vec<(i32, Hotkey)> = halts.into_iter().chain(hotkeys.iter().cloned()).collect();
+        results = match lock(&state.hotkeys).as_ref() {
+            Some(hk) => hk.set(all),
+            None => all.iter().map(|(id, _)| (*id, Err("global hotkeys are unavailable".to_owned()))).collect(),
+        };
+        effective = candidate.clone();
+        match results.iter().find(|(id, _)| *id == HALT_ID) {
+            Some((_, Err(reason))) if n + 1 < candidates.len() && lock(&state.hotkeys).is_some() => {
+                halt_error.get_or_insert_with(|| format!("{}: {reason}", candidate.to_display_string()));
+                table.bindings.retain(|id, _| !is_halt_variant(*id));
+            }
+            _ => break,
+        }
+    }
+    if let Some(reason) = halt_error {
+        let kept = results.iter().any(|(id, r)| *id == HALT_ID && r.is_ok());
+        let note = if kept { format!("; {} stays the emergency stop", effective.to_display_string()) } else { String::new() };
+        fail(&mut failed, "emergency", format!("{reason}{note}"));
+    }
+    *lock(&state.emergency) = effective;
     for (id, r) in results {
+        if is_halt_variant(id) {
+            // Extra-modifier variants are best effort.
+            if r.is_err() {
+                table.bindings.remove(&id);
+            }
+            continue;
+        }
         if let Err(reason) = r {
             let flow = match table.bindings.get(&id) {
                 Some(Binding::Start(f, _) | Binding::Pause(f) | Binding::Stop(f)) => f.clone(),
@@ -290,5 +404,49 @@ pub fn spawn_watcher(app: AppHandle) {
     });
     if let Err(e) = spawned {
         eprintln!("autoflow: trigger watcher unavailable: {e}");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn hk(key: &str, modifiers: &[Modifier]) -> Hotkey {
+        Hotkey { key: key.into(), modifiers: modifiers.to_vec() }
+    }
+
+    #[test]
+    fn emergency_stop_must_be_a_real_combination() {
+        assert!(check_emergency(&default_stop_hotkey()).is_ok());
+        assert!(check_emergency(&hk("F12", &[Modifier::Ctrl])).is_ok());
+        assert!(check_emergency(&hk("Escape", &[])).is_err());
+        assert!(check_emergency(&hk("", &[Modifier::Ctrl])).is_err());
+        assert!(check_emergency(&hk("Shift", &[Modifier::Ctrl])).is_err());
+        assert!(check_emergency(&hk("a", &[Modifier::Shift])).is_err());
+    }
+
+    #[test]
+    fn invalid_or_taken_stops_fall_back_to_the_previous_then_the_default() {
+        let prev = hk("F12", &[Modifier::Ctrl, Modifier::Alt]);
+        let c = emergency_candidates(Some(hk("Escape", &[Modifier::Ctrl, Modifier::Shift])), prev.clone());
+        assert_eq!(c.len(), 3);
+        assert_eq!(c[1], prev);
+        assert_eq!(c[2], default_stop_hotkey());
+        let c = emergency_candidates(None, default_stop_hotkey());
+        assert_eq!(c, vec![default_stop_hotkey()]);
+    }
+
+    #[test]
+    fn halt_also_fires_with_extra_modifiers_held() {
+        let all = halt_hotkeys(&default_stop_hotkey());
+        assert_eq!(all[0], (HALT_ID, default_stop_hotkey()));
+        // Ctrl+Alt+Esc plus Shift, Win, or both.
+        assert_eq!(all.len(), 4);
+        assert!(all[1..].iter().all(|(id, h)| is_halt_variant(*id) && h.key == "Escape" && h.modifiers.len() > 2));
+        assert!(all.iter().any(|(_, h)| h.modifiers.contains(&Modifier::Shift) && h.modifiers.contains(&Modifier::Meta)));
+        // A one-modifier stop gets 7 variants, still below the flow ids.
+        let all = halt_hotkeys(&hk("F12", &[Modifier::Ctrl]));
+        assert_eq!(all.len(), 8);
+        assert!(all.iter().all(|(id, _)| *id < 100));
     }
 }

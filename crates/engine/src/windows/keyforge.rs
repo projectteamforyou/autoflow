@@ -77,6 +77,7 @@ impl Shared {
 enum Exec {
     Actions(Vec<RemapAction>),
     Wheel(i32, bool),
+    StopRepeats,
     Quit,
 }
 
@@ -108,10 +109,11 @@ impl HookSink for Sink {
         }
         let input = match e {
             RawEvent::Key { key, text, down, modifiers, .. } => {
-                // Never let a remap capture the emergency stop.
+                // Never let a remap capture the emergency stop, even with extra modifiers held
+                // (e.g. a Shift a flow left down).
                 if let Some(h) = &st.emergency {
                     let k = crate::keys::canonical_key(key);
-                    if *down && k == crate::keys::canonical_key(&h.key) && same_set(modifiers, &h.modifiers) {
+                    if *down && k == crate::keys::canonical_key(&h.key) && includes_all(modifiers, &h.modifiers) {
                         return false;
                     }
                 }
@@ -152,8 +154,9 @@ impl HookSink for Sink {
     }
 }
 
-fn same_set(a: &[Modifier], b: &[Modifier]) -> bool {
-    a.iter().all(|m| b.contains(m)) && b.iter().all(|m| a.contains(m))
+/// True when every modifier of `wanted` is in `held` (extra held modifiers are ignored).
+fn includes_all(held: &[Modifier], wanted: &[Modifier]) -> bool {
+    wanted.iter().all(|m| held.contains(m))
 }
 
 /* --------------------------------------------------------------- executor */
@@ -246,6 +249,7 @@ fn executor(rx: mpsc::Receiver<Exec>, host: Arc<dyn KeyforgeHost>) {
             repeats.values().map(|(due, _, _)| due.saturating_duration_since(Instant::now())).min().unwrap_or(Duration::from_secs(3600));
         match rx.recv_timeout(timeout) {
             Ok(Exec::Quit) | Err(mpsc::RecvTimeoutError::Disconnected) => break,
+            Ok(Exec::StopRepeats) => repeats.clear(),
             Ok(Exec::Wheel(delta, horizontal)) => {
                 let _ignored = if horizontal { input::wheel(i64::from(delta), 0) } else { input::wheel(0, -i64::from(delta)) };
             }
@@ -483,6 +487,20 @@ impl Keyforge {
         }
         reevaluate(&self.shared);
         Ok(())
+    }
+
+    /// Stops every auto-repeat and releases whatever the active profile holds down (Halt). The
+    /// profile stays active; its mappings start fresh.
+    pub fn stop_repeats(&self) {
+        let releases = {
+            let mut st = self.shared.lock();
+            let current = st.active.as_ref().and_then(|id| st.profiles.iter().find(|p| &p.id == id).cloned());
+            st.remapper.set_profile(current)
+        };
+        self.shared.send(Exec::StopRepeats);
+        if !releases.is_empty() {
+            self.shared.send(Exec::Actions(releases));
+        }
     }
 
     /// Also remap input injected by other software (on-screen keyboards, other tools). Off by

@@ -110,7 +110,8 @@ fn implied_modifiers(spec: KeySpec) -> Vec<Modifier> {
     out
 }
 
-fn all_modifiers(spec: KeySpec, modifiers: &[Modifier]) -> Vec<Modifier> {
+/// The step's modifiers plus those the layout needs to produce `spec`.
+pub fn all_modifiers(spec: KeySpec, modifiers: &[Modifier]) -> Vec<Modifier> {
     let mut mods = modifiers.to_vec();
     for m in implied_modifiers(spec) {
         if !mods.contains(&m) {
@@ -139,6 +140,11 @@ pub fn key_transition(spec: KeySpec, modifiers: &[Modifier], up: bool) -> Result
         mods.iter().map(|m| key_event(modifier_vk(*m), false)).chain(std::iter::once(key_event(spec, false))).collect()
     };
     send(&batch)
+}
+
+/// Sends a key-up for each of `keys`, in order (releasing keys a run left held down).
+pub fn keys_up(keys: &[KeySpec]) -> Result<(), BackendError> {
+    send(&keys.iter().map(|k| key_event(*k, true)).collect::<Vec<_>>())
 }
 
 /// Releases (`up = true`) or re-presses physically held modifiers around a remapped key.
@@ -210,7 +216,7 @@ pub fn glide_to(from: (i32, i32), to: (i32, i32), duration_ms: u64, control: &Ru
         let p = |a: i32, b: i32| (f64::from(a) + (f64::from(b) - f64::from(a)) * f).round() as i32;
         move_to(p(from.0, to.0), p(from.1, to.1))?;
         if i < steps {
-            std::thread::sleep(Duration::from_millis(duration_ms / steps));
+            pause(duration_ms / steps, control)?;
         }
     }
     Ok(())

@@ -255,7 +255,8 @@ export const useStore = create<State>((set, get) => ({
   toast(kind, text, action) {
     const id = ++toastSeq;
     set({ toasts: [...get().toasts, { id, kind, text, action }].slice(-4) });
-    setTimeout(() => get().dismissToast(id), kind === "error" ? 7000 : 4000);
+    // Toasts with an action (e.g. "update ready → Reload") stay until used or dismissed.
+    if (!action) setTimeout(() => get().dismissToast(id), kind === "error" ? 7000 : 4000);
   },
 
   dismissToast(id) {

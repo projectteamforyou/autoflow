@@ -68,6 +68,8 @@ export function orderDto(o: Order) {
     createdAt: o.createdAt.toISOString(),
     paidAt: o.paidAt?.toISOString() ?? null,
     validUntil: o.validUntil?.toISOString() ?? null,
+    /** Lets the buyer re-check a pending order (e.g. after returning signed out); null once settled. */
+    paymentId: o.status === "pending" ? o.providerPaymentId : null,
   };
 }
 
@@ -358,7 +360,9 @@ async function confirmPortone(deps: AppDeps, s: BillingSettings, order: Order): 
   switch (p.status) {
     case "PAID": {
       const currencyOk = p.currency === "KRW" || p.currency === "CURRENCY_KRW";
-      const matches = currencyOk && p.amount?.total === order.amount && (p.id === undefined || p.id === paymentId) && (!p.storeId || !s.portone.storeId || p.storeId === s.portone.storeId);
+      const matches = currencyOk && p.amount?.total === order.amount && (p.id === undefined || p.id === paymentId) && (!p.storeId || !s.portone.storeId || p.storeId === s.portone.storeId) &&
+        // Paid through the channel we configured — a test channel on the same store must not grant a license.
+        (!p.channel?.key || !s.portone.channelKey || p.channel.key === s.portone.channelKey);
       if (!matches) {
         // Money moved but not for what we sold: refund it rather than keep it.
         const refunded = await pay.portoneCancel(deps, s.portone.apiSecret, paymentId, "Amount or currency did not match the order");
@@ -401,7 +405,9 @@ async function confirmPaypal(deps: AppDeps, s: BillingSettings, order: Order): P
   if (!capture) throw notCompleted(ord.purchase_units?.[0]?.payments?.captures?.[0]?.status ?? ord.status);
   if (!paypalAmountOk(order, capture.amount)) {
     deps.logger.error("billing.paypal_capture_mismatch", { orderId: order.id, captureId: capture.id });
-    return reject(deps, order, "failed", "capture_amount_mismatch", ord, "payment_mismatch");
+    // Money moved but not for what we sold: refund it rather than keep it (same as PortOne).
+    const refunded = capture.id ? await pay.paypalRefundCapture(deps, creds, capture.id, `refund-${order.id}`) : false;
+    return reject(deps, order, "failed", refunded ? "capture_amount_mismatch_refunded" : "capture_amount_mismatch", ord, "payment_mismatch");
   }
   return settle(deps, order, ord);
 }

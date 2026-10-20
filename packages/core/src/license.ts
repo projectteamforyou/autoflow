@@ -3,7 +3,9 @@
  *
  * - 20 Crockford base32 symbols (0-9, A-Z without I, L, O, U): 19 random (95 bits) + 1 check symbol.
  * - The check symbol is Luhn mod 32 over the 19 payload symbols, so any single mistyped symbol and
- *   any swap of two adjacent symbols is caught on the client before a request is made.
+ *   almost every swap of two adjacent symbols is caught on the client before a request is made
+ *   (the one exception is swapping `0` and `Z` — see licenseCheckSymbol). The server still verifies
+ *   the hash, so an undetected typo only costs a round trip.
  * - Input is forgiving: case, spaces, missing dashes/prefix and the Crockford look-alikes
  *   (O → 0, I/L → 1) are normalised away.
  *
@@ -21,7 +23,12 @@ export const LICENSE_KEY_PLACEHOLDER = "AFB-XXXXX-XXXXX-XXXXX-XXXXX";
 
 const VALUE: Record<string, number> = Object.fromEntries([...LICENSE_KEY_ALPHABET].map((ch, i) => [ch, i]));
 
-/** Luhn mod N (N = 32) check symbol for a payload of alphabet symbols. */
+/**
+ * Luhn mod N (N = 32) check symbol for a payload of alphabet symbols. It catches every single-symbol
+ * typo and most adjacent transpositions, but NOT all of them: like base-10 Luhn ("09" ↔ "90"), a swap
+ * of the alphabet's first and last symbols ("0Z" ↔ "Z0", i.e. values 0 and 31) keeps the sum and still validates.
+ * The algorithm is frozen — changing it would invalidate keys already issued.
+ */
 export function licenseCheckSymbol(payload: string): string {
   let sum = 0;
   let factor = 2;

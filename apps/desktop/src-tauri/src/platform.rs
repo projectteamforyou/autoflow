@@ -230,6 +230,10 @@ mod imp {
         pub fn force(&self, id: Option<String>) -> Result<(), String> {
             self.0.force(id)
         }
+        /// Stops every Keyforge auto-repeat (Halt).
+        pub fn stop_repeats(&self) {
+            self.0.stop_repeats();
+        }
     }
 }
 
@@ -384,6 +388,8 @@ mod imp {
         pub fn force(&self, _id: Option<String>) -> Result<(), String> {
             Err(ONLY_WINDOWS.into())
         }
+        /// No-op.
+        pub fn stop_repeats(&self) {}
     }
 }
 

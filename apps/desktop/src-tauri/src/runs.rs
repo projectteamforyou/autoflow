@@ -9,7 +9,7 @@ use crate::state::{emit, lock, AppState, Hooks, RunEntry};
 use autoflow_engine::bridge::BridgeEvent;
 use autoflow_engine::risk::RiskReport;
 use autoflow_engine::schema::{Flow, Platform};
-use autoflow_engine::{FlowRun, InputBackend, MockBackend, RunControl, RunEvent, RunOptions, Value};
+use autoflow_engine::{FlowRun, InputBackend, MockBackend, RunControl, RunEvent, RunHandle, RunOptions, Value};
 use indexmap::IndexMap;
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
@@ -75,20 +75,27 @@ pub fn start(app: &AppHandle, flow: Flow, inputs: IndexMap<String, Value>, origi
     let library: HashMap<String, Flow> = lock(&state.library).clone();
 
     let run_id: Arc<OnceLock<String>> = Arc::new(OnceLock::new());
+    // The run's own control, so Halt / Stop also dismisses an approval dialog that is still open.
+    let run_handle: Arc<OnceLock<RunHandle>> = Arc::new(OnceLock::new());
     let (sink_id, sink_app) = (Arc::clone(&run_id), app.clone());
     let name = flow.name.clone();
     let (confirm_risk, confirm_screen): (autoflow_engine::engine::RiskApproval, autoflow_engine::engine::ScreenApproval) = match origin {
         Origin::Ui { approved_risk, approved_screen } => (Box::new(move |_| approved_risk), Box::new(move |_, _| approved_screen)),
         Origin::Attended => {
             let n2 = name.clone();
+            let (h1, h2) = (Arc::clone(&run_handle), Arc::clone(&run_handle));
+            let ask = |q: &str, h: &OnceLock<RunHandle>| match h.get() {
+                Some(h) => platform::ask(q, h.control()),
+                None => platform::ask(q, &RunControl::new()),
+            };
             (
-                Box::new(move |r| platform::ask(&risk_question(&name, r), &RunControl::new())),
+                Box::new(move |r| ask(&risk_question(&name, r), &h1)),
                 Box::new(move |rec, live| {
                     let q = format!(
                         "\u{201c}{n2}\u{201d} was recorded on a {}×{} screen but this screen is {}×{}. Clicks may land in the wrong place.\n\nRun anyway?",
                         rec.width, rec.height, live.width, live.height
                     );
-                    platform::ask(&q, &RunControl::new())
+                    ask(&q, &h2)
                 }),
             )
         }
@@ -120,6 +127,7 @@ pub fn start(app: &AppHandle, flow: Flow, inputs: IndexMap<String, Value>, origi
     let run = FlowRun::new(flow, backend, opts);
     let id = run.id().to_owned();
     let _set = run_id.set(id.clone());
+    let _set_handle = run_handle.set(run.handle());
     lock(&state.runs).insert(id.clone(), RunEntry { handle: run.handle(), flow_id });
     let (app2, id2) = (app.clone(), id.clone());
     let spawned = std::thread::Builder::new().name(format!("autoflow-{id}")).stack_size(8 * 1024 * 1024).spawn(move || {
@@ -141,11 +149,15 @@ pub fn start_known(app: &AppHandle, flow_id: &str, origin: Origin) -> Option<Str
     start(app, flow, IndexMap::new(), origin, false).ok()
 }
 
-/// Stops every run (Halt).
+/// Stops every run and every Keyforge auto-repeat (Halt).
 pub fn halt_all(app: &AppHandle, reason: &str) {
-    for r in lock(&app.state::<AppState>().runs).values() {
+    let state = app.state::<AppState>();
+    for r in lock(&state.runs).values() {
         r.handle.stop(reason);
     }
+    if let Some(kf) = lock(&state.keyforge).as_ref() {
+        kf.stop_repeats();
+    };
 }
 
 /// Stops the runs of one flow.

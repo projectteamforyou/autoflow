@@ -4,7 +4,7 @@
 //! candidates, which are refined at full resolution. Scores are in `[-1, 1]` and compared with
 //! the step's `confidence`. Platform layers provide the screen pixels.
 
-use crate::engine::{BackendError, ErrorCategory};
+use crate::engine::{BackendError, ErrorCategory, RunControl};
 use std::path::Path;
 
 /// Grayscale image with `f32` luma per pixel.
@@ -102,15 +102,21 @@ fn ncc_at(img: &Gray, tw: usize, th: usize, tz: &[f32], tn: f32, x: usize, y: us
 }
 
 /// Best match of `tpl` inside `img`: top-left position and score.
-pub fn find_template(img: &Gray, tpl: &Gray) -> Option<(usize, usize, f32)> {
+///
+/// A full-screen search can take a while, so the run's stop flag is checked once per row and
+/// [`BackendError::aborted`] is returned as soon as the run is stopped.
+pub fn find_template(img: &Gray, tpl: &Gray, control: &RunControl) -> Result<Option<(usize, usize, f32)>, BackendError> {
     if tpl.w > img.w || tpl.h > img.h || tpl.w == 0 || tpl.h == 0 {
-        return None;
+        return Ok(None);
     }
     let s = (tpl.w.min(tpl.h) / 8).clamp(1, 4);
     let (ci, ct) = (downscale(img, s), downscale(tpl, s));
     let (cz, cn) = zero_mean(&ct);
     let mut candidates: Vec<(f32, usize, usize)> = Vec::new();
     for y in 0..=(ci.h.saturating_sub(ct.h)) {
+        if control.is_stopped() {
+            return Err(BackendError::aborted());
+        }
         for x in 0..=(ci.w.saturating_sub(ct.w)) {
             let score = ncc_at(&ci, ct.w, ct.h, &cz, cn, x, y);
             if score > 0.4 {
@@ -126,6 +132,9 @@ pub fn find_template(img: &Gray, tpl: &Gray) -> Option<(usize, usize, f32)> {
     for (_, cx, cy) in candidates {
         let (fx, fy) = (cx * s, cy * s);
         for y in fy.saturating_sub(r)..=(fy + r).min(img.h - tpl.h) {
+            if control.is_stopped() {
+                return Err(BackendError::aborted());
+            }
             for x in fx.saturating_sub(r)..=(fx + r).min(img.w - tpl.w) {
                 let score = ncc_at(img, tpl.w, tpl.h, &z, n, x, y);
                 if best.map_or(true, |b| score > b.2) {
@@ -134,7 +143,7 @@ pub fn find_template(img: &Gray, tpl: &Gray) -> Option<(usize, usize, f32)> {
             }
         }
     }
-    best
+    Ok(best)
 }
 
 #[cfg(test)]
@@ -162,7 +171,7 @@ mod tests {
                 img.px[(oy + y) * img.w + ox + x] = tpl.px[y * tpl.w + x];
             }
         }
-        let (x, y, score) = find_template(&img, &tpl).expect("found");
+        let (x, y, score) = find_template(&img, &tpl, &RunControl::new()).expect("not stopped").expect("found");
         assert_eq!((x, y), (ox, oy));
         assert!(score > 0.99, "score {score}");
     }
@@ -171,7 +180,27 @@ mod tests {
     fn rejects_absent_templates() {
         let img = pattern(200, 120, 3);
         let tpl = pattern(32, 32, 1234);
-        assert!(find_template(&img, &tpl).map_or(true, |(_, _, s)| s < 0.9));
-        assert!(find_template(&tpl, &img).is_none());
+        let c = RunControl::new();
+        assert!(find_template(&img, &tpl, &c).expect("not stopped").map_or(true, |(_, _, s)| s < 0.9));
+        assert!(find_template(&tpl, &img, &c).expect("not stopped").is_none());
+    }
+
+    #[test]
+    fn stops_when_the_run_is_stopped() {
+        let img = pattern(320, 200, 7);
+        let tpl = pattern(40, 24, 99);
+        let run = crate::FlowRun::new(
+            crate::schema::parse_flow(&serde_json::json!({
+                "schemaVersion": "1.0", "id": "f_test", "name": "t", "steps": [],
+                "createdAt": "2026-10-19T00:00:00.000Z", "updatedAt": "2026-10-19T00:00:00.000Z"
+            }))
+            .expect("flow"),
+            Box::new(crate::MockBackend::new(crate::schema::Platform::Windows)),
+            crate::RunOptions::default(),
+        );
+        let handle = run.handle();
+        handle.stop("test");
+        let e = find_template(&img, &tpl, handle.control()).expect_err("aborted");
+        assert!(e.aborted);
     }
 }
