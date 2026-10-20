@@ -287,6 +287,9 @@ const TAKEOVER_PX = 24;
 const INPUT_TYPES = new Set<Step["type"]>(["click", "move", "drag", "scroll", "key", "type"]);
 /** Stop latency target is 500 ms; long waits are sliced so pause/stop/limits are observed quickly. */
 const SLICE_MS = 100;
+/** gate() yields a macrotask after this much wall-clock time so stop()/pause() can be delivered. */
+const YIELD_EVERY_MS = 50;
+const realNow: () => number = typeof performance !== "undefined" && typeof performance.now === "function" ? () => performance.now() : () => Date.now();
 
 /* -------------------------------------------------------------------- run */
 
@@ -298,7 +301,10 @@ export class FlowRun {
   private releasePause: (() => void) | null = null;
   private stepOnce = false;
   private stopReason: string | undefined;
-  private vars: Record<string, Value> = {};
+  /** Prototype-less so a variable named `__proto__`/`constructor` is just an ordinary own key. */
+  private vars: Record<string, Value> = Object.create(null) as Record<string, Value>;
+  /** Wall-clock time (never the virtual clock) of the last macrotask yield in gate(). */
+  private lastYield = realNow();
   private actions = 0;
   private iterations = 0;
   private stepCount = 0;
@@ -571,7 +577,8 @@ export class FlowRun {
 
   private initVars(): void {
     for (const v of this.flow.variables) {
-      const input = this.opts.inputs?.[v.name];
+      const inputs = this.opts.inputs;
+      const input = inputs && Object.prototype.hasOwnProperty.call(inputs, v.name) ? inputs[v.name] : undefined;
       let val: Value = input ?? (v.initial as Value | undefined) ?? defaultFor(v.type);
       if (v.type === "number") val = Number(val);
       if (v.type === "boolean") val = val === true || val === "true";
@@ -609,6 +616,14 @@ export class FlowRun {
 
   private async gate(): Promise<void> {
     if (this.ctrl.signal.aborted) throw this.ctrl.signal.reason;
+    // Awaiting only microtasks starves the event loop: a loop/forEach/goto whose body never really
+    // waits (setVar, log, ...) would never let a stop() from a timer, IPC or UI event in. Yield a
+    // real macrotask every YIELD_EVERY_MS of wall-clock time; cheap enough to keep virtual-clock tests fast.
+    if (realNow() - this.lastYield >= YIELD_EVERY_MS) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      this.lastYield = realNow();
+      if (this.ctrl.signal.aborted) throw this.ctrl.signal.reason;
+    }
     if (this.clock.now() - this.startedAt > this.flow.limits.maxDurationMs) {
       throw new RunFailure({ message: `maximum run time reached (${Math.round(this.flow.limits.maxDurationMs / 1000)}s)`, category: "limit" });
     }

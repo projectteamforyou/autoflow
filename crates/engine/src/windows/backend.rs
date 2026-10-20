@@ -1,5 +1,6 @@
 //! [`WindowsBackend`]: the real-input [`InputBackend`] for Windows.
 
+use super::keymap::{modifier_vk, KeySpec};
 use super::{capture, clipboard, input, ocr, screen, shell, uia, wide, window};
 use crate::actions::{file_action, http_action};
 use crate::display::DisplayInfo;
@@ -81,15 +82,43 @@ pub fn message_box_confirm(message: &str, control: &RunControl) -> Result<bool, 
 }
 
 /// Real input backend. Cheap to create; one per run.
+///
+/// Keys pressed by `key` steps with `action: "down"` (and their modifiers) are remembered until
+/// the matching `up`; whatever is still held is released when the run is stopped and when the
+/// backend is dropped at the end of the run, so a halted flow never leaves Shift/Win/… stuck.
 pub struct WindowsBackend {
     host: Arc<dyn Host>,
+    held: Vec<KeySpec>,
 }
 
 impl WindowsBackend {
     /// A backend using `host` for notifications, questions, profiles and template images.
     pub fn new(host: Arc<dyn Host>) -> Self {
         super::init_process();
-        Self { host }
+        Self { host, held: Vec::new() }
+    }
+
+    fn track_down(&mut self, spec: KeySpec, modifiers: &[crate::schema::Modifier]) {
+        let implied = input::all_modifiers(spec, modifiers);
+        for k in implied.iter().map(|m| modifier_vk(*m)).chain(std::iter::once(spec)) {
+            if !self.held.iter().any(|h| h.vk == k.vk) {
+                self.held.push(k);
+            }
+        }
+    }
+
+    fn track_up(&mut self, spec: KeySpec, modifiers: &[crate::schema::Modifier]) {
+        let released: Vec<u16> =
+            input::all_modifiers(spec, modifiers).iter().map(|m| modifier_vk(*m).vk).chain(std::iter::once(spec.vk)).collect();
+        self.held.retain(|h| !released.contains(&h.vk));
+    }
+
+    /// Releases every key still held down by this run (most recent first).
+    pub fn release_all(&mut self) {
+        let held = std::mem::take(&mut self.held);
+        if !held.is_empty() {
+            let _ignored = input::keys_up(&held.into_iter().rev().collect::<Vec<_>>());
+        }
     }
 
     fn template(&self, reference: &str) -> Result<PathBuf, BackendError> {
@@ -145,11 +174,32 @@ impl InputBackend for WindowsBackend {
         screen::cursor_pos().ok().map(|(x, y)| (f64::from(x), f64::from(y)))
     }
 
-    #[allow(clippy::too_many_lines)]
     fn perform(&mut self, action: &InputAction, control: &RunControl) -> Result<Value, BackendError> {
         if control.is_stopped() {
+            self.release_all();
             return Err(BackendError::aborted());
         }
+        let r = self.perform_inner(action, control);
+        if control.is_stopped() || r.as_ref().is_err_and(|e| e.aborted) {
+            self.release_all();
+        }
+        r
+    }
+
+    fn confirm(&mut self, message: &str, control: &RunControl) -> Result<bool, BackendError> {
+        self.host.confirm(message, control)
+    }
+}
+
+impl Drop for WindowsBackend {
+    fn drop(&mut self) {
+        self.release_all();
+    }
+}
+
+impl WindowsBackend {
+    #[allow(clippy::too_many_lines)]
+    fn perform_inner(&mut self, action: &InputAction, control: &RunControl) -> Result<Value, BackendError> {
         let is_input = matches!(
             action,
             InputAction::Click { .. }
@@ -196,8 +246,14 @@ impl InputBackend for WindowsBackend {
             InputAction::Key { key, modifiers, action } => match super::keymap::key_spec(key) {
                 Some(spec) => match action {
                     KeyAction::Press => input::key_press(spec, modifiers)?,
-                    KeyAction::Down => input::key_transition(spec, modifiers, false)?,
-                    KeyAction::Up => input::key_transition(spec, modifiers, true)?,
+                    KeyAction::Down => {
+                        input::key_transition(spec, modifiers, false)?;
+                        self.track_down(spec, modifiers);
+                    }
+                    KeyAction::Up => {
+                        input::key_transition(spec, modifiers, true)?;
+                        self.track_up(spec, modifiers);
+                    }
                 },
                 None if key.chars().count() == 1 && *action == KeyAction::Press && modifiers.is_empty() => {
                     input::type_text(key, 0, control)?;
@@ -238,9 +294,5 @@ impl InputBackend for WindowsBackend {
             InputAction::SwitchProfile { profile_id } => self.host.switch_profile(profile_id)?,
         }
         Ok(Value::Null)
-    }
-
-    fn confirm(&mut self, message: &str, control: &RunControl) -> Result<bool, BackendError> {
-        self.host.confirm(message, control)
     }
 }
