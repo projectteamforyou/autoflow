@@ -123,6 +123,8 @@ export const vi: Content = {
     eyebrow: "Mới — Practice Canvas: chạy thử mọi luồng trên màn hình ảo",
     h1a: "Tự động hóa mọi việc bạn lặp lại.",
     h1b: "Một cách an toàn.",
+    slogan: "Một thế giới mới: tưởng tượng gì, tạo nấy — và chạy ngay.",
+    inputs: { mouse: "Chuột", keyboard: "Bàn phím", both: "Tự động hóa cả hai" },
     lead: "AutoFlow biến những cú nhấp, phím bấm và thói quen hằng ngày thành các luồng chạy trên Windows, Android và web — kèm phím Halt luôn dừng được mọi thứ.",
     stats: [
       { v: "34", l: "loại bước, từ nhấp chuột đến OCR" },

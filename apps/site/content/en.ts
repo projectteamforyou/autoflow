@@ -128,6 +128,8 @@ export const en = {
     eyebrow: "New — Practice Canvas: rehearse any flow on a virtual screen",
     h1a: "Automate anything you repeat.",
     h1b: "Safely.",
+    slogan: "A new world where what you imagine is what you build — and it runs.",
+    inputs: { mouse: "Mouse", keyboard: "Keyboard", both: "Both fully automated" },
     lead: "AutoFlow turns the clicks, keys and routines you do every day into flows that run on Windows, Android and the web — with a Halt key that always wins.",
     stats: [
       { v: "34", l: "step types, from clicks to OCR" },

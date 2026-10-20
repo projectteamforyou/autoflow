@@ -123,6 +123,8 @@ export const ja: Content = {
     eyebrow: "新機能 — Practice Canvas：どんなフローも仮想画面でリハーサル",
     h1a: "繰り返しの作業は、すべて自動に。",
     h1b: "安全に。",
+    slogan: "想像したとおりに、作ったとおりに動く新世界。",
+    inputs: { mouse: "マウス", keyboard: "キーボード", both: "どちらも完全対応" },
     lead: "毎日のクリック、キー入力、ルーティンを、Windows・Android・Web で動くフローに。いつ押しても必ず止まる Halt キーと一緒に。",
     stats: [
       { v: "34", l: "種類のステップ。クリックから OCR まで" },

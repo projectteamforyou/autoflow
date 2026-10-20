@@ -123,6 +123,8 @@ export const ptBR: Content = {
     eyebrow: "Novidade — Practice Canvas: ensaie qualquer fluxo em uma tela virtual",
     h1a: "Automatize tudo o que você repete.",
     h1b: "Com segurança.",
+    slogan: "Um novo mundo: o que você imagina, você constrói — e funciona.",
+    inputs: { mouse: "Mouse", keyboard: "Teclado", both: "Ambos totalmente automatizados" },
     lead: "O AutoFlow transforma os cliques, teclas e rotinas do seu dia em fluxos que rodam no Windows, no Android e na web — com uma tecla Halt que sempre tem a palavra final.",
     stats: [
       { v: "34", l: "tipos de passo, do clique ao OCR" },

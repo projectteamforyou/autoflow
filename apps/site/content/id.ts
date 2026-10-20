@@ -123,6 +123,8 @@ export const id: Content = {
     eyebrow: "Baru — Practice Canvas: latih alur apa pun di layar virtual",
     h1a: "Otomatiskan semua yang Anda ulang.",
     h1b: "Dengan aman.",
+    slogan: "Dunia baru: apa yang Anda bayangkan, Anda bangun — dan langsung berjalan.",
+    inputs: { mouse: "Mouse", keyboard: "Keyboard", both: "Keduanya otomatis penuh" },
     lead: "AutoFlow mengubah klik, ketikan, dan rutinitas harian menjadi alur yang berjalan di Windows, Android, dan web — dengan tombol Halt yang selalu bisa menghentikannya.",
     stats: [
       { v: "34", l: "jenis langkah, dari klik sampai OCR" },

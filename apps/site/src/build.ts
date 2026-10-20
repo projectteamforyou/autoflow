@@ -38,6 +38,9 @@ const css = minifyCss(fonts.css + tokens + pageCss + swatchCss());
 
 const themeScript = `(function(){try{var t=localStorage.getItem("af-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}})();`;
 
+/** Root "/" (English x-default): send visitors to their saved or browser language before first paint. */
+const rootScript = `(function(){try{var LOCALES=${JSON.stringify(LOCALES.map((l) => ({ code: l.code })))};var DEFAULT_LOCALE="en";var matchLocale=${matchLocale.toString()};var t=null;try{t=localStorage.getItem("af-lang")}catch(e){}var ok=function(c){return LOCALES.some(function(l){return l.code===c})};if(!ok(t)){var n=navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language||""];t=matchLocale(n)}if(t!=="en"&&ok(t))location.replace("/"+t+"/"+location.search+location.hash)}catch(e){}})();`.replace(/\n\s*/g, " ");
+
 const suggest = Object.fromEntries(LOCALES.map((l) => [l.code, { h: l.hreflang, t: CONTENT[l.code].suggest.text, g: CONTENT[l.code].suggest.go, s: CONTENT[l.code].suggest.stay }]));
 const clientSrc = (await readFile(join(ROOT, "src", "client.js"), "utf8"))
   .replace("__LOCALES__", JSON.stringify(LOCALES.map((l) => ({ code: l.code }))))
@@ -46,7 +49,7 @@ const clientSrc = (await readFile(join(ROOT, "src", "client.js"), "utf8"))
 const jsName = `/assets/site.${hash(clientSrc)}.js`;
 await writeFile(join(DIST, jsName), clientSrc);
 
-const assets: Assets = { css, js: jsName, font: fonts.preload, themeScript };
+const assets: Assets = { css, js: jsName, font: fonts.preload, themeScript, rootScript };
 
 /* ---------------------------------------------------------------- pages */
 const ogJobs: OgJob[] = [];
@@ -116,7 +119,7 @@ for (const loc of LOCALES) {
 
 /* ---------------------------------------------------------------- static files */
 await Promise.all([buildIcons(), buildManifest(), copyPublic(), buildRobots(SITE_URL), buildSitemap(sitemap, LASTMOD)]);
-await buildCloudflare({ scriptHashes: [cspHash(themeScript)], styleHashes: [cspHash(css)], apiOrigin: API_ORIGIN });
+await buildCloudflare({ scriptHashes: [cspHash(themeScript), cspHash(rootScript)], styleHashes: [cspHash(css)], apiOrigin: API_ORIGIN });
 
 if (ogBackup) {
   const { rename } = await import("node:fs/promises");

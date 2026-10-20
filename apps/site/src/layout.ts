@@ -22,6 +22,8 @@ export interface Assets {
   js: string;
   font: string;
   themeScript: string;
+  /** Inline language redirect, only on the root x-default page. */
+  rootScript: string;
 }
 
 export interface HeadMeta {
@@ -85,6 +87,7 @@ ${LOCALES.filter((l) => l.code !== ctx.lang).map((l) => `<meta property="og:loca
 <meta name="twitter:image" content="${abs(meta.ogImage)}">
 <meta name="twitter:image:alt" content="${esc(meta.ogAlt)}">
 <script>${a.themeScript}</script>
+${ctx.isRoot ? `<script>${a.rootScript}</script>` : ""}
 <style>${a.css}</style>
 <script src="${a.js}" defer></script>
 ${meta.jsonld.map((j) => `<script type="application/ld+json">${JSON.stringify(j).replace(/</g, "\\u003c")}</script>`)}
@@ -117,7 +120,7 @@ ${NAV.concat(["download"]).map((p) => `<li><a href="${pagePath(lang, p)}"${cur(p
 function langPicker(ctx: Ctx): string {
   const { t, lang } = ctx;
   const target: PageId = ctx.page === "404" ? "home" : ctx.page;
-  return html`<details class="pop"><summary class="icon-btn" aria-label="${esc(t.a11y.language)}: ${esc(LOCALE_BY_CODE[lang].name)}">${icon("globe", 18)}<span class="lang-code">${lang.toUpperCase()}</span></summary>
+  return html`<details class="pop"><summary class="icon-btn" aria-label="${esc(t.a11y.language)}: ${esc(LOCALE_BY_CODE[lang].name)}">${icon("globe", 18)}<span class="lang-name">${esc(LOCALE_BY_CODE[lang].name.replace(/ \(.*\)$/, "").replace(/^Bahasa /, ""))}</span><span class="lang-code">${lang.toUpperCase()}</span></summary>
 <div class="pop-panel"><ul class="lang-list">
 ${LOCALES.map((l) => `<li><a href="${ctx.alt ? ctx.alt(l.code) : pagePath(l.code, target)}" hreflang="${l.hreflang}" lang="${l.code}" data-lang="${l.code}"${l.code === lang ? ' aria-current="true"' : ""}>${esc(l.name)}</a></li>`)}
 </ul></div></details>`;

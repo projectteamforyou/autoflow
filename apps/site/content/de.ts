@@ -123,6 +123,8 @@ export const de: Content = {
     eyebrow: "Neu – Practice Canvas: jeden Flow auf einem virtuellen Bildschirm proben",
     h1a: "Automatisiere alles, was du wiederholst.",
     h1b: "Sicher.",
+    slogan: "Eine neue Welt: Was du dir vorstellst, baust du – und es läuft.",
+    inputs: { mouse: "Maus", keyboard: "Tastatur", both: "Beides voll automatisiert" },
     lead: "AutoFlow macht aus den Klicks, Tasten und Routinen deines Alltags Flows, die auf Windows, Android und im Web laufen – mit einer Halt-Taste, die immer gewinnt.",
     stats: [
       { v: "34", l: "Schritttypen, vom Klick bis OCR" },

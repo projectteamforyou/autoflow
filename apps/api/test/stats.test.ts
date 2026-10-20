@@ -16,9 +16,11 @@ describe("public stats", () => {
     expect(s.onlineBySurface).toMatchObject({ site: 1, app: 1 });
 
     expect((await t.call("POST", "/v1/stats/leave", { body: { sid: sid(2) } })).status).toBe(204);
-    const dl = await t.call("GET", "/v1/stats/download/windows");
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = (async () => new Response(JSON.stringify({ version: "9.8.7" }), { status: 200 })) as typeof fetch;
+    const dl = await t.call("GET", "/v1/stats/download/windows").finally(() => (globalThis.fetch = realFetch));
     expect(dl.status).toBe(302);
-    expect(dl.headers.get("location")).toBe("https://dl.autoflowmacro.com/windows/AutoFlow-Setup-x64.exe");
+    expect(dl.headers.get("location")).toBe("https://dl.autoflowmacro.com/windows/AutoFlow-Setup-x64.exe?v=9.8.7");
     await t.call("GET", "/v1/stats/download/android");
     s = (await t.call("GET", "/v1/stats")).json;
     expect(s.onlineNow).toBe(1);
