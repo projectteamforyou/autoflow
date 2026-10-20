@@ -66,9 +66,9 @@ jobs:
         # Self-hosted runners: install rustup once if absent; stable + MSVC target are kept up to date.
         shell: powershell
         run: |
-          $cargoBin = Join-Path $env:USERPROFILE '.cargo\bin'
-          # Install into this service account's own profile: a rustup found on PATH may belong to another
-          # account (e.g. after the runner service moved from NetworkService to LocalSystem).
+          # rustup honours CARGO_HOME (some PCs set it machine-wide, e.g. C:\Rust\cargo); otherwise it is per account.
+          $cargoHome = if ($env:CARGO_HOME) { $env:CARGO_HOME } else { Join-Path $env:USERPROFILE '.cargo' }
+          $cargoBin = Join-Path $cargoHome 'bin'
           if (-not (Test-Path (Join-Path $cargoBin 'rustup.exe'))) {
             $init = Join-Path $env:RUNNER_TEMP 'rustup-init.exe'
             $ProgressPreference = 'SilentlyContinue'
