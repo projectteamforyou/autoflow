@@ -32,6 +32,8 @@ export interface OrderDto {
   createdAt: string;
   paidAt: string | null;
   validUntil: string | null;
+  /** Provider payment id while the order is pending, so it can be confirmed again. */
+  paymentId?: string | null;
 }
 
 export interface LicenseDto {

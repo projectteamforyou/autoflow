@@ -205,14 +205,16 @@ export function CanvasPage() {
 
   // Mirror live events from the active run record (runner keeps them on the record).
   const [liveEventList, setLiveEvents] = useState<RunEvent[]>([]);
+  // Keyed on the run id: myActive is a new object on every step, which would reset the interval before it fires.
+  const activeRunId = myActive?.runId;
   useEffect(() => {
-    if (!myActive) return;
+    if (!activeRunId) return;
     const id = setInterval(() => {
-      const ev = liveEvents(myActive.runId);
+      const ev = liveEvents(activeRunId);
       if (ev) setLiveEvents([...ev]);
     }, 200);
     return () => clearInterval(id);
-  }, [myActive]);
+  }, [activeRunId]);
   const shownEvents = myActive ? liveEventList : events;
   const lastVars = useMemo(() => {
     const v: Record<string, string> = {};

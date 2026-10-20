@@ -19,6 +19,7 @@ import {
   type PlanStatus,
 } from "@autoflow/core";
 import { Shell } from "../components/Shell";
+import { SignInCard } from "./Admin";
 import { Icon } from "../components/Icon";
 import { EditionNote } from "../components/Edition";
 import { LicensedDownloads } from "../components/TrialBanner";
@@ -187,6 +188,23 @@ export function BillingSection({ user, onUser, purchase = false }: { user: User;
     }
   };
 
+  /** Re-check a pending order with the provider (e.g. the buyer closed the page before it was confirmed). */
+  const recheck = async (o: OrderDto) => {
+    if (!o.paymentId) return;
+    setBusy(true);
+    try {
+      const done = await billingApi.confirm(o.provider, o.paymentId);
+      setStatus(done.billing);
+      if (done.licenseKey) setNewKey(done.licenseKey);
+      toast("success", t("billing.paid", { date: formatDate(done.billing.entitlement!.validUntil) }));
+    } catch (e) {
+      toast("error", e instanceof ApiError && e.code === "payment_not_completed" ? t("billing.pendingCheck") : (e as Error).message);
+      void refresh();
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const onRedeemed = (s: BillingStatus) => {
     setStatus(s);
     if (s.usageType !== user.usageType) onUser({ ...user, usageType: s.usageType });
@@ -259,7 +277,7 @@ export function BillingSection({ user, onUser, purchase = false }: { user: User;
 
       <RedeemForm onDone={onRedeemed} />
       {!!status?.licenseKeys?.length && <Licenses keys={status.licenseKeys} />}
-      {!!status?.orders.length && <Orders orders={status.orders} />}
+      {!!status?.orders.length && <Orders orders={status.orders} busy={busy} onRecheck={(o) => void recheck(o)} />}
       <small className="hint">{t("billing.contact", { email: BILLING_CONTACT_EMAIL })}</small>
     </section>
   );
@@ -288,7 +306,7 @@ function Licenses({ keys }: { keys: LicenseDto[] }) {
   );
 }
 
-function Orders({ orders }: { orders: OrderDto[] }) {
+function Orders({ orders, busy, onRecheck }: { orders: OrderDto[]; busy: boolean; onRecheck: (o: OrderDto) => void }) {
   const t = useT();
   const loc = useLocale();
   const tone = { paid: "ok", pending: "", failed: "err", cancelled: "" } as const;
@@ -303,6 +321,7 @@ function Orders({ orders }: { orders: OrderDto[] }) {
               <td>{t(`billing.period.${o.period}`)}</td>
               <td>{formatPrice(o.amount, o.currency, loc)}</td>
               <td><span className={`badge ${tone[o.status]}`}>{t(`billing.order.status.${o.status}`)}</span></td>
+              <td>{o.status === "pending" && o.paymentId && <button className="btn sm" disabled={busy} onClick={() => onRecheck(o)}><Icon name="RotateCcw" size={13} /> {t("billing.retry")}</button>}</td>
             </tr>
           ))}
         </tbody>
@@ -358,6 +377,8 @@ export function BillingReturnPage() {
             <Icon name={icon} size={18} /> <span>{state.text || t("billing.verifying")}</span>
           </div>
           {state.kind === "ok" && state.licenseKey && <IssuedKey licenseKey={state.licenseKey} />}
+          {/* Signed out on return (expired session, other browser): sign in here and confirm the same payment. */}
+          {state.kind === "signin" && <SignInCard onSignedIn={() => void run()} />}
           <div className="row wrap">
             {state.kind === "pending" && <button className="btn" onClick={() => void run()}><Icon name="RotateCcw" size={15} /> {t("billing.retry")}</button>}
             <Link className="btn primary" to="/settings">{t("billing.backToSettings")}</Link>

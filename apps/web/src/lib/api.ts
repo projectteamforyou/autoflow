@@ -2,7 +2,7 @@
  * Client for the AutoFlow API (Railway). Optional: the app is fully usable offline without an account.
  * Bearer session tokens are kept encrypted in the device vault.
  */
-import { useStore } from "./store";
+import { DEFAULT_API_URL, useStore } from "./store";
 import { vault } from "./crypto";
 
 export class ApiError extends Error {
@@ -18,18 +18,29 @@ export async function getToken(): Promise<string | undefined> {
   return vault.get(TOKEN);
 }
 
+/** The API origin the session token was issued by: it is never sent to any other server. */
+const TOKEN_ORIGIN = "session:origin";
+const apiOrigin = () => useStore.getState().settings.apiUrl.replace(/\/+$/, "");
+
 export async function setToken(token: string | null): Promise<void> {
-  if (token) await vault.set(TOKEN, token);
-  else await vault.delete(TOKEN);
+  if (token) {
+    await vault.set(TOKEN, token);
+    await vault.set(TOKEN_ORIGIN, apiOrigin());
+  } else {
+    await vault.delete(TOKEN);
+    await vault.delete(TOKEN_ORIGIN);
+  }
 }
 
 export async function api<T>(path: string, init: Omit<RequestInit, "headers"> & { json?: unknown; auth?: boolean; headers?: Record<string, string> } = {}): Promise<T> {
-  const base = useStore.getState().settings.apiUrl.replace(/\/+$/, "");
+  const base = apiOrigin();
   const headers: Record<string, string> = { Accept: "application/json", ...(init.headers ?? {}) };
   if (init.json !== undefined) headers["Content-Type"] = "application/json";
   if (init.auth !== false) {
     const token = await getToken();
-    if (token) headers.Authorization = `Bearer ${token}`;
+    // Sessions from before the origin was recorded keep working against the default server.
+    const origin = (await vault.get(TOKEN_ORIGIN)) ?? DEFAULT_API_URL.replace(/\/+$/, "");
+    if (token && origin === base) headers.Authorization = `Bearer ${token}`;
   }
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 20_000);

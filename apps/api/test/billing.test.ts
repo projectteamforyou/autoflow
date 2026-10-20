@@ -327,6 +327,11 @@ describe("PortOne checkout and verification", () => {
     respond = (id) => portonePaid(id, 9_900, { storeId: "store-someone-else" });
     expect((await t.call("POST", "/v1/billing/confirm", { token: biz.token, body: { provider: "portone", paymentId: co2.json.portone.paymentId } })).json.error.code).toBe("payment_mismatch");
 
+    // A payment made through another (e.g. test) channel of the same store is not a purchase.
+    const co3 = await t.call("POST", "/v1/billing/checkout", { token: biz.token, body: { provider: "portone", period: "month" } });
+    respond = (id) => portonePaid(id, 9_900, { channel: { key: "channel-key-test-00000000", type: "TEST" } });
+    expect((await t.call("POST", "/v1/billing/confirm", { token: biz.token, body: { provider: "portone", paymentId: co3.json.portone.paymentId } })).json.error.code).toBe("payment_mismatch");
+
     // Personal users are not sold a plan they do not need.
     const personal = await t.signup();
     expect((await t.call("POST", "/v1/billing/checkout", { token: personal.token, body: { provider: "portone", period: "month" } })).status).toBe(409);

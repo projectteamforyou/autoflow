@@ -45,7 +45,7 @@ export interface PortonePayment {
   storeId?: string;
   currency?: string;
   amount?: { total?: number; paid?: number };
-  channel?: { key?: string; pgProvider?: string };
+  channel?: { key?: string; type?: string; pgProvider?: string };
   paidAt?: string;
 }
 
@@ -161,6 +161,17 @@ export async function paypalCreateOrder(
     throw upstream("paypal", `create status ${r.status}`);
   }
   return { id: body.id, approveUrl: approve };
+}
+
+/** Refund a capture we refuse to honour (e.g. captured amount mismatch). Failures are logged, not thrown. */
+export async function paypalRefundCapture(deps: AppDeps, c: PaypalCreds, captureId: string, requestId: string): Promise<boolean> {
+  try {
+    const r = await paypalCall(deps, c, "POST", `/v2/payments/captures/${encodeURIComponent(captureId)}/refund`, { requestId, body: {} });
+    if (r.status >= 300) deps.logger.warn("billing.paypal_refund_failed", { status: r.status });
+    return r.status < 300;
+  } catch {
+    return false;
+  }
 }
 
 /** null when PayPal has no such order. */
