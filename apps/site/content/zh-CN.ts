@@ -123,6 +123,8 @@ export const zhCN: Content = {
     eyebrow: "新功能——Practice Canvas：在虚拟屏幕上预演任何流程",
     h1a: "重复的事，统统自动化。",
     h1b: "安全地。",
+    slogan: "所想即所得，所建即所行的新世界。",
+    inputs: { mouse: "鼠标", keyboard: "键盘", both: "全面支持" },
     lead: "AutoFlow 把你每天重复的点击、按键和例行操作，变成在 Windows、Android 和网页上运行的流程——还有一个永远能让它停下的 Halt 键。",
     stats: [
       { v: "34", l: "种步骤，从点击到 OCR" },

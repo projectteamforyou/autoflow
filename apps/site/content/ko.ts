@@ -123,6 +123,8 @@ export const ko: Content = {
     eyebrow: "새 기능 — Practice Canvas: 가상 화면에서 어떤 플로우든 미리 실행",
     h1a: "반복하는 일은 모두 자동으로.",
     h1b: "안전하게.",
+    slogan: "상상하는 대로, 만드는 대로 구현되는 신세계",
+    inputs: { mouse: "마우스", keyboard: "키보드", both: "모두 완벽 지원" },
     lead: "매일 반복하는 클릭, 키 입력, 루틴을 Windows·Android·웹에서 돌아가는 플로우로 바꿔 드립니다.\n언제 눌러도 반드시 멈추는 Halt 키와 함께.",
     stats: [
       { v: "34", l: "가지 단계 — 클릭부터 OCR까지" },

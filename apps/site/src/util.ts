@@ -130,6 +130,7 @@ function fixBlock(parts: string[], texts: number[], max: number): void {
   let phase = 0; // 0 trailing space, 1 last word, 2 gap, 3 previous word
   let lastLen = 0, prevLen = 0;
   let gap: { k: number; from: number; to: number } | null = null;
+  let more = false; // a word exists before the pair; a two-word block must stay breakable or it overflows narrow columns
   outer: for (let k = texts.length - 1; k >= 0; k--) {
     const t = parts[texts[k]!]!;
     for (let c = t.length - 1; c >= 0; c--) {
@@ -137,11 +138,11 @@ function fixBlock(parts: string[], texts: number[], max: number): void {
       if (phase === 0) { if (!space) { phase = 1; lastLen++; } }
       else if (phase === 1) { if (space) { phase = 2; gap = { k, from: c, to: c + 1 }; } else lastLen++; }
       else if (phase === 2) { if (space) { if (gap!.k === k) gap!.from = c; } else { phase = 3; prevLen++; } }
-      else { if (space) break outer; prevLen++; }
+      else { if (space) { more = true; break outer; } prevLen++; }
     }
     // a gap that spans several tokens: only the last whitespace run is replaced, earlier ones stay
   }
-  if (phase < 3 || !gap || lastLen + prevLen + 1 > max) return;
+  if (phase < 3 || !gap || !more || lastLen + prevLen + 1 > max) return;
   const idx = texts[gap.k]!;
   const t = parts[idx]!;
   parts[idx] = t.slice(0, gap.from) + "&nbsp;" + t.slice(gap.to);
@@ -149,7 +150,7 @@ function fixBlock(parts: string[], texts: number[], max: number): void {
   if (gap.k === texts.length - 1 || idx !== lastIdx) {
     const lt = parts[lastIdx]!;
     const w = /([^\s;]+)(\s*)$/.exec(lt);
-    if (w && /\p{L}-\p{L}/u.test(w[1]!) && !/[<>&]/.test(w[1]!) && w[1]!.length <= max - 8 && lastLen + prevLen + 1 <= 20) parts[lastIdx] = lt.slice(0, w.index) + w[1]!.replace(/(?<=\p{L})-(?=\p{L})/gu, "\u2011") + w[2];
+    if (w && /[\p{L}\p{N}]-[\p{L}\p{N}]/u.test(w[1]!) && !/[<>&]/.test(w[1]!) && w[1]!.length <= max - 8 && lastLen + prevLen + 1 <= 20) parts[lastIdx] = lt.slice(0, w.index) + w[1]!.replace(/(?<=[\p{L}\p{N}])-(?=[\p{L}\p{N}])/gu, "\u2011") + w[2];
   }
 }
 

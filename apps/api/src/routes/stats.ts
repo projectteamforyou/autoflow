@@ -17,6 +17,33 @@ export const DOWNLOAD_TARGETS: Record<stats.DownloadPlatform, string> = {
   android: "https://dl.autoflowmacro.com/android/AutoFlow.apk",
 };
 
+/**
+ * The download URLs above never change between releases, so a browser that fetched an older build can hand it back
+ * from its cache. The redirect carries the current release version (from latest.json) to make each release's URL unique.
+ */
+const LATEST_URL = "https://dl.autoflowmacro.com/latest.json";
+const VERSION_TTL_MS = 5 * 60_000;
+let latest: { at: number; version: string | null } | null = null;
+
+async function latestVersion(): Promise<string | null> {
+  if (latest && Date.now() - latest.at < VERSION_TTL_MS) return latest.version;
+  let version: string | null = latest?.version ?? null;
+  try {
+    const res = await fetch(LATEST_URL, { signal: AbortSignal.timeout(2_000) });
+    const body = (await res.json()) as { version?: unknown };
+    if (res.ok && typeof body.version === "string" && /^\d+\.\d+\.\d+$/.test(body.version)) version = body.version;
+  } catch {
+    // Keep the last known version; the redirect still works without one.
+  }
+  latest = { at: Date.now(), version };
+  return version;
+}
+
+export async function downloadTarget(platform: stats.DownloadPlatform): Promise<string> {
+  const v = platform === "windows" ? await latestVersion() : null;
+  return v ? `${DOWNLOAD_TARGETS[platform]}?v=${v}` : DOWNLOAD_TARGETS[platform];
+}
+
 const Sid = z.string().regex(/^[A-Za-z0-9_-]{16,64}$/);
 
 /** Short cache so a busy site doesn't hit the database on every page view. */
@@ -61,7 +88,7 @@ export function statsRoutes() {
     if (ok) await stats.increment(deps.sql, `downloads_${platform}`).catch(() => undefined);
     cached = null;
     c.header("Cache-Control", "no-store");
-    return c.redirect(DOWNLOAD_TARGETS[platform], 302);
+    return c.redirect(await downloadTarget(platform), 302);
   });
 
   return r;

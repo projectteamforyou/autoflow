@@ -187,7 +187,9 @@ function home(ctx: Ctx): PageOut {
 <div class="wrap">
 <a class="eyebrow" href="${LINKS.app}"><b>NEW</b><span>${esc(h.eyebrow)}</span>${icon("arrow", 14)}</a>
 <h1 class="display"><span class="line">${esc(h.h1a)}</span> <span class="line grad">${esc(h.h1b)}</span></h1>
+<p class="hero-slogan">${esc(h.slogan)}</p>
 <p class="lead">${brk(h.lead)}</p>
+<p class="hero-inputs"><span class="hi-chip">${icon("cursor", 16)}${esc(h.inputs.mouse)}</span><span class="hi-plus" aria-hidden="true">+</span><span class="hi-chip">${icon("keyboard", 16)}${esc(h.inputs.keyboard)}</span><span class="hi-both">${icon("check", 14)}${esc(h.inputs.both)}</span></p>
 ${ctaRow(ctx)}
 <div class="hero-visual">${editorMock(t)}</div>
 </div>
