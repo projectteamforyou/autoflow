@@ -327,8 +327,8 @@ function download(ctx: Ctx): PageOut {
 <h2 class="h2">${esc(u.q)}</h2>
 <p class="lead">${esc(u.lead)}</p>
 <div class="usage-grid">
-<a class="card usage-card" href="#downloads"><span class="tile">${icon("devices", 20)}</span><span><b>${esc(u.personal.title)}</b><small>${esc(u.personal.desc)}</small></span></a>
-<a class="card usage-card" href="${LINKS.app}#/business"><span class="tile">${icon("layers", 20)}</span><span><b>${esc(u.business.title)}</b><small>${esc(u.business.desc)}</small></span></a>
+<a class="card usage-card" href="#downloads"><span class="tile">${icon("devices", 20)}</span><div class="usage-copy"><b>${esc(u.personal.title)}</b><p>${esc(u.personal.desc)}</p></div></a>
+<a class="card usage-card" href="${LINKS.app}#/business"><span class="tile">${icon("layers", 20)}</span><div class="usage-copy"><b>${esc(u.business.title)}</b><p>${esc(u.business.desc)}</p></div></a>
 </div>
 </div></section>
 <section class="section-tight" id="downloads"><div class="wrap">

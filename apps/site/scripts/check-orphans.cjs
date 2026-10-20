@@ -1,5 +1,5 @@
 // Finds text blocks whose last line holds a single word (or < 3 CJK chars) at several widths.
-const { chromium } = require("/opt/node22/lib/node_modules/playwright");
+const { chromium } = require(require("fs").existsSync("/opt/node22/lib/node_modules/playwright") ? "/opt/node22/lib/node_modules/playwright" : "/opt/node-tools/node_modules/playwright");
 const base = process.argv[2] || "http://localhost:4310";
 const langs = (process.argv[3] || "en,ko,ja,zh-CN,zh-TW,es,fr,de,pt-BR,ru,vi,id").split(",");
 const pages = (process.argv[4] || ",features/,windows/,android/,keyforge/,atlas/,safety/,pricing/,faq/,download/,privacy/,terms/").split(",");

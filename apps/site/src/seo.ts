@@ -7,7 +7,7 @@ const ORG_ID = `${SITE_URL}/#organization`;
 const SITE_ID = `${SITE_URL}/#website`;
 const APP_ID = `${SITE_URL}/#app`;
 
-export function baseGraph(ctx: Ctx, title: string, description: string, crumbs: { name: string; path: string }[], extra: object[] = []): object {
+export function baseGraph(ctx: Ctx, title: string, description: string, crumbs: { name: string; path: string }[], extra: object[] = [], faq: { q: string; a: string }[] = []): object {
   const { t, lang } = ctx;
   const hl = LOCALE_BY_CODE[lang].hreflang;
   const url = abs(ctx.path);
@@ -50,7 +50,7 @@ export function baseGraph(ctx: Ctx, title: string, description: string, crumbs: 
       featureList: t.features.groups.flatMap((g) => g.items.map((i) => i.h3)),
     },
     {
-      "@type": ctx.page === "faq" ? ["WebPage", "FAQPage"] : "WebPage",
+      "@type": ctx.page === "faq" || faq.length ? ["WebPage", "FAQPage"] : "WebPage",
       "@id": `${url}#webpage`,
       url,
       name: title,
@@ -60,7 +60,9 @@ export function baseGraph(ctx: Ctx, title: string, description: string, crumbs: 
       about: { "@id": APP_ID },
       primaryImageOfPage: { "@type": "ImageObject", url: abs(`/og/${lang}/${ctx.page === "404" ? "home" : ctx.page}.png`), width: 1200, height: 630 },
       ...(crumbs.length > 1 ? { breadcrumb: { "@id": `${url}#breadcrumb` } } : {}),
-      ...(ctx.page === "faq"
+      ...(faq.length
+        ? { mainEntity: faq.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: plain(f.a) } })) }
+        : ctx.page === "faq"
         ? {
             mainEntity: t.faq.items.map((f) => ({
               "@type": "Question",
