@@ -8,7 +8,7 @@
  * - PayPal (USD): same-tab redirect to PayPal's approval page; PayPal sends the buyer back to
  *   /billing/return, where the server captures.
  */
-import type { BillingPeriod, Currency, PaymentProvider, PlanStatus, PriceTable, UsageType } from "@autoflow/core";
+import { preferredProvider, type BillingPeriod, type Currency, type PaymentProvider, type PlanStatus, type PriceTable, type UsageType } from "@autoflow/core";
 import { api } from "./api";
 
 export interface BillingConfig {
@@ -34,6 +34,16 @@ export interface OrderDto {
   validUntil: string | null;
 }
 
+export interface LicenseDto {
+  id: string;
+  /** Masked: AFB-•••••-•••••-•••••-•NHC8 */
+  key: string;
+  period: BillingPeriod;
+  source: "purchase" | "key";
+  redeemedAt: string | null;
+  validUntil: string | null;
+}
+
 export interface BillingStatus {
   usageType: UsageType;
   status: PlanStatus;
@@ -41,6 +51,14 @@ export interface BillingStatus {
   checkoutEnabled: boolean;
   businessFreeUntil: string;
   orders: OrderDto[];
+  licenseKeys?: LicenseDto[];
+}
+
+export interface ConfirmResult {
+  order: OrderDto;
+  /** The order's license key, in plaintext — only in the response that settled the order. */
+  licenseKey: string | null;
+  billing: BillingStatus;
 }
 
 interface CheckoutResponse {
@@ -52,8 +70,17 @@ interface CheckoutResponse {
 export const billingApi = {
   config: () => api<BillingConfig>("/v1/billing/config", { auth: false }),
   status: () => api<BillingStatus>("/v1/billing/status"),
-  confirm: (provider: PaymentProvider, paymentId: string) => api<{ order: OrderDto; billing: BillingStatus }>("/v1/billing/confirm", { method: "POST", json: { provider, paymentId } }),
+  confirm: (provider: PaymentProvider, paymentId: string) => api<ConfirmResult>("/v1/billing/confirm", { method: "POST", json: { provider, paymentId } }),
+  redeem: (key: string) => api<{ redeemed: { id: string; period: BillingPeriod; validUntil: string }; billing: BillingStatus }>("/v1/billing/redeem", { method: "POST", json: { key } }),
 };
+
+/**
+ * The payment provider is fixed by the app language: Korean → PortOne (KRW), every other
+ * language → PayPal (USD). There is no switch; the server still prices and verifies every order.
+ */
+export function providerForLocale(locale: string): PaymentProvider {
+  return preferredProvider(locale);
+}
 
 /* ------------------------------------------------------------------ PortOne */
 

@@ -4,13 +4,15 @@ import { z } from "zod";
 import { BILLING_PERIODS, CURRENCIES, PAYMENT_PROVIDERS } from "@autoflow/core";
 import type { AppEnv, AuthContext } from "../deps.js";
 import { ApiError } from "../errors.js";
-import { enforce, parseJson, parseQuery, requireAuth, requireOperator } from "../lib/http.js";
+import { enforce, parseJson, parseParams, parseQuery, requireAuth, requireOperator, uuidParam } from "../lib/http.js";
 import * as billing from "../services/billing.js";
 import { EncryptionUnavailableError, adminSettingsView, loadBillingSettings, saveBillingSettings } from "../services/billing-settings.js";
-import { insertAudit, listAudit, listOrders } from "../db/billing.js";
+import { insertAudit, listAudit, listLicenseKeys, listOrders } from "../db/billing.js";
 
 const Provider = z.enum(PAYMENT_PROVIDERS);
 const CheckoutBody = z.object({ provider: Provider, period: z.enum(BILLING_PERIODS), returnUrl: z.string().max(500).optional() });
+const RedeemBody = z.object({ key: z.string().trim().min(1).max(80) });
+const IssueKeysBody = z.object({ period: z.enum(BILLING_PERIODS), count: z.number().int().min(1).max(50), note: z.string().trim().max(300).optional() }).strict();
 const ConfirmBody = z.object({ provider: Provider, paymentId: z.string().regex(/^[A-Za-z0-9_-]{5,64}$/, "invalid payment id") });
 
 /** Ids and keys copied from the PortOne / PayPal consoles: printable, no whitespace. */
@@ -68,6 +70,16 @@ export function billingRoutes() {
     return c.json(await billing.confirm(deps, a, body));
   });
 
+  r.post("/redeem", async (c) => {
+    const a = requireAuth(c);
+    const deps = c.get("deps");
+    // Guessing is hopeless (95 random bits), but keep it slow anyway: per account and per IP.
+    await enforce(deps.limiters.authAccount, `redeem:u:${a.user.id}`);
+    await enforce(deps.limiters.billing, `redeem:ip:${c.get("clientIp")}`, 2);
+    const body = await parseJson(c, RedeemBody);
+    return c.json(await billing.redeem(deps, a, body));
+  });
+
   return r;
 }
 
@@ -121,6 +133,30 @@ export function adminBillingRoutes() {
     const result = await billing.adminSetEntitlement(c.get("deps"), body);
     await audit(c, a, `billing.entitlement.${body.action}`, result.email, { userId: result.userId, previous: result.previous, validUntil: result.validUntil, months: body.months ?? null, until: body.until ?? null, note: body.note ?? null });
     return c.json({ entitlement: result });
+  });
+
+  r.post("/license-keys", async (c) => {
+    const a = requireOperator(c);
+    const body = await parseJson(c, IssueKeysBody);
+    const issued = await billing.adminIssueKeys(c.get("deps"), a, body);
+    // Ids and hints only — plaintext keys never reach the log.
+    await audit(c, a, "billing.license.issue", null, { count: issued.length, period: body.period, note: body.note ?? null, ids: issued.map((k) => k.license.id) });
+    c.header("Cache-Control", "no-store");
+    return c.json({ keys: issued }, 201);
+  });
+
+  r.get("/license-keys", async (c) => {
+    const q = parseQuery(c, z.object({ limit: z.coerce.number().int().min(1).max(200).default(50), status: z.enum(["issued", "redeemed", "revoked"]).optional() }));
+    const keys = await listLicenseKeys(c.get("deps").sql, q);
+    return c.json({ keys: keys.map(billing.adminLicenseDto) });
+  });
+
+  r.post("/license-keys/:id/revoke", async (c) => {
+    const a = requireOperator(c);
+    const { id } = parseParams(c, z.object({ id: uuidParam }));
+    const revoked = await billing.adminRevokeKey(c.get("deps"), id);
+    await audit(c, a, "billing.license.revoke", id, { key: revoked.key, period: revoked.period, note: revoked.note });
+    return c.json({ key: revoked });
   });
 
   r.get("/audit", async (c) => {

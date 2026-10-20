@@ -46,11 +46,15 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
 - Android 업로드 키: 사용자 PC `C:\keys\autoflow\autoflow-release.jks` (백업 필수)
 
 ## 5. 정책
-- 개인 무료, 사업자 2026-10-25(KST)까지 무료 → 이후 Business(₩9,900/월, ₩99,000/년, US$7.99/79.99)
-- 동기화 출시 기간 ₩0, 업로드 전 암호화, 충돌 시 두 버전 보존, 데이터 볼모 없음
+- 라이선스 방식: 개인(개인의 비영리) 사용 무료. 그 밖의 모든 사용(업무·상업·단체·영리)은 2026-10-20 00:00(KST)부터 Business 라이선스 필요(₩9,900/월, ₩99,000/년, US$7.99/79.99, 1회 결제·자동 갱신 없음). 상수: `packages/core/src/plans.ts` `BUSINESS_FREE_UNTIL`
+- 로컬 기능은 기술적 제한 없음(신의 기반). 유일한 기술적 게이트는 업무용 계정의 동기화 업로드 402 — 결제 수단(PortOne/PayPal)이 설정된 뒤에만 작동
+- 결제 수단은 앱 언어로 고정: 한국어 → PortOne(원화), 그 밖의 언어 → PayPal(달러). 설정 화면에 전환 스위치 없음
+- 라이선스 키 `AFB-XXXXX-XXXXX-XXXXX-XXXXX`(Crockford base32 + Luhn mod 32 검사 문자, `packages/core/src/license.ts`). DB에는 SHA-256 해시와 끝 4자리만 저장(`migrations/004_license_keys.sql`)
+  - 결제 확정 시: 구매자 계정의 Business 기간 연장(기존) + 그 주문의 라이선스 키를 '구매자가 이미 등록함' 상태로 발급해 확정 응답에 한 번만 반환(라이선스 증빙 번호). 결제 1건 = 라이선스 1개
+  - 다른 계정용(회사 → 직원 등): 관리자 페이지에서 키 발급(1~50개, 한 번만 표시, 복사/.txt 저장) → 사용자가 설정 › 요금제 및 결제에서 등록(`POST /v1/billing/redeem`, 1회만)
+- 동기화: 업로드 전 암호화, 충돌 시 두 버전 보존, 데이터 볼모 없음
 - 손해 배상 없음(§14), 관할 서울중앙지방법원
 
 ## 6. 남은 작업 후보 (다음 채팅)
-- 약관 §17(30일 사전 고지) vs 사업자 무료 종료일 10-25 정리
 - Android Scenes/픽셀(MediaProjection) 지원
 - 결제 실키 입력 후 샌드박스 결제 검증

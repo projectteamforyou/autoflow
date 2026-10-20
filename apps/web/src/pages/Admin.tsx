@@ -1,13 +1,13 @@
 /**
  * Operator page (only for accounts the server reports as isAdmin): payment keys, prices,
- * recent orders, Business entitlements and the audit log. Secrets are write-only here — the
+ * recent orders, Business entitlements, license keys and the audit log. Secrets are write-only here — the
  * server returns whether each one is set and at most its last four characters.
  */
 import { useCallback, useEffect, useState } from "react";
 import { CURRENCIES, formatPrice, fromDecimalAmount, toDecimalAmount, type BillingPeriod, type Currency, type PriceTable } from "@autoflow/core";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
-import { Empty, Field, Seg, Switch } from "../components/ui";
+import { Empty, Field, Seg, Switch, download } from "../components/ui";
 import { api, auth, type User } from "../lib/api";
 import { useStore } from "../lib/store";
 import { getLocale, useLocale, useT } from "../i18n";
@@ -73,6 +73,7 @@ export function AdminPage() {
           <>
             <KeysCard />
             <EntitlementCard />
+            <LicenseKeysCard />
             <OrdersCard />
             <AuditCard />
           </>
@@ -289,6 +290,118 @@ function EntitlementCard() {
             <button className="btn primary" onClick={() => void change("grant")}>{t("admin.grant")}</button>
             <button className="btn danger" onClick={() => void change("revoke")}>{t("admin.revoke")}</button>
           </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+interface AdminLicense {
+  id: string;
+  key: string;
+  period: BillingPeriod;
+  status: "issued" | "redeemed" | "revoked";
+  redeemedByEmail: string | null;
+  redeemedAt: string | null;
+  note: string | null;
+  createdAt: string;
+}
+
+/** Issue keys (plaintext shown once: copy or download), list them masked, revoke unused ones. */
+function LicenseKeysCard() {
+  const t = useT();
+  const toast = useStore((s) => s.toast);
+  const [period, setPeriod] = useState<BillingPeriod>("year");
+  const [count, setCount] = useState(1);
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [fresh, setFresh] = useState<{ keys: string[]; at: Date; period: BillingPeriod; note: string } | null>(null);
+  const [status, setStatus] = useState("");
+  const [keys, setKeys] = useState<AdminLicense[] | null>(null);
+
+  const load = useCallback(() => {
+    api<{ keys: AdminLicense[] }>(`/v1/admin/billing/license-keys?limit=100${status ? `&status=${status}` : ""}`).then((r) => setKeys(r.keys)).catch(() => setKeys([]));
+  }, [status]);
+  useEffect(load, [load]);
+
+  const issue = async () => {
+    setBusy(true);
+    try {
+      const r = await api<{ keys: { key: string }[] }>("/v1/admin/billing/license-keys", { method: "POST", json: { period, count, ...(note.trim() ? { note: note.trim() } : {}) } });
+      setFresh({ keys: r.keys.map((k) => k.key), at: new Date(), period, note: note.trim() });
+      toast("success", t("admin.licenses.issued", { count: r.keys.length }));
+      load();
+    } catch (e) {
+      toast("error", (e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const revoke = async (id: string) => {
+    try {
+      await api(`/v1/admin/billing/license-keys/${id}/revoke`, { method: "POST" });
+      toast("success", t("admin.licenses.revokedToast"));
+      load();
+    } catch (e) {
+      toast("error", (e as Error).message);
+    }
+  };
+
+  const text = fresh ? fresh.keys.join("\n") : "";
+  const stamp = fresh ? fresh.at.toISOString().replace(/[:.]/g, "-").slice(0, 19) : "";
+  const fileBody = fresh ? `AutoFlow Business license keys\nIssued: ${fresh.at.toISOString()}\nPeriod: ${fresh.period}\n${fresh.note ? `Note: ${fresh.note}\n` : ""}\n${text}\n` : "";
+
+  return (
+    <section className="card stack">
+      <div className="row between">
+        <h3><Icon name="KeyRound" size={16} /> {t("admin.licenses")}</h3>
+        <div className="row">
+          <select className="select" value={status} onChange={(e) => setStatus(e.target.value)} aria-label={t("admin.licenses")}>
+            <option value="">{t("admin.allStatuses")}</option>
+            {(["issued", "redeemed", "revoked"] as const).map((s) => <option key={s} value={s}>{t(`admin.licenses.status.${s}`)}</option>)}
+          </select>
+          <button className="btn ghost icon sm" onClick={load} aria-label={t("common.refresh")}><Icon name="RotateCcw" size={15} /></button>
+        </div>
+      </div>
+      <form className="row wrap" onSubmit={(e) => { e.preventDefault(); void issue(); }}>
+        <Seg value={period} onChange={setPeriod} options={[{ value: "month", label: t("billing.period.month") }, { value: "year", label: t("billing.period.year") }]} />
+        <label className="row small">{t("admin.licenses.count")} <input className="input" type="number" min={1} max={50} value={count} onChange={(e) => setCount(Math.max(1, Math.min(50, Number(e.target.value) || 1)))} style={{ width: 80 }} /></label>
+        <input className="input grow" style={{ minWidth: 0, flexBasis: 200 }} placeholder={t("admin.note")} aria-label={t("admin.note")} value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} />
+        <button className="btn primary" disabled={busy}><Icon name="KeyRound" size={15} /> {t("admin.licenses.issue")}</button>
+      </form>
+      {fresh && (
+        <div className="callout warn stack-sm" style={{ display: "grid" }}>
+          <b>{t("admin.licenses.once")}</b>
+          <pre className="mono small" style={{ margin: 0, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{text}</pre>
+          <div className="row wrap">
+            <button className="btn sm" onClick={() => navigator.clipboard.writeText(text).then(() => toast("success", t("billing.license.copied")), () => toast("error", t("billing.license.copyFailed")))}><Icon name="Copy" size={14} /> {t("admin.licenses.copyAll")}</button>
+            <button className="btn sm" onClick={() => download(`autoflow-license-keys-${stamp}.txt`, fileBody, "text/plain;charset=utf-8")}><Icon name="Download" size={14} /> {t("admin.licenses.download")}</button>
+            <button className="btn sm ghost" onClick={() => setFresh(null)}>{t("common.close")}</button>
+          </div>
+        </div>
+      )}
+      {!keys ? (
+        <p className="muted small">{t("common.loading")}</p>
+      ) : !keys.length ? (
+        <p className="muted small">{t("admin.licenses.none")}</p>
+      ) : (
+        <div style={{ overflowX: "auto" }}>
+          <table className="table small">
+            <tbody>
+              {keys.map((k) => (
+                <tr key={k.id}>
+                  <td>{when(k.createdAt)}</td>
+                  <td className="mono">{k.key}</td>
+                  <td>{t(`billing.period.${k.period}`)}</td>
+                  <td><span className={`badge ${k.status === "redeemed" ? "ok" : k.status === "revoked" ? "err" : ""}`}>{t(`admin.licenses.status.${k.status}`)}</span></td>
+                  <td>{k.redeemedByEmail ?? ""}</td>
+                  <td className="muted">{k.note ?? ""}</td>
+                  <td>{k.status === "issued" && <button className="btn sm danger" onClick={() => void revoke(k.id)}>{t("admin.revoke")}</button>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </section>

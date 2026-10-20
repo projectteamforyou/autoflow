@@ -36,15 +36,16 @@ export const zhTW: Content = {
     web: "在瀏覽器中使用",
     webLong: "不想安裝？直接在瀏覽器開啟 AutoFlow",
     openApp: "開啟網頁版",
-    note: "免費 · 不需帳號 · 可離線使用",
+    note: "個人使用免費 · 不需帳號 · 可離線使用",
     learnMore: "深入了解",
   },
+  edition: { badge: "個人版", note: "僅限個人用戶", business: "工作用途需 Business 授權" },
   share: {
     heading: "分享 AutoFlow",
     native: "分享…",
     copy: "複製連結",
     copied: "已複製連結",
-    text: "AutoFlow——重複的事交給自動化，安全又安心。Windows、Android 與網頁版皆免費。",
+    text: "AutoFlow——重複的事交給自動化，安全又安心。Windows、Android 與網頁版個人使用皆免費。",
   },
   footer: {
     stats: { statsTitle: "即時統計", visits: "累計造訪", online: "目前在線", downloads: "下載" },
@@ -117,7 +118,7 @@ export const zhTW: Content = {
   home: {
     seo: {
       title: "AutoFlow——免費連點器、巨集與按鍵對應",
-      description: "適用於 Windows、Android 與網頁的免費自動連點器、巨集、快捷鍵與按鍵對應。先在瀏覽器試跑，隨時用 Halt 鍵一鍵停止。",
+      description: "適用於 Windows、Android 與網頁的自動連點器、巨集、快捷鍵與按鍵對應。先在瀏覽器試跑，隨時用 Halt 鍵一鍵停止。個人使用免費。",
     },
     eyebrow: "新功能——Practice Canvas：在虛擬螢幕上預演任何流程",
     h1a: "重複的事，全部自動化。",
@@ -218,7 +219,7 @@ export const zhTW: Content = {
     },
     final: {
       h2: "你的第一個流程，只要三十秒。",
-      lead: "全平台免費。不需帳號、不需信用卡，沒有附加條件。",
+      lead: "全平台個人使用免費。不需帳號、不需信用卡。",
     },
   },
   features: {
@@ -279,7 +280,7 @@ export const zhTW: Content = {
   windows: {
     seo: {
       title: "AutoFlow Windows 版——連點器與巨集錄製",
-      description: "適用於 Windows 10 與 11 的免費自動連點器、巨集錄製與按鍵對應工具。全域快捷鍵、視窗配置、Keyforge 設定檔與 Halt 鍵。",
+      description: "適用於 Windows 10 與 11 的自動連點器、巨集錄製與按鍵對應工具，個人使用免費。全域快捷鍵、視窗配置、Keyforge 設定檔與 Halt 鍵。",
     },
     h1: "AutoFlow Windows 版",
     lead: "原生引擎：送出真實輸入、隨時接收全域快捷鍵，按下 Ctrl+Alt+Esc 的瞬間立刻停止。",
@@ -303,7 +304,7 @@ export const zhTW: Content = {
   android: {
     seo: {
       title: "AutoFlow Android 版——自動輕觸與例行工作",
-      description: "在 Android 上自動執行輕觸、滑動與例行工作，附浮動停止按鈕。免費，並公開說明如何使用無障礙權限。",
+      description: "在 Android 上自動執行輕觸、滑動與例行工作，附浮動停止按鈕。個人使用免費，並公開說明如何使用無障礙權限。",
     },
     h1: "AutoFlow Android 版",
     lead: "在手機上執行的輕觸、滑動與日常例行工作——還有一個浮在所有畫面上方的停止按鈕。",
@@ -397,10 +398,10 @@ export const zhTW: Content = {
   download: {
     seo: {
       title: "下載 AutoFlow——Windows、Android 與網頁版",
-      description: "免費取得 AutoFlow：Windows 安裝檔和 Android App 來自官方下載伺服器，網頁版可直接在瀏覽器中開啟，無需帳戶。",
+      description: "個人使用免費取得 AutoFlow：Windows 安裝檔和 Android App 來自官方下載伺服器，網頁版可直接在瀏覽器中開啟，無需帳戶。",
     },
     h1: "取得 AutoFlow",
-    lead: "全平台免費。流程可以透過檔案、連結或選用的加密同步在裝置之間移動。",
+    lead: "全平台個人使用免費。流程可以透過檔案、連結或選用的加密同步在裝置之間移動。",
     windows: { h2: "Windows", p: "適用於 Windows 10 與 11（64 位元）的安裝檔。全域快捷鍵、Keyforge 與真實輸入。", meta: "官方下載 · dl.autoflowmacro.com" },
     android: { h2: "Android", p: "輕觸、滑動與例行工作，附浮動停止按鈕。需要由你掌控的無障礙權限。", meta: "APK 直接安裝 · Google Play 即將推出" },
     web: { h2: "網頁版", p: "在瀏覽器中使用完整編輯器、Atlas 與 Practice Canvas。也能從網址列安裝成 App。", meta: "第一次造訪後可離線使用" },
@@ -409,32 +410,32 @@ export const zhTW: Content = {
   },
   pricing: {
     seo: {
-      title: "價格——AutoFlow 免費 | 無廣告、無追蹤",
-      description: "AutoFlow 目前提供的所有功能，在 Windows、Android 與網頁上都免費。同步於上線期間免費，本機自動化與匯出永久免費。",
+      title: "價格——個人免費 | AutoFlow",
+      description: "AutoFlow 在 Windows、Android、網頁個人使用免費。商業、工作用途需 Business 授權，每月 US$7.99 起。",
     },
-    h1: "免費。真的免費。",
-    lead: "AutoFlow 目前提供的一切都不收費——沒有試用期、沒有人數限制，也沒有廣告。",
+    h1: "個人免費。",
+    lead: "個人免費，工作用途需 Business 授權。",
     free: {
-      name: "免費",
+      name: "個人",
       price: "NT$0",
       period: "永久",
-      desc: "AutoFlow 目前的所有功能，涵蓋所有平台。",
-      items: ["簡單與進階模式，34 種步驟全部可用", "錄製、快捷鍵與觸發條件", "Keyforge 對應、圖層與文字展開", "Practice Canvas 與 Ledger", "Atlas 範本與分享連結", "使用自有金鑰或本機模型的 Copilot", "Guardrails、安全評分與 Halt"],
+      desc: "所有平台、所有功能，僅限個人非商業用途。",
+      items: ["簡單與進階模式，34 種步驟全部可用", "錄製、快捷鍵與觸發條件", "Keyforge 對應、圖層與文字展開", "Practice Canvas 與 Ledger", "Atlas 範本與分享連結", "使用自有金鑰或本機模型的 Copilot", "Guardrails、安全評分與 Halt", "加密同步（個人免費）"],
     },
     sync: {
-      name: "加密同步",
-      price: "₩0",
-      period: "上線期間免費",
-      desc: "選用帳號，以端對端加密在裝置之間同步流程。",
-      items: ["上傳前在裝置上加密", "發生衝突時保留兩個版本", "隨時刪除帳號與資料"],
-      note: "同步運作在需要成本的伺服器上，未來可能成為付費選項。若真有那天，我們會提早很久公告，也絕不會拿你已同步的資料當籌碼。",
-      policy: "個人使用免費。非個人（商業）使用在 {date} 前免費。",
-      business: "此後商業使用需要 Business 方案：每月 {month} 或每年 {year}，一次性付款，不自動續約。",
+      name: "Business",
+      period: "/ 月",
+      desc: "商業、營利、組織用途授權，含跨裝置加密同步。",
+      items: ["所有功能商業與團隊使用", "加密同步：上傳前於裝置加密", "發生衝突時保留兩版本", "月費或年費，一次性付款不自動續約", "隨時可刪除帳號與資料"],
+      note: "同步資料永不被鎖定：無論付費與否，皆可讀取、匯出、刪除。",
+      policy: "個人使用免費。其他用途需 Business 授權。",
+      business: "每月 {month} 或每年 {year}，一次性付款不自動續約。請於 App 設定購買或啟用授權金鑰。",
+      cta: "取得 Business 授權",
     },
     promises: {
       h2: "永遠不變的承諾",
       items: [
-        { h3: "本機自動化永遠免費", p: "在自己的裝置上建立與執行流程，永遠不會收費。" },
+        { h3: "個人使用永遠免費", p: "在自己裝置上建立、執行流程作個人用途，永不收費。" },
         { h3: "Halt 不是付費功能", p: "緊急停止與所有安全檢查，對每個人永遠開啟。" },
         { h3: "資料隨時都能帶走", p: "不論哪種方案，隨時都能把所有流程匯出成檔案。" },
         { h3: "沒有廣告，不賣資料", p: "我們不顯示廣告，也不販售或出租你的資訊。" },
@@ -449,7 +450,8 @@ export const zhTW: Content = {
     h1: "常見問題",
     lead: "找不到答案嗎？歡迎寫信到 {email}。",
     items: [
-      { q: "AutoFlow 真的免費嗎？", a: "是的。AutoFlow 目前提供的所有功能，在 Windows、Android 與網頁上都免費，而且沒有廣告。選用的加密同步在上線期間免費；本機自動化、Halt 與匯出將永遠免費。" },
+      { q: "AutoFlow 真的免費嗎？", a: "個人用途是的：Windows、Android、網頁所有功能皆免費且無廣告。其他用途（商業、組織、工作）需 Business 授權：每月 US$7.99 或每年 US$79.99，一次性付款不自動續約。無論哪種用途，所有功能皆可離線使用；未授權的商業帳號僅停止新同步上傳。" },
+      { q: "哪些情況屬於商業用途？", a: "非個人用途皆屬：為工作、雇主、公司、學校、組織、或任何商業目的使用 AutoFlow，包括自由工作者、外包人員。每位這樣使用者都需 Business 授權。收到的授權金鑰可於 App 設定 › 方案與付款中啟用。" },
       { q: "需要註冊帳號嗎？", a: "不需要。AutoFlow 不用帳號就能完全離線使用。只有在裝置間加密同步，或把範本發布到 Atlas 時才需要帳號。" },
       { q: "要怎麼停止正在執行的流程？", a: "在 Windows 上按 Ctrl+Alt+Esc，在 Android 上輕觸浮動停止按鈕。Halt 能在半秒內停止任何流程，Pulse 列也會隨時顯示正在執行什麼。" },
       { q: "為什麼 Android 版需要無障礙權限？", a: "在 Android 上，App 只能透過無障礙服務代替你輕觸與滑動。AutoFlow 用它來執行流程中的手勢，並只在步驟需要時讀取螢幕文字。它從不蒐集個人資料，你也能隨時在「設定 › 無障礙」中關閉。" },
@@ -468,7 +470,7 @@ export const zhTW: Content = {
     lead: "你要找的頁面不存在，或已經移動了。",
     back: "回到首頁",
   },
-  legalUi: { contents: "目錄", effective: "生效日期：2026 年 10 月 19 日", updated: "最後更新：2026 年 10 月 19 日", other: "延伸閱讀" },
+  legalUi: { contents: "目錄", effective: "生效日期：2026 年 10 月 20 日", updated: "最後更新：2026 年 10 月 20 日", other: "延伸閱讀" },
   templates: {
     "auto-clicker": { n: "經典連點器", d: "以每秒 4 次的速度左鍵點擊螢幕中央，共 100 次。按 Ctrl+Alt+Esc 停止。" },
     "multi-point": { n: "三點循環點擊", d: "依序點擊三個位置，然後循環，直到你停止。" },

@@ -36,15 +36,16 @@ export const es: Content = {
     web: "Usar en el navegador",
     webLong: "¿Sin instalar nada? Abre AutoFlow en tu navegador",
     openApp: "Abrir la app web",
-    note: "Gratis · Sin cuenta · Funciona sin conexión",
+    note: "Gratis para uso personal · No requiere cuenta · Funciona sin conexión",
     learnMore: "Saber más",
   },
+  edition: { badge: "Edición personal", note: "Solo para usuarios individuales", business: "¿Uso laboral? Licencia Business" },
   share: {
     heading: "Compartir AutoFlow",
     native: "Compartir…",
     copy: "Copiar enlace",
     copied: "Enlace copiado",
-    text: "AutoFlow: automatiza todo lo que repites, con total seguridad. Gratis en Windows, Android y la web.",
+    text: "AutoFlow — automatiza cualquier tarea repetitiva, de forma segura. Gratis para uso personal en Windows, Android y la web.",
   },
   footer: {
     stats: { statsTitle: "Estadísticas en vivo", visits: "Visitas totales", online: "En línea ahora", downloads: "Descargas" },
@@ -117,7 +118,7 @@ export const es: Content = {
   home: {
     seo: {
       title: "AutoFlow — Autoclicker, macros y reasignación gratis",
-      description: "Autoclicker, macros, atajos y reasignación de teclas para Windows, Android y la web. Ensaya tus flujos en el navegador. Gratis, privado y con Halt.",
+      description: "Autoclicker, macros, atajos y reasignación de teclas para Windows, Android y la web. Prueba en el navegador. Gratis para uso personal, con tecla Halt.",
     },
     eyebrow: "Novedad — Practice Canvas: ensaya cualquier flujo en una pantalla virtual",
     h1a: "Automatiza todo lo que repites.",
@@ -218,7 +219,7 @@ export const es: Content = {
     },
     final: {
       h2: "Tu primer flujo está a treinta segundos.",
-      lead: "Gratis en todas las plataformas. Sin cuenta, sin tarjeta, sin letra pequeña.",
+      lead: "Gratis para uso personal en todas las plataformas. Sin cuenta ni tarjeta.",
     },
   },
   features: {
@@ -279,7 +280,7 @@ export const es: Content = {
   windows: {
     seo: {
       title: "AutoFlow para Windows — autoclicker y grabadora de macros",
-      description: "Autoclicker, grabadora de macros y reasignador de teclas gratis para Windows 10 y 11. Atajos globales, ventanas, perfiles de Keyforge y tecla Halt.",
+      description: "Autoclicker, grabador de macros y reasignador de teclas para Windows 10 y 11, gratis para uso personal. Atajos globales, Keyforge y tecla Halt.",
     },
     h1: "AutoFlow para Windows",
     lead: "Un motor nativo que envía entrada real, escucha atajos globales y se detiene en cuanto pulsas Ctrl+Alt+Esc.",
@@ -303,7 +304,7 @@ export const es: Content = {
   android: {
     seo: {
       title: "AutoFlow para Android — toques automáticos y rutinas",
-      description: "Automatiza toques, deslizamientos y rutinas en Android con un botón flotante de parada. Gratis, privado y transparente sobre el permiso de accesibilidad.",
+      description: "Automatiza toques, deslizamientos y rutinas en Android con un botón de parada flotante. Gratis para uso personal, privado y transparente.",
     },
     h1: "AutoFlow para Android",
     lead: "Toques, deslizamientos y rutinas diarias que se ejecutan en tu móvil, con un botón de parada que flota sobre todo.",
@@ -397,10 +398,10 @@ export const es: Content = {
   download: {
     seo: {
       title: "Descargar AutoFlow — Windows, Android y app web",
-      description: "Consigue AutoFlow gratis: el instalador de Windows y la app de Android desde nuestro servidor oficial, o abre la app web en tu navegador, sin cuenta.",
+      description: "Consigue AutoFlow gratis para uso personal: instalador de Windows y app de Android desde nuestro servidor oficial, o la app web en tu navegador.",
     },
     h1: "Consigue AutoFlow",
-    lead: "Gratis en todas las plataformas. Tus flujos viajan entre ellas mediante archivos, enlaces o sincronización cifrada opcional.",
+    lead: "Gratis para uso personal en todas las plataformas. Tus flujos viajan entre ellas por archivos, enlaces o sincronización cifrada opcional.",
     windows: { h2: "Windows", p: "Instalador para Windows 10 y 11 (64 bits). Atajos globales, Keyforge y entrada real.", meta: "Descarga oficial · dl.autoflowmacro.com" },
     android: { h2: "Android", p: "Toques, deslizamientos y rutinas con botón flotante de parada. Requiere el permiso de accesibilidad, que controlas tú.", meta: "APK directo · Google Play muy pronto" },
     web: { h2: "App web", p: "El editor completo, Atlas y Practice Canvas en tu navegador. Instálala como app desde la barra de direcciones.", meta: "Funciona sin conexión tras la primera visita" },
@@ -409,32 +410,32 @@ export const es: Content = {
   },
   pricing: {
     seo: {
-      title: "Precios — AutoFlow es gratis | Sin anuncios ni rastreo",
-      description: "Todo lo que AutoFlow ofrece hoy es gratis en Windows, Android y la web. Sincronización gratis durante el lanzamiento; lo local y la exportación, siempre.",
+      title: "Precios — gratis para uso personal | AutoFlow",
+      description: "AutoFlow es gratis para uso personal en Windows, Android y la web. El uso empresarial o comercial requiere licencia Business desde US$7.99 al mes.",
     },
-    h1: "Gratis. De verdad.",
-    lead: "Todo lo que AutoFlow ofrece hoy no cuesta nada: sin periodo de prueba, sin límite de puestos, sin anuncios.",
+    h1: "Gratis para uso personal.",
+    lead: "El uso personal es gratis. El uso laboral requiere licencia Business.",
     free: {
-      name: "Gratis",
+      name: "Personal",
       price: "0 €",
       period: "para siempre",
-      desc: "Todo lo que hay hoy en AutoFlow, en todas las plataformas.",
-      items: ["Modos fácil y Pro con los 34 tipos de pasos", "Grabadora, atajos y disparadores", "Reasignación, capas y fragmentos con Keyforge", "Practice Canvas y Ledger", "Plantillas de Atlas y enlaces para compartir", "Copilot con tu clave o un modelo local", "Guardrails, puntuación de seguridad y Halt"],
+      desc: "Todas las funciones en todas las plataformas, para uso individual y no comercial.",
+      items: ["Modos fácil y Pro con los 34 tipos de pasos", "Grabadora, atajos y disparadores", "Reasignación, capas y fragmentos con Keyforge", "Practice Canvas y Ledger", "Plantillas de Atlas y enlaces para compartir", "Copilot con tu clave o un modelo local", "Guardrails, puntuación de seguridad y Halt", "Sincronización cifrada, gratis para uso personal"],
     },
     sync: {
-      name: "Sincronización cifrada",
-      price: "₩0",
-      period: "gratis durante el lanzamiento",
-      desc: "Cuenta opcional que sincroniza tus flujos entre dispositivos, con cifrado de extremo a extremo.",
-      items: ["Cifrado en tu dispositivo antes de subir", "Los conflictos conservan ambas versiones", "Borra tu cuenta y tus datos cuando quieras"],
-      note: "La sincronización funciona en servidores que nos cuestan dinero, así que podría convertirse en una opción de pago más adelante. Si ocurre, lo anunciaremos con mucha antelación y nada de lo que ya sincronizaste quedará como rehén.",
-      policy: "El uso personal es gratis. El uso no personal (empresarial) es gratis hasta el {date}.",
-      business: "Después, el uso empresarial necesita el plan Business: {month} al mes o {year} al año, en pagos únicos sin renovación automática.",
+      name: "Business",
+      period: "/ mes",
+      desc: "Licencia para uso empresarial, comercial u organizacional, incluye sincronización cifrada entre dispositivos.",
+      items: ["Uso comercial y en equipo de todas las funciones", "Sincronización cifrada: cifrado en el dispositivo antes de subir", "Ambas versiones se conservan en caso de conflicto", "Pase mensual o anual, sin renovación automática", "Borra cuenta y datos en cualquier momento"],
+      note: "Tus datos sincronizados nunca quedan bloqueados: leer, exportar y borrar siempre es posible, pagues o no.",
+      policy: "El uso personal es gratis. Cualquier otro uso requiere licencia Business.",
+      business: "{month} al mes o {year} al año — pagos únicos, sin renovación automática. Compra en Ajustes de la app o activa una clave de licencia allí.",
+      cta: "Obtener licencia Business",
     },
     promises: {
       h2: "Promesas que no cambian",
       items: [
-        { h3: "La automatización local sigue gratis", p: "Crear y ejecutar flujos en tu propio dispositivo nunca será de pago." },
+        { h3: "El uso personal sigue siendo gratis", p: "Crear y ejecutar flujos en tu propio dispositivo para uso personal nunca tendrá costo." },
         { h3: "Halt no es un plan de pago", p: "El freno de emergencia y todos los controles de seguridad están activos para todos, siempre." },
         { h3: "Tus datos siempre pueden irse", p: "Exporta todos tus flujos como archivo en cualquier momento y con cualquier plan." },
         { h3: "Sin anuncios, sin venta de datos", p: "No mostramos anuncios y no vendemos ni alquilamos tu información." },
@@ -449,7 +450,8 @@ export const es: Content = {
     h1: "Preguntas frecuentes",
     lead: "¿No encuentras tu respuesta? Escríbenos a {email}.",
     items: [
-      { q: "¿AutoFlow es gratis de verdad?", a: "Sí. Todo lo que AutoFlow ofrece hoy es gratis en Windows, Android y la web, sin anuncios. La sincronización cifrada opcional es gratuita durante el lanzamiento; la automatización local, Halt y la exportación serán siempre gratis." },
+      { q: "¿AutoFlow es gratis de verdad?", a: "Para uso personal, sí: todas las funciones en Windows, Android y la web, sin anuncios. Cualquier otro uso —empresarial, comercial, organizacional o laboral— requiere licencia Business: US$7.99 al mes o US$79.99 al año, como pases únicos sin renovación automática. Todas las funciones siguen funcionando sin conexión; en cuentas empresariales sin licencia solo se detienen las nuevas subidas de sincronización." },
+      { q: "¿Qué se considera uso empresarial?", a: "Todo lo que no sea personal: usar AutoFlow para tu trabajo o empleador, como freelancer o contratista, en una empresa, escuela, organismo público u otra organización, o con fines comerciales. Cada persona que lo use así necesita una licencia Business. Puedes activar la clave de licencia recibida en la app, en Ajustes › Plan y pagos." },
       { q: "¿Necesito una cuenta?", a: "No. AutoFlow funciona por completo sin conexión y sin cuenta. Solo la necesitas para la sincronización cifrada entre dispositivos o para publicar plantillas en Atlas." },
       { q: "¿Cómo detengo un flujo en marcha?", a: "Pulsa Ctrl+Alt+Esc en Windows o toca el botón flotante de parada en Android. Halt detiene cualquier flujo en menos de medio segundo y la barra Pulse siempre muestra qué se está ejecutando." },
       { q: "¿Por qué la app de Android necesita el permiso de accesibilidad?", a: "Android solo permite que las apps toquen y deslicen por ti mediante un servicio de accesibilidad. AutoFlow lo usa para ejecutar los gestos de tus flujos y, solo cuando un paso lo pide, para leer texto en pantalla. Nunca recopila datos personales y puedes desactivarlo cuando quieras en Ajustes › Accesibilidad." },
@@ -468,7 +470,7 @@ export const es: Content = {
     lead: "La página que buscabas no existe o se ha movido.",
     back: "Volver al inicio",
   },
-  legalUi: { contents: "Índice", effective: "Fecha de entrada en vigor: 19 de octubre de 2026", updated: "Última actualización: 19 de octubre de 2026", other: "Lee también" },
+  legalUi: { contents: "Índice", effective: "Fecha de entrada en vigor: 20 de octubre de 2026", updated: "Última actualización: 20 de octubre de 2026", other: "Lee también" },
   templates: {
     "auto-clicker": { n: "Autoclicker clásico", d: "Hace clic izquierdo en el centro de la pantalla 100 veces, cuatro por segundo. Ctrl+Alt+Esc lo detiene." },
     "multi-point": { n: "Ciclo de clics en tres puntos", d: "Hace clic en tres posiciones por orden y repite hasta que lo detengas." },

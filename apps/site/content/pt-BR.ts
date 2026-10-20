@@ -36,15 +36,16 @@ export const ptBR: Content = {
     web: "Usar no navegador",
     webLong: "Sem instalar nada? Abra o AutoFlow no navegador",
     openApp: "Abrir o app web",
-    note: "Grátis · Sem conta · Funciona offline",
+    note: "Grátis para uso pessoal · Não precisa de conta · Funciona offline",
     learnMore: "Saiba mais",
   },
+  edition: { badge: "Edição pessoal", note: "Para uso individual", business: "Uso profissional? Licença Business" },
   share: {
     heading: "Compartilhar o AutoFlow",
     native: "Compartilhar…",
     copy: "Copiar link",
     copied: "Link copiado",
-    text: "AutoFlow — automatize tudo o que você repete, com segurança. Grátis no Windows, Android e na web.",
+    text: "AutoFlow — automatize qualquer tarefa repetitiva, com segurança. Grátis para uso pessoal no Windows, Android e web.",
   },
   footer: {
     stats: { statsTitle: "Estatísticas ao vivo", visits: "Visitas totais", online: "Online agora", downloads: "Downloads" },
@@ -117,7 +118,7 @@ export const ptBR: Content = {
   home: {
     seo: {
       title: "AutoFlow — Auto clicker, macros e remapeamento grátis",
-      description: "Auto clicker, macros, atalhos e remapeamento de teclas para Windows, Android e web. Ensaie fluxos no navegador. Grátis, privado e com tecla Halt.",
+      description: "Auto clicker, macros, atalhos e remapeamento de teclas para Windows, Android e web. Teste fluxos no navegador. Grátis para uso pessoal, com tecla Halt.",
     },
     eyebrow: "Novidade — Practice Canvas: ensaie qualquer fluxo em uma tela virtual",
     h1a: "Automatize tudo o que você repete.",
@@ -218,7 +219,7 @@ export const ptBR: Content = {
     },
     final: {
       h2: "Seu primeiro fluxo está a trinta segundos.",
-      lead: "Grátis em todas as plataformas. Sem conta, sem cartão, sem pegadinha.",
+      lead: "Grátis para uso pessoal em todas as plataformas. Sem conta, sem cartão.",
     },
   },
   features: {
@@ -279,7 +280,7 @@ export const ptBR: Content = {
   windows: {
     seo: {
       title: "AutoFlow para Windows — auto clicker e gravador de macros",
-      description: "Auto clicker, gravador de macros e remapeador de teclas grátis para Windows 10 e 11. Atalhos globais, janelas, perfis do Keyforge e tecla Halt.",
+      description: "Auto clicker, gravador de macros e remapeador de teclas para Windows 10 e 11, grátis para uso pessoal. Atalhos globais, Keyforge e tecla Halt.",
     },
     h1: "AutoFlow para Windows",
     lead: "Um motor nativo que envia entrada real, escuta atalhos globais e para no instante em que você aperta Ctrl+Alt+Esc.",
@@ -303,7 +304,7 @@ export const ptBR: Content = {
   android: {
     seo: {
       title: "AutoFlow para Android — toques automáticos e rotinas",
-      description: "Automatize toques, deslizes e rotinas no Android com um botão flutuante de parada. Grátis, privado e transparente sobre a permissão de acessibilidade.",
+      description: "Automatize toques, gestos e rotinas no Android com botão de parada flutuante. Grátis para uso pessoal, com permissão de acessibilidade explicada.",
     },
     h1: "AutoFlow para Android",
     lead: "Toques, deslizes e rotinas diárias rodando no seu celular — com um botão de parada que flutua acima de tudo.",
@@ -397,10 +398,10 @@ export const ptBR: Content = {
   download: {
     seo: {
       title: "Baixar o AutoFlow — Windows, Android e app web",
-      description: "Baixe o AutoFlow grátis: o instalador do Windows e o app Android do nosso servidor oficial, ou abra o app web no navegador, sem conta.",
+      description: "Baixe o AutoFlow, grátis para uso pessoal: instalador para Windows e app Android no servidor oficial, ou use o app web no navegador.",
     },
     h1: "Baixe o AutoFlow",
-    lead: "Grátis em todas as plataformas. Seus fluxos circulam entre elas por arquivo, link ou sincronização criptografada opcional.",
+    lead: "Grátis para uso pessoal em todas as plataformas. Seus fluxos vão entre elas por arquivos, links ou sincronização criptografada opcional.",
     windows: { h2: "Windows", p: "Instalador para Windows 10 e 11 (64 bits). Atalhos globais, Keyforge e entrada real.", meta: "Download oficial · dl.autoflowmacro.com" },
     android: { h2: "Android", p: "Toques, deslizes e rotinas com botão flutuante de parada. Requer a permissão de acessibilidade, que você controla.", meta: "APK direto · Google Play em breve" },
     web: { h2: "App web", p: "O editor completo, o Atlas e o Practice Canvas no navegador. Instale como app pela barra de endereço.", meta: "Funciona offline depois da primeira visita" },
@@ -409,32 +410,32 @@ export const ptBR: Content = {
   },
   pricing: {
     seo: {
-      title: "Preços — o AutoFlow é grátis | Sem anúncios nem rastreio",
-      description: "Tudo o que o AutoFlow oferece hoje é grátis no Windows, Android e web. Sincronização grátis no lançamento; automação local e exportação, sempre.",
+      title: "Preços — grátis para uso pessoal | AutoFlow",
+      description: "AutoFlow é grátis para uso pessoal no Windows, Android e web. Uso empresarial ou profissional exige licença Business a partir de US$7.99/mês.",
     },
-    h1: "Grátis. De verdade.",
-    lead: "Tudo o que o AutoFlow oferece hoje não custa nada — sem período de teste, sem limite de usuários, sem anúncios.",
+    h1: "Grátis para uso pessoal.",
+    lead: "Uso pessoal é grátis. Uso profissional precisa de licença Business.",
     free: {
-      name: "Grátis",
+      name: "Pessoal",
       price: "R$ 0",
       period: "para sempre",
-      desc: "Tudo o que existe hoje no AutoFlow, em todas as plataformas.",
-      items: ["Modos fácil e Pro com os 34 tipos de passo", "Gravador, atalhos e gatilhos", "Remapeamento, camadas e trechos do Keyforge", "Practice Canvas e Ledger", "Modelos do Atlas e links de compartilhamento", "Copilot com sua chave ou um modelo local", "Guardrails, pontuação de segurança e Halt"],
+      desc: "Todos os recursos em todas as plataformas, para uso individual e não comercial.",
+      items: ["Modos fácil e Pro com os 34 tipos de passo", "Gravador, atalhos e gatilhos", "Remapeamento, camadas e trechos do Keyforge", "Practice Canvas e Ledger", "Modelos do Atlas e links de compartilhamento", "Copilot com sua chave ou um modelo local", "Guardrails, pontuação de segurança e Halt", "Sincronização criptografada, grátis para uso pessoal"],
     },
     sync: {
-      name: "Sincronização criptografada",
-      price: "₩0",
-      period: "grátis durante o lançamento",
-      desc: "Conta opcional que sincroniza seus fluxos entre aparelhos, com criptografia de ponta a ponta.",
-      items: ["Criptografado no seu aparelho antes do envio", "Em conflitos, as duas versões são mantidas", "Apague sua conta e seus dados quando quiser"],
-      note: "A sincronização roda em servidores que custam dinheiro, então pode virar uma opção paga no futuro. Se isso acontecer, vamos avisar com bastante antecedência — e nada do que você já sincronizou vai virar refém.",
-      policy: "O uso pessoal é grátis. O uso não pessoal (empresarial) é grátis até {date}.",
-      business: "Depois disso, o uso empresarial precisa do plano Business: {month} por mês ou {year} por ano, em pagamento único sem renovação automática.",
+      name: "Business",
+      period: "/ mês",
+      desc: "Licença para uso empresarial, comercial ou organizacional — inclui sincronização criptografada entre dispositivos.",
+      items: ["Uso comercial e em equipe de todos os recursos", "Sincronização criptografada: criptografia no aparelho antes do envio", "Ambas as versões mantidas em caso de conflito", "Passe mensal ou anual, sem renovação automática", "Apague conta e dados a qualquer momento"],
+      note: "Seus dados sincronizados nunca ficam bloqueados: ler, exportar e excluir sempre funcionam, pagando ou não.",
+      policy: "Uso pessoal é grátis. Qualquer outro uso exige licença Business.",
+      business: "{month} por mês ou {year} por ano — pagamento único, sem renovação automática. Compre em Configurações do app ou ative uma chave de licença lá.",
+      cta: "Obter licença Business",
     },
     promises: {
       h2: "Promessas que não mudam",
       items: [
-        { h3: "A automação local continua grátis", p: "Criar e rodar fluxos no seu próprio aparelho nunca vai ser pago." },
+        { h3: "Uso pessoal continua grátis", p: "Criar e rodar fluxos no seu próprio aparelho para uso pessoal nunca será cobrado." },
         { h3: "O Halt não é recurso de plano", p: "A parada de emergência e todas as verificações de segurança ficam ligadas para todo mundo, sempre." },
         { h3: "Seus dados sempre podem sair", p: "Exporte todos os fluxos como arquivo a qualquer momento, em qualquer plano." },
         { h3: "Sem anúncios, sem venda de dados", p: "Não mostramos anúncios e não vendemos nem alugamos suas informações." },
@@ -449,7 +450,8 @@ export const ptBR: Content = {
     h1: "Perguntas frequentes",
     lead: "Não achou sua resposta? Escreva para {email}.",
     items: [
-      { q: "O AutoFlow é grátis mesmo?", a: "Sim. Tudo o que o AutoFlow oferece hoje é grátis no Windows, no Android e na web, sem anúncios. A sincronização criptografada opcional é grátis durante o lançamento; automação local, Halt e exportação vão continuar grátis para sempre." },
+      { q: "O AutoFlow é grátis mesmo?", a: "Para uso pessoal, sim: todos os recursos no Windows, Android e web, sem anúncios. Qualquer outro uso — empresarial, comercial, organizacional ou profissional — exige licença Business: US$7.99/mês ou US$79.99/ano, como passes únicos sem renovação automática. Todos os recursos funcionam offline em qualquer caso; contas empresariais sem licença só pausam novos envios na sincronização." },
+      { q: "O que é considerado uso empresarial?", a: "Tudo que não for pessoal: usar o AutoFlow no trabalho ou para o empregador, como freelancer ou contratado, em empresa, escola, órgão público ou organização, ou para qualquer fim comercial. Cada pessoa que usar assim precisa de uma licença Business. Ative a chave de licença recebida em Configurações › Plano e pagamento no app." },
       { q: "Preciso de uma conta?", a: "Não. O AutoFlow funciona totalmente offline e sem conta. Você só precisa de uma para a sincronização criptografada entre aparelhos ou para publicar modelos no Atlas." },
       { q: "Como paro um fluxo em execução?", a: "Aperte Ctrl+Alt+Esc no Windows ou toque no botão flutuante de parada no Android. O Halt para qualquer fluxo em menos de meio segundo, e a barra Pulse sempre mostra o que está rodando." },
       { q: "Por que o app Android precisa da permissão de acessibilidade?", a: "O Android só deixa os apps tocarem e deslizarem por você por meio de um serviço de acessibilidade. O AutoFlow usa esse serviço para executar os gestos dos seus fluxos e, só quando um passo pede, para ler texto na tela. Ele nunca coleta dados pessoais, e você pode desligá-lo a qualquer momento em Configurações › Acessibilidade." },
@@ -468,7 +470,7 @@ export const ptBR: Content = {
     lead: "A página que você procura não existe ou mudou de lugar.",
     back: "Voltar ao início",
   },
-  legalUi: { contents: "Sumário", effective: "Vigência: 19 de outubro de 2026", updated: "Última atualização: 19 de outubro de 2026", other: "Leia também" },
+  legalUi: { contents: "Sumário", effective: "Vigência: 20 de outubro de 2026", updated: "Última atualização: 20 de outubro de 2026", other: "Leia também" },
   templates: {
     "auto-clicker": { n: "Auto clicker clássico", d: "Clica com o botão esquerdo no centro da tela 100 vezes, quatro por segundo. Ctrl+Alt+Esc para." },
     "multi-point": { n: "Ciclo de cliques em três pontos", d: "Clica em três posições em ordem e repete até você parar." },

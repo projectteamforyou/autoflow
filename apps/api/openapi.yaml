@@ -1020,11 +1020,48 @@ paths:
                 type: object
                 properties:
                   order: { $ref: "#/components/schemas/Order" }
+                  licenseKey:
+                    type: [string, "null"]
+                    description: "The order's license key (`AFB-XXXXX-XXXXX-XXXXX-XXXXX`), already applied to the buyer's account and kept as their license number. Returned only by the call that settled the order; null on repeats."
                   billing: { $ref: "#/components/schemas/BillingStatus" }
         "402": { description: "`payment_failed`" }
         "404": { $ref: "#/components/responses/Error" }
         "409": { description: "`payment_not_completed` (try again later) or `payment_mismatch` (rejected; PortOne payments are refunded)" }
         "502": { $ref: "#/components/responses/Error" }
+
+  /v1/billing/redeem:
+    post:
+      tags: [billing]
+      summary: Redeem a Business license key (once only)
+      description: |
+        Normalises the key (case, spaces, dashes, O→0, I/L→1) and checks its checksum, then marks it
+        redeemed in one transaction, extends the caller's Business entitlement by the key's period and
+        sets their usage type to business. Rate-limited per account and per IP.
+      security: [{ bearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [key]
+              properties:
+                key: { type: string, maxLength: 80, example: "AFB-7K3QZ-0M9XA-T4WRB-2NHC8" }
+      responses:
+        "200":
+          description: Redeemed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  redeemed: { type: object, properties: { id: { type: string }, period: { type: string, enum: [month, year] }, validUntil: { type: string, format: date-time } } }
+                  billing: { $ref: "#/components/schemas/BillingStatus" }
+        "400": { description: "`invalid_license_key` — malformed or failed checksum (typo)" }
+        "404": { description: "`invalid_license_key` — no such key" }
+        "409": { description: "`license_key_used`" }
+        "410": { description: "`license_key_revoked`" }
+        "429": { $ref: "#/components/responses/Error" }
 
   /v1/admin/billing/settings:
     get:
@@ -1104,6 +1141,43 @@ paths:
                 note: { type: string, maxLength: 300 }
       responses:
         "200": { description: New entitlement }
+
+  /v1/admin/billing/license-keys:
+    post:
+      tags: [admin]
+      summary: Issue 1–50 Business license keys (operators only; audited). Plaintext keys are returned once.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [period, count]
+              properties:
+                period: { type: string, enum: [month, year] }
+                count: { type: integer, minimum: 1, maximum: 50 }
+                note: { type: string, maxLength: 300 }
+      responses:
+        "201": { description: "`{ keys: [{ key, license }] }` — `key` is the plaintext, never shown again" }
+    get:
+      tags: [admin]
+      summary: List license keys, masked (operators only)
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+        - { name: status, in: query, schema: { type: string, enum: [issued, redeemed, revoked] } }
+      responses:
+        "200": { description: "`{ keys: [...] }` with masked key, status, period, redeemedByEmail, note" }
+
+  /v1/admin/billing/license-keys/{id}/revoke:
+    post:
+      tags: [admin]
+      summary: Revoke an unused license key (operators only; audited)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Revoked key }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { description: Already revoked, or already redeemed }
 
   /v1/admin/billing/audit:
     get:
@@ -1253,6 +1327,18 @@ components:
         checkoutEnabled: { type: boolean }
         businessFreeUntil: { type: string }
         orders: { type: array, items: { $ref: "#/components/schemas/Order" } }
+        licenseKeys:
+          type: array
+          description: License keys applied to this account (masked), newest first
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              key: { type: string, example: "AFB-•••••-•••••-•••••-•NHC8" }
+              period: { type: string, enum: [month, year] }
+              source: { type: string, enum: [purchase, key] }
+              redeemedAt: { type: string, format: date-time }
+              validUntil: { type: string, format: date-time }
 
     BillingConfig:
       type: object
