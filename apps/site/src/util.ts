@@ -90,7 +90,7 @@ export function noOrphans(h: string): string {
       if (!closing) stack.push({ tag, texts: [] });
       else {
         const blk = stack.pop();
-        if (blk && blk.texts.length) fixBlock(parts, blk.texts, /^h[1-3]$/.test(blk.tag) ? 20 : blk.tag === "summary" ? 28 : 30);
+        if (blk && blk.texts.length) fixBlock(parts, blk.texts, /^h[1-3]$/.test(blk.tag) ? 20 : blk.tag === "summary" ? 22 : 30);
         // text of a nested block also counts as content of the parent (but is fixed independently)
       }
     } else if (stack.length && !closing) {
@@ -149,7 +149,7 @@ function fixBlock(parts: string[], texts: number[], max: number): void {
   if (gap.k === texts.length - 1 || idx !== lastIdx) {
     const lt = parts[lastIdx]!;
     const w = /([^\s;]+)(\s*)$/.exec(lt);
-    if (w && /\p{L}-\p{L}/u.test(w[1]!) && !/[<>&]/.test(w[1]!) && w[1]!.length <= max - 8) parts[lastIdx] = lt.slice(0, w.index) + w[1]!.replace(/(?<=\p{L})-(?=\p{L})/gu, "\u2011") + w[2];
+    if (w && /\p{L}-\p{L}/u.test(w[1]!) && !/[<>&]/.test(w[1]!) && w[1]!.length <= max - 8 && lastLen + prevLen + 1 <= 20) parts[lastIdx] = lt.slice(0, w.index) + w[1]!.replace(/(?<=\p{L})-(?=\p{L})/gu, "\u2011") + w[2];
   }
 }
 

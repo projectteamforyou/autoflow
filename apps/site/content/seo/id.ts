@@ -25,7 +25,7 @@ export const id: SeoContent = {
     switchH: "Memindahkan tugas Anda ke AutoFlow",
     switchSteps: [
       "Instal AutoFlow untuk Windows atau Android, atau buka aplikasi web untuk mencobanya tanpa instalasi.",
-      "Buat ulang setiap tugas di Mode Mudah (empat pertanyaan) atau rekam sekali dengan Recorder, lalu sempurnakan langkah-langkahnya.",
+      "Buat ulang setiap tugas di Mode Mudah (empat pertanyaan) atau rekam sekali dengan Recorder, lalu sempurnakan setiap langkah.",
       "Uji coba di Practice Canvas, pasang hotkey atau jadwal, dan ingat Halt (Ctrl+Alt+Esc atau tombol berhenti melayang).",
     ],
     glanceH: "AutoFlow sekilas",
@@ -164,7 +164,7 @@ export const id: SeoContent = {
     "key-remapper": {
       kw: "Remap tombol",
       title: "Remap tombol keyboard di Windows | AutoFlow",
-      description: "Remap tombol apa pun ke tombol lain, teks, aplikasi, tombol media, atau alur. Layer, profil per aplikasi, dan cek konflik dengan Keyforge. Gratis untuk pribadi.",
+      description: "Remap tombol apa pun ke tombol lain, teks, aplikasi, tombol media, atau alur. Layer, profil per app, dan cek konflik dengan Keyforge. Gratis untuk pribadi.",
       h1: "Remap tombol apa pun di Windows dengan Keyforge",
       intro: "Keyforge, alat remap di AutoFlow, mengubah tombol apa pun menjadi tombol lain, potongan teks, peluncur aplikasi, tombol media, atau seluruh alur — dan berganti profil otomatis berdasarkan aplikasi, waktu, atau perangkat.",
       steps: [
@@ -186,7 +186,7 @@ export const id: SeoContent = {
     "mouse-button-remap": {
       kw: "Remap tombol mouse",
       title: "Remap tombol mouse & tombol samping | AutoFlow",
-      description: "Tetapkan tombol samping, tekan ganda dan lama, serta arah roda gulir ke tombol, pintasan, aplikasi, atau alur, dengan profil per aplikasi. Gratis untuk pribadi.",
+      description: "Tetapkan tombol samping, tekan ganda dan lama, serta roda gulir ke tombol, pintasan, aplikasi, atau alur, dengan profil per app. Gratis untuk pribadi.",
       h1: "Remap tombol mouse, tombol samping, dan roda gulir",
       intro: "Tombol mouse tambahan paling berguna saat melakukan yang Anda butuhkan. Keyforge memetakan tombol samping, klik ganda, tekan lama, dan arah roda gulir ke tombol, pintasan, aplikasi, atau alur.",
       steps: [
@@ -362,7 +362,7 @@ export const id: SeoContent = {
     "form-filling": {
       kw: "Isi formulir otomatis",
       title: "Isi formulir otomatis di aplikasi & situs web | AutoFlow",
-      description: "Isi formulir otomatis: berpindah antar kolom dengan Tab, ketik nilai dari variabel atau daftar, lalu kirim, di aplikasi desktop dan browser. Gratis untuk pribadi.",
+      description: "Isi formulir otomatis: pindah antar kolom dengan Tab, ketik nilai dari variabel atau daftar, lalu kirim, di aplikasi dan browser. Gratis untuk pribadi.",
       h1: "Isi formulir secara otomatis",
       intro: "Mengisi formulir yang sama berulang kali adalah pekerjaan sempurna untuk otomatisasi. AutoFlow berpindah antar kolom, mengetik nilai, dan mengklik kirim — di browser maupun program desktop.",
       steps: [
@@ -538,7 +538,7 @@ export const id: SeoContent = {
     "repeat-keypress": {
       kw: "Ulangi tekan tombol",
       title: "Ulangi tekan tombol secara otomatis | AutoFlow",
-      description: "Tekan tombol berulang kali dengan interval tertentu, atau pakai mode ulangi-saat-ditahan dan toggle di Keyforge. Mulai dan stop dengan hotkey. Gratis untuk pribadi.",
+      description: "Tekan tombol berulang dengan interval tertentu, atau pakai mode ulangi-saat-ditahan dan toggle di Keyforge. Mulai/stop dengan hotkey. Gratis untuk pribadi.",
       h1: "Ulangi tekan tombol secara otomatis",
       intro: "Beberapa tugas perlu satu tombol ditekan lagi dan lagi. AutoFlow mengulang tombol apa pun dengan interval pilihan Anda, dan Keyforge menambahkan mode ulangi-saat-ditahan dan toggle.",
       steps: [
@@ -599,7 +599,7 @@ export const id: SeoContent = {
     },
     "gs-auto-clicker": {
       title: "Alternatif GS Auto Clicker, Windows & Android | AutoFlow",
-      description: "Butuh alternatif GS Auto Clicker? AutoFlow mengulang klik lewat hotkey dan menambahkan klik multi-titik, perekaman, dan aplikasi Android. Gratis untuk pribadi.",
+      description: "Alternatif GS Auto Clicker: AutoFlow mengulang klik lewat hotkey dan menambahkan klik multi-titik, perekaman, dan aplikasi Android. Gratis untuk pribadi.",
       h1: "Alternatif GS Auto Clicker untuk Windows dan Android",
       intro: "GS Auto Clicker adalah alat Windows ringan untuk mengulang klik mouse dengan hotkey. AutoFlow melakukan hal yang sama dan menambahkan urutan multi-titik, target gambar dan warna, perekaman, serta versi Android.",
       points: [

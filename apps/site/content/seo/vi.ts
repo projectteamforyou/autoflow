@@ -164,7 +164,7 @@ export const vi: SeoContent = {
     "key-remapper": {
       kw: "Đổi phím",
       title: "Phần mềm đổi phím cho Windows | AutoFlow",
-      description: "Đổi phím bất kỳ thành phím khác, văn bản, ứng dụng, phím media hoặc kịch bản. Layer, hồ sơ theo ứng dụng và kiểm tra xung đột với Keyforge. Miễn phí cho cá nhân.",
+      description: "Đổi phím bất kỳ thành phím khác, văn bản, ứng dụng, phím media hoặc kịch bản. Layer, hồ sơ theo app, kiểm tra xung đột với Keyforge. Miễn phí cho cá nhân.",
       h1: "Đổi chức năng phím bất kỳ trên Windows với Keyforge",
       intro: "Keyforge, công cụ đổi phím của AutoFlow, biến bất kỳ phím nào thành phím khác, đoạn văn bản, trình mở ứng dụng, phím media hoặc cả một kịch bản — và tự động chuyển hồ sơ theo ứng dụng, thời gian hoặc thiết bị.",
       steps: [

@@ -26,7 +26,7 @@ export const de: SeoContent = {
     switchSteps: [
       "Installieren Sie AutoFlow für Windows oder Android, oder öffnen Sie die Web-App, um es ohne Installation auszuprobieren.",
       "Bauen Sie jede Aufgabe im Einfachen Modus (vier Fragen) nach oder zeichnen Sie sie einmal mit dem Rekorder auf und passen Sie danach die Schritte an.",
-      "Proben Sie auf Practice Canvas, legen Sie einen Hotkey oder Zeitplan fest und denken Sie an Halt (Strg+Alt+Esc oder die schwebende Stopp-Schaltfläche).",
+      "Proben Sie auf Practice Canvas, legen Sie einen Hotkey oder Zeitplan fest und denken Sie an Halt: Strg+Alt+Esc oder der schwebende Stopp-Button.",
     ],
     glanceH: "AutoFlow auf einen Blick",
     glance: [
@@ -565,7 +565,7 @@ export const de: SeoContent = {
       intro: "Robotergestützte Prozessautomatisierung muss kein Großprojekt sein. AutoFlow bietet 34 Schritttypen – Bedingungen, Schleifen, Variablen, Dateien, HTTP, OCR und Bildsuche – in einem visuellen Editor, mit einem Protokoll jedes Laufs.",
       steps: [
         "Beschreiben Sie die Aufgabe im Einfachen Modus oder zeichnen Sie sie einmal auf.",
-        "Wechseln Sie in den Profi-Modus, um Bedingungen, Schleifen, Variablen und Fehlerbehandlung hinzuzufügen.",
+        "Im Profi-Modus fügen Sie Bedingungen, Schleifen, Variablen und Fehlerbehandlung hinzu.",
         "Proben Sie auf Practice Canvas mit Haltepunkten und Live-Variablen.",
         "Planen Sie die Aufgabe oder starten Sie sie per Hotkey und prüfen Sie die Ergebnisse im Ledger.",
       ],

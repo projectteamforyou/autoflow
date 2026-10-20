@@ -4,7 +4,7 @@ export const en: SeoContent = {
   ui: {
     guides: {
       nav: "Guides",
-      title: "Automation guides — auto clicker, macros, key remapping | AutoFlow",
+      title: "Automation guides — auto clicker, macros, remap | AutoFlow",
       description: "Step-by-step guides for auto clicking, mouse and keyboard macros, key remapping, Android auto tapping and more, all with AutoFlow — free for personal use.",
       h1: "Automation guides",
       lead: "Pick the job you want to stop doing by hand. Each guide shows how to set it up in AutoFlow on Windows, Android or the web, with tips that keep it safe.",
@@ -726,7 +726,7 @@ export const en: SeoContent = {
       ],
     },
     "macro-express": {
-      title: "Macro Express alternative — modern & free personal | AutoFlow",
+      title: "Macro Express alternative — modern, free personal | AutoFlow",
       description: "Macro Express alternative: build Windows macros with a modern visual editor, recorder, text expansion and hotkeys. Free for personal use.",
       h1: "A modern Macro Express alternative",
       intro: "Macro Express is a long-established paid macro tool for Windows. AutoFlow offers macros, text expansion and hotkeys in a modern editor, free for personal use and available on Android too.",
@@ -806,7 +806,7 @@ export const en: SeoContent = {
       ],
     },
     sharpkeys: {
-      title: "SharpKeys alternative — remap without the registry | AutoFlow",
+      title: "SharpKeys alternative — remap without registry | AutoFlow",
       description: "SharpKeys alternative: remap keys live without registry edits or restarts, with layers, per-app profiles and mouse buttons in AutoFlow Keyforge.",
       h1: "A SharpKeys alternative that remaps without restarting",
       intro: "SharpKeys writes key remaps to the Windows registry, which needs a sign-out to apply. Keyforge remaps live while AutoFlow runs — switch it off and your keyboard is back to normal instantly.",

@@ -5,7 +5,7 @@ export const ptBR: SeoContent = {
     guides: {
       nav: "Guias",
       title: "Guias de automação: auto clicker e macros | AutoFlow",
-      description: "Guias passo a passo de clique automático, macros de mouse e teclado, remapear teclas, toques automáticos no Android e mais com o AutoFlow. Grátis para uso pessoal.",
+      description: "Guias passo a passo de clique automático, macros de mouse e teclado, remapear teclas, toques automáticos no Android e mais. Grátis para uso pessoal.",
       h1: "Guias de automação",
       lead: "Escolha a tarefa que você não quer mais fazer na mão. Cada guia mostra como configurá-la no AutoFlow no Windows, no Android ou na web, com dicas para fazer isso com segurança.",
     },
@@ -164,7 +164,7 @@ export const ptBR: SeoContent = {
     "key-remapper": {
       kw: "Remapear teclas",
       title: "Remapear teclas no Windows: troque qualquer tecla | AutoFlow",
-      description: "Remapeie qualquer tecla para outra tecla, texto, app, tecla de mídia ou fluxo. Camadas, perfis por app e verificação de conflitos com o Keyforge. Grátis para uso pessoal.",
+      description: "Remapeie teclas para outra tecla, texto, app, tecla de mídia ou fluxo. Camadas, perfis por app e alerta de conflitos no Keyforge. Grátis para uso pessoal.",
       h1: "Remapeie qualquer tecla no Windows com o Keyforge",
       intro: "O Keyforge, ferramenta de remapeamento do AutoFlow, transforma qualquer tecla em outra tecla, um trecho de texto, um atalho para abrir apps, uma tecla de mídia ou um fluxo inteiro — e troca de perfil automaticamente por app, horário ou dispositivo.",
       steps: [
@@ -318,7 +318,7 @@ export const ptBR: SeoContent = {
     "click-on-color": {
       kw: "Clique por cor de pixel",
       title: "Clicar quando um pixel muda de cor | AutoFlow",
-      description: "Espere um pixel ou botão mudar de cor e então clique ou pressione uma tecla. Verificação de cor de pixel com tolerância e tempo limite. Grátis para uso pessoal.",
+      description: "Espere um pixel ou botão mudar de cor e então clique ou pressione uma tecla. Verificação de cor com tolerância e tempo limite. Grátis para uso pessoal.",
       h1: "Clique quando um pixel mudar para uma cor específica",
       intro: "Muitas tarefas começam quando algo muda de cor — um botão fica ativo, uma barra se enche. O AutoFlow verifica um pixel com tolerância e tempo limite, e então continua.",
       steps: [
@@ -362,7 +362,7 @@ export const ptBR: SeoContent = {
     "form-filling": {
       kw: "Preencher formulários",
       title: "Preencher formulários automaticamente | AutoFlow",
-      description: "Preencha formulários automaticamente: passe pelos campos com Tab, digite valores de variáveis ou de uma lista e envie, em apps e navegadores. Grátis para uso pessoal.",
+      description: "Preencha formulários automaticamente: avance pelos campos com Tab, digite valores de variáveis ou listas e envie, em apps e sites. Grátis para uso pessoal.",
       h1: "Preencha formulários automaticamente",
       intro: "Preencher o mesmo formulário várias vezes é um trabalho perfeito para automação. O AutoFlow passa pelos campos com Tab, digita os valores e clica em enviar — tanto em navegadores quanto em programas de desktop.",
       steps: [
@@ -599,7 +599,7 @@ export const ptBR: SeoContent = {
     },
     "gs-auto-clicker": {
       title: "Alternativa ao GS Auto Clicker: Windows e Android | AutoFlow",
-      description: "Quer uma alternativa ao GS Auto Clicker? O AutoFlow repete cliques com um atalho e traz cliques em vários pontos, gravação e app Android. Grátis para uso pessoal.",
+      description: "Alternativa ao GS Auto Clicker: o AutoFlow repete cliques com um atalho e traz cliques em vários pontos, gravação e app Android. Grátis para uso pessoal.",
       h1: "Uma alternativa ao GS Auto Clicker para Windows e Android",
       intro: "O GS Auto Clicker é uma ferramenta leve para Windows que repete cliques do mouse com um atalho. O AutoFlow faz o mesmo e acrescenta sequências de vários pontos, alvos de imagem e cor, gravação e uma versão para Android.",
       points: [
@@ -823,7 +823,7 @@ export const ptBR: SeoContent = {
     },
     textexpander: {
       title: "Alternativa grátis ao TextExpander | AutoFlow",
-      description: "Alternativa ao TextExpander para Windows: trechos com datas e valores dinâmicos em qualquer lugar, mais remapeamento de teclas e macros. Grátis para uso pessoal.",
+      description: "Alternativa ao TextExpander para Windows: trechos com datas e valores dinâmicos em qualquer app, mais remapear teclas e macros. Grátis para uso pessoal.",
       h1: "Uma alternativa ao TextExpander para Windows",
       intro: "O TextExpander é um serviço por assinatura para trechos de texto em vários dispositivos. O Keyforge do AutoFlow expande trechos em todo o sistema no Windows, grátis para uso pessoal, e os combina com remapeamento e macros.",
       points: [

@@ -614,7 +614,7 @@ export const zhTW: SeoContent = {
       ],
     },
     "speed-autoclicker": {
-      title: "Speed AutoClicker 替代：可控又安全 | AutoFlow",
+      title: "Speed AutoClicker 替代軟體：可控又安全 | AutoFlow",
       description: "需要 Speed AutoClicker 替代？AutoFlow 間隔最低 50 ms，含抖動、限制與即時 Halt，還有找圖與 Android 版。",
       h1: "注重控制的 Speed AutoClicker 替代工具",
       intro: "Speed AutoClicker 以在 Windows 上極高的點擊速度聞名。AutoFlow 採取更可控的做法：間隔最低 50 ms、隨機化、執行限制與即時停止，並提供圖片目標與 Android App。",
@@ -694,7 +694,7 @@ export const zhTW: SeoContent = {
       ],
     },
     "jitbit-macro-recorder": {
-      title: "Jitbit Macro Recorder 替代 | AutoFlow",
+      title: "Jitbit Macro Recorder 替代方案 | AutoFlow",
       description: "Jitbit Macro Recorder 替代：錄製、編輯與重播巨集，支援條件、圖片搜尋與排程。個人免費。",
       h1: "個人免費的 Jitbit Macro Recorder 替代工具",
       intro: "Jitbit Macro Recorder 是一款用於錄製與編輯巨集的付費 Windows 工具。AutoFlow 同樣提供錄製與步驟編輯器，個人使用免費，工作用途則需 Business 授權。",
@@ -710,7 +710,7 @@ export const zhTW: SeoContent = {
       ],
     },
     "pulovers-macro-creator": {
-      title: "Pulover’s Macro Creator 替代 | AutoFlow",
+      title: "Pulover’s Macro Creator 替代軟體 | AutoFlow",
       description: "Pulover’s Macro Creator 替代：以視覺化方式錄製與製作巨集，不產生腳本，支援圖片搜尋、排程與 Android。",
       h1: "Pulover’s Macro Creator 的替代工具",
       intro: "Pulover’s Macro Creator 是一款免費的錄製工具，會產生 AutoHotkey 腳本。AutoFlow 把一切都保留在視覺化流程中——沒有需要維護的產生腳本——並提供錄製器、圖片搜尋與 Android App。",
@@ -774,7 +774,7 @@ export const zhTW: SeoContent = {
       ],
     },
     "x-mouse-button-control": {
-      title: "X-Mouse Button Control 替代 | AutoFlow",
+      title: "X-Mouse Button Control 替代方案 | AutoFlow",
       description: "X-Mouse Button Control 替代：在 AutoFlow Keyforge 中依程式重新對應滑鼠按鍵、滾輪與鍵盤，支援圖層與完整巨集。",
       h1: "內建巨集的 X-Mouse Button Control 替代工具",
       intro: "X-Mouse Button Control 是一款熱門的免費工具，可在 Windows 上依程式重新對應滑鼠按鍵。AutoFlow 的 Keyforge 同樣能依程式設定檔重新對應按鍵與滑鼠按鍵，而且任何按鍵都能啟動完整流程。",
@@ -870,7 +870,7 @@ export const zhTW: SeoContent = {
       ],
     },
     "automate-llamalab": {
-      title: "Automate (LlamaLab) 替代 | AutoFlow",
+      title: "Automate (LlamaLab) 替代方案 | AutoFlow",
       description: "LlamaLab Automate 替代：更簡單的視覺化流程，自動化 Android 點觸、滑動與例行程序，與 Windows 共用格式。",
       h1: "LlamaLab Automate 的替代工具",
       intro: "LlamaLab 的 Automate 以積木流程圖建立 Android 自動化。AutoFlow 提供更簡單的編輯器，專注於點觸、滑動與例行程序，同樣的流程也能在 Windows 與瀏覽器中執行。",
