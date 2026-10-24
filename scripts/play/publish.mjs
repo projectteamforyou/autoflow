@@ -198,18 +198,24 @@ async function call(path, { method = 'GET', json, body, type } = {}) {
 let notSentForReview = false;
 async function finish(editId, verb) {
   try {
+    if (verb === ':validate' && notSentForReview) return; // see below: :validate does not take the flag
     const r = await call(`/edits/${editId}${verb}${notSentForReview ? '?changesNotSentForReview=true' : ''}`, { method: 'POST' });
     console.log(`${verb.slice(1)}d ${r.id ?? editId}`);
   } catch (err) {
     // A new app (or one with Console changes pending) refuses an automatic review submission:
     // "Changes cannot be sent for review automatically … set changesNotSentForReview to true". Save the edit without
     // submitting; the owner then presses "Send for review" in the Console (publishing overview) once.
-    // After a rejection Play already says so at :validate, so both verbs retry with the flag (and later calls keep it).
-    if (/-> 400/.test(String(err.message)) && /changesNotSentForReview|sent for review/i.test(String(err.message))) {
-      console.log(`Play will not submit this for review automatically — ${verb.slice(1)} without sending for review.`);
-      const r = await call(`/edits/${editId}${verb}?changesNotSentForReview=true`, { method: 'POST' });
+    // After a rejection Play already says so at :validate, which does not take the flag: skip validation there (the
+    // commit validates the edit too) and commit with changesNotSentForReview=true.
+    if (/-> 400/.test(String(err.message)) && /changesNotSentForReview=true|cannot be sent for review/i.test(String(err.message))) {
       notSentForReview = true;
-      console.log(`${verb.slice(1)}d ${r.id ?? editId} (not sent for review)`);
+      if (verb === ':validate') {
+        console.log('Play will not submit this for review automatically — the commit will save it without sending it for review.');
+        return;
+      }
+      console.log('Play will not submit this for review automatically — committing it without sending for review.');
+      const r = await call(`/edits/${editId}:commit?changesNotSentForReview=true`, { method: 'POST' });
+      console.log(`committed ${r.id ?? editId} (not sent for review)`);
       return;
     }
     console.error(String(err.message));
