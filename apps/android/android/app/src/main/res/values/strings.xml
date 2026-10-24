@@ -29,4 +29,8 @@
     <string name="halt_button">Stop all flows (Halt)</string>
     <string name="pick_point_hint">Tap the point to use</string>
     <string name="recording_banner">● Recording — tap here to finish</string>
+    <string name="a11y_disclosure_title">AutoFlow uses the Accessibility Service</string>
+    <string name="a11y_disclosure_body">AutoFlow is an automation app. To run the flows you create, it uses Android\'s Accessibility Service API.\n\nWhat AutoFlow accesses and why:\n• Screen actions: it performs the taps, swipes, long presses, scrolls, typing and system actions (Back, Home, Recents) that you put into your flows.\n• Screen content: it reads the text and layout of the window in front to find the element or text field a step targets, and to see which app is open for app triggers, key profiles and the protected-screen guard.\n• Keys you press: on a hardware keyboard, only when you have set up hotkeys or key mappings.\n• Text you type: only while you record a flow, so it can add a typing step. Password fields are never read.\n\nThis data is processed only on your device. AutoFlow does not collect it, send it to us or share it with anyone, and does not use it for ads. Text you record is saved only in that flow.\n\nAutoFlow never acts on the lock screen, permission dialogs or system Settings, and it acts only when you start a flow or a trigger you set up fires. You can turn the service off any time in Settings › Accessibility.\n\nTap \"Agree\" to open Android Settings and turn on \"AutoFlow automations\".</string>
+    <string name="a11y_disclosure_agree">Agree</string>
+    <string name="a11y_disclosure_decline">No thanks</string>
 </resources>

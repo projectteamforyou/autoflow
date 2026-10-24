@@ -25,4 +25,8 @@
     <string name="halt_button">停止所有流程（Halt）</string>
     <string name="pick_point_hint">輕觸要使用的位置</string>
     <string name="recording_banner">● 錄製中 — 輕觸這裡結束</string>
+    <string name="a11y_disclosure_title">AutoFlow 如何使用無障礙服務</string>
+    <string name="a11y_disclosure_body">AutoFlow 是一款自動化應用程式。為了執行你建立的流程，它會使用 Android 無障礙服務 API。\n\nAutoFlow 存取的資訊及原因：\n• 螢幕操作：執行你在流程中設定的輕觸、滑動、長按、捲動、輸入和系統操作（返回、主畫面、最近使用）。\n• 螢幕內容：讀取前景視窗的文字和版面配置，以找到步驟所指向的元素或輸入欄位，並判斷目前開啟的是哪個應用程式（用於應用程式觸發條件、按鍵設定檔和受保護畫面防護）。\n• 你按下的按鍵：僅在你設定了快速鍵或按鍵對應時，接收實體鍵盤的按鍵。\n• 你輸入的文字：僅在錄製流程時用於建立輸入步驟。絕不讀取密碼欄位。\n\n這些資料只在你的裝置上處理。AutoFlow 不會收集、傳送給我們或與任何人分享，也不會用於廣告。錄製的文字只儲存在該流程中。\n\nAutoFlow 絕不在鎖定畫面、權限對話框或系統設定中操作，且只在你啟動流程或你設定的觸發條件觸發時才運作。你可以隨時在 設定 › 無障礙 中關閉此服務。\n\n輕觸「同意」會開啟 Android 設定，請開啟「AutoFlow automations」。</string>
+    <string name="a11y_disclosure_agree">同意</string>
+    <string name="a11y_disclosure_decline">不同意</string>
 </resources>

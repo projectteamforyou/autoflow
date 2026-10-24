@@ -10,6 +10,7 @@ import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
 import com.getcapacitor.annotation.Permission
 import com.getcapacitor.annotation.PermissionCallback
+import com.projectteamforyou.autoflow.a11y.AccessibilityDisclosure
 import com.projectteamforyou.autoflow.a11y.AutoFlowAccessibilityService
 import com.projectteamforyou.autoflow.engine.FlowParseException
 import com.projectteamforyou.autoflow.engine.FlowParser
@@ -140,6 +141,12 @@ class AutoFlowNativePlugin : Plugin() {
             return
         }
         val status = DeviceState.permissionStatus(context, permission)
+        if (status["granted"] != JsonPrimitive(true) && permission in A11Y_PAGES) {
+            // Play policy: the prominent disclosure always comes before Android's Accessibility settings.
+            val act = activity ?: return fail(call, "AutoFlow is not in the foreground", "environment")
+            AccessibilityDisclosure.request(act) { agreed -> ok(call, JsonObject(status + ("declined" to JsonPrimitive(!agreed)))) }
+            return
+        }
         if (status["granted"] != JsonPrimitive(true) && permission !in setOf("location", "overlay")) {
             // Special-access permissions can only be granted by the user in Settings.
             Intents.start(context, Intents.settings(context, permission))
@@ -280,6 +287,11 @@ class AutoFlowNativePlugin : Plugin() {
     @PluginMethod
     fun open_settings(call: PluginCall) {
         val page = args(call).string("page") ?: "app"
+        if (page in A11Y_PAGES) {
+            val act = activity ?: return fail(call, "AutoFlow is not in the foreground", "environment")
+            AccessibilityDisclosure.request(act) { agreed -> ok(call, buildJsonObject { put("declined", !agreed) }) }
+            return
+        }
         if (!Intents.start(context, Intents.settings(context, page))) return fail(call, "could not open settings", "environment")
         ok(call)
     }
@@ -305,3 +317,6 @@ class AutoFlowNativePlugin : Plugin() {
         ok(call)
     }
 }
+
+/** Bridge pages and permissions that lead to Android's Accessibility settings. */
+private val A11Y_PAGES = setOf("accessibility", "inputMonitoring")

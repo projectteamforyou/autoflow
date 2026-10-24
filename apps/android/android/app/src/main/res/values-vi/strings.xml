@@ -25,4 +25,8 @@
     <string name="halt_button">Dừng mọi luồng (Halt)</string>
     <string name="pick_point_hint">Chạm vào vị trí cần dùng</string>
     <string name="recording_banner">● Đang ghi — chạm vào đây để kết thúc</string>
+    <string name="a11y_disclosure_title">AutoFlow sử dụng Dịch vụ hỗ trợ tiếp cận</string>
+    <string name="a11y_disclosure_body">AutoFlow là ứng dụng tự động hóa. Để chạy các luồng bạn tạo, ứng dụng dùng API Dịch vụ hỗ trợ tiếp cận của Android.\n\nAutoFlow truy cập những gì và vì sao:\n• Thao tác trên màn hình: thực hiện các lần chạm, vuốt, nhấn giữ, cuộn, nhập văn bản và thao tác hệ thống (Quay lại, Màn hình chính, Gần đây) mà bạn đưa vào luồng.\n• Nội dung màn hình: đọc văn bản và bố cục của cửa sổ phía trước để tìm phần tử hoặc ô nhập mà một bước nhắm tới, và để biết ứng dụng nào đang mở (trình kích hoạt theo ứng dụng, hồ sơ phím, bảo vệ màn hình nhạy cảm).\n• Phím bạn nhấn: trên bàn phím vật lý, chỉ khi bạn đã thiết lập phím tắt hoặc ánh xạ phím.\n• Văn bản bạn nhập: chỉ trong lúc bạn ghi một luồng, để tạo bước nhập. Không bao giờ đọc ô mật khẩu.\n\nDữ liệu này chỉ được xử lý trên thiết bị của bạn. AutoFlow không thu thập, không gửi cho chúng tôi, không chia sẻ với bất kỳ ai và không dùng cho quảng cáo. Văn bản bạn ghi chỉ được lưu trong luồng đó.\n\nAutoFlow không bao giờ thao tác trên màn hình khóa, hộp thoại cấp quyền hay Cài đặt hệ thống, và chỉ hoạt động khi bạn bắt đầu một luồng hoặc khi trình kích hoạt bạn thiết lập được kích hoạt. Bạn có thể tắt dịch vụ bất cứ lúc nào trong Cài đặt › Hỗ trợ tiếp cận.\n\nNhấn \"Đồng ý\" để mở Cài đặt Android và bật \"AutoFlow automations\".</string>
+    <string name="a11y_disclosure_agree">Đồng ý</string>
+    <string name="a11y_disclosure_decline">Không, cảm ơn</string>
 </resources>

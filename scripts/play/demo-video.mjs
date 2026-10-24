@@ -11,7 +11,7 @@
 // and writes demo-out/autoflow-accessibility-demo-<lang>.mp4.
 //
 // What the video shows (captions come from CAPTIONS in demo-video-lib.mjs and are only shown while that is on screen):
-//   part A  AutoFlow ▸ Settings ▸ Permissions ▸ Grant (Accessibility) → the in-app disclosure dialog → "I understand"
+//   part A  AutoFlow ▸ Settings ▸ Permissions ▸ Grant (Accessibility) → the native disclosure dialog → "Agree"
 //           → AutoFlow opens Android Settings ▸ Accessibility → AutoFlow automations → Use … → Allow → back to AutoFlow
 //   part B  Home ▸ Auto clicker (Easy) → Slow, Until I stop it, drag the tap point → back → Run on the flow card →
 //           taps land on the "Home" title (harmless) → the floating Halt button stops it → Ledger
@@ -32,6 +32,8 @@ const PKG = "com.projectteamforyou.autoflow";
 const SERVICE = `${PKG}/${PKG}.a11y.AutoFlowAccessibilityService`;
 const SERVICE_LABEL = /<string name="accessibility_service_label">([^<]+)</.exec(readFileSync(join(ROOT, "apps/android/android/app/src/main/res/values/strings.xml"), "utf8"))?.[1] ?? "AutoFlow automations";
 const DEVTOOLS_PORT = 9222;
+/** The native Accessibility disclosure (a11y/AccessibilityDisclosure.kt) follows the device locale, which stays English. */
+const NATIVE = Object.fromEntries([...readFileSync(join(ROOT, "apps/android/android/app/src/main/res/values/strings.xml"), "utf8").matchAll(/<string name="a11y_disclosure_(\w+)">([^<]*)</g)].map((m) => [m[1], m[2].replace(/\\(['"])/g, "$1")]));
 
 const args = Object.fromEntries(process.argv.slice(3).map((a, i, all) => (a.startsWith("--") ? [a.slice(2), all[i + 1] && !all[i + 1].startsWith("--") ? all[i + 1] : "true"] : null)).filter(Boolean));
 const cmd = process.argv[2];
@@ -403,6 +405,10 @@ async function record() {
 
   // ---- warm-up (not recorded): first launch, language, WebView ↔ screen calibration
   await sh(`am start -W -n ${PKG}/.MainActivity`);
+  // First launch shows the native disclosure; decline it here (the recording shows it from the Permissions page).
+  const firstRun = await waitFor("first-run disclosure", async () => findByText(await uiNodes(), NATIVE.decline), { timeout: 15_000, interval: 800 }).catch(() => null);
+  if (firstRun) { await shot("warmup-first-run-disclosure"); const c = center(firstRun.bounds); await tap(c.x, c.y); await sleep(800); }
+  else timeline.notes.push("first-run disclosure not seen during warm-up");
   const cdp = await connectWebView();
   await cdp.eval((lang) => {
     const sel = document.querySelector(".onboard select");
@@ -439,11 +445,20 @@ async function record() {
   await sleep(1500);
   await shot("A3-fleet");
   await app.tap("Grant (Accessibility)", { sel: "b", text: S["perm.native.accessibility"], closest: ".row", then: "button", thenText: S["fleet.grant"] });
-  await app.waitFind("disclosure dialog", { sel: "[role=dialog] h2", text: S["perm.disclosure.title"] });
+  // The native disclosure dialog (AccessibilityDisclosure.kt), shown before AutoFlow opens Android Settings.
+  await waitFor("disclosure dialog", async () => findByText(await uiNodes(), NATIVE.title), { timeout: 15_000, interval: 800 });
   A.mark(C.disclosure);
-  await sleep(6500); // long enough to read the whole disclosure
+  await sleep(4000);
   await shot("A4-disclosure");
-  await app.tap("I understand — continue", { within: "[role=dialog]", sel: "button", text: S["perm.disclosure.agree"] });
+  // scroll the message so the whole text (data accessed, use, no collection or sharing) is on screen at some point
+  for (let i = 0; i < 3; i++) {
+    await sh(`input swipe ${dev.size.w / 2} ${dev.size.h * 0.62} ${dev.size.w / 2} ${dev.size.h * 0.38} 900`);
+    await sleep(3200);
+  }
+  await shot("A4b-disclosure-end");
+  const agree = await waitFor("Agree button", async () => findByText(await uiNodes(), new RegExp(`^${NATIVE.agree}$`, "i")), { timeout: 10_000, interval: 800 });
+  log("tap Agree");
+  { const c = center(agree.bounds); await tap(c.x, c.y); }
 
   // Android Settings ▸ Accessibility, opened by the app itself (Intents.settings("accessibility")).
   await waitFor("Android Settings in front", async () => /settings/i.test((await focused()) ?? ""), { timeout: 15_000 });
