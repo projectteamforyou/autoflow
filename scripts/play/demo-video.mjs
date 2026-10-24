@@ -406,7 +406,7 @@ async function record() {
   // ---- warm-up (not recorded): first launch, language, WebView ↔ screen calibration
   await sh(`am start -W -n ${PKG}/.MainActivity`);
   // First launch shows the native disclosure; decline it here (the recording shows it from the Permissions page).
-  const firstRun = await waitFor("first-run disclosure", async () => findByText(await uiNodes(), NATIVE.decline), { timeout: 15_000, interval: 800 }).catch(() => null);
+  const firstRun = await waitFor("first-run disclosure", async () => findByText(await uiNodes(), new RegExp(`^${NATIVE.decline}$`, "i")), { timeout: 15_000, interval: 800 }).catch(() => null);
   if (firstRun) { await shot("warmup-first-run-disclosure"); const c = center(firstRun.bounds); await tap(c.x, c.y); await sleep(800); }
   else timeline.notes.push("first-run disclosure not seen during warm-up");
   const cdp = await connectWebView();
