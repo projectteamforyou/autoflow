@@ -102,12 +102,18 @@ test("every app string the script uses exists in en.ts and ko.json", () => {
   const ko = JSON.parse(readFileSync(join(ROOT, "apps/web/src/i18n/locales/ko.json"), "utf8"));
   const script = readFileSync(join(ROOT, "scripts/play/demo-video.mjs"), "utf8");
   const keys = [...new Set([...script.matchAll(/S\["([\w.]+)"\]/g)].map((m) => m[1]))];
-  assert.ok(keys.length >= 20, `only ${keys.length} keys found`);
+  assert.ok(keys.length >= 15, `only ${keys.length} keys found`);
   for (const k of keys) {
     assert.equal(typeof en[k], "string", `en.ts is missing ${k}`);
     assert.equal(typeof ko[k], "string", `ko.json is missing ${k}`);
   }
-  assert.equal(en["perm.disclosure.agree"], "I understand — continue");
+  // The Accessibility disclosure is native now (a11y/AccessibilityDisclosure.kt): every locale must carry its strings.
+  const res = join(ROOT, "apps/android/android/app/src/main/res");
+  for (const dir of ["values", "values-ko", "values-ja", "values-zh-rCN", "values-zh-rTW", "values-es", "values-fr", "values-de", "values-pt-rBR", "values-ru", "values-vi", "values-in"]) {
+    const xml = readFileSync(join(res, dir, "strings.xml"), "utf8");
+    for (const k of ["title", "body", "agree", "decline"]) assert.match(xml, new RegExp(`<string name="a11y_disclosure_${k}">[^<]+</string>`), `${dir} is missing a11y_disclosure_${k}`);
+  }
+  assert.match(readFileSync(join(res, "values", "strings.xml"), "utf8"), /<string name="a11y_disclosure_agree">Agree<\/string>/);
   assert.equal(fmt(en["run.stopped"], { name: "Auto clicker" }), "“Auto clicker” stopped.");
   assert.equal(templateRegex(en["pulse.actions"]).exec("Running · This device · 7 actions")[1], "7");
   assert.equal(templateRegex(ko["pulse.actions"]).exec("실행 중 · 이 기기 · 12개 동작")[1], "12");
