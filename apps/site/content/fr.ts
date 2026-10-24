@@ -40,6 +40,7 @@ export const fr: Content = {
     learnMore: "En savoir plus",
   },
   edition: { badge: "Édition personnelle", note: "Réservé aux utilisateurs individuels", business: "Usage pro ? Licence Business" },
+  dl: { title: "Où utiliserez-vous AutoFlow ?", body: "Gratuit sur vos appareils personnels pour un usage personnel. Tout autre usage — au travail ou pour un employeur, en freelance ou en sous-traitance, en entreprise, école, organisme public ou à but lucratif — nécessite une licence Business.", personal: "Usage personnel — téléchargement gratuit", business: "Usage pro — acheter une licence, puis télécharger", have: "J'ai déjà une licence Business — télécharger", note: "Les deux éditions ont exactement les mêmes fonctions. Sans clé de licence, l'app affiche « Édition personnelle ». Après le paiement, votre clé et le téléchargement s'affichent tout de suite ; saisissez la clé dans Paramètres › Offre et paiement.", close: "Fermer" },
   share: {
     heading: "Partager AutoFlow",
     native: "Partager…",

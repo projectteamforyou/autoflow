@@ -548,3 +548,16 @@ ul { margin: 0; padding: 0; }
 .seo-meta .chip { border-color: var(--af-border-strong); color: var(--af-text); }
 .seo-disclaimer { color: var(--af-muted); font-size: 13px; line-height: 1.6; max-width: 80ch; }
 @media (max-width: 520px) { .seo-glance div { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+
+/* ------------------------------------------------------------------ download choice layer */
+.dl-modal { width: min(440px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto; margin: auto; padding: 28px 26px 22px; border: 1px solid var(--af-border-strong); border-radius: 18px; background: var(--af-surface); color: var(--af-text); box-shadow: var(--af-shadow); }
+.dl-modal::backdrop { background: rgba(6, 6, 16, 0.62); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.dl-modal[open] { display: flex; flex-direction: column; gap: 12px; animation: dl-in 0.18s ease-out; }
+@keyframes dl-in { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .dl-modal[open] { animation: none; } }
+.dl-modal h2 { font-size: 1.32rem; letter-spacing: -0.015em; }
+.dl-modal .dl-body { color: var(--af-muted); font-size: 14.5px; line-height: 1.6; }
+.dl-modal .dl-opt { width: 100%; min-height: 52px; margin-top: 4px; text-align: center; }
+.dl-modal .dl-have { align-self: center; margin: 4px 0 2px; font-size: 14px; text-align: center; }
+.dl-modal .dl-note { padding-top: 12px; border-top: 1px solid var(--af-border); color: var(--af-muted); font-size: 13px; line-height: 1.6; }
+.dl-modal .dl-close { width: 100%; margin-top: 2px; }

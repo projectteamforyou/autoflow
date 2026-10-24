@@ -40,6 +40,7 @@ export const vi: Content = {
     learnMore: "Tìm hiểu thêm",
   },
   edition: { badge: "Bản cá nhân", note: "Dành cho người dùng cá nhân", business: "Dùng cho công việc? Cần giấy phép Business" },
+  dl: { title: "Bạn sẽ dùng AutoFlow ở đâu?", body: "Miễn phí khi dùng cá nhân trên thiết bị của riêng bạn. Mọi mục đích khác — tại nơi làm việc hoặc cho công việc, làm tự do hoặc nhận khoán, công ty, trường học, cơ quan nhà nước hoặc vì lợi nhuận — cần giấy phép Business.", personal: "Dùng cá nhân — tải miễn phí", business: "Dùng cho công việc — mua giấy phép rồi tải", have: "Tôi đã có giấy phép Business — tải xuống", note: "Hai phiên bản có tính năng như nhau. Khi chưa nhập khóa giấy phép, ứng dụng hiển thị “Bản cá nhân”. Sau khi thanh toán, khóa giấy phép và nút tải xuống hiện ra ngay; nhập khóa trong Cài đặt › Gói và thanh toán.", close: "Đóng" },
   share: {
     heading: "Chia sẻ AutoFlow",
     native: "Chia sẻ…",

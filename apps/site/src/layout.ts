@@ -194,9 +194,28 @@ ${main}
 ${studioBand(ctx)}
 ${footer(ctx)}
 <div class="toast" id="lang-toast" role="region" aria-label="${esc(t.a11y.language)}" hidden><span data-t></span><a class="btn btn-primary btn-sm" data-go href="${pagePath("en", "home")}">${icon("globe", 16)}<span></span></a><button type="button" class="btn btn-secondary btn-sm" data-stay></button></div>
+${dlChoice(ctx)}
 <div class="status" id="status" role="status" aria-live="polite"></div>
 </body>
 </html>`}`;
+}
+
+/**
+ * "Where will you use AutoFlow?" layer shown by client.js on every download button (links to /v1/stats/download/*).
+ * Personal → the clicked download; work → the Business purchase page (it shows the downloads after payment);
+ * already licensed → the clicked download. Without JS the buttons download directly.
+ */
+function dlChoice(ctx: Ctx): string {
+  const c = ctx.t.dl;
+  return html`<dialog class="dl-modal" id="dl-choice" aria-labelledby="dl-title">
+<h2 id="dl-title">${esc(c.title)}</h2>
+<p class="dl-body">${esc(c.body)}</p>
+<a class="btn btn-primary dl-opt" data-dl-personal href="${LINKS.windows}">${icon("download", 18)}<span>${esc(c.personal)}</span></a>
+<a class="btn btn-secondary dl-opt" href="${LINKS.app}#/business">${icon("shield", 18)}<span>${esc(c.business)}</span></a>
+<a class="text-link dl-have" data-dl-have href="${LINKS.windows}">${esc(c.have)}</a>
+<p class="dl-note">${esc(c.note)}</p>
+<button type="button" class="btn btn-secondary dl-close" data-dl-close>${esc(c.close)}</button>
+</dialog>`;
 }
 
 /** Share row: plain anchors (no third-party scripts) + Web Share + copy link. */

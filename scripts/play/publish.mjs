@@ -198,17 +198,18 @@ async function call(path, { method = 'GET', json, body, type } = {}) {
 let notSentForReview = false;
 async function finish(editId, verb) {
   try {
-    const r = await call(`/edits/${editId}${verb}`, { method: 'POST' });
+    const r = await call(`/edits/${editId}${verb}${notSentForReview ? '?changesNotSentForReview=true' : ''}`, { method: 'POST' });
     console.log(`${verb.slice(1)}d ${r.id ?? editId}`);
   } catch (err) {
     // A new app (or one with Console changes pending) refuses an automatic review submission:
     // "Changes cannot be sent for review automatically … set changesNotSentForReview to true". Save the edit without
     // submitting; the owner then presses "Send for review" in the Console (publishing overview) once.
-    if (verb === ':commit' && /-> 400/.test(String(err.message)) && /changesNotSentForReview|sent for review/i.test(String(err.message))) {
-      console.log('Play will not submit this for review automatically — committing it without sending for review.');
-      const r = await call(`/edits/${editId}:commit?changesNotSentForReview=true`, { method: 'POST' });
+    // After a rejection Play already says so at :validate, so both verbs retry with the flag (and later calls keep it).
+    if (/-> 400/.test(String(err.message)) && /changesNotSentForReview|sent for review/i.test(String(err.message))) {
+      console.log(`Play will not submit this for review automatically — ${verb.slice(1)} without sending for review.`);
+      const r = await call(`/edits/${editId}${verb}?changesNotSentForReview=true`, { method: 'POST' });
       notSentForReview = true;
-      console.log(`committed ${r.id ?? editId} (not sent for review)`);
+      console.log(`${verb.slice(1)}d ${r.id ?? editId} (not sent for review)`);
       return;
     }
     console.error(String(err.message));
