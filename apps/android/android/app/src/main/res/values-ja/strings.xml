@@ -25,4 +25,8 @@
     <string name="halt_button">すべてのフローを停止（Halt）</string>
     <string name="pick_point_hint">使用する位置をタップしてください</string>
     <string name="recording_banner">● 記録中 — ここをタップして終了</string>
+    <string name="a11y_disclosure_title">AutoFlow によるユーザー補助サービスの使用について</string>
+    <string name="a11y_disclosure_body">AutoFlow は自動化アプリです。あなたが作成したフローを実行するために、Android のユーザー補助サービス API を使用します。\n\nAutoFlow がアクセスする情報とその理由:\n• 画面操作: フローに入れたタップ、スワイプ、長押し、スクロール、文字入力、システム操作(戻る、ホーム、最近使ったアプリ)を実行します。\n• 画面の内容: ステップが対象とする要素や入力欄を見つけるため、またアプリトリガー・キープロファイル・保護画面ガードのために前面のアプリを確認するため、前面ウィンドウのテキストとレイアウトを読み取ります。\n• 押したキー: ホットキーやキー割り当てを設定した場合に限り、ハードウェアキーボードの入力を受け取ります。\n• 入力したテキスト: フローの記録中に限り、入力ステップを作るために確認します。パスワード欄は読み取りません。\n\nこれらの情報は端末内でのみ処理されます。AutoFlow はこれを収集・送信・共有せず、広告にも使用しません。記録したテキストはそのフローにのみ保存されます。\n\nAutoFlow はロック画面、権限ダイアログ、システム設定では動作せず、あなたがフローを開始したときか、設定したトリガーが作動したときにのみ動作します。設定 › ユーザー補助 からいつでもオフにできます。\n\n「同意する」をタップすると Android の設定が開きます。「AutoFlow automations」をオンにしてください。</string>
+    <string name="a11y_disclosure_agree">同意する</string>
+    <string name="a11y_disclosure_decline">同意しない</string>
 </resources>

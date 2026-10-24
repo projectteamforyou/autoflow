@@ -25,4 +25,8 @@
     <string name="halt_button">모든 플로우 정지 (Halt)</string>
     <string name="pick_point_hint">사용할 위치를 탭하세요</string>
     <string name="recording_banner">● 녹화 중 — 끝내려면 여기를 탭하세요</string>
+    <string name="a11y_disclosure_title">AutoFlow의 접근성 서비스 사용 안내</string>
+    <string name="a11y_disclosure_body">AutoFlow는 자동화 앱입니다. 사용자가 만든 플로우를 실행하기 위해 Android 접근성 서비스 API를 사용합니다.\n\nAutoFlow가 접근하는 정보와 이유:\n• 화면 동작: 플로우에 넣은 탭, 스와이프, 길게 누르기, 스크롤, 입력, 시스템 동작(뒤로, 홈, 최근 앱)을 대신 수행합니다.\n• 화면 내용: 단계가 가리키는 요소나 입력란을 찾고, 앱 트리거·키 프로필·보호 화면 차단을 위해 현재 앞에 있는 앱이 무엇인지 확인하려고 앞 창의 텍스트와 레이아웃을 읽습니다.\n• 누른 키: 단축키나 키 매핑을 설정한 경우에만 하드웨어 키보드 입력을 받습니다.\n• 입력한 텍스트: 플로우를 녹화하는 동안에만 입력 단계를 만들기 위해 확인합니다. 비밀번호 입력란은 절대 읽지 않습니다.\n\n이 정보는 기기 안에서만 처리됩니다. AutoFlow는 이를 수집하거나 당사로 보내거나 누구와도 공유하지 않으며, 광고에 사용하지 않습니다. 녹화한 텍스트는 해당 플로우에만 저장됩니다.\n\nAutoFlow는 잠금 화면, 권한 대화상자, 시스템 설정에서는 동작하지 않으며, 사용자가 플로우를 시작하거나 설정한 트리거가 실행될 때만 동작합니다. 설정 › 접근성에서 언제든 끌 수 있습니다.\n\n\"동의\"를 누르면 Android 설정이 열립니다. \"AutoFlow automations\"를 켜 주세요.</string>
+    <string name="a11y_disclosure_agree">동의</string>
+    <string name="a11y_disclosure_decline">동의 안 함</string>
 </resources>

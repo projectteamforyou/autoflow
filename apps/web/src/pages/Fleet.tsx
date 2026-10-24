@@ -80,12 +80,7 @@ export function FleetPage() {
                 </div>
                 {!p.granted && (
                   <button className="btn sm" onClick={async () => {
-                    if (p.permission === "accessibility") {
-                      // Play policy: prominent disclosure before sending the user to the system screen.
-                      const { confirmDialog } = await import("../lib/dialog");
-                      const ok = await confirmDialog({ title: t("perm.disclosure.title"), body: t("perm.disclosure.body"), confirmLabel: t("perm.disclosure.agree") });
-                      if (!ok) return;
-                    }
+                    // Accessibility: the Android app shows its own native disclosure (Play policy) before opening Settings.
                     try { await invoke("permission_request", { permission: p.permission }); } catch (e) { toast("error", (e as Error).message); }
                     void refresh();
                   }}>{t("fleet.grant")}</button>
