@@ -40,6 +40,7 @@ export const zhCN: Content = {
     learnMore: "了解更多",
   },
   edition: { badge: "个人版", note: "仅限个人用户", business: "工作用途需 Business 许可" },
+  dl: { title: "你将在哪里使用 AutoFlow?", body: "在个人设备上个人使用免费。工作或为雇主使用、自由职业或外包、公司·学校·公共机构等团体以及营利用途,都需要 Business 许可。", personal: "个人使用 — 免费下载", business: "工作使用 — 购买许可后下载", have: "我已有 Business 许可 — 下载", note: "个人版和商业版功能完全相同。未输入许可密钥时,应用显示为“个人版”。付款完成后会立即显示许可密钥和下载按钮;请在应用的 设置 › 套餐与付款 中输入密钥。", close: "关闭" },
   share: {
     heading: "分享 AutoFlow",
     native: "分享…",

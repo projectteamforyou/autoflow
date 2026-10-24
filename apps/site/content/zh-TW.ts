@@ -40,6 +40,7 @@ export const zhTW: Content = {
     learnMore: "深入了解",
   },
   edition: { badge: "個人版", note: "僅限個人用戶", business: "工作用途需 Business 授權" },
+  dl: { title: "你會在哪裡使用 AutoFlow?", body: "在個人裝置上個人使用免費。工作或為雇主使用、自由接案或外包、公司·學校·公家機關等團體以及營利用途,都需要 Business 授權。", personal: "個人使用 — 免費下載", business: "工作使用 — 購買授權後下載", have: "我已有 Business 授權 — 下載", note: "個人版與商業版功能完全相同。未輸入授權金鑰時,應用程式會顯示為「個人版」。付款完成後會立即顯示授權金鑰和下載按鈕;請在應用程式的 設定 › 方案與付款 中輸入金鑰。", close: "關閉" },
   share: {
     heading: "分享 AutoFlow",
     native: "分享…",

@@ -67,6 +67,34 @@
     });
   });
 
+  /* Download buttons: ask "personal or work?" first (personal is free; work needs a Business license). */
+  var dl = d.getElementById("dl-choice");
+  if (dl && typeof dl.showModal === "function") {
+    var dlPersonal = dl.querySelector("[data-dl-personal]");
+    var dlHave = dl.querySelector("[data-dl-have]");
+    var dlFrom = null;
+    d.addEventListener("click", function (e) {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      var a = e.target.closest && e.target.closest('a[href*="/v1/stats/download/"]');
+      if (!a || dl.contains(a)) return;
+      e.preventDefault();
+      dlFrom = a;
+      dlPersonal.href = a.href;
+      dlHave.href = a.href;
+      dl.showModal();
+      dlPersonal.focus();
+    });
+    // Choosing an option closes the layer; the link itself does the download / navigation.
+    dl.querySelectorAll("a").forEach(function (o) { o.addEventListener("click", function () { setTimeout(function () { dl.close(); }, 0); }); });
+    dl.querySelector("[data-dl-close]").addEventListener("click", function () { dl.close(); });
+    dl.addEventListener("click", function (e) { // backdrop only: the dialog's own padding is part of the dialog
+      if (e.target !== dl) return;
+      var r = dl.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) dl.close();
+    });
+    dl.addEventListener("close", function () { if (dlFrom) dlFrom.focus(); dlFrom = null; });
+  }
+
   /* Language: remember explicit choices, and gently suggest a better match (never redirect). */
   d.querySelectorAll("a[data-lang]").forEach(function (a) {
     a.addEventListener("click", function () { store.set("af-lang", a.getAttribute("data-lang")); });

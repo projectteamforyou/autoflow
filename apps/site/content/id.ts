@@ -40,6 +40,7 @@ export const id: Content = {
     learnMore: "Selengkapnya",
   },
   edition: { badge: "Edisi Pribadi", note: "Untuk pengguna individu", business: "Untuk kerja? Lisensi Business" },
+  dl: { title: "Di mana Anda akan memakai AutoFlow?", body: "Gratis untuk pemakaian pribadi di perangkat Anda sendiri. Pemakaian lain — di atau untuk pekerjaan, freelance atau kontrak, perusahaan, sekolah, instansi pemerintah, atau untuk mencari untung — memerlukan lisensi Business.", personal: "Pribadi — unduh gratis", business: "Untuk kerja — beli lisensi, lalu unduh", have: "Saya sudah punya lisensi Business — unduh", note: "Fitur kedua edisi sama persis. Tanpa kunci lisensi, aplikasi menampilkan “Edisi Pribadi”. Setelah pembayaran, kunci lisensi dan tombol unduh langsung muncul; masukkan kunci di Setelan › Paket & pembayaran.", close: "Tutup" },
   share: {
     heading: "Bagikan AutoFlow",
     native: "Bagikan…",

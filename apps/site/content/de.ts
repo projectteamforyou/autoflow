@@ -40,6 +40,7 @@ export const de: Content = {
     learnMore: "Mehr erfahren",
   },
   edition: { badge: "Persönliche Edition", note: "Für Einzelanwender", business: "Beruflich? Business-Lizenz" },
+  dl: { title: "Wofür nutzt du AutoFlow?", body: "Auf deinen eigenen Geräten für private Zwecke ist AutoFlow kostenlos. Jede andere Nutzung – bei oder für die Arbeit, als Freelancer oder im Auftrag, in Firmen, Schulen, Behörden oder gewerblich – braucht eine Business-Lizenz.", personal: "Privat — kostenlos herunterladen", business: "Beruflich — Lizenz kaufen, dann herunterladen", have: "Ich habe schon eine Business-Lizenz — herunterladen", note: "Beide Editionen haben dieselben Funktionen. Ohne Lizenzschlüssel zeigt die App „Persönliche Edition“. Nach der Zahlung siehst du sofort deinen Lizenzschlüssel und den Download; trage den Schlüssel unter Einstellungen › Tarif und Zahlung ein.", close: "Schließen" },
   share: {
     heading: "AutoFlow teilen",
     native: "Teilen…",

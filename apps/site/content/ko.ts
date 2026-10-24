@@ -40,6 +40,7 @@ export const ko: Content = {
     learnMore: "자세히 보기",
   },
   edition: { badge: "개인용", note: "개인 사용자 전용", business: "업무용은 Business 라이선스" },
+  dl: { title: "어디에 사용하시나요?", body: "개인 기기에서 개인적으로 쓰는 것은 무료입니다. 직장·업무용, 프리랜서·외주, 회사·학교·공공기관 등 단체, 영리 목적 등 그 밖의 사용에는 Business 라이선스가 필요합니다.", personal: "개인용 — 무료 다운로드", business: "업무용 — 라이선스 구매 후 다운로드", have: "이미 Business 라이선스가 있어요 — 다운로드", note: "기능은 개인용과 업무용이 똑같습니다. 라이선스 키를 넣지 않으면 앱에 「개인용」으로 표시됩니다. 결제가 끝나면 라이선스 키와 다운로드 버튼이 바로 나오고, 키는 앱의 설정 › 요금제 및 결제에서 등록합니다.", close: "닫기" },
   share: {
     heading: "AutoFlow 공유하기",
     native: "공유…",
