@@ -1323,5 +1323,12 @@
   "tpl.stage-ready-clicker.name": "Stage dua monitor: klik saat siap",
   "tpl.stage-ready-clicker.desc": "Memantau satu titik di monitor kedua dan mengekliknya setiap kali berubah hijau (tombol siap), paling banyak dua kali per detik. AutoFlow tetap di monitor utama dan dijeda jika Anda mengambil alih mouse.",
   "tpl.daily-check-in.name": "Perulangan check-in harian",
-  "tpl.daily-check-in.desc": "Mengeklik tombol check-in harian sekali, lalu menunggu jeda 24 jam sebelum putaran berikutnya dan memberi tahu Anda setiap kali. Berjalan hingga seminggu."
+  "tpl.daily-check-in.desc": "Mengeklik tombol check-in harian sekali, lalu menunggu jeda 24 jam sebelum putaran berikutnya dan memberi tahu Anda setiap kali. Berjalan hingga seminggu.",
+  "dl.title": "Di mana Anda akan memakai AutoFlow?",
+  "dl.body": "Gratis untuk pemakaian pribadi di perangkat Anda sendiri. Pemakaian lain — di atau untuk pekerjaan, freelance atau kontrak, perusahaan, sekolah, instansi pemerintah, atau untuk mencari untung — memerlukan lisensi Business.",
+  "dl.personal": "Pribadi — unduh gratis",
+  "dl.business": "Untuk kerja — beli lisensi, lalu unduh",
+  "dl.have": "Saya sudah punya lisensi Business — unduh",
+  "dl.note": "Fitur kedua edisi sama persis. Tanpa kunci lisensi, aplikasi menampilkan “Edisi Pribadi”. Setelah pembayaran, kunci lisensi dan tombol unduh langsung muncul; masukkan kunci di Setelan › Paket & pembayaran.",
+  "dl.close": "Tutup"
 }

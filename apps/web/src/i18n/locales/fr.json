@@ -1323,5 +1323,12 @@
   "tpl.stage-ready-clicker.name": "Scène à deux écrans : cliquer quand c’est prêt",
   "tpl.stage-ready-clicker.desc": "Surveille un point de votre deuxième écran et clique dessus dès qu’il devient vert (un bouton prêt), au plus deux fois par seconde. AutoFlow reste sur l’écran principal et se met en pause si vous reprenez la souris.",
   "tpl.daily-check-in.name": "Boucle de connexion quotidienne",
-  "tpl.daily-check-in.desc": "Clique une fois sur un bouton de connexion quotidienne, attend 24 heures avant le tour suivant et vous prévient à chaque fois. Tourne jusqu’à une semaine."
+  "tpl.daily-check-in.desc": "Clique une fois sur un bouton de connexion quotidienne, attend 24 heures avant le tour suivant et vous prévient à chaque fois. Tourne jusqu’à une semaine.",
+  "dl.title": "Où utiliserez-vous AutoFlow ?",
+  "dl.body": "Gratuit sur vos appareils personnels pour un usage personnel. Tout autre usage — au travail ou pour un employeur, en freelance ou en sous-traitance, en entreprise, école, organisme public ou à but lucratif — nécessite une licence Business.",
+  "dl.personal": "Usage personnel — téléchargement gratuit",
+  "dl.business": "Usage pro — acheter une licence, puis télécharger",
+  "dl.have": "J'ai déjà une licence Business — télécharger",
+  "dl.note": "Les deux éditions ont exactement les mêmes fonctions. Sans clé de licence, l'app affiche « Édition personnelle ». Après le paiement, votre clé et le téléchargement s'affichent tout de suite ; saisissez la clé dans Paramètres › Offre et paiement.",
+  "dl.close": "Fermer"
 }

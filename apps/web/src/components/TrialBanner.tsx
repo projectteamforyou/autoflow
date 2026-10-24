@@ -3,8 +3,10 @@
  * the real thing is. Downloads go through the API's counting redirect to the signed builds on dl.autoflowmacro.com.
  * Never rendered inside the Windows/Android apps.
  */
-import { Link } from "react-router-dom";
+import { useState, type ReactNode } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Icon } from "./Icon";
+import { Modal } from "./ui";
 import { useStore } from "../lib/store";
 import { SITE_URL } from "../lib/site";
 import { useT } from "../i18n";
@@ -28,14 +30,41 @@ function useDownloadLinks() {
   };
 }
 
+/**
+ * A download button that first asks "where will you use AutoFlow?": personal use downloads for free; work use goes to
+ * /business to buy a license (the downloads appear there after payment); a licensed user downloads directly.
+ */
+function DownloadButton({ href, className, children }: { href: string; className: string; children: ReactNode }) {
+  const t = useT();
+  const nav = useNavigate();
+  const [open, setOpen] = useState(false);
+  const download = () => { setOpen(false); window.location.href = href; };
+  return (
+    <>
+      <a className={className} href={href} onClick={(e) => { e.preventDefault(); setOpen(true); }}>{children}</a>
+      {open && (
+        <Modal title={t("dl.title")} icon="Download" onClose={() => setOpen(false)} footer={<button className="btn" onClick={() => setOpen(false)}>{t("dl.close")}</button>}>
+          <div className="stack">
+            <p className="small muted">{t("dl.body")}</p>
+            <button className="btn primary" onClick={download}><Icon name="Download" size={16} /> {t("dl.personal")}</button>
+            <button className="btn" onClick={() => { setOpen(false); nav("/business"); }}><Icon name="KeyRound" size={16} /> {t("dl.business")}</button>
+            <button className="btn ghost sm" onClick={download}>{t("dl.have")}</button>
+            <p className="small muted">{t("dl.note")}</p>
+          </div>
+        </Modal>
+      )}
+    </>
+  );
+}
+
 /** Large banner at the top of Home. */
 export function TrialHero() {
   const t = useT();
   const links = useDownloadLinks();
   if (hasNativeBridge) return null;
   const os = detectOs();
-  const win = <a key="w" className={`btn ${os === "android" ? "" : "primary"}`} href={links.windows}><Icon name="Download" size={16} /> {t("trial.windows")}</a>;
-  const and = <a key="a" className={`btn ${os === "android" ? "primary" : ""}`} href={links.android}><Icon name="Smartphone" size={16} /> {t("trial.android")}</a>;
+  const win = <DownloadButton key="w" className={`btn ${os === "android" ? "" : "primary"}`} href={links.windows}><Icon name="Download" size={16} /> {t("trial.windows")}</DownloadButton>;
+  const and = <DownloadButton key="a" className={`btn ${os === "android" ? "primary" : ""}`} href={links.android}><Icon name="Smartphone" size={16} /> {t("trial.android")}</DownloadButton>;
   return (
     <section className="trial-hero" aria-label={t("trial.title")}>
       <div className="trial-hero-text">
@@ -77,7 +106,7 @@ export function TrialAfterRun() {
     <div className="callout info trial-after" role="status">
       <Icon name="Sparkles" size={16} />
       <div className="grow small">{t("trial.afterRun")}</div>
-      <a className="btn sm primary" href={os === "android" ? links.android : links.windows}><Icon name="Download" size={14} /> {os === "android" ? t("trial.android") : t("trial.windows")}</a>
+      <DownloadButton className="btn sm primary" href={os === "android" ? links.android : links.windows}><Icon name="Download" size={14} /> {os === "android" ? t("trial.android") : t("trial.windows")}</DownloadButton>
     </div>
   );
 }

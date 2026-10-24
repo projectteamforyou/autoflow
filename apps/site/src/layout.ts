@@ -169,7 +169,7 @@ function footer(ctx: Ctx): string {
 <nav class="foot" aria-label="${esc(t.a11y.footerNav)}">
 <div><a class="brand" href="${pagePath(lang, "home")}">${mark(28, "fm")}<span>AutoFlow</span></a><p>${esc(t.footer.tagline)}</p><p>${esc(t.footer.made)}</p></div>
 <div><h2>${esc(t.footer.product)}</h2><ul>${(["features", "keyforge", "atlas", "safety", "pricing", "faq"] as PageId[]).map(l)}<li><a href="/${lang}/guides/">${esc(SEO[lang].ui.guides.nav)}</a></li><li><a href="/${lang}/alternatives/">${esc(SEO[lang].ui.alternatives.nav)}</a></li></ul></div>
-<div><h2>${esc(t.footer.platforms)}</h2><ul>${l("windows")}${l("android")}<li><a href="${LINKS.app}">${esc(t.cta.openApp)}</a></li>${l("download")}${ext(LINKS.releases, t.footer.releases)}</ul></div>
+<div><h2>${esc(t.footer.platforms)}</h2><ul>${l("windows")}${l("android")}<li><a href="${LINKS.app}">${esc(t.cta.openApp)}</a></li>${l("download")}</ul></div>
 <div><h2>${esc(t.footer.legal)}</h2><ul>${l("privacy")}${l("terms")}<li><a href="mailto:${LINKS.email}">${esc(t.footer.contact)}</a></li></ul></div>
 </nav>
 <div class="foot-langs">${LOCALES.map((x) => `<a href="${ctx.alt ? ctx.alt(x.code) : pagePath(x.code, target)}" hreflang="${x.hreflang}" lang="${x.code}" data-lang="${x.code}"${x.code === lang ? ' aria-current="true"' : ""}>${esc(x.name)}</a>`)}</div>
