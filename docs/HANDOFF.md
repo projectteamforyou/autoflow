@@ -1,8 +1,8 @@
 # AutoFlow — 인수인계 (새 채팅에서 이어서 작업용)
 
-갱신: 2026-10-20 20:00 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#19
+갱신: 2026-10-24 21:45 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#24
 
-## 1. 현재 배포 상태 (Windows 1.1.2 · Android 1.1.1)
+## 1. 현재 배포 상태 (Windows 1.1.2 · Android 1.1.2)
 | 항목 | 값 |
 |---|---|
 | 사이트 (12개 언어, 710페이지 — 가이드 24·대체 프로그램 21 × 12개 언어 포함) | https://autoflowmacro.com |
@@ -10,10 +10,11 @@
 | 관리자 | https://autoflowmacro.com/app/#/admin (projectteamforyou@gmail.com + 설정 코드) |
 | API | https://api.autoflowmacro.com (Railway `autoflow`/`api`, PostgreSQL) |
 | Windows 1.1.2 (Azure 서명: PROJECTTEAMFORYOU, 회사 PC 러너 `runner_label: OFFICE`; 1.1.0·1.1.1은 freezePrototype 때문에 빈 화면 → 1.1.2에서 수정) | https://dl.autoflowmacro.com/windows/AutoFlow-Setup-x64.exe · `AutoFlow-x64.msi` · `AutoFlow-portable-x64.exe` |
-| Android 1.1.1 (업로드 키 SHA-256 1fe265ee…) | https://dl.autoflowmacro.com/android/AutoFlow.apk |
+| Android 1.1.2 (업로드 키 SHA-256 1fe265ee…) | https://dl.autoflowmacro.com/android/AutoFlow.apk |
 | 버전 정보 | https://dl.autoflowmacro.com/latest.json |
 | GitHub 릴리스 (보관용) | https://github.com/projectteamforyou/autoflow/releases/tag/v1.1.2 |
-| Google Play | `com.projectteamforyou.autoflow` — 1.1.0(versionCode 6) 프로덕션 177개국 **검토 중**(관리형 게시 꺼짐 → 승인 즉시 공개). 승인 후 `android.yml` track=production 으로 1.1.1 올리기 |
+| Google Play | `com.projectteamforyou.autoflow` — 1.1.0이 **접근성 명시적 공개 누락으로 거부**(2026-10-20) → 1.1.2(versionCode 12)에 네이티브 공개 대화상자 추가, 프로덕션 트랙에 **저장만 됨**(거부 이후엔 API 자동 제출 불가). Console에서 접근성 API 선언 영상 링크 교체 + "검토를 위해 변경사항 보내기" 필요 |
+| 접근성 시연 영상 (네이티브 공개 포함) | https://dl.autoflowmacro.com/play/autoflow-accessibility-demo-en.mp4 · `-ko.mp4` |
 | 접근성 시연 영상 (실제 에뮬레이터 녹화) | https://github.com/work517/autoflow/releases/tag/play-demo-video |
 
 ## 2. 구조
@@ -71,6 +72,13 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
 - 히어로: 슬로건(`home.slogan`)과 마우스+키보드 칩(`home.inputs`) 12개 언어
 - 줄바꿈: 짧은 블록은 `text-wrap: balance`(법률 문서 `.prose`만 pretty). 검사 `node apps/site/scripts/check-short-lines.cjs http://localhost:PORT` → 0건 유지
 - 다운로드 리다이렉트 `/v1/stats/download/windows` → `…Setup-x64.exe?v=<latest.json 버전>`(브라우저 캐시의 옛 설치 파일 방지). 릴리스 후 `latest.json`만 갱신하면 됨
+
+## 7-2. Play 접근성 정책·다운로드 선택 (PR #21–#24, 2026-10-24)
+- `a11y/AccessibilityDisclosure.kt`: 닫을 수 없는 네이티브 공개 대화상자(12개 언어). 첫 실행 + 접근성 설정을 여는 모든 경로(`permission_request`, `open_settings`) 앞에서 표시. 접근하는 데이터(화면 동작·화면 내용·하드웨어 키·녹화 중 입력)·목적·기기 내 처리·미수집/미공유 명시, 동의/동의 안 함
+- 시연 영상: `play-demo-video.yml`(languages en,ko) → R2 `play/autoflow-accessibility-demo-<lang>.mp4`
+- `scripts/play/publish.mjs`: 거부 이후 `:validate`를 건너뛰고 `:commit?changesNotSentForReview=true` 로 저장 → Console에서 심사 제출
+- 다운로드 선택 레이어: 사이트 모든 다운로드 버튼(`/v1/stats/download/*`, client.js의 `#dl-choice`)과 웹 앱(TrialBanner `DownloadButton`) → 개인용 무료 / 업무용은 `/app/#/business`(결제 후 라이선스 키·다운로드) / 라이선스 보유 시 다운로드
+- 비공개 GitHub releases 링크는 사이트에서 제거
 
 ## 8. 러너 메모
 - 회사 PC 러너(FELIXLEE*)는 **LocalSystem** 계정(WiX MSI ICE 검사에 필요). Rust는 `CARGO_HOME=C:\Rust\cargo`
