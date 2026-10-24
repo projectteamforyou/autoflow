@@ -1323,5 +1323,12 @@
   "tpl.stage-ready-clicker.name": "Sân khấu hai màn hình: nhấp khi sẵn sàng",
   "tpl.stage-ready-clicker.desc": "Theo dõi một điểm trên màn hình thứ hai và nhấp mỗi khi nó chuyển xanh (nút sẵn sàng), tối đa hai lần mỗi giây. AutoFlow ở lại màn hình chính và tạm dừng nếu bạn cầm chuột.",
   "tpl.daily-check-in.name": "Vòng điểm danh hằng ngày",
-  "tpl.daily-check-in.desc": "Nhấp nút điểm danh hằng ngày một lần, chờ 24 giờ trước vòng tiếp theo và báo cho bạn mỗi lần. Chạy tối đa một tuần."
+  "tpl.daily-check-in.desc": "Nhấp nút điểm danh hằng ngày một lần, chờ 24 giờ trước vòng tiếp theo và báo cho bạn mỗi lần. Chạy tối đa một tuần.",
+  "dl.title": "Bạn sẽ dùng AutoFlow ở đâu?",
+  "dl.body": "Miễn phí khi dùng cá nhân trên thiết bị của riêng bạn. Mọi mục đích khác — tại nơi làm việc hoặc cho công việc, làm tự do hoặc nhận khoán, công ty, trường học, cơ quan nhà nước hoặc vì lợi nhuận — cần giấy phép Business.",
+  "dl.personal": "Dùng cá nhân — tải miễn phí",
+  "dl.business": "Dùng cho công việc — mua giấy phép rồi tải",
+  "dl.have": "Tôi đã có giấy phép Business — tải xuống",
+  "dl.note": "Hai phiên bản có tính năng như nhau. Khi chưa nhập khóa giấy phép, ứng dụng hiển thị “Bản cá nhân”. Sau khi thanh toán, khóa giấy phép và nút tải xuống hiện ra ngay; nhập khóa trong Cài đặt › Gói và thanh toán.",
+  "dl.close": "Đóng"
 }

@@ -1323,5 +1323,12 @@
   "tpl.stage-ready-clicker.name": "Escenario de dos monitores: clic cuando esté listo",
   "tpl.stage-ready-clicker.desc": "Vigila un punto de tu segundo monitor y hace clic cuando se pone verde (un botón de listo), como máximo dos veces por segundo. AutoFlow se queda en tu monitor principal y se pausa si tomas el ratón.",
   "tpl.daily-check-in.name": "Bucle de registro diario",
-  "tpl.daily-check-in.desc": "Hace clic una vez en el botón de registro diario, espera 24 horas antes de la siguiente vuelta y te avisa cada vez. Funciona hasta una semana."
+  "tpl.daily-check-in.desc": "Hace clic una vez en el botón de registro diario, espera 24 horas antes de la siguiente vuelta y te avisa cada vez. Funciona hasta una semana.",
+  "dl.title": "¿Dónde usarás AutoFlow?",
+  "dl.body": "Es gratis en tus dispositivos personales para uso personal. Cualquier otro uso —en o para el trabajo, como freelance o por encargo, en empresas, escuelas, organismos públicos o con fines de lucro— necesita una licencia Business.",
+  "dl.personal": "Uso personal — descarga gratis",
+  "dl.business": "Uso laboral — compra la licencia y descarga",
+  "dl.have": "Ya tengo una licencia Business — descargar",
+  "dl.note": "Las dos ediciones tienen las mismas funciones. Sin clave de licencia, la app muestra «Edición personal». Tras el pago verás tu clave y la descarga al instante; introduce la clave en Ajustes › Plan y pagos.",
+  "dl.close": "Cerrar"
 }

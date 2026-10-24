@@ -249,7 +249,7 @@ function windows(ctx: Ctx): PageOut {
 ${cards(w.items)}
 <div class="grid-2 mt-l">
 <div class="card"><h2 class="h2">${esc(w.req.h2)}</h2>${list(w.req.items)}</div>
-<div class="card"><div class="note">${icon("shield", 18)}<span>${md(w.note)}</span></div><a class="text-link" href="${LINKS.releases}" rel="noopener noreferrer" target="_blank">${esc(t.footer.releases)}${icon("external", 16)}<span class="sr-only"> ${esc(t.a11y.newTab)}</span></a></div>
+<div class="card"><div class="note">${icon("shield", 18)}<span>${md(w.note)}</span></div></div>
 </div>
 </div></section>
 ${shareSection(ctx, w.seo.title)}`;
@@ -339,7 +339,7 @@ function download(ctx: Ctx): PageOut {
 <article class="card feature"><span class="tile">${brand("android", 18)}</span><h2 class="h2">${esc(d.android.h2)}</h2><p>${esc(d.android.p)}</p><p class="muted">${esc(d.android.meta)}</p><div class="cta-row">${ext(t, LINKS.android, `${brand("android", 18)}<span>${esc(t.cta.android)}</span>`, "btn btn-secondary")}</div></article>
 <article class="card feature"><span class="tile">${icon("browser", 20)}</span><h2 class="h2">${esc(d.web.h2)}</h2><p>${esc(d.web.p)}</p><p class="muted">${esc(d.web.meta)}</p><div class="cta-row"><a class="btn btn-secondary" href="${LINKS.app}">${icon("arrow", 18)}<span>${esc(t.cta.web)}</span></a></div></article>
 </div>
-<div class="note mt-l">${icon("shield", 18)}<span>${md(d.verify)} <a href="${LINKS.releases}" rel="noopener noreferrer" target="_blank">${esc(d.releases)}<span class="sr-only"> ${esc(t.a11y.newTab)}</span></a></span></div>
+<div class="note mt-l">${icon("shield", 18)}<span>${md(d.verify)}</span></div>
 </div></section>
 ${shareSection(ctx, d.seo.title)}`;
   return { title: d.seo.title, description: d.seo.description, og: { kicker: t.nav.download, headline: d.h1, sub: d.lead }, main };

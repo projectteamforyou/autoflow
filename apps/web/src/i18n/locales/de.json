@@ -1323,5 +1323,12 @@
   "tpl.stage-ready-clicker.name": "Zwei-Monitor-Bühne: klicken, wenn bereit",
   "tpl.stage-ready-clicker.desc": "Beobachtet eine Stelle auf deinem zweiten Monitor und klickt sie an, sobald sie grün wird (eine Bereit-Taste) – höchstens zweimal pro Sekunde. AutoFlow bleibt auf dem Hauptmonitor und pausiert, wenn du die Maus übernimmst.",
   "tpl.daily-check-in.name": "Tägliche Check-in-Schleife",
-  "tpl.daily-check-in.desc": "Klickt einmal auf eine tägliche Check-in-Taste, wartet dann 24 Stunden bis zur nächsten Runde und sagt dir jedes Mal Bescheid. Läuft bis zu einer Woche."
+  "tpl.daily-check-in.desc": "Klickt einmal auf eine tägliche Check-in-Taste, wartet dann 24 Stunden bis zur nächsten Runde und sagt dir jedes Mal Bescheid. Läuft bis zu einer Woche.",
+  "dl.title": "Wofür nutzt du AutoFlow?",
+  "dl.body": "Auf deinen eigenen Geräten für private Zwecke ist AutoFlow kostenlos. Jede andere Nutzung – bei oder für die Arbeit, als Freelancer oder im Auftrag, in Firmen, Schulen, Behörden oder gewerblich – braucht eine Business-Lizenz.",
+  "dl.personal": "Privat — kostenlos herunterladen",
+  "dl.business": "Beruflich — Lizenz kaufen, dann herunterladen",
+  "dl.have": "Ich habe schon eine Business-Lizenz — herunterladen",
+  "dl.note": "Beide Editionen haben dieselben Funktionen. Ohne Lizenzschlüssel zeigt die App „Persönliche Edition“. Nach der Zahlung siehst du sofort deinen Lizenzschlüssel und den Download; trage den Schlüssel unter Einstellungen › Tarif und Zahlung ein.",
+  "dl.close": "Schließen"
 }
