@@ -1,6 +1,7 @@
-import { BUSINESS_PRICES, TEMPLATES, analyzeRisk, formatPrice, preferredProvider, PROVIDER_CURRENCY, type Template, type TemplateCategory } from "@autoflow/core";
+import { BUSINESS_PRICES, LOCALES, TEMPLATES, analyzeRisk, formatPrice, preferredProvider, PROVIDER_CURRENCY, type Template, type TemplateCategory } from "@autoflow/core";
 import type { Content, Section } from "../content/types.js";
 import { LINKS, pagePath, type PageId } from "./config.js";
+import { CHANGELOG } from "../content/changelog.js";
 import { brand, icon, mark } from "./icons.js";
 import { shareBar, type Ctx } from "./layout.js";
 import { crumbsFor } from "./seo.js";
@@ -67,6 +68,7 @@ ${extra}
 }
 
 const ticks = (items: string[]) => `<ul class="ticks">${items.map((i) => `<li>${icon("check", 18)}<span>${md(i)}</span></li>`).join("")}</ul>`;
+const steps = (items: string[]) => `<ol class="seo-steps">${items.map((x) => `<li><span>${md(x)}</span></li>`).join("")}</ol>`;
 const list = (items: string[], ok = true) => `<ul class="list${ok ? "" : " no"}">${items.map((i) => `<li>${icon(ok ? "check" : "x", 18)}<span>${md(i)}</span></li>`).join("")}</ul>`;
 const cards = (items: { icon: string; h3: string; p: string }[]) =>
   `<div class="grid">${items.map((f) => `<article class="card"><span class="tile">${icon(f.icon, 20)}</span><h3>${esc(f.h3)}</h3><p>${md(f.p)}</p></article>`).join("")}</div>`;
@@ -248,8 +250,8 @@ function windows(ctx: Ctx): PageOut {
 <div class="hero-visual">${editorMock(t)}</div>
 ${cards(w.items)}
 <div class="grid-2 mt-l">
-<div class="card"><h2 class="h2">${esc(w.req.h2)}</h2>${list(w.req.items)}</div>
-<div class="card"><div class="note">${icon("shield", 18)}<span>${md(w.note)}</span></div></div>
+<div class="card"><h2 class="h2">${esc(w.install.h2)}</h2>${steps(w.install.steps)}<p class="small muted mt-m">${md(w.install.smartscreen)}</p></div>
+<div class="card"><h2 class="h2">${esc(w.req.h2)}</h2>${list(w.req.items)}<div class="note mt-l">${icon("shield", 18)}<span>${md(w.note)}</span></div></div>
 </div>
 </div></section>
 ${shareSection(ctx, w.seo.title)}`;
@@ -262,6 +264,7 @@ function android(ctx: Ctx): PageOut {
   const main = html`${pageHero(ctx, "android", a.h1, a.lead, `<div class="cta-row">${ext(t, LINKS.android, `${brand("android", 18)}<span>${esc(t.cta.android)}</span>`, "btn btn-primary")}<a class="btn btn-secondary" href="${LINKS.app}">${icon("browser", 18)}<span>${esc(t.cta.web)}</span></a></div>`)}
 <section class="section-tight"><div class="wrap">
 <div class="split"><div>${cards(a.items)}</div><div class="frame square">${img("android-automation")}</div></div>
+<div class="card mt-l"><h2 class="h2">${esc(a.req.h2)}</h2>${steps(a.req.items)}</div>
 <div class="card mt-l card-glow" id="accessibility"><span class="tile">${icon("shield", 20)}</span><h2 class="h2">${esc(a.access.h2)}</h2><p>${md(a.access.p)}</p>
 <div class="grid-2 mt-l"><div><h3>${esc(a.access.does)}</h3>${list(a.access.doesItems)}</div><div><h3>${esc(a.access.never)}</h3>${list(a.access.neverItems, false)}</div></div></div>
 </div></section>
@@ -335,11 +338,11 @@ function download(ctx: Ctx): PageOut {
 </div></section>
 <section class="section-tight" id="downloads"><div class="wrap">
 <div class="grid-3">
-<article class="card feature card-glow"><span class="tile">${brand("windows", 18)}</span><h2 class="h2">${esc(d.windows.h2)}</h2><p>${esc(d.windows.p)}</p><p class="muted">${esc(d.windows.meta)}</p><div class="cta-row">${ext(t, LINKS.windows, `${icon("download", 18)}<span>${esc(t.cta.windows)}</span>`, "btn btn-primary")}</div></article>
+<article class="card feature card-glow"><span class="tile">${brand("windows", 18)}</span><h2 class="h2">${esc(d.windows.h2)}</h2><p>${esc(d.windows.p)}</p><p class="muted">${esc(d.windows.meta)}<span class="dl-ver" data-version hidden> · ${esc(d.latest)} <b></b></span></p><div class="cta-row">${ext(t, LINKS.windows, `${icon("download", 18)}<span>${esc(t.cta.windows)}</span>`, "btn btn-primary")}</div></article>
 <article class="card feature"><span class="tile">${brand("android", 18)}</span><h2 class="h2">${esc(d.android.h2)}</h2><p>${esc(d.android.p)}</p><p class="muted">${esc(d.android.meta)}</p><div class="cta-row">${ext(t, LINKS.android, `${brand("android", 18)}<span>${esc(t.cta.android)}</span>`, "btn btn-secondary")}</div></article>
 <article class="card feature"><span class="tile">${icon("browser", 20)}</span><h2 class="h2">${esc(d.web.h2)}</h2><p>${esc(d.web.p)}</p><p class="muted">${esc(d.web.meta)}</p><div class="cta-row"><a class="btn btn-secondary" href="${LINKS.app}">${icon("arrow", 18)}<span>${esc(t.cta.web)}</span></a></div></article>
 </div>
-<div class="note mt-l">${icon("shield", 18)}<span>${md(d.verify)}</span></div>
+<div class="note mt-l">${icon("shield", 18)}<span>${md(d.verify)} <a href="${pagePath(ctx.lang, "changelog")}">${esc(d.releases)}</a></span></div>
 </div></section>
 ${shareSection(ctx, d.seo.title)}`;
   return { title: d.seo.title, description: d.seo.description, og: { kicker: t.nav.download, headline: d.h1, sub: d.lead }, main };
@@ -396,13 +399,26 @@ ${secs.map(([k, s]) => `<section id="${k}" aria-labelledby="${k}-h"><h2 id="${k}
   return { title: doc.seo.title, description: doc.seo.description, og: { kicker: t.footer.legal, headline: doc.h1, sub: t.legalUi.effective }, main };
 }
 
+function changelog(ctx: Ctx): PageOut {
+  const { t } = ctx;
+  const c = t.changelog;
+  const entries = CHANGELOG.map(
+    (e) => html`<article class="card release"><div class="release-head"><h2 class="h2">${esc(e.version)}</h2><time datetime="${e.date}">${esc(e.date)}</time><span class="release-plat">${e.platforms.map((p) => `<span class="chip">${esc(t.labels.platforms[p])}</span>`).join(" ")}</span></div>${list(e.items)}</article>`,
+  );
+  const main = html`${pageHero(ctx, "changelog", c.h1, c.lead, `<div class="cta-row">${ext(t, LINKS.windows, `${brand("windows", 18)}<span>${esc(t.cta.windows)}</span>`, "btn btn-primary")}${ext(t, LINKS.android, `${brand("android", 18)}<span>${esc(t.cta.android)}</span>`, "btn btn-secondary")}</div>`)}
+<section class="section-tight"><div class="wrap releases">${entries.join("")}</div></section>
+${shareSection(ctx, c.seo.title)}`;
+  return { title: c.seo.title, description: c.seo.description, og: { kicker: t.nav.changelog, headline: c.h1, sub: c.lead }, main };
+}
+
 export function notFound(ctx: Ctx): PageOut {
   const { t } = ctx;
   const n = t.notFound;
   const main = html`<section class="hero"><div class="wrap">
 <h1 class="display"><span class="grad">404</span></h1>
 <h2 class="h2">${esc(n.h1)}</h2><p class="lead">${esc(n.lead)}</p>
-<div class="cta-row"><a class="btn btn-primary" href="/">${icon("arrow", 18)}<span>${esc(n.back)}</span></a><a class="btn btn-secondary" href="${LINKS.app}">${icon("browser", 18)}<span>${esc(t.cta.openApp)}</span></a></div>
+<div class="cta-row"><a class="btn btn-primary" href="/">${icon("arrow", 18)}<span>${esc(n.back)}</span></a><a class="btn btn-secondary" href="${pagePath("en", "download")}">${icon("download", 18)}<span>${esc(t.nav.download)}</span></a><a class="btn btn-secondary" href="${pagePath("en", "faq")}">${icon("browser", 18)}<span>${esc(t.nav.faq)}</span></a></div>
+<div class="foot-langs nf-langs">${LOCALES.map((x) => `<a href="${pagePath(x.code, "home")}" hreflang="${x.hreflang}" lang="${x.code}">${esc(x.name)}</a>`).join("")}</div>
 <div class="hero-visual"></div>
 </div></section>`;
   return { title: n.seo.title, description: n.seo.description, og: { kicker: "", headline: n.h1, sub: n.lead }, main };
@@ -419,6 +435,7 @@ export const RENDER: Record<PageId, (ctx: Ctx) => PageOut> = {
   download,
   pricing,
   faq,
+  changelog,
   privacy: (c) => legal(c, "privacy"),
   terms: (c) => legal(c, "terms"),
 };

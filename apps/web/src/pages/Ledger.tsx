@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
@@ -15,10 +15,20 @@ export function LedgerPage() {
   const navigate = useNavigate();
   const runs = useStore((s) => s.runs);
   const flows = useStore((s) => s.flows);
+  const ready = useStore((s) => s.ready);
   const clear = useStore((s) => s.clearRuns);
+  const deleteRun = useStore((s) => s.deleteRun);
+  const toast = useStore((s) => s.toast);
   const [filter, setFilter] = useState<"all" | "completed" | "stopped" | "failed">("all");
   const list = useMemo(() => runs.filter((r) => filter === "all" || r.status === filter), [runs, filter]);
   const run = id ? runs.find((r) => r.id === id) : undefined;
+
+  // /ledger/<id> that no longer resolves (deleted, expired): say so and go back to the list.
+  useEffect(() => {
+    if (!ready || !id || run) return;
+    toast("info", t("common.noResults"));
+    navigate("/ledger", { replace: true });
+  }, [ready, id, run, navigate, toast, t]);
 
   if (run) {
     const flow = flows.find((f) => f.id === run.flowId);
@@ -76,7 +86,7 @@ export function LedgerPage() {
         ) : (
           <div className="card" style={{ padding: 0, overflowX: "auto" }}>
             <table className="table">
-              <thead><tr><th>{t("ledger.status")}</th><th>{t("flows.col.name")}</th><th>{t("ledger.when")}</th><th>{t("ledger.duration")}</th><th>{t("ledger.actions")}</th><th>{t("ledger.where")}</th></tr></thead>
+              <thead><tr><th>{t("ledger.status")}</th><th>{t("flows.col.name")}</th><th>{t("ledger.when")}</th><th>{t("ledger.duration")}</th><th>{t("ledger.actions")}</th><th>{t("ledger.where")}</th><th /></tr></thead>
               <tbody>
                 {list.map((r) => (
                   <tr key={r.id} onClick={() => navigate(`/ledger/${r.id}`)} style={{ cursor: "pointer" }}>
@@ -86,6 +96,11 @@ export function LedgerPage() {
                     <td className="small">{formatDuration(r.durationMs)}</td>
                     <td className="small">{r.actions}</td>
                     <td><span className="badge">{r.where === "canvas" ? t("pulse.canvas") : t(`platform.${r.platform}`)}</span></td>
+                    <td>
+                      <button className="btn ghost icon sm" title={t("ledger.deleteRun")} aria-label={t("ledger.deleteRun")} onClick={(e) => { e.stopPropagation(); void deleteRun(r.id); }}>
+                        <Icon name="Trash2" size={14} />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

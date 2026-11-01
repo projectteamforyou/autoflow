@@ -61,7 +61,7 @@ export async function api<T>(path: string, init: Omit<RequestInit, "headers"> & 
   }
   if (!res.ok) {
     const err = (body as { error?: { code?: string; message?: string } })?.error;
-    throw new ApiError(res.status, err?.code ?? `http_${res.status}`, err?.message ?? res.statusText, body);
+    throw new ApiError(res.status, err?.code ?? `http_${res.status}`, err?.message ?? (res.statusText || `HTTP ${res.status}`), body);
   }
   return body as T;
 }

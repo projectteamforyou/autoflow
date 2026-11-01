@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { BUSINESS_PRICES, LICENSE_KEY_PATTERN, generateLicenseKey } from "@autoflow/core";
+import { BILLING_CONTACT_EMAIL, BUSINESS_PRICES, LICENSE_KEY_PATTERN, generateLicenseKey } from "@autoflow/core";
 import { SecretBox } from "../src/lib/secrets.js";
+import { MAX_PENDING_ORDERS, expirePendingOrders, reconcilePendingOrders } from "../src/services/billing.js";
 import { b64, makeApp, useTestDb, type AppOptions, type TestApp } from "./helpers.js";
 
 const db = useTestDb();
@@ -190,7 +191,10 @@ describe("entitlement gate", () => {
     expect((await t.call("PUT", "/v1/sync/items/flow/c", { token: biz.token, body: payload(), headers: { "If-Match": "0" } })).status).toBe(201);
     await t.call("PATCH", "/v1/me", { token: biz.token, body: { usageType: "business" } });
 
-    // An operator grant (audited) unblocks; a revoke blocks again.
+    // An operator grant (audited) unblocks; a revoke blocks again. A grant that ends in the past is a mistake.
+    const past = await t.call("POST", "/v1/admin/billing/entitlements", { token: op.token, body: { email: biz.email, action: "grant", until: "2020-01-01T00:00:00Z" } });
+    expect(past.status).toBe(400);
+    expect(past.json.error.details).toEqual([{ path: "until", message: "until must be in the future" }]);
     const grant = await t.call("POST", "/v1/admin/billing/entitlements", { token: op.token, body: { email: biz.email, action: "grant", months: 1, note: "invoice #12" } });
     expect(grant.status).toBe(200);
     expect(grant.json.entitlement.validUntil).toBe("2026-11-19T15:00:00.000Z");
@@ -291,6 +295,8 @@ describe("PortOne checkout and verification", () => {
     const r = await t.call("POST", "/v1/billing/confirm", { token: biz.token, body: { provider: "portone", paymentId: co.json.portone.paymentId } });
     expect(r.status).toBe(409);
     expect(r.json.error.code).toBe("payment_mismatch");
+    // Money may have moved: the client can show whom to write to.
+    expect(r.json.error.details).toMatchObject({ reason: "amount_mismatch_refunded", contact: BILLING_CONTACT_EMAIL });
     expect(cancel).toHaveBeenCalledTimes(1);
     const st = await t.call("GET", "/v1/billing/status", { token: biz.token });
     expect(st.json).toMatchObject({ status: "business_required", entitlement: null });
@@ -475,7 +481,8 @@ describe("license keys", () => {
     expect((await t.call("POST", "/v1/billing/redeem", { body: { key: k1!.key } })).status).toBe(401);
     const typo = k1!.key.slice(0, -1) + (k1!.key.endsWith("0") ? "1" : "0");
     const bad = await t.call("POST", "/v1/billing/redeem", { token: user.token, body: { key: typo } });
-    expect(bad.status).toBe(400);
+    // A typo and a key that was never issued get the same answer.
+    expect(bad.status).toBe(404);
     expect(bad.json.error.code).toBe("invalid_license_key");
     const unknown = await t.call("POST", "/v1/billing/redeem", { token: user.token, body: { key: generateLicenseKey() } });
     expect(unknown.status).toBe(404);
@@ -529,5 +536,136 @@ describe("license keys", () => {
     const issued = await t.call("POST", "/v1/admin/billing/license-keys", { token: op.token, body: { period: "year", count: 1 } });
     const r = await t.call("POST", "/v1/billing/redeem", { token: user.token, body: { key: issued.json.keys[0].key } });
     expect(r.json.billing.entitlement.validUntil).toBe("2027-11-19T15:00:00.000Z");
+  });
+});
+
+describe("pending orders", () => {
+  const hours = (n: number) => n * 3_600_000;
+
+  it("lets the buyer cancel a pending order (owner only, once) and caps open checkouts", async () => {
+    const fetchMock = providerMock({ "GET api.portone.io/payments/*": (url) => portonePaid(decodeURIComponent(url.pathname.split("/").pop()!), 9_900) });
+    const t = app({ fetch: fetchMock, now: () => AFTER_CUTOFF });
+    const op = await operator(t);
+    await configure(t, op.token, { portone: true });
+    const biz = await businessUser(t);
+    const other = await businessUser(t);
+
+    const co = await t.call("POST", "/v1/billing/checkout", { token: biz.token, body: { provider: "portone", period: "month" } });
+    const orderId = co.json.order.id as string;
+    // Someone else's order looks exactly like a missing one.
+    expect((await t.call("POST", `/v1/billing/orders/${orderId}/cancel`, { token: other.token })).status).toBe(404);
+    expect((await t.call("POST", "/v1/billing/orders/00000000-0000-0000-0000-000000000000/cancel", { token: biz.token })).status).toBe(404);
+    expect((await t.call("POST", `/v1/billing/orders/${orderId}/cancel`)).status).toBe(401);
+    const cancelled = await t.call("POST", `/v1/billing/orders/${orderId}/cancel`, { token: biz.token });
+    expect(cancelled.status, cancelled.text).toBe(200);
+    expect(cancelled.json.order).toMatchObject({ id: orderId, status: "cancelled", paymentId: null });
+    const again = await t.call("POST", `/v1/billing/orders/${orderId}/cancel`, { token: biz.token });
+    expect(again.status).toBe(409);
+    expect(again.json.error.details).toEqual({ status: "cancelled" });
+    // A cancelled order cannot be confirmed into a paid one, even if the provider says PAID.
+    expect((await t.call("POST", "/v1/billing/confirm", { token: biz.token, body: { provider: "portone", paymentId: co.json.portone.paymentId } })).json.error.code).toBe("payment_failed");
+    expect((await t.call("GET", "/v1/billing/status", { token: biz.token })).json.orders[0].status).toBe("cancelled");
+
+    // A paid order is not cancellable here (refunds are an operator matter).
+    const paid = await t.call("POST", "/v1/billing/checkout", { token: biz.token, body: { provider: "portone", period: "month" } });
+    await t.call("POST", "/v1/billing/confirm", { token: biz.token, body: { provider: "portone", paymentId: paid.json.portone.paymentId } });
+    expect((await t.call("POST", `/v1/billing/orders/${paid.json.order.id}/cancel`, { token: biz.token })).status).toBe(409);
+
+    // At most MAX_PENDING_ORDERS open checkouts per account; cancelling one frees a slot.
+    const ids: string[] = [];
+    for (let i = 0; i < MAX_PENDING_ORDERS; i++) {
+      const r = await t.call("POST", "/v1/billing/checkout", { token: biz.token, body: { provider: "portone", period: "month" } });
+      expect(r.status, r.text).toBe(201);
+      ids.push(r.json.order.id);
+    }
+    const capped = await t.call("POST", "/v1/billing/checkout", { token: biz.token, body: { provider: "portone", period: "month" } });
+    expect(capped.status).toBe(409);
+    expect(capped.json.error).toMatchObject({ code: "too_many_pending_orders", details: { max: MAX_PENDING_ORDERS } });
+    expect((await t.call("POST", "/v1/billing/checkout", { token: other.token, body: { provider: "portone", period: "month" } })).status).toBe(201);
+    await t.call("POST", `/v1/billing/orders/${ids[0]}/cancel`, { token: biz.token });
+    expect((await t.call("POST", "/v1/billing/checkout", { token: biz.token, body: { provider: "portone", period: "month" } })).status).toBe(201);
+  });
+
+  it("reconciles pending orders the provider settled without a confirm call, idempotently and one failure at a time", async () => {
+    const paidIds = new Set<string>();
+    const brokenIds = new Set<string>();
+    const fetchMock = providerMock({
+      "GET api.portone.io/payments/*": (url) => {
+        const id = decodeURIComponent(url.pathname.split("/").pop()!);
+        if (brokenIds.has(id)) throw new Error("socket hang up");
+        return paidIds.has(id) ? portonePaid(id, BUSINESS_PRICES.month.KRW) : Response.json({ id, status: "READY", currency: "KRW", amount: { total: 9_900 } });
+      },
+    });
+    const c = clock(AFTER_CUTOFF);
+    const t = app({ fetch: fetchMock, now: c.now });
+    const op = await operator(t);
+    await configure(t, op.token, { portone: true });
+    const biz = await businessUser(t);
+
+    // The sweep is deployment-wide; close what earlier tests in this file left open.
+    await db.sql`UPDATE orders SET status = 'cancelled' WHERE status = 'pending'`;
+    // Nothing pending: nothing to do (and no provider calls).
+    expect(await reconcilePendingOrders(t.deps)).toEqual({ checked: 0, settled: 0, rejected: 0, failed: 0 });
+
+    const checkout = async () => (await t.call("POST", "/v1/billing/checkout", { token: biz.token, body: { provider: "portone", period: "month" } })).json.portone.paymentId as string;
+    const stuck = await checkout(); // paid, but the browser never confirmed
+    const unpaid = await checkout(); // buyer still on the payment page
+    const broken = await checkout(); // provider unreachable for this one
+    const old = await checkout(); // paid, but outside the 48 h window: reconciliation leaves it alone
+    paidIds.add(stuck).add(old);
+    brokenIds.add(broken);
+    await db.sql`UPDATE orders SET created_at = ${new Date(c.t.getTime() - hours(50))} WHERE provider_payment_id = ${old}`;
+    for (const id of [stuck, unpaid, broken]) await db.sql`UPDATE orders SET created_at = ${new Date(c.t.getTime() - hours(1))} WHERE provider_payment_id = ${id}`;
+
+    const first = await reconcilePendingOrders(t.deps);
+    expect(first).toEqual({ checked: 3, settled: 1, rejected: 0, failed: 1 });
+    const st = await t.call("GET", "/v1/billing/status", { token: biz.token });
+    expect(st.json).toMatchObject({ status: "business_active", entitlement: { validUntil: "2026-11-19T15:00:00.000Z" } });
+    const byPayment = (id: string) => (st.json.orders as { paymentId: string | null; status: string }[]).find((o) => o.paymentId === id)?.status ?? "paid";
+    expect(byPayment(stuck)).toBe("paid");
+    expect(byPayment(unpaid)).toBe("pending");
+    expect(byPayment(broken)).toBe("pending");
+    expect(byPayment(old)).toBe("pending");
+    // The settled order got its license key like any purchase; the plaintext was never shown.
+    expect(st.json.licenseKeys).toHaveLength(1);
+    expect(st.json.licenseKeys[0]).toMatchObject({ source: "purchase", period: "month" });
+
+    // Running again settles nothing twice; the browser confirming later finds the order paid and gets no key.
+    expect(await reconcilePendingOrders(t.deps)).toEqual({ checked: 2, settled: 0, rejected: 0, failed: 1 });
+    const confirm = await t.call("POST", "/v1/billing/confirm", { token: biz.token, body: { provider: "portone", paymentId: stuck } });
+    expect(confirm.status).toBe(200);
+    expect(confirm.json).toMatchObject({ licenseKey: null, order: { status: "paid" }, billing: { entitlement: { validUntil: "2026-11-19T15:00:00.000Z" } } });
+
+    // A payment that turns out not to match is rejected (and counted) without stopping the sweep.
+    brokenIds.delete(broken);
+    paidIds.add(broken);
+    await db.sql`UPDATE orders SET amount = 1 WHERE provider_payment_id = ${broken}`;
+    expect(await reconcilePendingOrders(t.deps)).toEqual({ checked: 2, settled: 0, rejected: 1, failed: 0 });
+    const [rejected] = await db.sql<{ status: string; failure_reason: string }[]>`SELECT status, failure_reason FROM orders WHERE provider_payment_id = ${broken}`;
+    expect(rejected).toEqual({ status: "failed", failure_reason: "amount_mismatch" });
+  });
+
+  it("expires pending orders older than 72 hours and leaves newer ones alone", async () => {
+    const t = app({ fetch: providerMock({}), now: () => AFTER_CUTOFF });
+    const op = await operator(t);
+    await configure(t, op.token, { portone: true });
+    const biz = await businessUser(t);
+    await db.sql`UPDATE orders SET status = 'cancelled' WHERE status = 'pending'`;
+    const fresh = (await t.call("POST", "/v1/billing/checkout", { token: biz.token, body: { provider: "portone", period: "month" } })).json.order.id as string;
+    const stale = (await t.call("POST", "/v1/billing/checkout", { token: biz.token, body: { provider: "portone", period: "month" } })).json.order.id as string;
+    const noPayment = (await t.call("POST", "/v1/billing/checkout", { token: biz.token, body: { provider: "portone", period: "month" } })).json.order.id as string;
+    await db.sql`UPDATE orders SET created_at = ${new Date(AFTER_CUTOFF.getTime() - hours(71))} WHERE id = ${fresh}`;
+    await db.sql`UPDATE orders SET created_at = ${new Date(AFTER_CUTOFF.getTime() - hours(73))} WHERE id = ${stale}`;
+    await db.sql`UPDATE orders SET created_at = ${new Date(AFTER_CUTOFF.getTime() - hours(73))}, provider_payment_id = NULL WHERE id = ${noPayment}`;
+
+    expect(await expirePendingOrders(t.deps)).toBe(2);
+    expect(await expirePendingOrders(t.deps)).toBe(0);
+    const rows = await db.sql<{ id: string; status: string; failure_reason: string | null }[]>`SELECT id, status, failure_reason FROM orders WHERE id IN ${db.sql([fresh, stale, noPayment])}`;
+    const by = Object.fromEntries(rows.map((r) => [r.id, r]));
+    expect(by[fresh]).toMatchObject({ status: "pending", failure_reason: null });
+    expect(by[stale]).toMatchObject({ status: "cancelled", failure_reason: "expired" });
+    expect(by[noPayment]).toMatchObject({ status: "cancelled", failure_reason: "expired" });
+    // Expired orders no longer count against the pending cap.
+    expect((await t.call("GET", "/v1/billing/status", { token: biz.token })).json.orders.filter((o: { status: string }) => o.status === "pending")).toHaveLength(1);
   });
 });

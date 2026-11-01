@@ -15,6 +15,12 @@ describe("migrator", () => {
     expect(results).toEqual([[], [], []]);
   });
 
+  it("creates the housekeeping indexes", async () => {
+    const rows = await db.sql<{ indexname: string; indexdef: string }[]>`SELECT indexname, indexdef FROM pg_indexes WHERE indexname IN ('sessions_revoked_idx', 'orders_status_created_idx') ORDER BY indexname`;
+    expect(rows.map((r) => r.indexname)).toEqual(["orders_status_created_idx", "sessions_revoked_idx"]);
+    expect(rows[1]!.indexdef).toMatch(/WHERE \(revoked_at IS NOT NULL\)/);
+  });
+
   it("applies new files in order and refuses edited ones", async () => {
     const dir = mkdtempSync(join(tmpdir(), "af-mig-"));
     try {

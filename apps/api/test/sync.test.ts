@@ -81,6 +81,14 @@ describe("encrypted sync", () => {
     expect((await t.call("PUT", "/v1/sync/items/secrets/x", { token: u.token, body: payload(), headers: { "If-Match": "0" } })).status).toBe(404);
     expect((await t.call("PUT", "/v1/sync/items/flow/bad%20id", { token: u.token, body: payload(), headers: { "If-Match": "0" } })).status).toBe(404);
     expect((await t.call("GET", "/v1/sync?since=-1", { token: u.token })).status).toBe(400);
+    // 19 digits can still exceed a bigint: a 400, never a database error.
+    const overflow = await t.call("GET", "/v1/sync?since=9223372036854775808", { token: u.token });
+    expect(overflow.status).toBe(400);
+    expect(overflow.json.error.details).toEqual([{ path: "since", message: "cursor out of range" }]);
+    expect((await t.call("GET", "/v1/sync?since=9999999999999999999", { token: u.token })).status).toBe(400);
+    const maxCursor = await t.call("GET", "/v1/sync?since=9223372036854775807", { token: u.token });
+    expect(maxCursor.status).toBe(200);
+    expect(maxCursor.json).toEqual({ items: [], cursor: "9223372036854775807", hasMore: false });
     expect((await t.call("GET", "/v1/sync")).status).toBe(401);
   });
 

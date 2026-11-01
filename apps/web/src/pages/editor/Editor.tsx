@@ -24,6 +24,9 @@ export function EditorPage() {
   const [panel, setPanel] = useState<null | "explain" | "versions" | "json" | "icon">(null);
   const sessionSnap = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout>>();
+  // Latest edit + dirty flag, so leaving the page inside the debounce window still saves it.
+  const flowRef = useRef<Flow | undefined>(flow);
+  const dirtyRef = useRef(false);
 
   useEffect(() => {
     if (stored && (!flow || stored.id !== flow.id)) setFlow(stored);
@@ -32,6 +35,7 @@ export function EditorPage() {
 
   const persist = useCallback(
     async (f: Flow) => {
+      dirtyRef.current = false;
       const saved = await save(f, { snapshot: !sessionSnap.current });
       sessionSnap.current = true;
       setDirty(false);
@@ -44,28 +48,49 @@ export function EditorPage() {
     (next: Flow) => {
       setFlow(next);
       setDirty(true);
+      flowRef.current = next;
+      dirtyRef.current = true;
       clearTimeout(timer.current);
       timer.current = setTimeout(() => void persist(next), 700);
     },
     [persist],
   );
 
-  useEffect(() => () => clearTimeout(timer.current), []);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s" && flow) {
-        e.preventDefault();
-        clearTimeout(timer.current);
-        void persist(flow).then(() => useStore.getState().toast("success", t("editor.saved")));
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [flow, persist, t]);
+  useEffect(
+    () => () => {
+      clearTimeout(timer.current);
+      if (dirtyRef.current && flowRef.current) void persist(flowRef.current);
+    },
+    [persist],
+  );
 
   const lint = useMemo(() => (flow ? lintFlow(flow, { knownFlowIds: useStore.getState().flows.map((f) => f.id) }) : []), [flow]);
   const easyOk = useMemo(() => (flow ? toEasy(flow) !== null : false), [flow]);
   const blocked = useMemo(() => (flow ? FlowRun.preflight(flow, platform === "web" ? "web" : platform).blocked : []), [flow]);
+  const hasErrors = lint.some((l) => l.severity === "error");
+
+  const run = useCallback(async () => {
+    if (!flow || hasErrors) return;
+    clearTimeout(timer.current);
+    const saved = await persist(flow);
+    await startFlow(saved, navigate);
+  }, [flow, hasErrors, persist, navigate]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || !flow) return;
+      if (e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        clearTimeout(timer.current);
+        void persist(flow).then(() => useStore.getState().toast("success", t("editor.saved")));
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        void run();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [flow, persist, run, t]);
 
   if (!ready) return null;
   if (!flow) {
@@ -122,11 +147,7 @@ export function EditorPage() {
             className="btn sm primary"
             disabled={errors > 0}
             title={errors ? t("editor.fixErrors") : blocked.length ? t("run.unsupported", { n: blocked.length }) : undefined}
-            onClick={async () => {
-              clearTimeout(timer.current);
-              const saved = await persist(flow);
-              await startFlow(saved, navigate);
-            }}
+            onClick={() => void run()}
           >
             <Icon name="Play" size={15} /> {t("flows.run")}
           </button>

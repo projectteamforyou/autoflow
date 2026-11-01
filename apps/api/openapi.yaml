@@ -1057,10 +1057,32 @@ paths:
                 properties:
                   redeemed: { type: object, properties: { id: { type: string }, period: { type: string, enum: [month, year] }, validUntil: { type: string, format: date-time } } }
                   billing: { $ref: "#/components/schemas/BillingStatus" }
-        "400": { description: "`invalid_license_key` — malformed or failed checksum (typo)" }
-        "404": { description: "`invalid_license_key` — no such key" }
+        "404": { description: "`invalid_license_key` — malformed, failed checksum (typo) or no such key" }
         "409": { description: "`license_key_used`" }
         "410": { description: "`license_key_revoked`" }
+        "429": { $ref: "#/components/responses/Error" }
+
+  /v1/billing/orders/{id}/cancel:
+    post:
+      tags: [billing]
+      summary: Cancel one of the caller's pending orders
+      description: |
+        pending → cancelled, for the order's owner only. Pending orders also expire on their own after
+        72 hours, and an account may have at most 5 open at once (`too_many_pending_orders` on checkout).
+      security: [{ bearer: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  order: { $ref: "#/components/schemas/Order" }
+        "404": { description: "Not the caller's order (or no such order)" }
+        "409": { description: "`conflict` — the order is not pending (details.status)" }
         "429": { $ref: "#/components/responses/Error" }
 
   /v1/admin/billing/settings:

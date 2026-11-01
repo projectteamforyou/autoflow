@@ -40,7 +40,12 @@ export function syncRoutes() {
     const q = parseQuery(
       c,
       z.object({
-        since: z.string().regex(/^\d{1,19}$/, "cursor must be a non-negative integer").default("0"),
+        since: z
+          .string()
+          .regex(/^\d{1,19}$/, "cursor must be a non-negative integer")
+          // 19 digits can still exceed a Postgres bigint; refuse here instead of letting the query blow up.
+          .refine((s) => BigInt(s) <= 9223372036854775807n, "cursor out of range")
+          .default("0"),
         limit: z.coerce.number().int().min(1).max(maxPageSize).default(pageSize),
       }),
     );

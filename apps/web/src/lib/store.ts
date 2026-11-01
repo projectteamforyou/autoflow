@@ -131,6 +131,7 @@ interface State {
   saveProfile(p: InputProfile): Promise<void>;
   deleteProfile(id: string): Promise<void>;
   recordRun(r: RunRecord): Promise<void>;
+  deleteRun(id: string): Promise<void>;
   clearRuns(): Promise<void>;
   setActive(a: ActiveRun | null | ((prev: ActiveRun | null) => ActiveRun | null)): void;
   updateSettings(patch: Partial<Settings>): Promise<void>;
@@ -235,6 +236,11 @@ export const useStore = create<State>((set, get) => ({
     await db.put("runs", trimmed);
     const runs = [trimmed, ...get().runs.filter((x) => x.id !== r.id)].slice(0, MAX_RUNS);
     set({ runs });
+  },
+
+  async deleteRun(id) {
+    await db.delete("runs", id);
+    set({ runs: get().runs.filter((r) => r.id !== id) });
   },
 
   async clearRuns() {

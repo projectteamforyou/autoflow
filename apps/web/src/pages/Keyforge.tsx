@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { createProfile, findConflicts, hotkeyToString, newId, sourceKey, type InputOutput, type InputProfile, type InputSource, type Mapping, type ProfileRule } from "@autoflow/core";
 import { Shell } from "../components/Shell";
@@ -112,10 +112,25 @@ function ProfileEditor({ profile, onApply }: { profile: InputProfile; onApply: (
   const flowHotkeys = flows.flatMap((f) => [...(f.trigger.type === "hotkey" ? [{ flowId: f.id, hotkey: f.trigger.hotkey }] : []), ...(f.hotkeys.start ? [{ flowId: f.id, hotkey: f.hotkeys.start }] : [])]);
   const conflicts = useMemo(() => findConflicts(p, flowHotkeys), [p, flowHotkeys]);
 
+  // Debounced autosave; the latest edit is flushed on unmount so leaving quickly never loses it.
+  const pRef = useRef(p);
+  const dirtyRef = useRef(false);
+  const deletedRef = useRef(false);
   useEffect(() => {
-    const id = setTimeout(() => void save(p), 500);
+    pRef.current = p;
+    dirtyRef.current = true;
+    const id = setTimeout(() => {
+      dirtyRef.current = false;
+      void save(p);
+    }, 500);
     return () => clearTimeout(id);
   }, [p, save]);
+  useEffect(
+    () => () => {
+      if (dirtyRef.current && !deletedRef.current) void save(pRef.current);
+    },
+    [save],
+  );
 
   const setLayer = (mappings: Mapping[]) => setP({ ...p, layers: p.layers.map((l) => (l.id === layer.id ? { ...l, mappings } : l)) });
   const mappedKeys = new Set(layer.mappings.filter((m) => m.from.kind === "key" && m.from.modifiers.length === 0).map((m) => (m.from as { key: string }).key.toUpperCase()));
@@ -156,7 +171,7 @@ function ProfileEditor({ profile, onApply }: { profile: InputProfile; onApply: (
         <div className="row">
           {conflicts.length > 0 && <span className="badge warn">{t("keyforge.conflictsN", { n: conflicts.length })}</span>}
           {hasNativeBridge && <button className="btn sm primary" onClick={onApply}><Icon name="Zap" size={15} /> {t("keyforge.apply")}</button>}
-          <button className="btn sm ghost" onClick={async () => { if (await confirmDialog({ title: t("keyforge.deleteTitle"), tone: "danger", confirmLabel: t("common.delete") })) { await del(p.id); navigate("/keyforge"); } }}><Icon name="Trash2" size={15} /></button>
+          <button className="btn sm ghost" onClick={async () => { if (await confirmDialog({ title: t("keyforge.deleteTitle"), tone: "danger", confirmLabel: t("common.delete") })) { deletedRef.current = true; await del(p.id); navigate("/keyforge"); } }}><Icon name="Trash2" size={15} /></button>
         </div>
       }
     >

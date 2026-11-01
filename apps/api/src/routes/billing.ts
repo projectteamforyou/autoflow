@@ -35,7 +35,8 @@ const EntitlementBody = z
     until: z.string().datetime({ offset: true }).optional(),
     note: z.string().trim().max(300).optional(),
   })
-  .refine((v) => v.action === "revoke" || v.months !== undefined || v.until !== undefined, { message: "grant needs months or until" });
+  .refine((v) => v.action === "revoke" || v.months !== undefined || v.until !== undefined, { message: "grant needs months or until" })
+  .refine((v) => !v.until || Date.parse(v.until) > Date.now(), { message: "until must be in the future", path: ["until"] });
 
 export function billingRoutes() {
   const r = new Hono<AppEnv>();
@@ -68,6 +69,14 @@ export function billingRoutes() {
     await enforce(deps.limiters.billing, `billing:u:${a.user.id}`);
     const body = await parseJson(c, ConfirmBody);
     return c.json(await billing.confirm(deps, a, body));
+  });
+
+  r.post("/orders/:id/cancel", async (c) => {
+    const a = requireAuth(c);
+    const deps = c.get("deps");
+    await enforce(deps.limiters.billing, `billing:u:${a.user.id}`);
+    const { id } = parseParams(c, z.object({ id: uuidParam }));
+    return c.json({ order: await billing.cancelOrder(deps, a, id) });
   });
 
   r.post("/redeem", async (c) => {

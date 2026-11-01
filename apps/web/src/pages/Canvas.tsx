@@ -35,8 +35,18 @@ export function CanvasPage() {
   const save = useStore((s) => s.saveFlow);
   const speed = useStore((s) => s.settings.canvasSpeed);
   const updateSettings = useStore((s) => s.updateSettings);
-  const [flowId, setFlowId] = useState<string>(params.get("flow") ?? flows[0]?.id ?? "");
+  const [flowId, setFlowId] = useState<string>(() => {
+    const wanted = params.get("flow");
+    return wanted && flows.some((f) => f.id === wanted) ? wanted : flows[0]?.id ?? "";
+  });
   const flow = flows.find((f) => f.id === flowId);
+  // `?flow=` may name a flow that no longer exists (or flows may load after mount): fall back to the first one.
+  useEffect(() => {
+    if (flow || !flows.length) return;
+    const wanted = params.get("flow");
+    setFlowId(wanted && flows.some((f) => f.id === wanted) ? wanted : flows[0]!.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flow, flows]);
   const monitors = usePracticeCount(1);
   const world = monitors > 1 ? practiceWorld(monitors) : null;
   const W = world ? monitors * 1280 : SINGLE.w;

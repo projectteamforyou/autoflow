@@ -15,6 +15,7 @@ export const zhCN: Content = {
     faq: "常见问题",
     privacy: "隐私政策",
     terms: "服务条款",
+    changelog: "更新日志",
   },
   a11y: {
     skip: "跳到正文",
@@ -31,7 +32,7 @@ export const zhCN: Content = {
   cta: {
     windows: "下载 Windows 版",
     windowsShort: "Windows",
-    android: "在 Google Play 获取",
+    android: "下载 Android 版（APK）",
     androidShort: "Android",
     web: "在浏览器中使用",
     webLong: "不想安装？直接在浏览器中打开 AutoFlow",
@@ -302,6 +303,7 @@ export const zhCN: Content = {
       h2: "系统要求",
       items: ["Windows 10 或 11，64 位", "Microsoft Edge WebView2 运行时（Windows 11 已内置）", "无需账号，无需联网"],
     },
+    install: { h2: "安装方法", steps: ["下载并运行 AutoFlow-Setup-x64.exe。安装程序由 PROJECTTEAMFORYOU 签名。", "如果 Windows 显示 SmartScreen 提示，请选择“更多信息”›“仍要运行”。新发布者的程序在安装人数足够多之前都会出现此提示。", "AutoFlow 在托盘中启动。按 Ctrl+Alt+S 或双击托盘图标即可打开。"], smartscreen: "Windows SmartScreen 判断安装程序的依据不只是签名，还包括已经有多少人运行过它。你在此处下载的是已签名的官方版本，可在文件的“属性”›“数字签名”中查看发布者。" },
     note: "官方版本仅在 autoflowmacro.com（dl.autoflowmacro.com）发布，请勿从镜像站下载 AutoFlow。",
   },
   android: {
@@ -317,6 +319,7 @@ export const zhCN: Content = {
       { icon: "clock", h3: "例程", p: "在指定时间或开始充电时运行流程，比如睡前的放松例程。" },
       { icon: "map", h3: "移动版 Atlas", p: "从 Atlas 选择滑动阅读、自动点按和例程模板，随即调整。" },
     ],
+    req: { h2: "要求与设置", items: ["Android 8.0 或更高版本", "允许一次来自浏览器的安装（打开 APK 时 Android 会询问）", "首次启动后，在 设置 › 无障碍 中开启 AutoFlow。应用会在跳转到设置之前先说明该服务的用途"] },
     access: {
       h2: "关于无障碍权限",
       p: "在 Android 上，应用只能通过无障碍服务代替你点按和滑动。AutoFlow 只把它用于这件事，仅此而已。",
@@ -410,6 +413,7 @@ export const zhCN: Content = {
     web: { h2: "网页版", p: "在浏览器中使用完整编辑器、Atlas 和 Practice Canvas。还能从地址栏安装为应用。", meta: "首次访问后可离线使用" },
     verify: "请只从本站（dl.autoflowmacro.com）下载 AutoFlow。我们绝不会为下载收费。",
     releases: "查看所有版本和说明",
+    latest: "最新版本",
   },
   pricing: {
     seo: {
@@ -465,7 +469,15 @@ export const zhCN: Content = {
       { q: "导入别人分享的流程安全吗？", a: "导入的流程在运行前会经过哈希校验、重新验证，并给出附带理由的安全评分。如有疑虑，先在 Practice Canvas 上预演。" },
       { q: "有 Mac 或 iPhone 版本吗？", a: "暂时还没有。网页版可以在 macOS 和 iOS 的现代浏览器中运行，包括 Atlas 和 Practice Canvas，但要控制真实输入，需要 Windows 或 Android 应用。" },
       { q: "支持哪些语言？", a: "AutoFlow、本网站和法律文件提供 12 种语言：英语、韩语、日语、简体中文、繁体中文、西班牙语、法语、德语、巴西葡萄牙语、俄语、越南语和印度尼西亚语。" },
+      { q: "Windows 显示 SmartScreen 警告，安装程序安全吗？", a: "如果是从 autoflowmacro.com 下载的，就是安全的。无论是否签名，SmartScreen 都会对运行人数还很少的安装程序发出警告。请选择“更多信息”›“仍要运行”。文件“属性”›“数字签名”中显示的发布者是 PROJECTTEAMFORYOU。" },
+      { q: "如何更新 AutoFlow？", a: "Windows 和网页应用会在新版本就绪时提醒你；你也可以随时从下载页面获取最新安装程序覆盖安装，流程会保留。Android 上，把新 APK 覆盖安装到旧版本上（签名相同），或在上架 Google Play 后通过 Play 更新。更新日志页面列出了每个版本。" },
+      { q: "如何卸载 AutoFlow 或关闭无障碍服务？", a: "Windows：设置 › 应用 › AutoFlow › 卸载；除非你删除应用数据文件夹，否则流程会保留。Android：在 设置 › 无障碍 › AutoFlow automations 中关闭即可暂停，也可以像其他应用一样卸载。流程只存在于你的设备上，服务器上不会残留任何内容。" },
     ],
+  },
+  changelog: {
+    seo: { title: "AutoFlow 更新日志 — 版本说明", description: "AutoFlow 在 Windows、Android 和网页应用上的每个版本，以及变更和修复内容。" },
+    h1: "更新日志",
+    lead: "Windows、Android 和网页应用的版本说明。更新免费，个人使用也一直免费。",
   },
   notFound: {
     seo: { title: "页面未找到——AutoFlow", description: "这个页面偏离了地图。返回 AutoFlow 首页，或选择你的语言。" },

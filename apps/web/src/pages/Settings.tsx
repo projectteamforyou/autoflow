@@ -3,12 +3,13 @@ import { useEffect, useState } from "react";
 import { LOCALES, type LocaleCode } from "@autoflow/core";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
-import { Field, HotkeyInput, Seg, Switch, download } from "../components/ui";
+import { Field, HotkeyInput, Seg, Switch, download, pickFile } from "../components/ui";
 import { DEFAULT_API_URL, useStore } from "../lib/store";
 import { ApiError, auth, type User } from "../lib/api";
 import { deriveSyncKey, keyCheck } from "../lib/crypto";
 import { hasSyncKey, setSyncKey, syncNow } from "../lib/sync";
 import { confirmDialog, promptDialog } from "../lib/dialog";
+import { restoreBackupFile, toastRestored } from "../lib/actions";
 import { formatNumber, formatRelative, getLocale, setLocale, useLocale, useT } from "../i18n";
 import { usePublicStats } from "../lib/stats";
 import { hasNativeBridge, invoke } from "../platform";
@@ -77,6 +78,17 @@ export function SettingsPage() {
           <p className="hint">{t("settings.dataHint")}</p>
           <div className="row wrap">
             <button className="btn" onClick={() => { const st = useStore.getState(); download(`autoflow-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ format: "autoflow.backup", version: 1, exportedAt: new Date().toISOString(), flows: st.flows, profiles: st.profiles, settings: { ...st.settings, sync: undefined } }, null, 2)); }}><Icon name="Download" size={15} /> {t("settings.exportAll")}</button>
+            <button className="btn" onClick={async () => {
+              const file = await pickFile(".json,application/json");
+              if (!file) return;
+              try {
+                const r = await restoreBackupFile(file);
+                if (r) toastRestored(r);
+                else useStore.getState().toast("error", t("import.invalid"));
+              } catch (e) {
+                useStore.getState().toast("error", (e as Error).message);
+              }
+            }}><Icon name="Upload" size={15} /> {t("settings.restore")}</button>
             <button className="btn danger" onClick={async () => {
               if (!(await confirmDialog({ title: t("settings.wipeTitle"), body: t("settings.wipeBody"), tone: "danger", confirmLabel: t("settings.wipe") }))) return;
               await useStore.getState().wipeLocalData();
@@ -87,12 +99,7 @@ export function SettingsPage() {
 
         <section className="card stack">
           <h3><Icon name="Wrench" size={16} /> {t("settings.advanced")}</h3>
-          <Field label={t("settings.apiUrl")} hint={t("settings.apiUrlHint")}>
-            <div className="input-group">
-              <input className="input mono" value={s.apiUrl} onChange={(e) => void update({ apiUrl: e.target.value.trim() })} />
-              <button className="btn ghost" onClick={() => void update({ apiUrl: DEFAULT_API_URL })}>{t("common.reset")}</button>
-            </div>
-          </Field>
+          <ApiUrlField />
         </section>
 
         <section className="card stack-sm">
@@ -109,6 +116,44 @@ export function SettingsPage() {
         </section>
       </div>
     </Shell>
+  );
+}
+
+/** Sync server address: edited as a draft and only stored once it parses as an http(s) URL. */
+function ApiUrlField() {
+  const t = useT();
+  const apiUrl = useStore((x) => x.settings.apiUrl);
+  const update = useStore((x) => x.updateSettings);
+  const [draft, setDraft] = useState(apiUrl);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => setDraft(apiUrl), [apiUrl]);
+  const commit = () => {
+    const v = draft.trim();
+    try {
+      const u = new URL(v);
+      if (u.protocol !== "http:" && u.protocol !== "https:") throw new Error("scheme");
+    } catch {
+      setError(t("settings.apiUrlInvalid"));
+      return;
+    }
+    setError(null);
+    if (v !== apiUrl) void update({ apiUrl: v });
+  };
+  return (
+    <Field label={t("settings.apiUrl")} hint={t("settings.apiUrlHint")} error={error}>
+      <div className="input-group">
+        <input
+          className="input mono"
+          value={draft}
+          onChange={(e) => { setDraft(e.target.value); if (error) setError(null); }}
+          onBlur={commit}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commit(); } }}
+          aria-invalid={!!error}
+          spellCheck={false}
+        />
+        <button className="btn ghost" onClick={() => { setError(null); setDraft(DEFAULT_API_URL); void update({ apiUrl: DEFAULT_API_URL }); }}>{t("common.reset")}</button>
+      </div>
+    </Field>
   );
 }
 
@@ -240,7 +285,11 @@ function AccountSection() {
           <div className="row">
             <div className="tile-icon" style={{ background: "var(--af-gradient)" }}><Icon name="User" /></div>
             <div className="grow"><b>{user.email}</b><div className="small muted">{t("account.signedIn")}</div></div>
-            <button className="btn sm ghost" onClick={async () => { await auth.logout(); setUser(null); setSyncKey(null); setUnlocked(false); await update({ sync: { enabled: false } }); }}><Icon name="LogOut" size={14} /> {t("account.logout")}</button>
+            <button className="btn sm ghost" onClick={async () => {
+              // Offline logout still clears the local session and UI.
+              try { await auth.logout(); } catch { /* token already dropped by auth.logout's finally */ }
+              setUser(null); setSyncKey(null); setUnlocked(false); await update({ sync: { enabled: false } });
+            }}><Icon name="LogOut" size={14} /> {t("account.logout")}</button>
           </div>
           <div className="callout info small"><Icon name="Lock" size={16} /> {t("sync.e2e")}</div>
           <div className="row wrap">
@@ -253,7 +302,9 @@ function AccountSection() {
             {sync.lastSyncAt && <span className="small muted">{t("sync.last", { when: formatRelative(sync.lastSyncAt) })}</span>}
           </div>
           <div className="row wrap">
-            <button className="btn sm ghost" onClick={async () => download(`autoflow-account-export-${Date.now().toString(36)}.json`, JSON.stringify(await auth.exportData(), null, 2))}><Icon name="Download" size={14} /> {t("account.export")}</button>
+            <button className="btn sm ghost" onClick={async () => {
+              try { download(`autoflow-account-export-${Date.now().toString(36)}.json`, JSON.stringify(await auth.exportData(), null, 2)); } catch (e) { toast("error", (e as Error).message); }
+            }}><Icon name="Download" size={14} /> {t("account.export")}</button>
             <button className="btn sm ghost" style={{ color: "var(--af-danger)" }} onClick={async () => {
               const pw = await promptDialog({ title: t("account.deleteTitle"), body: t("account.deleteBody"), tone: "danger", input: { label: t("account.password"), type: "password" }, confirmLabel: t("account.delete") });
               if (!pw) return;

@@ -9,6 +9,7 @@ import { purgeDeadSessions } from "./db/users.js";
 import { createMemoryLimiters } from "./lib/rate-limit.js";
 import { purgeStalePresence } from "./db/stats.js";
 import { createLogger } from "./logger.js";
+import { expirePendingOrders, reconcilePendingOrders } from "./services/billing.js";
 import { ConsoleMailer, DisabledMailer, ResendMailer, fireAndForget, type Mailer } from "./mail/mailer.js";
 
 const config = loadConfig();
@@ -31,7 +32,7 @@ else if (config.env === "production") {
   mailer = new DisabledMailer(logger);
 } else mailer = new ConsoleMailer(logger);
 
-const app = createApp({
+const deps = {
   config,
   sql,
   logger,
@@ -39,7 +40,8 @@ const app = createApp({
   limiters: createMemoryLimiters(config.limits.rate),
   fetch: globalThis.fetch,
   now: () => new Date(),
-});
+};
+const app = createApp(deps);
 
 const server = serve({ fetch: app.fetch, port: config.port, hostname: "0.0.0.0" }, (info) => {
   logger.info("http.listening", { port: info.port, env: config.env, origins: config.appOrigins });
@@ -54,6 +56,14 @@ const housekeeping = setInterval(async () => {
     if (sessions || shares) logger.info("housekeeping.purged", { sessions, shares });
   } catch (err) {
     logger.warn("housekeeping.failed", { error: (err as Error).message });
+  }
+  // Orders paid but never confirmed by the browser are settled here; stale ones are closed.
+  try {
+    const reconciled = await reconcilePendingOrders(deps);
+    const expired = await expirePendingOrders(deps);
+    if (reconciled.checked || expired) logger.info("housekeeping.orders", { ...reconciled, expired });
+  } catch (err) {
+    logger.warn("housekeeping.orders_failed", { error: (err as Error).message });
   }
 }, 60 * 60_000);
 housekeeping.unref();

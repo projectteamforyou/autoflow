@@ -2,7 +2,7 @@
  * Cross-page actions: start a flow on the best target, export/share, create from a kind.
  */
 import type { NavigateFunction } from "react-router-dom";
-import { applyEasy, createFlow, defaultEasyModel, encodeShareCode, exportFlow, newId, type EasyKind, type Flow } from "@autoflow/core";
+import { InputProfileSchema, applyEasy, createFlow, defaultEasyModel, encodeShareCode, exportFlow, importFlow, newId, type EasyKind, type Flow } from "@autoflow/core";
 import { hasNativeBridge } from "../platform";
 import { runNative } from "./runner";
 import { useStore } from "./store";
@@ -50,10 +50,46 @@ export async function shareLink(flow: Flow): Promise<string> {
     if (navigator.share && /Mobi|Android/i.test(navigator.userAgent)) await navigator.share({ title: flow.name, text: t("share.text"), url });
     else await navigator.clipboard.writeText(url);
     useStore.getState().toast("success", t("share.copied"));
-  } catch {
-    /* user cancelled share */
+  } catch (e) {
+    // Cancelling the share sheet is not an error; anything else (clipboard blocked…) gets a manual-copy fallback.
+    if ((e as Error).name !== "AbortError") await promptDialog({ title: t("flows.share"), body: t("share.copyManually"), input: { label: "URL", value: url }, confirmLabel: t("common.close") });
   }
   return url;
+}
+
+/**
+ * Restores an "autoflow.backup" file (flows + Keyforge profiles) into the local store.
+ * Resolves null when the file is not a backup, so callers can fall back to single-flow import.
+ */
+export async function restoreBackupFile(file: File): Promise<{ flows: number; profiles: number } | null> {
+  if (file.size > 2_000_000) throw new Error(t("import.tooLarge"));
+  let data: { format?: unknown; flows?: unknown; profiles?: unknown } | null;
+  try {
+    data = JSON.parse(await file.text());
+  } catch {
+    return null;
+  }
+  if (data?.format !== "autoflow.backup" || !Array.isArray(data.flows)) return null;
+  const ok: Flow[] = [];
+  for (const f of data.flows) {
+    const r = await importFlow(JSON.stringify(f));
+    if (r.ok && r.flow) ok.push(r.flow);
+  }
+  const st = useStore.getState();
+  const flows = await st.importFlows(ok);
+  let profiles = 0;
+  for (const p of Array.isArray(data.profiles) ? data.profiles : []) {
+    const r = InputProfileSchema.safeParse(p);
+    if (!r.success) continue;
+    await st.saveProfile(r.data);
+    profiles++;
+  }
+  return { flows, profiles };
+}
+
+/** Toast for a finished restore (counts profiles only when the backup had any). */
+export function toastRestored(r: { flows: number; profiles: number }): void {
+  useStore.getState().toast("success", r.profiles ? t("import.restoredProfiles", { n: r.flows, p: r.profiles }) : t("import.restored", { n: r.flows }));
 }
 
 export async function createFromKind(kind: string): Promise<Flow> {

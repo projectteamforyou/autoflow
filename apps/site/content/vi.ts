@@ -15,6 +15,7 @@ export const vi: Content = {
     faq: "Hỏi đáp",
     privacy: "Quyền riêng tư",
     terms: "Điều khoản",
+    changelog: "Có gì mới",
   },
   a11y: {
     skip: "Chuyển đến nội dung",
@@ -31,7 +32,7 @@ export const vi: Content = {
   cta: {
     windows: "Tải cho Windows",
     windowsShort: "Windows",
-    android: "Tải trên Google Play",
+    android: "Tải cho Android (APK)",
     androidShort: "Android",
     web: "Dùng trên trình duyệt",
     webLong: "Không muốn cài? Mở AutoFlow ngay trên trình duyệt",
@@ -302,6 +303,7 @@ export const vi: Content = {
       h2: "Yêu cầu hệ thống",
       items: ["Windows 10 hoặc 11, 64-bit", "Microsoft Edge WebView2 Runtime (có sẵn trên Windows 11)", "Không cần tài khoản, không cần Internet"],
     },
+    install: { h2: "Cách cài đặt", steps: ["Tải AutoFlow-Setup-x64.exe và chạy. Trình cài đặt được ký bởi PROJECTTEAMFORYOU.", "Nếu Windows hiện thông báo SmartScreen, chọn “Thông tin thêm” › “Vẫn chạy” — thông báo này xuất hiện với mọi nhà phát hành mới cho đến khi đủ nhiều người đã cài.", "AutoFlow khởi động ở khay hệ thống. Nhấn Ctrl+Alt+S hoặc nhấp đúp biểu tượng khay để mở."], smartscreen: "SmartScreen của Windows đánh giá trình cài đặt theo số người đã chạy nó, không chỉ theo chữ ký. Bản bạn tải ở đây là bản chính thức đã ký; bạn có thể kiểm tra nhà phát hành trong Thuộc tính › Chữ ký số của tệp." },
     note: "Bản chính thức chỉ được phát hành trên autoflowmacro.com (dl.autoflowmacro.com). Đừng tải AutoFlow từ trang nhân bản.",
   },
   android: {
@@ -317,6 +319,7 @@ export const vi: Content = {
       { icon: "clock", h3: "Thói quen", p: "Chạy luồng vào giờ cố định hoặc khi bắt đầu sạc — như thói quen thư giãn trước khi ngủ." },
       { icon: "map", h3: "Atlas trên di động", p: "Mẫu đọc bằng vuốt, tự động chạm và thói quen từ Atlas, sẵn sàng để chỉnh." },
     ],
+    req: { h2: "Yêu cầu và thiết lập", items: ["Android 8.0 trở lên", "Cho phép cài đặt từ trình duyệt một lần (Android sẽ hỏi khi bạn mở APK)", "Sau lần mở đầu tiên, bật AutoFlow trong Cài đặt › Hỗ trợ tiếp cận — ứng dụng giải thích rõ dịch vụ làm gì trước khi đưa bạn đến đó"] },
     access: {
       h2: "Về quyền trợ năng",
       p: "Android chỉ cho phép ứng dụng chạm và vuốt thay bạn thông qua dịch vụ trợ năng. AutoFlow dùng nó đúng cho việc đó — và không gì khác.",
@@ -410,6 +413,7 @@ export const vi: Content = {
     web: { h2: "Ứng dụng web", p: "Trình chỉnh sửa đầy đủ, Atlas và Practice Canvas ngay trong trình duyệt. Cài như ứng dụng từ thanh địa chỉ.", meta: "Chạy offline sau lần truy cập đầu tiên" },
     verify: "Chỉ tải AutoFlow từ trang này (dl.autoflowmacro.com). Chúng tôi không bao giờ thu phí tải xuống.",
     releases: "Xem mọi bản phát hành và ghi chú",
+    latest: "Phiên bản mới nhất",
   },
   pricing: {
     seo: {
@@ -465,7 +469,15 @@ export const vi: Content = {
       { q: "Nhập luồng người khác chia sẻ có an toàn không?", a: "Luồng nhập vào được đối chiếu mã băm, kiểm tra lại và chấm điểm an toàn kèm lý do trước khi bạn chạy. Nếu còn băn khoăn, hãy chạy thử trên Practice Canvas trước." },
       { q: "Có bản cho Mac hoặc iPhone không?", a: "Chưa có. Ứng dụng web chạy trên mọi trình duyệt hiện đại trên macOS và iOS — kể cả Atlas và Practice Canvas — nhưng để điều khiển thao tác thật thì cần ứng dụng Windows hoặc Android." },
       { q: "Hỗ trợ những ngôn ngữ nào?", a: "AutoFlow, trang web này và các văn bản pháp lý có 12 ngôn ngữ: tiếng Anh, Hàn, Nhật, Trung giản thể và phồn thể, Tây Ban Nha, Pháp, Đức, Bồ Đào Nha (Brazil), Nga, Việt và Indonesia." },
+      { q: "Windows hiện cảnh báo SmartScreen — trình cài đặt có an toàn không?", a: "Có, nếu bạn tải từ autoflowmacro.com. SmartScreen cảnh báo mọi trình cài đặt còn ít người chạy, bất kể chữ ký. Chọn “Thông tin thêm” › “Vẫn chạy”; nhà phát hành hiển thị trong Thuộc tính › Chữ ký số của tệp là PROJECTTEAMFORYOU." },
+      { q: "Làm sao cập nhật AutoFlow?", a: "Windows và ứng dụng web sẽ báo khi có phiên bản mới; bạn cũng có thể tải trình cài đặt mới nhất từ trang Tải xuống bất cứ lúc nào — nó cài đè lên bản cũ và giữ nguyên các luồng. Trên Android, cài APK mới đè lên bản cũ (cùng chữ ký) hoặc cập nhật qua Google Play khi ứng dụng đã lên kệ. Trang Có gì mới liệt kê mọi bản phát hành." },
+      { q: "Làm sao gỡ AutoFlow hoặc tắt dịch vụ hỗ trợ tiếp cận?", a: "Windows: Cài đặt › Ứng dụng › AutoFlow › Gỡ cài đặt; các luồng vẫn ở thư mục dữ liệu ứng dụng trừ khi bạn xóa. Android: Cài đặt › Hỗ trợ tiếp cận › AutoFlow automations › tắt để tạm dừng, hoặc gỡ ứng dụng như bình thường. Không có gì lưu trên máy chủ vì luồng nằm trên thiết bị của bạn." },
     ],
+  },
+  changelog: {
+    seo: { title: "Có gì mới trong AutoFlow — ghi chú phát hành", description: "Mọi bản phát hành AutoFlow cho Windows, Android và ứng dụng web, kèm những gì thay đổi và đã sửa." },
+    h1: "Có gì mới",
+    lead: "Ghi chú phát hành cho Windows, Android và ứng dụng web. Cập nhật miễn phí; dùng cá nhân vẫn miễn phí.",
   },
   notFound: {
     seo: { title: "Không tìm thấy trang — AutoFlow", description: "Trang này đã đi lạc khỏi bản đồ. Quay về trang chủ AutoFlow hoặc chọn ngôn ngữ của bạn." },

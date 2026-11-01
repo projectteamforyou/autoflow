@@ -10,6 +10,7 @@ import { useStore } from "../lib/store";
 import { useDialogs } from "../lib/dialog";
 import { haltAll, pauseRun, resumeRun, stopRun } from "../lib/runner";
 import { setLocale, useLocale, useT } from "../i18n";
+import { startFlow } from "../lib/actions";
 import { platform, shell } from "../platform";
 
 const NAV = [
@@ -32,6 +33,7 @@ export function Shell({ children, flush, title, actions }: { children: ReactNode
   const t = useT();
   const flows = useStore((s) => s.flows.length);
   const [cmd, setCmd] = useState(false);
+  const [more, setMore] = useState(false);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
@@ -91,9 +93,35 @@ export function Shell({ children, flush, title, actions }: { children: ReactNode
             {t(n.key)}
           </NavLink>
         ))}
+        <button type="button" onClick={() => setMore(true)} aria-haspopup="dialog" aria-expanded={more}>
+          <Icon name="Menu" size={20} />
+          {t("nav.more")}
+        </button>
       </nav>
+      {more && <MoreSheet onClose={() => setMore(false)} />}
       {cmd && <CommandPalette onClose={() => setCmd(false)} />}
     </div>
+  );
+}
+
+/** Phone bottom nav shows five entries; the rest of NAV/NAV2 live in this sheet. */
+const MOBILE_PRIMARY = new Set(["/", "/flows", "/canvas", "/atlas", "/settings"]);
+
+function MoreSheet({ onClose }: { onClose: () => void }) {
+  const t = useT();
+  const location = useLocation();
+  useEffect(() => onClose, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <Modal title={t("nav.more")} icon="Menu" onClose={onClose}>
+      <div className="stack-xs">
+        {[...NAV, ...NAV2].filter((n) => !MOBILE_PRIMARY.has(n.to)).map((n) => (
+          <NavLink key={n.to} to={n.to} className={({ isActive }) => `nav-link${isActive ? " active" : ""}`} onClick={onClose}>
+            <Icon name={n.icon} />
+            {t(n.key)}
+          </NavLink>
+        ))}
+      </div>
+    </Modal>
   );
 }
 
@@ -270,7 +298,9 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
   const location = useLocation();
   useEffect(() => onClose, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
   const items = useMemo(() => {
-    const base = [
+    const newFlow = useStore.getState().settings.defaultMode === "pro" ? "/new/pro" : "/new/click";
+    const base: { icon: string; label: string; go: string | (() => void) }[] = [
+      { icon: "Plus", label: t("flows.new"), go: newFlow },
       { icon: "MousePointerClick", label: t("home.quick.click"), go: "/new/click" },
       { icon: "Target", label: t("home.quick.multi"), go: "/new/multiClick" },
       { icon: "Keyboard", label: t("home.quick.keys"), go: "/new/keys" },
@@ -278,14 +308,18 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
       { icon: "Workflow", label: t("home.quick.pro"), go: "/new/pro" },
       ...[...NAV, ...NAV2].map((n) => ({ icon: n.icon, label: t(n.key), go: n.to })),
       ...flows.map((f) => ({ icon: f.icon, label: f.name, go: `/flows/${f.id}` })),
+      ...flows.map((f) => ({ icon: "Play", label: t("palette.run", { name: f.name }), go: () => void startFlow(f, navigate) })),
     ];
     const needle = q.trim().toLowerCase();
     return needle ? base.filter((i) => i.label.toLowerCase().includes(needle)) : base;
-  }, [q, flows, t]);
+  }, [q, flows, t, navigate]);
+  // Only the first 40 matches are rendered, so keyboard selection is clamped to those.
+  const shown = useMemo(() => items.slice(0, 40), [items]);
   const go = (i: number) => {
-    const it = items[i];
+    const it = shown[i];
     if (it) {
-      navigate(it.go);
+      if (typeof it.go === "function") it.go();
+      else navigate(it.go);
       onClose();
     }
   };
@@ -298,7 +332,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
           value={q}
           onChange={(e) => { setQ(e.target.value); setSel(0); }}
           onKeyDown={(e) => {
-            if (e.key === "ArrowDown") { e.preventDefault(); setSel((s) => Math.min(items.length - 1, s + 1)); }
+            if (e.key === "ArrowDown") { e.preventDefault(); setSel((s) => Math.min(shown.length - 1, s + 1)); }
             if (e.key === "ArrowUp") { e.preventDefault(); setSel((s) => Math.max(0, s - 1)); }
             if (e.key === "Enter") go(sel);
             if (e.key === "Escape") onClose();
@@ -306,8 +340,8 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
           aria-label={t("cmd.placeholder")}
         />
         <ul role="listbox">
-          {items.slice(0, 40).map((it, i) => (
-            <li key={`${it.go}-${i}`} role="option" aria-selected={i === sel} onMouseEnter={() => setSel(i)} onClick={() => go(i)}>
+          {shown.map((it, i) => (
+            <li key={`${it.label}-${i}`} role="option" aria-selected={i === sel} onMouseEnter={() => setSel(i)} onClick={() => go(i)}>
               <Icon name={it.icon} size={16} />
               <span className="truncate">{it.label}</span>
             </li>
