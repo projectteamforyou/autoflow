@@ -1,6 +1,6 @@
 # AutoFlow — 인수인계 (새 채팅에서 이어서 작업용)
 
-갱신: 2026-10-24 21:45 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#24
+갱신: 2026-11-01 21:30 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#26
 
 ## 1. 현재 배포 상태 (Windows 1.1.2 · Android 1.1.2)
 | 항목 | 값 |
@@ -79,6 +79,14 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
 - `scripts/play/publish.mjs`: 거부 이후 `:validate`를 건너뛰고 `:commit?changesNotSentForReview=true` 로 저장 → Console에서 심사 제출
 - 다운로드 선택 레이어: 사이트 모든 다운로드 버튼(`/v1/stats/download/*`, client.js의 `#dl-choice`)과 웹 앱(TrialBanner `DownloadButton`) → 개인용 무료 / 업무용은 `/app/#/business`(결제 후 라이선스 키·다운로드) / 라이선스 보유 시 다운로드
 - 비공개 GitHub releases 링크는 사이트에서 제거
+
+## 7-3. A–Z 재검수·편의 패치 (PR #26, 2026-11-01)
+- 검수 방식: 사이트·웹 앱·API·엔진 4영역을 병렬로 읽고 85건 도출 → 가치 순으로 패치. 기준선: typecheck 통과, core 93·API 104·Rust 82 테스트 통과
+- API: 미정산 주문 매시간 자동 대조(`reconcilePendingOrders`), 대기 주문 취소 `POST /v1/billing/orders/:id/cancel`·72h 만료·5건 제한, 로그인 잠금은 실패 시에만 소모(`peek`), sync `since` 오버플로 400, 통계 캐시 실제 동작 + `windowsVersion`(stale-while-revalidate, HEAD 미집계), 마이그레이션 `005_indexes.sql`. 테스트 111
+- 웹 앱: 에디터·Keyforge 자동저장 언마운트 플러시(편집 유실 방지), 백업 복원이 Keyforge 프로필 포함 + 설정의 "백업 복원", 단계/플로우 삭제 Undo, Ctrl+Enter 실행, 팔레트 New flow/Run, 라이브러리 정렬·이름 바꾸기·카드 액션, 모바일 인스펙터/36px 터치/"더보기" 시트, API URL 검증, 빈 오류 토스트 수정. 번역 키 1351 × 12
+- 엔진(3개 동일): 중첩 리스트 노드 예산(depth 64), Android Stop이 제스처 취소, confirm/pick 종료 시 완료, 공개 대화상자 요청 큐잉, Windows 패닉→failed/internal, 트리거 동기화 시 스케줄 상태 유지, OCR 중단 가능·캡처 16Mpx 제한, 정규식 미지원 기능 메시지 통일
+- 사이트: `/<lang>/changelog/`(content/changelog.ts, 영어 단일 소스) 신설, Android CTA "APK", Windows 설치 3단계+SmartScreen, Android 요구사항, FAQ 3개, 다운로드 카드 최신 버전(`/v1/stats.windowsVersion`), 폰 헤더 다운로드 아이콘, 404 언어 링크, 인쇄 CSS, JSON-LD offers 2개(verify 스크립트도 갱신). 검사: `pnpm --filter @autoflow/site verify` 722페이지
+- 새 페이지 추가 시: `PAGES`(config.ts)·모든 locale의 `nav.<id>`·`RENDER`·OG 이미지(SKIP_OG 없이 1회 빌드) 필요
 
 ## 8. 러너 메모
 - 회사 PC 러너(FELIXLEE*)는 **LocalSystem** 계정(WiX MSI ICE 검사에 필요). Rust는 `CARGO_HOME=C:\Rust\cargo`
