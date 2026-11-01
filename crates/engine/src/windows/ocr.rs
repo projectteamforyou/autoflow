@@ -1,14 +1,23 @@
 //! Text recognition with the built-in `Windows.Media.Ocr` engine (user profile languages).
 
 use super::capture::capture;
-use crate::engine::{BackendError, ErrorCategory};
+use crate::actions::run_interruptible;
+use crate::engine::{BackendError, ErrorCategory, RunControl};
 use ::windows::Graphics::Imaging::{BitmapPixelFormat, SoftwareBitmap};
 use ::windows::Media::Ocr::OcrEngine;
 use ::windows::Storage::Streams::DataWriter;
 use ::windows::Win32::System::Com::{CoInitializeEx, COINIT_MULTITHREADED};
 
 /// Recognises text in a screen rectangle (physical pixels). Lines are joined with `\n`.
-pub fn recognize(x: i32, y: i32, w: i32, h: i32) -> Result<String, BackendError> {
+///
+/// Recognition runs on a helper thread and is raced against the run's stop signal (like
+/// `http_action`): `RecognizeAsync().get()` has no cancellation, so Stop would otherwise wait for
+/// the whole page to be recognised.
+pub fn recognize(x: i32, y: i32, w: i32, h: i32, control: &RunControl) -> Result<String, BackendError> {
+    run_interruptible(control, move || recognize_blocking(x, y, w, h))
+}
+
+fn recognize_blocking(x: i32, y: i32, w: i32, h: i32) -> Result<String, BackendError> {
     let shot = capture(x, y, w, h)?;
     let env = |what: &str, e: ::windows::core::Error| BackendError::new(ErrorCategory::Environment, format!("{what}: {e}"));
     // SAFETY: COM/WinRT initialisation for this thread (idempotent).

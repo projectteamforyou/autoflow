@@ -953,7 +953,10 @@ impl FlowRun {
         if pf.risk.needs_confirm {
             let ok = self.opts.confirm_risk.as_mut().is_some_and(|f| f(&pf.risk));
             if !ok {
-                return Err(Signal::Fail(RunError::new(ErrorCategory::User, "risky steps were not approved")));
+                return Err(Signal::Fail(RunError::new(
+                    ErrorCategory::User,
+                    "risky steps were not approved — run this flow once from the app and approve it, so scheduled or hotkey runs can start",
+                )));
             }
         }
         if let Some(rec) = flow.screen {

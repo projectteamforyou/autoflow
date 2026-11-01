@@ -482,10 +482,38 @@ fn strict_eq(a: &Value, b: &Value) -> bool {
     }
 }
 
+/// Deepest list nesting a value may have; deeper values are rejected like oversized ones.
+const MAX_LIST_DEPTH: usize = 64;
+
+/// Charges every nested element to one shared budget, so a self-nesting list (`v = [v, v]`
+/// repeated) cannot hide 2^n leaves behind a small top-level length. Shared sub-lists are counted
+/// each time they are reached: that is the work every later deep operation (clone, to_js_string,
+/// eq, JSON) would do.
+fn list_nodes(list: &[Value], depth: usize, left: &mut usize) -> Result<(), ExprError> {
+    if depth > MAX_LIST_DEPTH {
+        return Err(ExprError::new("list too large"));
+    }
+    for x in list {
+        if *left == 0 {
+            return Err(ExprError::new("list too large"));
+        }
+        *left -= 1;
+        if let Value::List(inner) = x {
+            list_nodes(inner, depth + 1, left)?;
+        }
+    }
+    Ok(())
+}
+
 fn guard(v: Value) -> Result<Value, ExprError> {
     match &v {
         Value::Str(s) if s.len() > MAX_STRING && utf16_len(s) > MAX_STRING => Err(ExprError::new("string too large")),
         Value::List(l) if l.len() > MAX_LIST => Err(ExprError::new("list too large")),
+        Value::List(l) => {
+            let mut left = MAX_LIST;
+            list_nodes(l, 0, &mut left)?;
+            Ok(v)
+        }
         Value::Num(n) if !n.is_finite() => Err(ExprError::new("number out of range")),
         _ => Ok(v),
     }
@@ -560,6 +588,33 @@ fn date_arg(args: &[Value], env: &ExprEnv<'_>) -> Result<f64, ExprError> {
     } else {
         to_num(&args[0])
     }
+}
+
+/// Features the TypeScript `safe-regex` rejects up front (lookaround, named groups,
+/// back-references): the `regex` crate would reject or accept them differently, so they are
+/// refused here first with the same `invalid pattern: …` message.
+fn unsupported_regex_feature(p: &str) -> Option<&'static str> {
+    let chars: Vec<char> = p.chars().collect();
+    let mut i = 0;
+    let mut in_class = false;
+    while i < chars.len() {
+        match chars[i] {
+            '\\' => {
+                if !in_class && matches!(chars.get(i + 1), Some('1'..='9')) {
+                    return Some("back-references are not supported");
+                }
+                i += 1;
+            }
+            '[' if !in_class => in_class = true,
+            ']' if in_class => in_class = false,
+            '(' if !in_class && chars.get(i + 1) == Some(&'?') && matches!(chars.get(i + 2), Some('=' | '!' | '<')) => {
+                return Some("lookaround and named groups are not supported");
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    None
 }
 
 /// Translates a JavaScript regular expression to the `regex` crate dialect: `\d \w \b` are
@@ -797,7 +852,7 @@ fn call(name: &str, a: &[Value], env: &ExprEnv<'_>) -> Result<Value, ExprError> 
             // Past 2^53 `i += 1.0` no longer changes `i`, so bounds must be safe integers in magnitude.
             const MAX_SAFE: f64 = 9_007_199_254_740_991.0;
             if !(lo.abs() <= MAX_SAFE && hi.abs() <= MAX_SAFE) {
-                return Err(ExprError::new("range bounds out of range"));
+                return Err(ExprError::new("range() bounds out of range"));
             }
             if hi - lo > MAX_LIST as f64 {
                 return Err(ExprError::new("range too large"));
@@ -818,6 +873,9 @@ fn call(name: &str, a: &[Value], env: &ExprEnv<'_>) -> Result<Value, ExprError> 
             }
             if nested_quantifier().is_match(&pattern) {
                 return Err(ExprError::new("pattern too complex"));
+            }
+            if let Some(why) = unsupported_regex_feature(&pattern) {
+                return Err(ExprError::new(format!("invalid pattern: {why}")));
             }
             let re = compile_pattern(&pattern)?;
             let subject = utf16(&s(0));
@@ -1103,6 +1161,11 @@ mod tests {
         assert_eq!(translate_js_regex(r"[\d\s]"), Ok(r"[[0-9]\s]".to_owned()));
         assert_eq!(translate_js_regex("(?i)x"), Err("Invalid group"));
         assert!(translate_js_regex("(?:x)").is_ok());
+        assert_eq!(ev(r#"matches("ab", "a(?=b)")"#).expect_err("lookahead").message, "invalid pattern: lookaround and named groups are not supported");
+        assert_eq!(ev(r#"matches("ab", "(?<!x)b")"#).expect_err("lookbehind").message, "invalid pattern: lookaround and named groups are not supported");
+        assert_eq!(ev(r#"matches("ab", "(?<n>a)")"#).expect_err("named").message, "invalid pattern: lookaround and named groups are not supported");
+        assert_eq!(ev(r#"matches("aa", "(a)\\1")"#).expect_err("backref").message, "invalid pattern: back-references are not supported");
+        assert_eq!(ev(r#"matches("ab", "(?:a)b")"#).expect("group"), Value::Bool(true));
         assert!(ev("matches('abc123', '^[a-z]+\\\\d+$')").expect("ok").truthy());
         assert!(!ev("matches('١٢٣', '^\\\\d+$')").expect("ok").truthy());
     }
@@ -1143,7 +1206,33 @@ mod tests {
         assert_eq!(parse(&long).expect_err("long").message, "expression too long");
         assert_eq!(ev("len(range(100000))").expect("ok"), Value::Num(100_000.0));
         assert_eq!(ev("range(100001)").expect_err("big").message, "range too large");
-        assert_eq!(ev("range(1e17, 1e17 + 32)").expect_err("huge").message, "range bounds out of range");
+        assert_eq!(ev("range(1e17, 1e17 + 32)").expect_err("huge").message, "range() bounds out of range");
         assert_eq!(ev("len(range(0.5, 3))").expect("fractional range"), Value::Num(3.0));
+    }
+
+    #[test]
+    fn self_nested_list_counts_every_node() {
+        // `v = [v, v]` repeated: 2^n leaves behind a top-level length of 2.
+        let mut vars = Vars::new();
+        vars.insert("v".into(), Value::Num(1.0));
+        let now = || 0.0;
+        let random = || 0.0;
+        let started = std::time::Instant::now();
+        let mut failed = None;
+        for depth in 0..25 {
+            match eval_expr("[v, v]", &ExprEnv { vars: &vars, now: &now, random: &random }) {
+                Ok(v) => vars.insert("v".into(), v),
+                Err(e) => {
+                    failed = Some((depth, e.message));
+                    break;
+                }
+            };
+        }
+        let (depth, message) = failed.expect("rejected");
+        assert_eq!(message, "list too large");
+        assert!((10..25).contains(&depth), "rejected at {depth}");
+        assert!(started.elapsed() < std::time::Duration::from_secs(2));
+        // Ordinary nesting is unaffected.
+        assert_eq!(ev("len([[1, [2]], [3]])").expect("ok"), Value::Num(2.0));
     }
 }

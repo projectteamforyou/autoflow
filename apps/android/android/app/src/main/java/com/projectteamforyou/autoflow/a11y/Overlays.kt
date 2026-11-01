@@ -75,7 +75,11 @@ class Overlays(private val service: AutoFlowAccessibilityService) {
         picker?.let { remove(it) }
         picker = null
         pendingPick?.cancel()
+        pendingPick = null
         confirmView?.let { remove(it) }
+        confirmView = null
+        pendingConfirm?.complete(false) // the service is going away: the confirm step gets "no" instead of hanging
+        pendingConfirm = null
     }
 
     /* ---------------------------------------------------------------- Halt */
@@ -170,6 +174,7 @@ class Overlays(private val service: AutoFlowAccessibilityService) {
     /* ------------------------------------------------------------- confirm */
 
     private var confirmView: View? = null
+    private var pendingConfirm: CompletableDeferred<Boolean>? = null
 
     suspend fun confirm(message: String): Boolean {
         val answer = CompletableDeferred<Boolean>()
@@ -202,6 +207,7 @@ class Overlays(private val service: AutoFlowAccessibilityService) {
             }
             add(frame, params(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
             confirmView = frame
+            pendingConfirm = answer
             frame
         }
         try {
@@ -210,6 +216,7 @@ class Overlays(private val service: AutoFlowAccessibilityService) {
             withContext(Dispatchers.Main + kotlinx.coroutines.NonCancellable) {
                 remove(view)
                 if (confirmView === view) confirmView = null
+                if (pendingConfirm === answer) pendingConfirm = null
             }
         }
     }

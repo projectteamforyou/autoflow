@@ -183,7 +183,14 @@ class FlowRun(
         }
         if (risk.needsConfirm) {
             val ok = opts.confirmRisk?.invoke(risk) ?: false
-            if (!ok) throw RunFailure(RunError(message = "risky steps were not approved", category = ErrorCategory.USER))
+            if (!ok) {
+                throw RunFailure(
+                    RunError(
+                        message = "risky steps were not approved — run this flow once from the app and approve it, so scheduled or hotkey runs can start",
+                        category = ErrorCategory.USER,
+                    ),
+                )
+            }
         }
         val rec = flow.screen
         if (rec != null) {
@@ -337,7 +344,8 @@ class FlowRun(
 
     private fun initVars() {
         for (v in flow.variables) {
-            var value: Value = opts.inputs[v.name] ?: v.initial ?: defaultFor(v.type)
+            // An explicit null input is "not provided" (engine.ts `inputs[name] ?? initial`).
+            var value: Value = opts.inputs[v.name]?.takeIf { it != Value.Null } ?: v.initial ?: defaultFor(v.type)
             if (v.type == "number") value = Value.Num(jsCoerceNumber(value))
             if (v.type == "boolean") value = Value.of(value == Value.TRUE || value == Value.Str("true"))
             vars[v.name] = value

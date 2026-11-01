@@ -95,6 +95,28 @@ describe("expressions: bounded work", () => {
     expect(evalExpr("contains([[1], [2]], [2])", { vars: {} })).toBe(true);
   });
 
+  it("rejects a self-nesting list (v = [v, v]) once its total node count passes the list limit", async () => {
+    // 25 levels of `[v, v]` would be 2^25 leaves behind a top-level length of 2.
+    let v: Value = 1;
+    let depth = 0;
+    const t0 = Date.now();
+    expect(() => {
+      for (; depth < 25; depth++) v = evalExpr("[v, v]", { vars: { v } });
+    }).toThrow(/list too large/);
+    expect(depth).toBeGreaterThanOrEqual(10);
+    expect(depth).toBeLessThan(25);
+    expect(Date.now() - t0).toBeLessThan(1000);
+    // Same through the engine: setVar v = [v, v] in a loop fails the run instead of exhausting memory.
+    const flow = mk([{ id: "l", type: "loop", mode: "count", count: 30, body: [{ id: "s", type: "setVar", name: "v", value: "[v, v]" }] }], {
+      variables: [{ name: "v", type: "list", initial: [1] }] as Flow["variables"],
+    });
+    const result = await new FlowRun(flow, new SandboxBackend(), { skipCountdown: true, clock: createVirtualClock() }).start();
+    expect(result.status).toBe("failed");
+    expect(result.error?.message).toMatch(/list too large/);
+    // Ordinary nesting is unaffected.
+    expect(evalExpr("len([[1, [2]], [3]])", { vars: {} })).toBe(2);
+  });
+
   it("range() rejects bounds beyond the safe-integer range instead of hanging", () => {
     for (const src of ["range(1e17, 1e17 + 32)", "range(-1e17, -1e17 + 5)", "range(1e300)", "range(0 - 1e300, 0)"]) {
       expect(() => evalExpr(src, { vars: {} }), src).toThrow(ExprError);

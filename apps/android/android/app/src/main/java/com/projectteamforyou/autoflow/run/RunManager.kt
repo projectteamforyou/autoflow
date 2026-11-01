@@ -136,7 +136,11 @@ object RunManager {
 
     fun pause(runId: String) = runs[runId]?.run?.pause()
     fun resume(runId: String) = runs[runId]?.run?.resume()
-    fun stop(runId: String, reason: String = "user") = runs[runId]?.run?.stop(reason)
+    /** Stop: like Halt, cancels any gesture in flight so a long press / drag never stays held. */
+    fun stop(runId: String, reason: String = "user") {
+        runs[runId]?.run?.stop(reason)
+        AutoFlowAccessibilityService.instance?.cancelGestures()
+    }
 
     fun pauseAll() = runs.values.forEach { it.run.pause() }
     fun resumeAll() = runs.values.forEach { it.run.resume() }

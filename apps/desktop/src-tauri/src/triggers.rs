@@ -3,7 +3,7 @@
 //!
 //! Hotkey and Keyforge starts are attended (a person pressed a key), so risky flows ask for
 //! approval in a native dialog. Schedules and app/device events are unattended and never
-//! approve risky steps; such runs fail visibly with "risky steps were not approved".
+//! approve risky steps; such runs fail visibly with "risky steps were not approved — …".
 
 use crate::platform;
 use crate::runs::{self, Origin};
@@ -43,6 +43,9 @@ pub struct TriggerTable {
     pub bindings: HashMap<i32, Binding>,
     /// Schedules per flow.
     pub schedules: Vec<(String, Schedule)>,
+    /// Flow id → serialized schedule trigger, so a re-sync with the same trigger keeps the running
+    /// schedule (interval anchor, last fired minute) instead of restarting it from "now".
+    schedule_keys: HashMap<String, String>,
     /// App events per flow.
     pub app_events: Vec<(String, AppEventKind, String)>,
     /// Device events per flow.
@@ -212,6 +215,7 @@ pub fn sync(app: &AppHandle, flows: &[serde_json::Value], emergency: Hotkey) -> 
             Trigger::Schedule { .. } => match Schedule::from_trigger(&f.trigger, now_ms()) {
                 Ok(s) => {
                     table.schedules.push((f.id.clone(), s));
+                    table.schedule_keys.insert(f.id.clone(), serde_json::to_string(&f.trigger).unwrap_or_default());
                     watched.insert(f.id.clone());
                 }
                 Err(e) => fail(&mut failed, &f.id, format!("invalid schedule: {e}")),
@@ -304,6 +308,14 @@ pub fn sync(app: &AppHandle, flows: &[serde_json::Value], emergency: Hotkey) -> 
         table.prev_processes = t.prev_processes.take();
         table.prev_foreground = t.prev_foreground.take();
         table.prev_power = t.prev_power.take();
+        // The web app re-syncs after every edit; a flow whose schedule trigger is byte-identical
+        // carries its live schedule over (an `everyMs` schedule must not restart on every sync).
+        for (flow, s) in &mut table.schedules {
+            let same = table.schedule_keys.get(flow).is_some_and(|k| t.schedule_keys.get(flow) == Some(k));
+            if let Some((_, prev)) = t.schedules.iter().find(|(id, _)| same && id == flow) {
+                *s = prev.clone();
+            }
+        }
         *t = table;
     }
     *lock(&state.flow_hotkeys) = flow_hotkeys;

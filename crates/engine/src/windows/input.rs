@@ -293,7 +293,7 @@ pub fn click(btn: MouseButton, clicks: u32, hold_ms: u64, modifiers: &[Modifier]
         }
         guard.release()?;
         if i + 1 < clicks {
-            std::thread::sleep(Duration::from_millis(30));
+            pause(30, control)?;
         }
     }
     mod_guard.release()

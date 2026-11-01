@@ -164,7 +164,7 @@ object TriggerEngine {
         for (a in RunManager.active()) {
             val h = a.flow.hotkeys.stop
             if (Keyforge.comboKey(h.key, h.modifiers) == combo) {
-                a.run.stop("hotkey")
+                RunManager.stop(a.run.id, "hotkey")
                 BridgeEvents.hotkey("stop", a.flow.id)
                 hit = true
             }
