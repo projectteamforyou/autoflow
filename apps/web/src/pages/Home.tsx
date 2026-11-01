@@ -1,5 +1,6 @@
 import { SITE_URL } from "../lib/site";
 import { Link, useNavigate } from "react-router-dom";
+import type { ReactNode } from "react";
 import { TEMPLATES, describeTrigger } from "@autoflow/core";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
@@ -8,7 +9,6 @@ import { TrialHero } from "../components/TrialBanner";
 import { FlowIcon, SafetyBadge } from "../components/ui";
 import { useStore } from "../lib/store";
 import { formatDuration, formatRelative, tp, useT } from "../i18n";
-import { hasNativeBridge } from "../platform";
 import { startFlow } from "../lib/actions";
 
 const QUICK = [
@@ -137,9 +137,9 @@ export function Home() {
               <table className="table">
                 <tbody>
                   {runs.slice(0, 5).map((r) => (
-                    <tr key={r.id} onClick={() => navigate(`/ledger/${r.id}`)} style={{ cursor: "pointer" }}>
+                    <tr key={r.id}>
                       <td><RunStatus status={r.status} /></td>
-                      <td className="truncate" style={{ maxWidth: 260 }}>{r.flowName}</td>
+                      <td className="truncate" style={{ maxWidth: 260 }}><Link to={`/ledger/${r.id}`} style={{ color: "inherit" }}>{r.flowName}</Link></td>
                       <td className="muted small">{formatRelative(r.startedAt)}</td>
                       <td className="muted small">{formatDuration(r.durationMs)}</td>
                     </tr>
@@ -175,27 +175,25 @@ export function RunStatus({ status }: { status: string }) {
   return <span className={`badge ${cls}`}>{t(`run.status.${status}`)}</span>;
 }
 
-export function FlowCard({ id }: { id: string }) {
+/** Flow tile. Only the title is a link (buttons inside a link would be nested interactive content). `actions` renders extra icon buttons in the footer. */
+export function FlowCard({ id, actions }: { id: string; actions?: ReactNode }) {
   const t = useT();
   const flow = useStore((s) => s.flows.find((f) => f.id === id));
   const save = useStore((s) => s.saveFlow);
   const navigate = useNavigate();
   if (!flow) return null;
   return (
-    <div className="card hover flow-card" onClick={() => navigate(`/flows/${flow.id}`)} role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && navigate(`/flows/${flow.id}`)}>
+    <div className="card hover flow-card">
       <div className="row">
         <FlowIcon flow={flow} />
         <div className="grow" style={{ minWidth: 0 }}>
-          <b className="truncate" style={{ display: "block" }}>{flow.name}</b>
+          <Link to={`/flows/${flow.id}`} className="truncate" style={{ display: "block", fontWeight: 700, color: "inherit", textDecoration: "none" }}>{flow.name}</Link>
           <span className="small muted truncate" style={{ display: "block" }}>{tp(describeTrigger(flow.trigger))}</span>
         </div>
         <button
           className="btn ghost icon sm"
           aria-label={t("flows.favorite")}
-          onClick={(e) => {
-            e.stopPropagation();
-            void save({ ...flow, favorite: !flow.favorite }, { snapshot: false });
-          }}
+          onClick={() => void save({ ...flow, favorite: !flow.favorite }, { snapshot: false })}
         >
           <Icon name="Star" size={16} className={flow.favorite ? "gradient-text" : ""} strokeWidth={flow.favorite ? 3 : 2} />
         </button>
@@ -209,15 +207,12 @@ export function FlowCard({ id }: { id: string }) {
       </div>
       <div className="row between">
         <span className="small subtle">{formatRelative(Date.parse(flow.updatedAt))}</span>
-        <button
-          className="btn sm primary"
-          onClick={(e) => {
-            e.stopPropagation();
-            void startFlow(flow, navigate);
-          }}
-        >
-          <Icon name="Play" size={14} /> {t("flows.run")}
-        </button>
+        <div className="row" style={{ gap: 4 }}>
+          {actions}
+          <button className="btn sm primary" onClick={() => void startFlow(flow, navigate)}>
+            <Icon name="Play" size={14} /> {t("flows.run")}
+          </button>
+        </div>
       </div>
     </div>
   );

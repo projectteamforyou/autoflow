@@ -9,7 +9,9 @@ use crate::state::{emit, lock, AppState, Hooks, RunEntry};
 use autoflow_engine::bridge::BridgeEvent;
 use autoflow_engine::risk::RiskReport;
 use autoflow_engine::schema::{Flow, Platform};
-use autoflow_engine::{FlowRun, InputBackend, MockBackend, RunControl, RunEvent, RunHandle, RunOptions, Value};
+use autoflow_engine::{
+    ErrorCategory, FlowRun, InputBackend, MockBackend, RunControl, RunError, RunEvent, RunHandle, RunOptions, RunResult, RunStatus, Value,
+};
 use indexmap::IndexMap;
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
@@ -131,7 +133,12 @@ pub fn start(app: &AppHandle, flow: Flow, inputs: IndexMap<String, Value>, origi
     lock(&state.runs).insert(id.clone(), RunEntry { handle: run.handle(), flow_id });
     let (app2, id2) = (app.clone(), id.clone());
     let spawned = std::thread::Builder::new().name(format!("autoflow-{id}")).stack_size(8 * 1024 * 1024).spawn(move || {
-        let result = run.start();
+        // A panic inside the engine must not leave a zombie entry in the run map: the web app would
+        // keep showing the run as active with no RunEnded ever arriving.
+        let result = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| run.start())) {
+            Ok(result) => result,
+            Err(payload) => panicked(payload.as_ref()),
+        };
         lock(&app2.state::<AppState>().runs).remove(&id2);
         emit(&app2, &BridgeEvent::RunEnded { run_id: id2, result });
     });
@@ -140,6 +147,29 @@ pub fn start(app: &AppHandle, flow: Flow, inputs: IndexMap<String, Value>, origi
         return Err(format!("cannot start the run: {e}"));
     }
     Ok(id)
+}
+
+/// The failed result emitted when the engine thread panics (category `internal`).
+fn panicked(payload: &(dyn std::any::Any + Send)) -> RunResult {
+    let what = payload
+        .downcast_ref::<&str>()
+        .map(|s| (*s).to_owned())
+        .or_else(|| payload.downcast_ref::<String>().cloned())
+        .unwrap_or_else(|| "unknown panic".to_owned());
+    let message = format!("internal error: {what}");
+    let now = u64::try_from(std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis())).unwrap_or(0);
+    RunResult {
+        status: RunStatus::Failed,
+        reason: Some(message.clone()),
+        error: Some(RunError { step_id: None, path: None, message, category: ErrorCategory::Internal }),
+        actions: 0,
+        iterations: 0,
+        steps: 0,
+        duration_ms: 0,
+        vars: IndexMap::new(),
+        started_at: now,
+        ended_at: now,
+    }
 }
 
 /// Starts a flow from the library by id (hotkeys, schedules, Keyforge). Failures are dropped:

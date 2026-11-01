@@ -288,9 +288,28 @@ function eq(a: Value, b: Value, budget: Budget): boolean {
   return a === b;
 }
 
+/** Deepest list nesting a value may have; deeper values are rejected like oversized ones. */
+const MAX_LIST_DEPTH = 64;
+
+/**
+ * Charges every nested element to one shared budget, so a self-nesting list (`v = [v, v]` repeated)
+ * cannot hide 2^n leaves behind a small top-level length. Shared sub-lists are counted each time
+ * they are reached: that is the work every later deep operation (toStr, eq, JSON) would do.
+ */
+function listNodes(list: Value[], depth: number, left: { n: number }): void {
+  if (depth > MAX_LIST_DEPTH) throw new ExprError("list too large");
+  for (const x of list) {
+    if (--left.n < 0) throw new ExprError("list too large");
+    if (Array.isArray(x)) listNodes(x, depth + 1, left);
+  }
+}
+
 function guard(v: Value): Value {
   if (typeof v === "string" && v.length > MAX_STRING) throw new ExprError("string too large");
-  if (Array.isArray(v) && v.length > MAX_LIST) throw new ExprError("list too large");
+  if (Array.isArray(v)) {
+    if (v.length > MAX_LIST) throw new ExprError("list too large");
+    listNodes(v, 0, { n: MAX_LIST });
+  }
   if (typeof v === "number" && !Number.isFinite(v)) throw new ExprError("number out of range");
   return v;
 }

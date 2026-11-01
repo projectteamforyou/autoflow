@@ -22,6 +22,7 @@
  * staff) are keys issued by an operator and redeemed once with POST /v1/billing/redeem.
  */
 import {
+  BILLING_CONTACT_EMAIL,
   BILLING_PERIODS,
   BUSINESS_FREE_UNTIL,
   BUSINESS_PLAN_REQUIRED_FROM,
@@ -55,6 +56,13 @@ import { normalizeEmail } from "./auth.js";
 import * as pay from "./payments.js";
 
 const PLAN = "business" as const;
+
+/** Open checkouts one account may have at once; abandoned ones expire (see `expirePendingOrders`). */
+export const MAX_PENDING_ORDERS = 5;
+/** How long a pending order is re-checked with the provider, and when it is given up on. */
+const RECONCILE_WINDOW_MS = 48 * 3_600_000;
+const PENDING_ORDER_TTL_MS = 72 * 3_600_000;
+const RECONCILE_BATCH = 200;
 
 export function orderDto(o: Order) {
   return {
@@ -171,7 +179,8 @@ async function issueKey(tx: Db, fields: KeyFields): Promise<{ key: string; row: 
 export async function redeem(deps: AppDeps, auth: AuthContext, input: { key: string }) {
   const canonical = normalizeLicenseKey(input.key);
   // Format and checksum fail fast without touching the database.
-  if (!canonical) throw new ApiError(400, "invalid_license_key", "This license key is not valid. Check it for typos.");
+  // Same answer as an unknown key: a typo and a key that was never issued are indistinguishable to the user.
+  if (!canonical) throw new ApiError(404, "invalid_license_key", "This license key is not valid. Check it for typos.");
   const keyHash = sha256Hex(canonical);
   const applied = await deps.sql.begin(async (tx) => {
     await lockUser(tx, auth.user.id);
@@ -263,6 +272,9 @@ const orderName = (period: BillingPeriod) => `AutoFlow Business (${period === "m
 export async function checkout(deps: AppDeps, auth: AuthContext, input: { provider: PaymentProvider; period: BillingPeriod; returnUrl?: string }) {
   if (auth.user.usageType !== "business") throw errors.conflict("The Business plan is only needed for business use. Set your usage type to business first.");
   const s = await loadBillingSettings(deps);
+  // Keeps one account from piling up checkouts that never finish (they expire after 72 h, or cancel them).
+  if ((await db.countPendingOrders(deps.sql, auth.user.id)) >= MAX_PENDING_ORDERS)
+    throw new ApiError(409, "too_many_pending_orders", "Finish or cancel your pending orders before starting another checkout", { max: MAX_PENDING_ORDERS });
   const currency = PROVIDER_CURRENCY[input.provider];
   const amount = priceFor(input.period, currency, s.prices);
   const base = { userId: auth.user.id, buyerEmail: auth.user.email, provider: input.provider, plan: PLAN, period: input.period, amount, currency };
@@ -312,6 +324,18 @@ export async function checkout(deps: AppDeps, auth: AuthContext, input: { provid
   return { order: orderDto({ ...order, providerPaymentId: created.id }), paypal: { orderId: created.id, approveUrl: created.approveUrl } };
 }
 
+/** The buyer abandons a pending order. Someone else's order looks exactly like a missing one. */
+export async function cancelOrder(deps: AppDeps, auth: AuthContext, orderId: string) {
+  const cancelled = await db.cancelPendingOrder(deps.sql, orderId, auth.user.id);
+  if (cancelled) {
+    deps.logger.info("billing.cancelled", { orderId, userId: auth.user.id, provider: cancelled.provider });
+    return orderDto(cancelled);
+  }
+  const existing = await db.getOrder(deps.sql, orderId);
+  if (!existing || existing.userId !== auth.user.id) throw errors.notFound("Order");
+  throw errors.conflict(`Only a pending order can be cancelled (this one is ${existing.status})`, { status: existing.status });
+}
+
 /* -------------------------------------------------------------- confirmation */
 
 export interface Settled {
@@ -348,7 +372,9 @@ function notCompleted(status: string | undefined): ApiError {
 async function reject(deps: AppDeps, order: Order, kind: "failed" | "cancelled", reason: string, raw: unknown, code: "payment_failed" | "payment_mismatch"): Promise<never> {
   await db.markOrderFailed(deps.sql, order.id, kind, reason, raw);
   deps.logger.warn("billing.rejected", { orderId: order.id, provider: order.provider, reason });
-  throw new ApiError(code === "payment_mismatch" ? 409 : 402, code, code === "payment_mismatch" ? "The payment does not match the order" : "The payment failed or was cancelled", { reason });
+  // A mismatch means money may have moved: tell the buyer whom to write to.
+  const details = code === "payment_mismatch" ? { reason, contact: BILLING_CONTACT_EMAIL } : { reason };
+  throw new ApiError(code === "payment_mismatch" ? 409 : 402, code, code === "payment_mismatch" ? "The payment does not match the order" : "The payment failed or was cancelled", details);
 }
 
 async function confirmPortone(deps: AppDeps, s: BillingSettings, order: Order): Promise<Settled> {
@@ -428,6 +454,54 @@ export async function confirm(deps: AppDeps, auth: AuthContext, input: { provide
   }
   // Shown once: a repeated confirmation of an already-paid order returns licenseKey: null.
   return { order: orderDto(result), licenseKey, billing: await status(deps, auth) };
+}
+
+/* ------------------------------------------------------------- housekeeping */
+
+/**
+ * Settles pending orders the buyer paid for but never confirmed (closed the tab, lost the
+ * connection before POST /confirm). Re-runs the exact confirm path, so every check — amount,
+ * currency, store, channel — and the once-only settle under the row lock apply unchanged; a
+ * browser confirming the same order at the same time simply finds it paid. The license key
+ * issued here is never shown (the buyer sees it masked in their status, as after any purchase).
+ * One order's failure never stops the sweep; "not completed yet" is the normal outcome.
+ */
+export async function reconcilePendingOrders(deps: AppDeps): Promise<{ checked: number; settled: number; rejected: number; failed: number }> {
+  const now = deps.now();
+  const orders = await db.listPendingOrdersToReconcile(deps.sql, new Date(now.getTime() - RECONCILE_WINDOW_MS), RECONCILE_BATCH);
+  const out = { checked: 0, settled: 0, rejected: 0, failed: 0 };
+  if (!orders.length) return out;
+  const s = await loadBillingSettings(deps);
+  for (const order of orders) {
+    out.checked++;
+    try {
+      const settled = order.provider === "portone" ? await confirmPortone(deps, s, order) : await confirmPaypal(deps, s, order);
+      if (settled.applied) out.settled++;
+      deps.logger.info("billing.reconciled", { orderId: order.id, provider: order.provider, applied: settled.applied });
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "payment_not_completed") continue;
+      if (err instanceof ApiError && err.code === "billing_disabled") {
+        // The provider's secret was removed after checkout; nothing to verify against until it is back.
+        deps.logger.debug("billing.reconcile_skipped", { orderId: order.id, provider: order.provider });
+        continue;
+      }
+      if (err instanceof ApiError && (err.code === "payment_failed" || err.code === "payment_mismatch")) {
+        // `reject` already marked the order and logged why.
+        out.rejected++;
+        continue;
+      }
+      out.failed++;
+      deps.logger.warn("billing.reconcile_failed", { orderId: order.id, provider: order.provider, error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+  return out;
+}
+
+/** Pending orders older than 72 h (never paid, or paid outside the reconcile window and never confirmed) → cancelled. */
+export async function expirePendingOrders(deps: AppDeps): Promise<number> {
+  const expired = await db.expirePendingOrders(deps.sql, new Date(deps.now().getTime() - PENDING_ORDER_TTL_MS));
+  if (expired) deps.logger.info("billing.orders_expired", { expired });
+  return expired;
 }
 
 /* -------------------------------------------------------------------- admin */

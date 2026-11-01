@@ -24,10 +24,19 @@ pub struct Capture {
     pub bgra: Vec<u8>,
 }
 
+/// Largest region (in pixels) one capture / OCR may cover: 16 Mpx ≈ 64 MB of BGRA.
+pub const MAX_CAPTURE_PIXELS: i64 = 16_000_000;
+
 /// Captures a screen rectangle in physical pixels.
 pub fn capture(x: i32, y: i32, w: i32, h: i32) -> Result<Capture, BackendError> {
     if w <= 0 || h <= 0 || w > 16_384 || h > 16_384 {
         return Err(BackendError::new(ErrorCategory::Validation, "capture region is empty or too large"));
+    }
+    if i64::from(w) * i64::from(h) > MAX_CAPTURE_PIXELS {
+        return Err(BackendError::new(
+            ErrorCategory::Validation,
+            format!("capture region is too large ({w}×{h} px); the limit is {} megapixels", MAX_CAPTURE_PIXELS / 1_000_000),
+        ));
     }
     let fail = |what: &str| BackendError::new(ErrorCategory::Environment, format!("screen capture failed: {what}"));
     let (uw, uh) = (usize::try_from(w).unwrap_or(0), usize::try_from(h).unwrap_or(0));

@@ -219,6 +219,8 @@ export function stopRun(runId: string, reason = "user"): void {
 
 /** Halt: stop everything, everywhere, immediately. */
 export function haltAll(): void {
+  // Nothing running anywhere: no stop calls, no "halted" toast.
+  if (live.size === 0 && !useStore.getState().active) return;
   for (const l of live.values()) l.engine?.stop("halt");
   if (hasNativeBridge) void invoke("halt_all", {}).catch(() => undefined);
   useStore.getState().toast("warning", t("pulse.halted"));

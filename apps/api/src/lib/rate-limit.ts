@@ -13,6 +13,8 @@ export interface RateLimitResult {
 
 export interface RateLimiter {
   consume(key: string, cost?: number): Promise<RateLimitResult> | RateLimitResult;
+  /** Like `consume`, but takes nothing: `allowed` says whether a `consume(key, cost)` would pass right now. */
+  peek(key: string, cost?: number): Promise<RateLimitResult> | RateLimitResult;
 }
 
 interface Bucket {
@@ -34,6 +36,25 @@ export class MemoryTokenBucket implements RateLimiter {
   }
 
   consume(key: string, cost = 1): RateLimitResult {
+    const b = this.refill(key);
+    if (b.tokens >= cost) {
+      b.tokens -= cost;
+      return { allowed: true, remaining: Math.floor(b.tokens), retryAfterMs: 0 };
+    }
+    return this.denied(b, cost);
+  }
+
+  peek(key: string, cost = 1): RateLimitResult {
+    const t = this.now();
+    const b = this.buckets.get(key);
+    // An untracked key is a full bucket; do not allocate one just to look.
+    const tokens = b ? Math.min(this.rule.capacity, b.tokens + (t - b.updatedAt) * this.perMs) : this.rule.capacity;
+    if (tokens >= cost) return { allowed: true, remaining: Math.floor(tokens), retryAfterMs: 0 };
+    return this.denied({ tokens, updatedAt: t }, cost);
+  }
+
+  /** The bucket for `key`, topped up for the time passed, created full when unseen. */
+  private refill(key: string): Bucket {
     const t = this.now();
     let b = this.buckets.get(key);
     if (b) {
@@ -47,10 +68,10 @@ export class MemoryTokenBucket implements RateLimiter {
       this.buckets.set(key, b);
       if (this.buckets.size > this.maxKeys) this.evict();
     }
-    if (b.tokens >= cost) {
-      b.tokens -= cost;
-      return { allowed: true, remaining: Math.floor(b.tokens), retryAfterMs: 0 };
-    }
+    return b;
+  }
+
+  private denied(b: Bucket, cost: number): RateLimitResult {
     const missing = cost - b.tokens;
     return { allowed: false, remaining: 0, retryAfterMs: this.perMs > 0 ? Math.ceil(missing / this.perMs) : 60_000 };
   }

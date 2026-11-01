@@ -45,15 +45,28 @@ sealed class Value {
     }
 }
 
+/**
+ * Node budget for the deep walks below (toJson, toStr, looseEq): a list can nest shared sub-lists, so the number of
+ * leaves is not bounded by any single `size`. Every element visited spends one; exhausting it throws the same
+ * "list too large" the expression guard throws, so no walk can recurse past that limit.
+ */
+private fun nodeBudget() = intArrayOf(MAX_LIST)
+
+private fun spendNode(budget: IntArray) {
+    if (--budget[0] < 0) throw ExprError("list too large")
+}
+
 /** JSON encoding identical to what `JSON.stringify` produces for the TypeScript engine's values. */
-fun Value.toJson(): JsonElement = when (this) {
+fun Value.toJson(): JsonElement = toJson(nodeBudget())
+
+private fun Value.toJson(budget: IntArray): JsonElement = when (this) {
     is Value.Num -> if (v.isFinite()) {
         if (v == Math.floor(v) && Math.abs(v) < 9.007199254740992E15) JsonPrimitive(v.toLong()) else JsonPrimitive(v)
     } else JsonNull // JSON.stringify(NaN / Infinity) === "null"
     is Value.Str -> JsonPrimitive(v)
     is Value.Bool -> JsonPrimitive(v)
     Value.Null -> JsonNull
-    is Value.VList -> JsonArray(items.map { it.toJson() })
+    is Value.VList -> JsonArray(items.map { spendNode(budget); it.toJson(budget) })
 }
 
 /** JavaScript `!!v`, except that lists are truthy only when non-empty (expr.ts `truthy`). */
@@ -66,9 +79,11 @@ fun truthy(v: Value): Boolean = when (v) {
 }
 
 /** expr.ts `toStr`: null → "", lists joined with ",", numbers formatted like JavaScript's `String(n)`. */
-fun toStr(v: Value): String = when (v) {
+fun toStr(v: Value): String = toStr(v, nodeBudget())
+
+private fun toStr(v: Value, budget: IntArray): String = when (v) {
     Value.Null -> ""
-    is Value.VList -> v.items.joinToString(",") { toStr(it) }
+    is Value.VList -> v.items.joinToString(",") { spendNode(budget); toStr(it, budget) }
     is Value.Num -> jsNumberToString(v.v)
     is Value.Str -> v.v
     is Value.Bool -> if (v.v) "true" else "false"
@@ -97,9 +112,11 @@ fun jsCoerceNumber(v: Value): Double = when (v) {
 }
 
 /** expr.ts `eq`: element-wise for lists, numeric when either side is a number, strict otherwise. */
-fun looseEq(a: Value, b: Value): Boolean {
+fun looseEq(a: Value, b: Value): Boolean = looseEq(a, b, nodeBudget())
+
+private fun looseEq(a: Value, b: Value, budget: IntArray): Boolean {
     if (a is Value.VList && b is Value.VList) {
-        return a.items.size == b.items.size && a.items.indices.all { looseEq(a.items[it], b.items[it]) }
+        return a.items.size == b.items.size && a.items.indices.all { spendNode(budget); looseEq(a.items[it], b.items[it], budget) }
     }
     if (a is Value.Num || b is Value.Num) {
         if (a == Value.Null || b == Value.Null) return strictEq(a, b)

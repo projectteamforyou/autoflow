@@ -152,8 +152,9 @@ for (const file of files) {
       const j = JSON.parse(b) as { "@context"?: string; "@graph"?: { "@type": string | string[] }[] };
       if (j["@context"] !== "https://schema.org") fail(rel, "JSON-LD @context must be https://schema.org");
       for (const node of j["@graph"] ?? []) [node["@type"]].flat().forEach((t) => types.add(t));
-      const app = (j["@graph"] ?? []).find((n) => n["@type"] === "SoftwareApplication") as { operatingSystem?: string; offers?: { price?: string } } | undefined;
-      if (app && (app.operatingSystem !== "Windows, Android, Web" || app.offers?.price !== "0")) fail(rel, "SoftwareApplication must have operatingSystem 'Windows, Android, Web' and price 0");
+      const app = (j["@graph"] ?? []).find((n) => n["@type"] === "SoftwareApplication") as { operatingSystem?: string; offers?: { price?: string }[] } | undefined;
+      // Offers: a free Personal offer first, then the Business license (so rich results never claim "free" alone is wrong).
+      if (app && (app.operatingSystem !== "Windows, Android, Web" || app.offers?.[0]?.price !== "0" || app.offers.length < 2)) fail(rel, "SoftwareApplication must have operatingSystem 'Windows, Android, Web' and offers [free Personal, Business]");
     } catch (e) {
       fail(rel, `invalid JSON-LD: ${(e as Error).message}`);
     }

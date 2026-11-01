@@ -95,6 +95,17 @@
     dl.addEventListener("close", function () { if (dlFrom) dlFrom.focus(); dlFrom = null; });
   }
 
+  /* Download page: show the latest Windows version (GET /v1/stats carries it; hidden until it loads). */
+  var ver = d.querySelector("[data-version]");
+  var verApi = ver && d.querySelector("[data-api]");
+  if (ver && verApi && window.fetch) {
+    fetch(verApi.getAttribute("data-api") + "/v1/stats").then(function (r) { return r.ok ? r.json() : null; }).then(function (s) {
+      if (!s || !/^\d+\.\d+\.\d+$/.test(String(s.windowsVersion))) return;
+      ver.querySelector("b").textContent = "v" + s.windowsVersion;
+      ver.hidden = false;
+    }).catch(function () {});
+  }
+
   /* Language: remember explicit choices, and gently suggest a better match (never redirect). */
   d.querySelectorAll("a[data-lang]").forEach(function (a) {
     a.addEventListener("click", function () { store.set("af-lang", a.getAttribute("data-lang")); });

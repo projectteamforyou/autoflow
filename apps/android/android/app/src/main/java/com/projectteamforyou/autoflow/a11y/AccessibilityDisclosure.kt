@@ -22,6 +22,18 @@ object AccessibilityDisclosure {
 
     @Volatile private var showing = false
 
+    /** Callbacks waiting for the visible dialog's answer (a second request while it is showing joins the first). */
+    private val pending = ArrayList<(Boolean) -> Unit>()
+
+    private fun deliver(agreed: Boolean) {
+        val waiting = synchronized(pending) {
+            val copy = ArrayList(pending)
+            pending.clear()
+            copy
+        }
+        for (cb in waiting) cb(agreed)
+    }
+
     fun accepted(context: Context): Boolean = prefs(context).getBoolean(KEY_ACCEPTED, false)
 
     /**
@@ -31,7 +43,9 @@ object AccessibilityDisclosure {
      */
     fun request(activity: Activity, onResult: (agreed: Boolean) -> Unit) {
         activity.runOnUiThread {
-            if (activity.isFinishing || activity.isDestroyed || showing) return@runOnUiThread onResult(false)
+            if (activity.isFinishing || activity.isDestroyed) return@runOnUiThread onResult(false)
+            synchronized(pending) { pending.add(onResult) }
+            if (showing) return@runOnUiThread
             showing = true
             AlertDialog.Builder(activity)
                 .setTitle(R.string.a11y_disclosure_title)
@@ -40,10 +54,13 @@ object AccessibilityDisclosure {
                 .setPositiveButton(R.string.a11y_disclosure_agree) { _, _ ->
                     prefs(activity).edit().putBoolean(KEY_ACCEPTED, true).apply()
                     Intents.start(activity, Intents.settings(activity, "accessibility"))
-                    onResult(true)
+                    deliver(true)
                 }
-                .setNegativeButton(R.string.a11y_disclosure_decline) { _, _ -> onResult(false) }
-                .setOnDismissListener { showing = false }
+                .setNegativeButton(R.string.a11y_disclosure_decline) { _, _ -> deliver(false) }
+                .setOnDismissListener {
+                    showing = false
+                    deliver(false) // dismissed without a button (activity going away): nobody is left waiting
+                }
                 .show()
         }
     }

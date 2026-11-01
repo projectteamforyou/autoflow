@@ -15,6 +15,7 @@ export const ja: Content = {
     faq: "よくある質問",
     privacy: "プライバシーポリシー",
     terms: "利用規約",
+    changelog: "新着情報",
   },
   a11y: {
     skip: "本文へスキップ",
@@ -31,7 +32,7 @@ export const ja: Content = {
   cta: {
     windows: "Windows 版をダウンロード",
     windowsShort: "Windows",
-    android: "Google Play で入手",
+    android: "Android 版をダウンロード（APK）",
     androidShort: "Android",
     web: "ブラウザで使う",
     webLong: "インストール不要。ブラウザで AutoFlow を開く",
@@ -302,6 +303,7 @@ export const ja: Content = {
       h2: "動作環境",
       items: ["Windows 10 または 11（64 ビット）", "Microsoft Edge WebView2 ランタイム（Windows 11 に標準搭載）", "アカウントもインターネット接続も不要"],
     },
+    install: { h2: "インストール方法", steps: ["AutoFlow-Setup-x64.exe をダウンロードして実行します。インストーラーは PROJECTTEAMFORYOU の署名付きです。", "Windows の SmartScreen が表示されたら「詳細情報」›「実行」を選びます。新しい発行元のプログラムは、インストールした人が十分に増えるまでこの表示が出ます。", "AutoFlow はトレイで起動します。Ctrl+Alt+S を押すか、トレイアイコンをダブルクリックして開きます。"], smartscreen: "Windows の SmartScreen は署名だけでなく「どれだけ多くの人がすでに実行したか」でインストーラーを判断します。ここでダウンロードするものは署名済みの公式ビルドで、ファイルのプロパティ › デジタル署名で発行元を確認できます。" },
     note: "公式ビルドは autoflowmacro.com（dl.autoflowmacro.com）でのみ配布しています。ミラーサイトからはダウンロードしないでください。",
   },
   android: {
@@ -317,6 +319,7 @@ export const ja: Content = {
       { icon: "clock", h3: "ルーティン", p: "決まった時刻や充電開始時にフローを実行。夜のおやすみルーティンなどに。" },
       { icon: "map", h3: "モバイル版 Atlas", p: "スワイプリーダー、自動タップ、ルーティンを Atlas から選んで、すぐに調整できます。" },
     ],
+    req: { h2: "要件と設定", items: ["Android 8.0 以降", "ブラウザからのインストールを一度許可する（APK を開くと Android が確認します）", "初回起動後、設定 › ユーザー補助 で AutoFlow をオンにします。アプリは設定画面へ送る前に、サービスが何をするかを説明します"] },
     access: {
       h2: "ユーザー補助の権限について",
       p: "Android では、アプリがユーザーに代わってタップやスワイプを行うにはユーザー補助サービスを使うしかありません。AutoFlow はまさにその目的だけに使い、それ以上のことはしません。",
@@ -410,6 +413,7 @@ export const ja: Content = {
     web: { h2: "Web アプリ", p: "フル機能のエディター、Atlas、Practice Canvas をブラウザで。アドレスバーからアプリとしてインストールもできます。", meta: "初回アクセス後はオフラインでも動作" },
     verify: "AutoFlow はこのサイト（dl.autoflowmacro.com）からのみダウンロードしてください。ダウンロードに料金を求めることはありません。",
     releases: "すべてのリリースとノートを見る",
+    latest: "最新バージョン",
   },
   pricing: {
     seo: {
@@ -465,7 +469,15 @@ export const ja: Content = {
       { q: "他の人が共有したフローを読み込んでも安全ですか？", a: "読み込んだフローは、実行前にハッシュ確認、再検証、理由付きの安全スコア評価を受けます。少しでも不安なら、まず Practice Canvas でリハーサルしてください。" },
       { q: "Mac や iPhone 版はありますか？", a: "まだありません。Web アプリは macOS や iOS の最新ブラウザで Atlas や Practice Canvas まで動きますが、実際の入力を操作するには Windows 版または Android 版が必要です。" },
       { q: "どの言語に対応していますか？", a: "AutoFlow、このサイト、法的文書は 12 言語で提供しています：英語、韓国語、日本語、中国語（簡体字・繁体字）、スペイン語、フランス語、ドイツ語、ブラジルポルトガル語、ロシア語、ベトナム語、インドネシア語。" },
+      { q: "Windows で SmartScreen の警告が出ます。インストーラーは安全ですか?", a: "autoflowmacro.com からダウンロードしたものなら安全です。SmartScreen は署名の有無に関係なく、まだ実行した人が少ないインストーラーに警告を出します。「詳細情報」›「実行」を選んでください。ファイルのプロパティ › デジタル署名に表示される発行元は PROJECTTEAMFORYOU です。" },
+      { q: "AutoFlow はどうやって更新しますか?", a: "Windows と Web アプリは新しいバージョンが用意できるとお知らせします。ダウンロードページから最新のインストーラーをいつでも入手して上書きインストールでき、フローはそのまま残ります。Android では新しい APK を既存のアプリに上書きするか（同じ署名）、Google Play に掲載された後は Play から更新してください。新着情報ページに全リリースをまとめています。" },
+      { q: "AutoFlow のアンインストールやユーザー補助サービスのオフは?", a: "Windows: 設定 › アプリ › AutoFlow › アンインストール。フローは自分で削除しない限りアプリデータフォルダーに残ります。Android: 設定 › ユーザー補助 › AutoFlow automations をオフにすると停止し、他のアプリと同じようにアンインストールもできます。フローは端末内だけにあるため、サーバーには何も残りません。" },
     ],
+  },
+  changelog: {
+    seo: { title: "AutoFlow の新着情報 — リリースノート", description: "Windows・Android・Web アプリの AutoFlow の全リリースと、変更点・修正点。" },
+    h1: "新着情報",
+    lead: "Windows、Android、Web アプリのリリースノートです。アップデートは無料、個人利用はこれからも無料です。",
   },
   notFound: {
     seo: { title: "ページが見つかりません — AutoFlow", description: "このページは地図から外れてしまいました。AutoFlow のホームに戻るか、言語を選んでください。" },

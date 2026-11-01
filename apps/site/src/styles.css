@@ -127,7 +127,9 @@ ul { margin: 0; padding: 0; }
   :lang(ru) .menu-btn, :lang(es) .menu-btn, :lang(fr) .menu-btn, :lang(pt-BR) .menu-btn { display: block; }
 }
 @media (max-width: 560px) {
-  .nav-tools .nav-cta { display: none; }
+  /* keep a download button on phones: icon only */
+  .nav-tools .nav-cta { padding: 0 10px; min-width: 38px; }
+  .nav-tools .nav-cta span { display: none; }
   .lang-code, .lang-name { display: none; }
 }
 
@@ -465,8 +467,10 @@ ul { margin: 0; padding: 0; }
   html { scroll-behavior: smooth; }
 }
 @media print {
-  .site-header, .site-footer, .share-wrap, .toc, .toast { display: none !important; }
+  :root { color-scheme: light; --af-bg: #fff; --af-bg-2: #fff; --af-surface: #fff; --af-surface-2: #f3f3f8; --af-text: #000; --af-muted: #444; --af-border: #ccc; --af-border-strong: #bbb; }
+  .site-header, .site-footer, .share-wrap, .toc, .toast, .hero-art, .hero::before, .hero::after, .studio-band, .foot-stats, .dl-modal, .cta-row { display: none !important; }
   body { background: #fff; color: #000; }
+  .card, .frame, .final { box-shadow: none; border-color: #ccc; }
 }
 
 /* Live counters + business details (footer) */
@@ -561,3 +565,11 @@ ul { margin: 0; padding: 0; }
 .dl-modal .dl-have { align-self: center; margin: 4px 0 2px; font-size: 14px; text-align: center; }
 .dl-modal .dl-note { padding-top: 12px; border-top: 1px solid var(--af-border); color: var(--af-muted); font-size: 13px; line-height: 1.6; }
 .dl-modal .dl-close { width: 100%; margin-top: 2px; }
+
+/* ------------------------------------------------------------------ changelog */
+.releases { display: grid; gap: 18px; max-width: 860px; }
+.release-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 14px; margin-bottom: 12px; }
+.release-head time { color: var(--af-muted); font-size: 14px; }
+.release-plat { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.dl-ver b { color: var(--af-text); font-weight: 600; }
+.nf-langs { justify-content: center; margin-top: 28px; }

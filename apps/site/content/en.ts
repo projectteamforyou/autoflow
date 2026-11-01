@@ -20,6 +20,7 @@ export const en = {
     faq: "FAQ",
     privacy: "Privacy",
     terms: "Terms",
+    changelog: "What's new",
   },
   a11y: {
     skip: "Skip to content",
@@ -36,7 +37,7 @@ export const en = {
   cta: {
     windows: "Download for Windows",
     windowsShort: "Windows",
-    android: "Get it on Google Play",
+    android: "Download for Android (APK)",
     androidShort: "Android",
     web: "Use in browser",
     webLong: "No install? Open AutoFlow in your browser",
@@ -307,6 +308,7 @@ export const en = {
       h2: "System requirements",
       items: ["Windows 10 or 11, 64-bit", "Microsoft Edge WebView2 runtime (built into Windows 11)", "No account and no internet connection required"],
     },
+    install: { h2: "How to install", steps: ["Download AutoFlow-Setup-x64.exe and run it. The installer is signed by PROJECTTEAMFORYOU.", "If Windows shows a SmartScreen notice, choose “More info” › “Run anyway” — this appears for any new publisher until enough people have installed it.", "AutoFlow starts in the tray. Press Ctrl+Alt+S to open it, or double-click the tray icon."], smartscreen: "Windows SmartScreen judges installers by how many people have already run them, not by the signature alone. The build you download here is the signed official one — you can check the publisher under the file’s Properties › Digital Signatures." },
     note: "Official builds are published only on autoflowmacro.com (dl.autoflowmacro.com). Please do not download AutoFlow from mirrors.",
   },
   android: {
@@ -322,6 +324,7 @@ export const en = {
       { icon: "clock", h3: "Routines", p: "Run flows at a time of day or when charging starts — like a wind-down routine at night." },
       { icon: "map", h3: "Atlas on mobile", p: "Swipe readers, auto-tappers and routines from Atlas, ready to adjust." },
     ],
+    req: { h2: "Requirements and setup", items: ["Android 8.0 or newer", "Allow installs from your browser once (Android asks when you open the APK)", "After the first launch, turn on AutoFlow in Settings › Accessibility — the app explains exactly what the service does before it sends you there"] },
     access: {
       h2: "About the Accessibility permission",
       p: "Android only allows apps to tap and swipe for you through an Accessibility service. AutoFlow uses it for exactly that — and nothing more.",
@@ -415,6 +418,7 @@ export const en = {
     web: { h2: "Web app", p: "The full editor, Atlas and Practice Canvas in your browser. Install it as an app from the address bar.", meta: "Works offline after the first visit" },
     verify: "Only download AutoFlow from this site (dl.autoflowmacro.com). We never ask for payment to download.",
     releases: "See all releases and notes",
+    latest: "Latest version",
   },
   pricing: {
     seo: {
@@ -470,7 +474,15 @@ export const en = {
       { q: "Is it safe to import a flow someone shared?", a: "Imports are hash-checked, re-validated and given a Safety Score with plain reasons before you can run them. When in doubt, rehearse it on Practice Canvas first." },
       { q: "Is there a Mac or iPhone version?", a: "Not yet. The web app runs in any modern browser on macOS and iOS — including Atlas and Practice Canvas — but controlling real input requires the Windows or Android app." },
       { q: "Which languages are supported?", a: "AutoFlow, this site and our legal documents are available in 12 languages: English, Korean, Japanese, Simplified and Traditional Chinese, Spanish, French, German, Brazilian Portuguese, Russian, Vietnamese and Indonesian." },
+      { q: "Windows shows a SmartScreen warning — is the installer safe?", a: "Yes, if you downloaded it from autoflowmacro.com. SmartScreen warns about any installer that few people have run yet, regardless of its signature. Choose “More info” › “Run anyway”; the publisher shown under the file’s Properties › Digital Signatures is PROJECTTEAMFORYOU." },
+      { q: "How do I update AutoFlow?", a: "Windows and the web app check for updates and tell you when a new version is ready; you can also download the latest installer from the Download page at any time — it installs over the old one and keeps your flows. On Android, install the new APK over the old one (same signature) or update through Google Play once it is listed. The What’s new page lists every release." },
+      { q: "How do I uninstall AutoFlow or turn the Accessibility service off?", a: "Windows: Settings › Apps › AutoFlow › Uninstall; your flows stay in the app data folder unless you delete it. Android: Settings › Accessibility › AutoFlow automations › off to pause it, or uninstall the app like any other. Nothing stays behind on a server, because flows live on your device." },
     ],
+  },
+  changelog: {
+    seo: { title: "What's new in AutoFlow — release notes", description: "Every AutoFlow release for Windows, Android and the web app, with what changed and what was fixed." },
+    h1: "What's new",
+    lead: "Release notes for Windows, Android and the web app. Updates are free; personal use stays free.",
   },
   notFound: {
     seo: { title: "Page not found — AutoFlow", description: "This page drifted off the map. Head back to AutoFlow’s home page or pick your language." },

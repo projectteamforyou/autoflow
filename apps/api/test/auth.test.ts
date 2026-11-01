@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { makeApp, useTestDb } from "./helpers.js";
 import { sha256 } from "../src/lib/crypto.js";
+import { purgeDeadSessions } from "../src/db/users.js";
 
 const db = useTestDb();
 
@@ -200,6 +201,26 @@ describe("email verification and password reset", () => {
   });
 });
 
+describe("session housekeeping", () => {
+  it("purges sessions expired or revoked more than a week ago, in two index-friendly deletes", async () => {
+    const t = makeApp(db);
+    const u = await t.signup();
+    const tokens = [u.token];
+    for (let i = 0; i < 3; i++) tokens.push((await t.call("POST", "/v1/auth/login", { body: { email: u.email, password: u.password } })).json.session.token);
+    const hashes = tokens.map((tok) => sha256(tok));
+    const now = new Date("2026-10-01T00:00:00Z");
+    const eightDays = new Date(now.getTime() - 8 * 86_400_000);
+    const sixDays = new Date(now.getTime() - 6 * 86_400_000);
+    await db.sql`UPDATE sessions SET expires_at = ${eightDays} WHERE token_hash = ${hashes[1]!}`;
+    await db.sql`UPDATE sessions SET revoked_at = ${eightDays} WHERE token_hash = ${hashes[2]!}`;
+    await db.sql`UPDATE sessions SET revoked_at = ${sixDays} WHERE token_hash = ${hashes[3]!}`;
+    expect(await purgeDeadSessions(db.sql, now)).toBe(2);
+    expect(await purgeDeadSessions(db.sql, now)).toBe(0);
+    const left = await db.sql<{ token_hash: Buffer }[]>`SELECT token_hash FROM sessions WHERE user_id = ${u.user.id}`;
+    expect(left.map((r) => Buffer.from(r.token_hash).toString("hex")).sort()).toEqual([hashes[0]!, hashes[3]!].map((h) => h.toString("hex")).sort());
+  });
+});
+
 describe("rate limits", () => {
   it("limits auth attempts per IP", async () => {
     const t = makeApp(db, { limits: { rate: { authIp: { capacity: 3, refillPerMinute: 1 } } } });
@@ -219,6 +240,24 @@ describe("rate limits", () => {
     for (let i = 0; i < 2; i++) expect((await t.call("POST", "/v1/auth/login", { body: { email: u.email, password: "bad password!!" }, ip: `192.0.2.${i + 1}` })).status).toBe(401);
     const limited = await t.call("POST", "/v1/auth/login", { body: { email: u.email, password: u.password }, ip: "192.0.2.99" });
     expect(limited.status).toBe(429);
+  });
+
+  it("charges the per-account login bucket only for wrong passwords, so correct logins cannot lock an account", async () => {
+    const t = makeApp(db, { limits: { rate: { authAccount: { capacity: 2, refillPerMinute: 1 } } } });
+    const u = await t.signup();
+    // Many successful logins in a row: none of them spends a token.
+    for (let i = 0; i < 5; i++) expect((await t.call("POST", "/v1/auth/login", { body: { email: u.email, password: u.password } })).status).toBe(200);
+    // One failure, then success still works; the second failure empties the bucket.
+    expect((await t.call("POST", "/v1/auth/login", { body: { email: u.email, password: "nope nope nope" } })).status).toBe(401);
+    expect((await t.call("POST", "/v1/auth/login", { body: { email: u.email, password: u.password } })).status).toBe(200);
+    expect((await t.call("POST", "/v1/auth/login", { body: { email: u.email, password: "nope nope nope" } })).status).toBe(401);
+    const locked = await t.call("POST", "/v1/auth/login", { body: { email: u.email, password: u.password } });
+    expect(locked.status).toBe(429);
+    expect(locked.json.error.code).toBe("rate_limited");
+    // Unknown accounts are throttled the same way (no oracle for registered emails).
+    const ghost = { email: "ghost-account@example.com", password: "whatever password" };
+    for (let i = 0; i < 2; i++) expect((await t.call("POST", "/v1/auth/login", { body: ghost })).status).toBe(401);
+    expect((await t.call("POST", "/v1/auth/login", { body: ghost })).status).toBe(429);
   });
 
   it("applies a global per-IP limit and uses the proxy-appended X-Forwarded-For entry", async () => {

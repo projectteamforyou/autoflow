@@ -26,7 +26,6 @@ export const DIRECT = {
 
 export const LINKS = {
   windows: `${API_ORIGIN}/v1/stats/download/windows`,
-  releases: "https://github.com/work517/autoflow/releases",
   android: `${API_ORIGIN}/v1/stats/download/android`,
   app: "/app/",
   atlas: (id: string) => `/app/#/atlas/${encodeURIComponent(id)}`,
@@ -35,7 +34,7 @@ export const LINKS = {
 
 export const BRAND = { name: "AutoFlow", org: "ProjectTeamForYou", bg: "#0B0B1A", light: "#F7F7FB" };
 
-export const PAGES = ["home", "features", "windows", "android", "keyforge", "atlas", "safety", "download", "pricing", "faq", "privacy", "terms"] as const;
+export const PAGES = ["home", "features", "windows", "android", "keyforge", "atlas", "safety", "download", "pricing", "faq", "changelog", "privacy", "terms"] as const;
 export type PageId = (typeof PAGES)[number];
 
 export const LOCALE_BY_CODE = Object.fromEntries(LOCALES.map((l) => [l.code, l])) as Record<LocaleCode, (typeof LOCALES)[number]>;

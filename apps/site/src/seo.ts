@@ -1,4 +1,4 @@
-import { LOCALES } from "@autoflow/core";
+import { BUSINESS_PRICES, LOCALES } from "@autoflow/core";
 import { BRAND, DIRECT, LINKS, LOCALE_BY_CODE, SITE_URL, abs, pagePath, type PageId } from "./config.js";
 import type { Ctx } from "./layout.js";
 import { plain } from "./util.js";
@@ -45,7 +45,10 @@ export function baseGraph(ctx: Ctx, title: string, description: string, crumbs: 
       installUrl: abs(LINKS.app),
       inLanguage: LOCALES.map((l) => l.hreflang),
       isAccessibleForFree: true,
-      offers: { "@type": "Offer", price: "0", priceCurrency: "USD", availability: "https://schema.org/InStock" },
+      offers: [
+        { "@type": "Offer", name: "Personal", price: "0", priceCurrency: "USD", availability: "https://schema.org/InStock" },
+        { "@type": "Offer", name: "Business", price: (BUSINESS_PRICES.month.USD / 100).toFixed(2), priceCurrency: "USD", availability: "https://schema.org/InStock", url: abs(pagePath(ctx.lang, "pricing")) },
+      ],
       publisher: { "@id": ORG_ID },
       featureList: t.features.groups.flatMap((g) => g.items.map((i) => i.h3)),
     },

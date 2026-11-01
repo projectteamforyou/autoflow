@@ -189,8 +189,10 @@ export async function listSessions(db: Db, userId: string, now: Date): Promise<S
 /** Housekeeping: drop sessions that expired or were revoked more than a week ago. */
 export async function purgeDeadSessions(db: Db, now: Date): Promise<number> {
   const cutoff = new Date(now.getTime() - 7 * 86_400_000);
-  const rows = await db`DELETE FROM sessions WHERE expires_at < ${cutoff} OR revoked_at < ${cutoff} RETURNING id`;
-  return rows.length;
+  // Two statements so each can use its own index (sessions_expires_idx, sessions_revoked_idx) instead of a scan.
+  const expired = await db`DELETE FROM sessions WHERE expires_at < ${cutoff} RETURNING id`;
+  const revoked = await db`DELETE FROM sessions WHERE revoked_at < ${cutoff} RETURNING id`;
+  return expired.length + revoked.length;
 }
 
 /* ------------------------------------------------------------- email tokens */

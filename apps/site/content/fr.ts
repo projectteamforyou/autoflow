@@ -15,6 +15,7 @@ export const fr: Content = {
     faq: "FAQ",
     privacy: "Confidentialité",
     terms: "Conditions",
+    changelog: "Nouveautés",
   },
   a11y: {
     skip: "Aller au contenu",
@@ -31,7 +32,7 @@ export const fr: Content = {
   cta: {
     windows: "Télécharger pour Windows",
     windowsShort: "Windows",
-    android: "Disponible sur Google Play",
+    android: "Télécharger pour Android (APK)",
     androidShort: "Android",
     web: "Utiliser dans le navigateur",
     webLong: "Pas envie d’installer ? Ouvrez AutoFlow dans votre navigateur",
@@ -302,6 +303,7 @@ export const fr: Content = {
       h2: "Configuration requise",
       items: ["Windows 10 ou 11, 64 bits", "Runtime Microsoft Edge WebView2 (intégré à Windows 11)", "Ni compte ni connexion internet nécessaires"],
     },
+    install: { h2: "Installation", steps: ["Téléchargez AutoFlow-Setup-x64.exe et lancez-le. L’installateur est signé par PROJECTTEAMFORYOU.", "Si Windows affiche un avertissement SmartScreen, choisissez « Informations complémentaires » › « Exécuter quand même » : il apparaît pour tout nouvel éditeur tant que peu de personnes l’ont installé.", "AutoFlow démarre dans la zone de notification. Appuyez sur Ctrl+Alt+S pour l’ouvrir, ou double-cliquez sur son icône."], smartscreen: "SmartScreen de Windows juge un installateur au nombre de personnes qui l’ont déjà exécuté, pas seulement à sa signature. Ce que vous téléchargez ici est la version officielle signée ; l’éditeur est visible dans Propriétés › Signatures numériques du fichier." },
     note: "Les versions officielles sont publiées uniquement sur autoflowmacro.com (dl.autoflowmacro.com). Ne téléchargez pas AutoFlow depuis des miroirs.",
   },
   android: {
@@ -317,6 +319,7 @@ export const fr: Content = {
       { icon: "clock", h3: "Routines", p: "Lancez des flux à une heure donnée ou au début de la charge — par exemple une routine pour décrocher le soir." },
       { icon: "map", h3: "Atlas sur mobile", p: "Lecteurs à balayage, appuis automatiques et routines d’Atlas, prêts à être ajustés." },
     ],
+    req: { h2: "Prérequis et configuration", items: ["Android 8.0 ou plus récent", "Autorisez une fois l’installation depuis le navigateur (Android le demande à l’ouverture de l’APK)", "Après le premier lancement, activez AutoFlow dans Paramètres › Accessibilité ; l’app explique ce que fait le service avant de vous y envoyer"] },
     access: {
       h2: "À propos de l’autorisation d’accessibilité",
       p: "Android ne permet à une app d’appuyer et de balayer à votre place que via un service d’accessibilité. AutoFlow l’utilise exactement pour cela — et rien de plus.",
@@ -410,6 +413,7 @@ export const fr: Content = {
     web: { h2: "App web", p: "L’éditeur complet, Atlas et Practice Canvas dans votre navigateur. Installez-la comme une app depuis la barre d’adresse.", meta: "Fonctionne hors ligne après la première visite" },
     verify: "Téléchargez AutoFlow uniquement depuis ce site (dl.autoflowmacro.com). Le téléchargement n’est jamais payant.",
     releases: "Voir toutes les versions et notes",
+    latest: "Dernière version",
   },
   pricing: {
     seo: {
@@ -465,7 +469,15 @@ export const fr: Content = {
       { q: "Importer un flux partagé par quelqu’un, est-ce sûr ?", a: "Les imports sont contrôlés par empreinte, revalidés et notés avec des raisons claires avant de pouvoir être lancés. En cas de doute, répétez-le d’abord sur Practice Canvas." },
       { q: "Existe-t-il une version Mac ou iPhone ?", a: "Pas encore. L’app web fonctionne dans tout navigateur récent sur macOS et iOS — Atlas et Practice Canvas compris — mais le contrôle des vraies entrées nécessite l’app Windows ou Android." },
       { q: "Quelles langues sont disponibles ?", a: "AutoFlow, ce site et nos documents juridiques existent en 12 langues : anglais, coréen, japonais, chinois simplifié et traditionnel, espagnol, français, allemand, portugais du Brésil, russe, vietnamien et indonésien." },
+      { q: "Windows affiche un avertissement SmartScreen : l’installateur est-il sûr ?", a: "Oui, s’il vient d’autoflowmacro.com. SmartScreen avertit pour tout installateur encore peu exécuté, signé ou non. Choisissez « Informations complémentaires » › « Exécuter quand même » ; l’éditeur indiqué dans Propriétés › Signatures numériques du fichier est PROJECTTEAMFORYOU." },
+      { q: "Comment mettre à jour AutoFlow ?", a: "Windows et l’app web vous préviennent quand une nouvelle version est prête ; vous pouvez aussi télécharger le dernier installateur depuis la page Téléchargement à tout moment : il s’installe par-dessus l’ancien et conserve vos flux. Sur Android, installez le nouvel APK par-dessus l’ancien (même signature) ou mettez à jour via Google Play une fois l’app publiée. La page Nouveautés liste toutes les versions." },
+      { q: "Comment désinstaller AutoFlow ou désactiver le service d’accessibilité ?", a: "Windows : Paramètres › Applications › AutoFlow › Désinstaller ; vos flux restent dans le dossier de données de l’app sauf si vous le supprimez. Android : Paramètres › Accessibilité › AutoFlow automations › désactiver pour le mettre en pause, ou désinstallez l’app comme n’importe quelle autre. Rien ne reste sur un serveur : les flux sont sur votre appareil." },
     ],
+  },
+  changelog: {
+    seo: { title: "Nouveautés d’AutoFlow — notes de version", description: "Toutes les versions d’AutoFlow pour Windows, Android et l’app web, avec ce qui a changé et ce qui a été corrigé." },
+    h1: "Nouveautés",
+    lead: "Notes de version pour Windows, Android et l’app web. Les mises à jour sont gratuites ; l’usage personnel reste gratuit.",
   },
   notFound: {
     seo: { title: "Page introuvable — AutoFlow", description: "Cette page a quitté la carte. Revenez à l’accueil d’AutoFlow ou choisissez votre langue." },

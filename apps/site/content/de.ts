@@ -15,6 +15,7 @@ export const de: Content = {
     faq: "FAQ",
     privacy: "Datenschutz",
     terms: "Nutzungsbedingungen",
+    changelog: "Neuigkeiten",
   },
   a11y: {
     skip: "Zum Inhalt springen",
@@ -31,7 +32,7 @@ export const de: Content = {
   cta: {
     windows: "Für Windows herunterladen",
     windowsShort: "Windows",
-    android: "Jetzt bei Google Play",
+    android: "Für Android laden (APK)",
     androidShort: "Android",
     web: "Im Browser nutzen",
     webLong: "Ohne Installation? AutoFlow im Browser öffnen",
@@ -302,6 +303,7 @@ export const de: Content = {
       h2: "Systemvoraussetzungen",
       items: ["Windows 10 oder 11, 64 Bit", "Microsoft Edge WebView2 Runtime (in Windows 11 enthalten)", "Kein Konto und keine Internetverbindung nötig"],
     },
+    install: { h2: "Installation", steps: ["Lade AutoFlow-Setup-x64.exe herunter und starte die Datei. Der Installer ist von PROJECTTEAMFORYOU signiert.", "Zeigt Windows einen SmartScreen-Hinweis, wähle „Weitere Informationen“ › „Trotzdem ausführen“ – er erscheint bei jedem neuen Herausgeber, bis genug Leute das Programm installiert haben.", "AutoFlow startet im Infobereich. Drücke Strg+Alt+S oder doppelklicke das Tray-Symbol, um es zu öffnen."], smartscreen: "Windows SmartScreen bewertet Installer danach, wie viele Leute sie bereits ausgeführt haben, nicht nur nach der Signatur. Was du hier lädst, ist der signierte offizielle Build; den Herausgeber siehst du unter Eigenschaften › Digitale Signaturen der Datei." },
     note: "Offizielle Builds gibt es nur auf autoflowmacro.com (dl.autoflowmacro.com). Bitte lade AutoFlow nicht von Spiegelseiten.",
   },
   android: {
@@ -317,6 +319,7 @@ export const de: Content = {
       { icon: "clock", h3: "Routinen", p: "Flows zu einer Uhrzeit oder beim Ladebeginn starten – etwa eine Abendroutine zum Abschalten." },
       { icon: "map", h3: "Atlas mobil", p: "Wisch-Reader, Auto-Tapper und Routinen aus Atlas, bereit zum Anpassen." },
     ],
+    req: { h2: "Voraussetzungen und Einrichtung", items: ["Android 8.0 oder neuer", "Installation aus dem Browser einmal erlauben (Android fragt beim Öffnen der APK)", "Nach dem ersten Start AutoFlow unter Einstellungen › Bedienungshilfen einschalten – die App erklärt vorher genau, was der Dienst tut"] },
     access: {
       h2: "Zur Bedienungshilfe-Berechtigung",
       p: "Android erlaubt Apps nur über einen Bedienungshilfe-Dienst, für dich zu tippen und zu wischen. AutoFlow nutzt ihn genau dafür – und für nichts anderes.",
@@ -410,6 +413,7 @@ export const de: Content = {
     web: { h2: "Web-App", p: "Der volle Editor, Atlas und Practice Canvas im Browser. Über die Adressleiste als App installierbar.", meta: "Funktioniert nach dem ersten Besuch offline" },
     verify: "Lade AutoFlow nur von dieser Website (dl.autoflowmacro.com). Wir verlangen nie Geld für den Download.",
     releases: "Alle Versionen und Hinweise ansehen",
+    latest: "Neueste Version",
   },
   pricing: {
     seo: {
@@ -465,7 +469,15 @@ export const de: Content = {
       { q: "Ist es sicher, einen geteilten Flow zu importieren?", a: "Importe werden per Hash geprüft, erneut validiert und mit nachvollziehbarer Sicherheitsbewertung versehen, bevor du sie starten kannst. Im Zweifel probst du ihn erst auf Practice Canvas." },
       { q: "Gibt es eine Mac- oder iPhone-Version?", a: "Noch nicht. Die Web-App läuft in jedem aktuellen Browser auf macOS und iOS – inklusive Atlas und Practice Canvas –, aber echte Eingaben steuern nur die Windows- und Android-App." },
       { q: "Welche Sprachen werden unterstützt?", a: "AutoFlow, diese Website und unsere Rechtstexte gibt es in 12 Sprachen: Englisch, Koreanisch, Japanisch, vereinfachtes und traditionelles Chinesisch, Spanisch, Französisch, Deutsch, brasilianisches Portugiesisch, Russisch, Vietnamesisch und Indonesisch." },
+      { q: "Windows zeigt eine SmartScreen-Warnung – ist der Installer sicher?", a: "Ja, wenn du ihn von autoflowmacro.com geladen hast. SmartScreen warnt bei jedem Installer, den erst wenige Leute ausgeführt haben, unabhängig von der Signatur. Wähle „Weitere Informationen“ › „Trotzdem ausführen“; der unter Eigenschaften › Digitale Signaturen angezeigte Herausgeber ist PROJECTTEAMFORYOU." },
+      { q: "Wie aktualisiere ich AutoFlow?", a: "Windows und die Web-App melden sich, wenn eine neue Version bereitsteht; du kannst auch jederzeit den neuesten Installer von der Download-Seite laden – er installiert sich über die alte Version und behält deine Abläufe. Unter Android installierst du die neue APK über die alte (gleiche Signatur) oder aktualisierst über Google Play, sobald die App dort gelistet ist. Die Seite „Neuigkeiten“ listet jede Version." },
+      { q: "Wie deinstalliere ich AutoFlow oder schalte den Bedienungshilfen-Dienst aus?", a: "Windows: Einstellungen › Apps › AutoFlow › Deinstallieren; deine Abläufe bleiben im App-Datenordner, solange du ihn nicht löschst. Android: Einstellungen › Bedienungshilfen › AutoFlow automations › aus, um zu pausieren, oder die App wie jede andere deinstallieren. Auf keinem Server bleibt etwas zurück, weil Abläufe auf deinem Gerät liegen." },
     ],
+  },
+  changelog: {
+    seo: { title: "Neu in AutoFlow — Versionshinweise", description: "Jede AutoFlow-Version für Windows, Android und die Web-App – mit allem, was sich geändert hat und was behoben wurde." },
+    h1: "Neuigkeiten",
+    lead: "Versionshinweise für Windows, Android und die Web-App. Updates sind kostenlos; private Nutzung bleibt kostenlos.",
   },
   notFound: {
     seo: { title: "Seite nicht gefunden — AutoFlow", description: "Diese Seite ist von der Karte gefallen. Zurück zur AutoFlow-Startseite oder Sprache wählen." },

@@ -275,7 +275,7 @@ impl WindowsBackend {
             InputAction::Ocr { region } => {
                 #[allow(clippy::cast_possible_truncation)]
                 let i = |v: f64| v.round() as i32;
-                return ocr::recognize(i(region.x), i(region.y), i(region.w), i(region.h)).map(Value::Str);
+                return ocr::recognize(i(region.x), i(region.y), i(region.w), i(region.h), control).map(Value::Str);
             }
             InputAction::FindImage { reference, confidence, timeout_ms, region } => {
                 let path = self.template(reference)?;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type DragEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { STEP_CAPABILITIES, describeStep, describeTrigger, findStep, type Flow, type LintIssue, type Step } from "@autoflow/core";
 import { Icon } from "../../components/Icon";
 import { STEP_BY_TYPE, STEP_CATEGORIES, STEP_META, cloneWithNewIds, insertStep, locate, moveStep, removeStep, updateStep, type Location, type Slot } from "../../lib/steps";
@@ -19,6 +19,25 @@ export function ProEditor({ flow, onChange, lint }: { flow: Flow; onChange: (f: 
   const activeStep = useStore((s) => (s.active && s.active.flowId === flow.id ? s.active.stepId : undefined));
   const setSteps = (steps: Step[]) => onChange({ ...flow, steps });
   const sel = selected ? findStep(flow.steps, selected) : undefined;
+  const flowRef = useRef(flow);
+  flowRef.current = flow;
+
+  /** Removes a step and offers Undo (re-inserts it at its old location in whatever the flow is by then). */
+  const remove = (id: string) => {
+    const loc = locate(flow.steps, id);
+    const { steps, removed } = removeStep(flow.steps, id);
+    setSteps(steps);
+    if (selected === id) setSelected(null);
+    if (!removed || !loc) return;
+    useStore.getState().toast("info", t("editor.stepDeleted"), {
+      label: t("common.undo"),
+      run: () => {
+        const cur = flowRef.current;
+        onChange({ ...cur, steps: insertStep(cur.steps, loc, removed) });
+        setSelected(removed.id);
+      },
+    });
+  };
   const lintBy = useMemo(() => {
     const m = new Map<string, LintIssue[]>();
     for (const l of lint) if (l.stepId) m.set(l.stepId, [...(m.get(l.stepId) ?? []), l]);
@@ -39,8 +58,7 @@ export function ProEditor({ flow, onChange, lint }: { flow: Flow; onChange: (f: 
       if (!selected) return;
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
-        setSteps(removeStep(flow.steps, selected).steps);
-        setSelected(null);
+        if (selected !== "__flow") remove(selected);
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "d") {
         e.preventDefault();
         const s = findStep(flow.steps, selected);
@@ -117,7 +135,7 @@ export function ProEditor({ flow, onChange, lint }: { flow: Flow; onChange: (f: 
             </div>
             <span className="badge">{t("editor.settings")}</span>
           </div>
-          <StepList steps={flow.steps} parentId={null} slot="steps" flow={flow} setSteps={setSteps} selected={selected} setSelected={setSelected} activeStep={activeStep} lintBy={lintBy} onAdd={add} />
+          <StepList steps={flow.steps} parentId={null} slot="steps" flow={flow} setSteps={setSteps} selected={selected} setSelected={setSelected} activeStep={activeStep} lintBy={lintBy} onAdd={add} onDelete={remove} />
           <div className="connector" />
           <div className="node end">{t("editor.end")}</div>
           {lint.length > 0 && (
@@ -136,9 +154,16 @@ export function ProEditor({ flow, onChange, lint }: { flow: Flow; onChange: (f: 
         </div>
       </div>
 
-      <aside className="inspector" aria-label={t("editor.inspector")}>
+      {/* On phones the inspector is a bottom sheet that opens only while something is selected (see app.css). */}
+      <aside className={`inspector${selected ? " open" : ""}`} aria-label={t("editor.inspector")}>
         {selected === "__flow" || !sel ? (
-          <FlowSettings flow={flow} onChange={onChange} />
+          <>
+            <div className="inspector-head">
+              <b>{t("editor.settings")}</b>
+              <button className="btn ghost icon sm" onClick={() => setSelected(null)} aria-label={t("common.close")}><Icon name="X" size={16} /></button>
+            </div>
+            <FlowSettings flow={flow} onChange={onChange} />
+          </>
         ) : (
           <StepForm
             key={sel.id}
@@ -146,10 +171,7 @@ export function ProEditor({ flow, onChange, lint }: { flow: Flow; onChange: (f: 
             flow={flow}
             issues={lintBy.get(sel.id) ?? []}
             onChange={(s) => setSteps(updateStep(flow.steps, sel.id, () => s))}
-            onDelete={() => {
-              setSteps(removeStep(flow.steps, sel.id).steps);
-              setSelected(null);
-            }}
+            onDelete={() => remove(sel.id)}
             onDuplicate={() => setSteps(insertStep(flow.steps, afterLoc(flow.steps, sel.id), cloneWithNewIds(sel)))}
             onClose={() => setSelected(null)}
           />
@@ -175,6 +197,7 @@ interface ListProps {
   activeStep?: string;
   lintBy: Map<string, LintIssue[]>;
   onAdd: (type: Step["type"], loc: Location) => void;
+  onDelete: (id: string) => void;
 }
 
 function StepList(p: ListProps) {
@@ -334,7 +357,7 @@ function StepNode({ step, ...p }: ListProps & { step: Step }) {
           <button className="btn ghost icon sm" title={step.disabled ? t("editor.enable") : t("editor.disable")} onClick={(e) => { e.stopPropagation(); p.setSteps(updateStep(p.flow.steps, step.id, (s) => ({ ...s, disabled: !s.disabled }) as Step)); }}>
             <Icon name={step.disabled ? "Eye" : "Eraser"} size={14} />
           </button>
-          <button className="btn ghost icon sm" title={t("common.delete")} onClick={(e) => { e.stopPropagation(); p.setSteps(removeStep(p.flow.steps, step.id).steps); }}>
+          <button className="btn ghost icon sm" title={t("common.delete")} onClick={(e) => { e.stopPropagation(); p.onDelete(step.id); }}>
             <Icon name="Trash2" size={14} />
           </button>
         </div>

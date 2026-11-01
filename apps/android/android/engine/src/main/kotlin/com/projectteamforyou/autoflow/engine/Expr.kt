@@ -208,9 +208,28 @@ class ExprEnv(
     val zone: ZoneId = ZoneId.systemDefault(),
 )
 
+/** Deepest list nesting a value may have; deeper values are rejected like oversized ones. */
+const val MAX_LIST_DEPTH = 64
+
+/**
+ * Charges every nested element to one shared budget, so a self-nesting list (`v = [v, v]` repeated) cannot hide
+ * 2^n leaves behind a small top-level length. Shared sub-lists are counted each time they are reached: that is the
+ * work every later deep operation (toStr, looseEq, toJson) would do.
+ */
+private fun listNodes(list: List<Value>, depth: Int, left: IntArray) {
+    if (depth > MAX_LIST_DEPTH) throw ExprError("list too large")
+    for (x in list) {
+        if (--left[0] < 0) throw ExprError("list too large")
+        if (x is Value.VList) listNodes(x.items, depth + 1, left)
+    }
+}
+
 private fun guard(v: Value): Value {
     if (v is Value.Str && v.v.length > MAX_STRING) throw ExprError("string too large")
-    if (v is Value.VList && v.items.size > MAX_LIST) throw ExprError("list too large")
+    if (v is Value.VList) {
+        if (v.items.size > MAX_LIST) throw ExprError("list too large")
+        listNodes(v.items, 0, intArrayOf(MAX_LIST))
+    }
     if (v is Value.Num && !v.v.isFinite()) throw ExprError("number out of range")
     return v
 }
@@ -260,6 +279,30 @@ private class BudgetedChars(private val s: CharSequence, private val budget: Int
 }
 
 private val NESTED_QUANTIFIER = Regex("\\([^)]*[+*][^)]*\\)[+*{]")
+
+/**
+ * Features the TypeScript `safe-regex` rejects up front (lookaround, named groups, back-references): java.util.regex
+ * would accept them, so they are refused here first with the same `invalid pattern: …` message.
+ */
+private fun unsupportedRegexFeature(p: String): String? {
+    var i = 0
+    var inClass = false
+    while (i < p.length) {
+        when (p[i]) {
+            '\\' -> {
+                if (!inClass && i + 1 < p.length && p[i + 1] in '1'..'9') return "back-references are not supported"
+                i++
+            }
+            '[' -> if (!inClass) inClass = true
+            ']' -> if (inClass) inClass = false
+            '(' -> if (!inClass && i + 2 < p.length && p[i + 1] == '?' && p[i + 2] in "=!<") {
+                return "lookaround and named groups are not supported"
+            }
+        }
+        i++
+    }
+    return null
+}
 
 typealias ExprFn = (List<Value>, ExprEnv) -> Value
 
@@ -338,7 +381,7 @@ val FUNCTIONS: Map<String, ExprFn> = mapOf(
         val lo = if (a.size == 1) 0.0 else toNum(a[0])
         val hi = if (a.size == 1) toNum(a[0]) else toNum(a[1])
         // Past 2^53 `i += 1.0` no longer changes `i`, so bounds must be safe integers in magnitude.
-        if (!(Math.abs(lo) <= MAX_SAFE_INT && Math.abs(hi) <= MAX_SAFE_INT)) throw ExprError("range bounds out of range")
+        if (!(Math.abs(lo) <= MAX_SAFE_INT && Math.abs(hi) <= MAX_SAFE_INT)) throw ExprError("range() bounds out of range")
         if (hi - lo > MAX_LIST) throw ExprError("range too large")
         val out = ArrayList<Value>()
         var k = 0.0
@@ -354,6 +397,7 @@ val FUNCTIONS: Map<String, ExprFn> = mapOf(
         if (pattern.length > 200) throw ExprError("pattern too long")
         // Reject nested quantifiers that commonly cause catastrophic backtracking.
         if (NESTED_QUANTIFIER.containsMatchIn(pattern)) throw ExprError("pattern too complex")
+        unsupportedRegexFeature(pattern)?.let { throw ExprError("invalid pattern: $it") }
         val compiled = try {
             Pattern.compile(pattern)
         } catch (e: PatternSyntaxException) {

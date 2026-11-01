@@ -15,6 +15,7 @@ export const id: Content = {
     faq: "FAQ",
     privacy: "Privasi",
     terms: "Ketentuan",
+    changelog: "Yang baru",
   },
   a11y: {
     skip: "Langsung ke konten",
@@ -31,7 +32,7 @@ export const id: Content = {
   cta: {
     windows: "Unduh untuk Windows",
     windowsShort: "Windows",
-    android: "Dapatkan di Google Play",
+    android: "Unduh untuk Android (APK)",
     androidShort: "Android",
     web: "Pakai di browser",
     webLong: "Tak mau instal? Buka AutoFlow langsung di browser",
@@ -302,6 +303,7 @@ export const id: Content = {
       h2: "Persyaratan sistem",
       items: ["Windows 10 atau 11, 64-bit", "Microsoft Edge WebView2 Runtime (sudah ada di Windows 11)", "Tanpa akun dan tanpa koneksi internet"],
     },
+    install: { h2: "Cara memasang", steps: ["Unduh AutoFlow-Setup-x64.exe lalu jalankan. Penginstalnya ditandatangani oleh PROJECTTEAMFORYOU.", "Jika Windows menampilkan peringatan SmartScreen, pilih “Info selengkapnya” › “Tetap jalankan” — ini muncul untuk penerbit baru mana pun sampai cukup banyak orang memasangnya.", "AutoFlow berjalan di baki sistem. Tekan Ctrl+Alt+S atau klik dua kali ikon baki untuk membukanya."], smartscreen: "SmartScreen Windows menilai penginstal dari berapa banyak orang yang sudah menjalankannya, bukan hanya dari tanda tangannya. Yang Anda unduh di sini adalah build resmi yang ditandatangani; cek penerbitnya di Properti › Tanda Tangan Digital pada berkas." },
     note: "Build resmi hanya dipublikasikan di autoflowmacro.com (dl.autoflowmacro.com). Jangan unduh AutoFlow dari situs mirror.",
   },
   android: {
@@ -317,6 +319,7 @@ export const id: Content = {
       { icon: "clock", h3: "Rutinitas", p: "Jalankan alur di jam tertentu atau saat mulai mengisi daya — misalnya rutinitas bersantai sebelum tidur." },
       { icon: "map", h3: "Atlas di ponsel", p: "Pembaca geser, auto tap, dan rutinitas dari Atlas, siap disesuaikan." },
     ],
+    req: { h2: "Persyaratan dan penyiapan", items: ["Android 8.0 atau lebih baru", "Izinkan pemasangan dari browser sekali (Android akan bertanya saat APK dibuka)", "Setelah dibuka pertama kali, aktifkan AutoFlow di Setelan › Aksesibilitas — aplikasi menjelaskan apa yang dilakukan layanan sebelum mengarahkan Anda ke sana"] },
     access: {
       h2: "Tentang izin aksesibilitas",
       p: "Android hanya mengizinkan aplikasi mengetuk dan menggeser untuk Anda melalui layanan aksesibilitas. AutoFlow memakainya tepat untuk itu — tidak lebih.",
@@ -410,6 +413,7 @@ export const id: Content = {
     web: { h2: "Aplikasi web", p: "Editor lengkap, Atlas, dan Practice Canvas di browser. Pasang sebagai aplikasi dari bilah alamat.", meta: "Bisa offline setelah kunjungan pertama" },
     verify: "Unduh AutoFlow hanya dari situs ini (dl.autoflowmacro.com). Kami tidak pernah meminta bayaran untuk mengunduh.",
     releases: "Lihat semua rilis dan catatan",
+    latest: "Versi terbaru",
   },
   pricing: {
     seo: {
@@ -465,7 +469,15 @@ export const id: Content = {
       { q: "Amankah mengimpor alur kiriman orang lain?", a: "Impor dicek hash-nya, divalidasi ulang, dan diberi nilai keamanan beserta alasannya sebelum bisa dijalankan. Jika ragu, latih dulu di Practice Canvas." },
       { q: "Apakah ada versi Mac atau iPhone?", a: "Belum. Aplikasi web berjalan di browser modern mana pun di macOS dan iOS — termasuk Atlas dan Practice Canvas — tetapi mengendalikan input sungguhan memerlukan aplikasi Windows atau Android." },
       { q: "Bahasa apa saja yang didukung?", a: "AutoFlow, situs ini, dan dokumen hukum kami tersedia dalam 12 bahasa: Inggris, Korea, Jepang, Tionghoa Sederhana dan Tradisional, Spanyol, Prancis, Jerman, Portugis Brasil, Rusia, Vietnam, dan Indonesia." },
+      { q: "Windows menampilkan peringatan SmartScreen — apakah penginstalnya aman?", a: "Ya, jika Anda mengunduhnya dari autoflowmacro.com. SmartScreen memperingatkan penginstal apa pun yang masih sedikit dijalankan orang, terlepas dari tanda tangannya. Pilih “Info selengkapnya” › “Tetap jalankan”; penerbit yang tampil di Properti › Tanda Tangan Digital berkas adalah PROJECTTEAMFORYOU." },
+      { q: "Bagaimana cara memperbarui AutoFlow?", a: "Windows dan aplikasi web memberi tahu saat versi baru siap; Anda juga bisa mengunduh penginstal terbaru dari halaman Unduh kapan saja — ia terpasang di atas versi lama dan menjaga alur Anda. Di Android, pasang APK baru di atas yang lama (tanda tangan sama) atau perbarui lewat Google Play setelah tersedia di sana. Halaman Yang baru mencantumkan setiap rilis." },
+      { q: "Bagaimana cara mencopot AutoFlow atau mematikan layanan aksesibilitas?", a: "Windows: Setelan › Aplikasi › AutoFlow › Copot; alur Anda tetap ada di folder data aplikasi kecuali Anda menghapusnya. Android: Setelan › Aksesibilitas › AutoFlow automations › nonaktifkan untuk menjeda, atau copot aplikasi seperti biasa. Tidak ada yang tertinggal di server, karena alur ada di perangkat Anda." },
     ],
+  },
+  changelog: {
+    seo: { title: "Yang baru di AutoFlow — catatan rilis", description: "Setiap rilis AutoFlow untuk Windows, Android, dan aplikasi web, beserta apa yang berubah dan diperbaiki." },
+    h1: "Yang baru",
+    lead: "Catatan rilis untuk Windows, Android, dan aplikasi web. Pembaruan gratis; pemakaian pribadi tetap gratis.",
   },
   notFound: {
     seo: { title: "Halaman tidak ditemukan — AutoFlow", description: "Halaman ini keluar dari peta. Kembali ke beranda AutoFlow atau pilih bahasa Anda." },

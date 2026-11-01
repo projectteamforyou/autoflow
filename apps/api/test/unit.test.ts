@@ -70,6 +70,22 @@ describe("token bucket", () => {
     expect(b.consume("k", 3).allowed).toBe(true);
   });
 
+  it("peeks at remaining capacity without spending it or tracking the key", () => {
+    let now = 0;
+    const b = new MemoryTokenBucket({ capacity: 2, refillPerMinute: 60 }, () => now);
+    expect(b.peek("k")).toEqual({ allowed: true, remaining: 2, retryAfterMs: 0 });
+    expect(b.size).toBe(0);
+    b.consume("k");
+    b.consume("k");
+    expect(b.peek("k")).toEqual({ allowed: false, remaining: 0, retryAfterMs: 1000 });
+    expect(b.peek("k")).toEqual({ allowed: false, remaining: 0, retryAfterMs: 1000 });
+    now = 1000;
+    expect(b.peek("k")).toEqual({ allowed: true, remaining: 1, retryAfterMs: 0 });
+    expect(b.peek("k", 2).allowed).toBe(false);
+    expect(b.consume("k").allowed).toBe(true);
+    expect(b.peek("k").allowed).toBe(false);
+  });
+
   it("bounds memory by evicting idle keys", () => {
     let now = 0;
     const b = new MemoryTokenBucket({ capacity: 1, refillPerMinute: 60 }, () => now, 100);

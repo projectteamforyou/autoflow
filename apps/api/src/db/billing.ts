@@ -98,6 +98,41 @@ export async function markOrderFailed(db: Db, orderId: string, status: "failed" 
   return rows[0] ? mapOrder(rows[0]) : null;
 }
 
+/** The buyer gives up on a pending order: pending → cancelled, only for the owner. */
+export async function cancelPendingOrder(db: Db, orderId: string, userId: string): Promise<Order | null> {
+  const rows = await db<OrderRow[]>`
+    UPDATE orders SET status = 'cancelled', failure_reason = 'cancelled_by_user'
+    WHERE id = ${orderId} AND user_id = ${userId} AND status = 'pending'
+    RETURNING ${db(ORDER_COLS)}`;
+  return rows[0] ? mapOrder(rows[0]) : null;
+}
+
+export async function countPendingOrders(db: Db, userId: string): Promise<number> {
+  const rows = await db<{ n: number }[]>`SELECT count(*)::int AS n FROM orders WHERE user_id = ${userId} AND status = 'pending'`;
+  return rows[0]?.n ?? 0;
+}
+
+/**
+ * Pending orders the provider may have settled without the browser ever calling /confirm
+ * (closed tab, lost connection). Oldest first so a stuck order is retried before fresh ones.
+ */
+export async function listPendingOrdersToReconcile(db: Db, createdAfter: Date, limit: number): Promise<Order[]> {
+  const rows = await db<OrderRow[]>`
+    SELECT ${db(ORDER_COLS)} FROM orders
+    WHERE status = 'pending' AND provider_payment_id IS NOT NULL AND created_at > ${createdAfter}
+    ORDER BY created_at ASC LIMIT ${limit}`;
+  return rows.map(mapOrder);
+}
+
+/** Housekeeping: pending orders nobody paid for within the window → cancelled. Returns the count. */
+export async function expirePendingOrders(db: Db, createdBefore: Date): Promise<number> {
+  const rows = await db`
+    UPDATE orders SET status = 'cancelled', failure_reason = 'expired'
+    WHERE status = 'pending' AND created_at < ${createdBefore}
+    RETURNING id`;
+  return rows.length;
+}
+
 export async function getOrder(db: Db, orderId: string): Promise<Order | null> {
   const rows = await db<OrderRow[]>`SELECT ${db(ORDER_COLS)} FROM orders WHERE id = ${orderId}`;
   return rows[0] ? mapOrder(rows[0]) : null;

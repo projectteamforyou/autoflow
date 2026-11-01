@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { LOCALES, type LocaleCode } from "@autoflow/core";
 import { Icon } from "../components/Icon";
 import { useStore } from "../lib/store";
+import { SITE_URL } from "../lib/site";
+import { hasNativeBridge } from "../platform";
 import { setLocale, useLocale, useT } from "../i18n";
 
 const SLIDES = [
@@ -53,9 +55,16 @@ export function Onboarding() {
               </button>
             </div>
             <p className="small subtle">{t("onboard.switchLater")}</p>
+            {!hasNativeBridge && (
+              <p className="small muted">
+                <a href={`${SITE_URL}/download/`} target="_blank" rel="noopener">{t("onboard.webOnly")}</a>
+              </p>
+            )}
           </>
         )}
-        <div className="dots">{[...SLIDES, null].map((_, j) => <span key={j} className={j === i ? "on" : ""} />)}</div>
+        <div className="dots" role="progressbar" aria-valuenow={i + 1} aria-valuemin={1} aria-valuemax={SLIDES.length + 1} aria-label={t("onboard.progress", { n: i + 1, total: SLIDES.length + 1 })}>
+          {[...SLIDES, null].map((_, j) => <span key={j} className={j === i ? "on" : ""} />)}
+        </div>
         <div className="row">
           {i > 0 && <button className="btn" onClick={() => setI(i - 1)}>{t("common.back")}</button>}
           {!last && <button className="btn primary lg" onClick={() => setI(i + 1)}>{t("common.next")} <Icon name="ChevronRight" size={16} /></button>}

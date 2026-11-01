@@ -111,7 +111,7 @@ ${langPicker(ctx)}
 <div class="pop-panel"><ul class="menu-list">
 ${NAV.concat(["download"]).map((p) => `<li><a href="${pagePath(lang, p)}"${cur(p)}>${esc(t.nav[p])}</a></li>`)}
 </ul></div></details>
-<a class="btn btn-primary btn-sm nav-cta" href="${pagePath(lang, "download")}">${icon("download", 16)}${esc(t.nav.download)}</a>
+<a class="btn btn-primary btn-sm nav-cta" href="${pagePath(lang, "download")}" aria-label="${esc(t.nav.download)}">${icon("download", 16)}<span>${esc(t.nav.download)}</span></a>
 </div>
 </div>
 </header>`;
@@ -146,7 +146,7 @@ function businessInfo(ctx: Ctx): string {
     row(b.address, esc(v.address)),
     row(b.phone, `<a href="tel:${BUSINESS.phoneIntl.replace(/-/g, "")}">${esc(phone)}</a>`),
     row(b.email, `<a href="mailto:${BUSINESS.email}">${BUSINESS.email}</a>`),
-    row(b.website, `<a href="${BUSINESS.website}" rel="noopener" target="_blank">projectteamforyou.com</a>`),
+    row(b.website, `<a href="${BUSINESS.website}" rel="noopener noreferrer" target="_blank">projectteamforyou.com<span class="sr-only"> ${esc(ctx.t.a11y.newTab)}</span></a>`),
   ].join("")}</dl></section>`;
 }
 
@@ -169,7 +169,7 @@ function footer(ctx: Ctx): string {
 <nav class="foot" aria-label="${esc(t.a11y.footerNav)}">
 <div><a class="brand" href="${pagePath(lang, "home")}">${mark(28, "fm")}<span>AutoFlow</span></a><p>${esc(t.footer.tagline)}</p><p>${esc(t.footer.made)}</p></div>
 <div><h2>${esc(t.footer.product)}</h2><ul>${(["features", "keyforge", "atlas", "safety", "pricing", "faq"] as PageId[]).map(l)}<li><a href="/${lang}/guides/">${esc(SEO[lang].ui.guides.nav)}</a></li><li><a href="/${lang}/alternatives/">${esc(SEO[lang].ui.alternatives.nav)}</a></li></ul></div>
-<div><h2>${esc(t.footer.platforms)}</h2><ul>${l("windows")}${l("android")}<li><a href="${LINKS.app}">${esc(t.cta.openApp)}</a></li>${l("download")}</ul></div>
+<div><h2>${esc(t.footer.platforms)}</h2><ul>${l("windows")}${l("android")}<li><a href="${LINKS.app}">${esc(t.cta.openApp)}</a></li>${l("download")}<li><a href="${pagePath(lang, "changelog")}">${esc(t.footer.releases)}</a></li></ul></div>
 <div><h2>${esc(t.footer.legal)}</h2><ul>${l("privacy")}${l("terms")}<li><a href="mailto:${LINKS.email}">${esc(t.footer.contact)}</a></li></ul></div>
 </nav>
 <div class="foot-langs">${LOCALES.map((x) => `<a href="${ctx.alt ? ctx.alt(x.code) : pagePath(x.code, target)}" hreflang="${x.hreflang}" lang="${x.code}" data-lang="${x.code}"${x.code === lang ? ' aria-current="true"' : ""}>${esc(x.name)}</a>`)}</div>

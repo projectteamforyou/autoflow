@@ -420,7 +420,7 @@ export class FlowRun {
     }
     if (risk.needsConfirm) {
       const ok = this.opts.confirmRisk ? await this.opts.confirmRisk(risk) : false;
-      if (!ok) throw new RunFailure({ message: "risky steps were not approved", category: "user" });
+      if (!ok) throw new RunFailure({ message: "risky steps were not approved — run this flow once from the app and approve it, so scheduled or hotkey runs can start", category: "user" });
     }
     if (this.flow.screen && this.backend.screen) {
       const live = await this.backend.screen();

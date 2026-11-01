@@ -13,15 +13,25 @@ import { hasNativeBridge, invoke } from "../platform";
 /** /new/:kind — creates a flow and opens it. "record" opens the native recorder or the canvas recorder. */
 export function NewFlowPage() {
   const { kind = "click" } = useParams();
+  const t = useT();
   const navigate = useNavigate();
   const once = useRef(false);
   useEffect(() => {
     if (once.current || kind === "record") return;
     once.current = true;
-    void createFromKind(kind).then((f) => navigate(`/flows/${f.id}`, { replace: true }));
+    createFromKind(kind)
+      .then((f) => navigate(`/flows/${f.id}`, { replace: true }))
+      .catch((e: Error) => {
+        useStore.getState().toast("error", e.message);
+        navigate("/flows", { replace: true });
+      });
   }, [kind, navigate]);
   if (kind === "record") return hasNativeBridge ? <NativeRecorder /> : <RecordIntro />;
-  return null;
+  return (
+    <Shell title={<h2>{t("flows.new")}</h2>}>
+      <div className="page"><p className="muted">{t("common.loading")}</p></div>
+    </Shell>
+  );
 }
 
 function RecordIntro() {
@@ -74,7 +84,6 @@ function NativeRecorder() {
   const stop = async () => {
     try {
       const r = await invoke("record_stop", {});
-      setRecording(false);
       // With several monitors, points are stored relative to the monitor they were recorded on.
       const displays = await invoke("displays_list", {}).catch(() => []);
       const multi = displays.length > 1;
@@ -84,6 +93,8 @@ function NativeRecorder() {
       navigate(`/flows/${f.id}`, { replace: true });
     } catch (e) {
       toast("error", (e as Error).message);
+    } finally {
+      setRecording(false);
     }
   };
 
