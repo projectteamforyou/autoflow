@@ -323,6 +323,8 @@ export const en = {
       { icon: "stop", h3: "Floating stop", p: "A small Halt button stays on top while a flow runs. One tap and everything stops." },
       { icon: "clock", h3: "Routines", p: "Run flows at a time of day or when charging starts — like a wind-down routine at night." },
       { icon: "map", h3: "Atlas on mobile", p: "Swipe readers, auto-tappers and routines from Atlas, ready to adjust." },
+      { icon: "image", h3: "Scenes & pixel checks", p: "Capture a region once and let conditions compare the live screen with it, or wait for a pixel to turn a colour — through Android's screen-capture consent, granted once per app start." },
+      { icon: "text", h3: "On-screen text (OCR)", p: "Read text from the screen with on-device recognition (Google Play services): Latin, Korean, Japanese and Chinese." },
     ],
     req: { h2: "Requirements and setup", items: ["Android 8.0 or newer", "Allow installs from your browser once (Android asks when you open the APK)", "After the first launch, turn on AutoFlow in Settings › Accessibility — the app explains exactly what the service does before it sends you there"] },
     access: {

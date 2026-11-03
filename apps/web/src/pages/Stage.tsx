@@ -511,6 +511,7 @@ export function StagePage() {
   );
 }
 
+/** Scenes are captured on Windows and (through the screen-capture consent) on Android; only the sandbox cannot. */
 function platformBlocksScenes(): boolean {
-  return hasNativeBridge && !window.__TAURI_INTERNALS__;
+  return false;
 }

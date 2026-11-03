@@ -251,7 +251,7 @@ describe("tooling", () => {
     expect(free.score).toBeGreaterThan(paused.score);
     expect(free.findings.map((f) => f.key)).toContain("risk.stageNoTakeover");
     expect(paused.permissions).toContain("perm.screen");
-    expect(compatibility(mk(steps).steps, "android")[0]).toMatchObject({ support: "unsupported", noteKey: "cap.screenProbe.android" });
+    expect(compatibility(mk(steps).steps, "android")[0]).toMatchObject({ support: "limited", noteKey: "cap.screenProbe.android" });
     expect(compatibility(mk(steps).steps, "windows")).toEqual([]);
   });
 

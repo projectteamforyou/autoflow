@@ -35,6 +35,10 @@ import java.io.File
  * - hotkey: hardware keyboard keys through the accessibility service.
  * - notification: notification access (NotificationListenerService), matched on-device and never stored.
  * - location: not available on Android yet (reported as failed, never silently ignored).
+ *
+ * Trigger-started runs use the same AndroidBackend as manual runs: steps that read the screen (pixel, scene, findImage,
+ * ocr) need the screenCapture permission, which Android grants per process start in a consent dialog, so such a run
+ * fails with category "permission" when the user has not enabled capture since the app last started.
  */
 object TriggerEngine {
     private const val TAG = "AutoFlowTriggers"

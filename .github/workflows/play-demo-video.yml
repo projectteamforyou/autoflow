@@ -22,7 +22,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   video:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 100
     permissions:
       contents: write # only used by the release step (release_tag set)

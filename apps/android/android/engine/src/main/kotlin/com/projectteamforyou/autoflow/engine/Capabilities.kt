@@ -35,9 +35,9 @@ val STEP_CAPABILITIES: Map<String, Map<Platform, CapabilityNote>> = mapOf(
     "file" to row(S, l("cap.file.android"), u("cap.native")),
     "ocr" to row(S, l("cap.ocr.android"), u("cap.native")),
     "findImage" to row(S, l("cap.findImage.android"), u("cap.native")),
-    "pixelCheck" to row(S, u("cap.screenProbe.android"), l("cap.sandbox")),
-    "waitForPixel" to row(S, u("cap.screenProbe.android"), l("cap.sandbox")),
-    "matchScene" to row(S, u("cap.screenProbe.android"), l("cap.sandbox")),
+    "pixelCheck" to row(S, l("cap.screenProbe.android"), l("cap.sandbox")),
+    "waitForPixel" to row(S, l("cap.screenProbe.android"), l("cap.sandbox")),
+    "matchScene" to row(S, l("cap.screenProbe.android"), l("cap.sandbox")),
     "runFlow" to row(S, S, S),
     "switchProfile" to row(S, l("cap.switchProfile.android"), u("cap.native")),
     "stop" to row(S, S, S),
@@ -63,7 +63,7 @@ val TRIGGER_CAPABILITIES: Map<String, Map<Platform, CapabilityNote>> = mapOf(
 private fun row(w: CapabilityNote, a: CapabilityNote, web: CapabilityNote) = mapOf(Platform.WINDOWS to w, Platform.ANDROID to a, Platform.WEB to web)
 
 /** Scene / pixel conditions read the screen; Android has no screen-capture integration, so they are blocked there. */
-val CONDITION_PROBE_CAPABILITY: Map<Platform, CapabilityNote> = row(S, u("cap.screenProbe.android"), l("cap.sandbox"))
+val CONDITION_PROBE_CAPABILITY: Map<Platform, CapabilityNote> = row(S, l("cap.screenProbe.android"), l("cap.sandbox"))
 
 fun targetSupport(t: Target, platform: Platform): CapabilityNote = when {
     t is Target.Element && platform == Platform.WEB -> u("cap.element.web")

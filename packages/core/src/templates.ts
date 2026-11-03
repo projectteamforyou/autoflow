@@ -268,10 +268,10 @@ export const TEMPLATES: Template[] = [
 // game, re-capture the scenes in Stage. They automate only what the user could click themselves and
 // never touch game memory or anti-cheat — follow each game's terms of service.
 TEMPLATES.push(
-  t("idle-collect", "gaming", "pro", "Idle game: collect & return to lobby", "On your second monitor, recognizes the lobby and reward screens (Scenes), starts a round, collects the reward and returns to the lobby — three times. Pauses as soon as you touch the mouse.", {
+  t("idle-collect", "gaming", "pro", "Idle game: collect & return to lobby", "Recognizes the lobby and reward screens (Scenes) on your second monitor — or on the phone screen on Android — starts a round, collects the reward and returns to the lobby, three times. On Windows it pauses as soon as you touch the mouse.", {
     icon: "gamepad",
     color: "#22C3A6",
-    targets: ["windows", "web"],
+    targets: ["windows", "android", "web"],
     mode: "pro",
     stage: { display: "secondary", pauseOnTakeover: true },
     onMissingDisplay: "ask",
@@ -306,10 +306,10 @@ TEMPLATES.push(
     humanize: { offsetPx: 3, delayMs: 120 },
     limits: { maxDurationMs: 1_800_000 },
   }),
-  t("stage-ready-clicker", "gaming", "easy", "Two-monitor stage: click when ready", "Watches one spot on your second monitor and clicks it whenever it turns green (a ready button), at most twice a second. AutoFlow stays on your main monitor and pauses if you take over the mouse.", {
+  t("stage-ready-clicker", "gaming", "easy", "Two-monitor stage: click when ready", "Watches one spot on your second monitor (or the phone screen on Android) and taps it whenever it turns green (a ready button), at most twice a second. On Windows AutoFlow stays on your main monitor and pauses if you take over the mouse.", {
     icon: "target",
     color: "#2ECC71",
-    targets: ["windows", "web"],
+    targets: ["windows", "android", "web"],
     mode: "pro",
     stage: { display: "secondary", pauseOnTakeover: true },
     onMissingDisplay: "ask",

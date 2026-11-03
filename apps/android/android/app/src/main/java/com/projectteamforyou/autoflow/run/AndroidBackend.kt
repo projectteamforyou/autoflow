@@ -17,7 +17,10 @@ import com.projectteamforyou.autoflow.engine.Value
 import com.projectteamforyou.autoflow.keyforge.ProfileManager
 import com.projectteamforyou.autoflow.system.DeviceState
 import com.projectteamforyou.autoflow.system.Notifications
+import com.projectteamforyou.autoflow.system.ScreenCapture
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -29,9 +32,13 @@ import kotlin.random.Random
 
 /**
  * Executes engine actions on Android. Input (tap, long press, swipe, scroll, typing, key mapping, system actions) goes
- * through [AutoFlowAccessibilityService]; everything else uses ordinary platform APIs. Point targets: `normalized`
- * scales by the real display size in the current rotation; `screen` (and `window`, there are no desktop windows on
- * Android) are physical pixels.
+ * through [AutoFlowAccessibilityService]; screen reading (pixel and scene probes, image targets / findImage, OCR) goes
+ * through [ScreenCapture] (MediaProjection, enabled by the user per app start) with ML Kit for text; everything else
+ * uses ordinary platform APIs. Point targets: `normalized` scales by the real display size in the current rotation;
+ * `screen` (and `window`, there are no desktop windows on Android) are physical pixels.
+ *
+ * Still unsupported on Android: mouse moves and the `current` pointer target (no pointer), desktop windows, and
+ * location triggers (no location permission is declared).
  */
 class AndroidBackend(private val context: Context) : Backend {
     override val platform = Platform.ANDROID
@@ -45,7 +52,7 @@ class AndroidBackend(private val context: Context) : Backend {
         )
 
     /** Physical pixel for a target. */
-    private fun point(t: Target, svc: AutoFlowAccessibilityService?): Pair<Float, Float> {
+    private suspend fun point(t: Target, svc: AutoFlowAccessibilityService?): Pair<Float, Float> {
         val s = DeviceState.screen(context)
         return when (t) {
             is Target.Point -> if (t.space == "normalized") (t.x * s.width).toFloat() to (t.y * s.height).toFloat() else t.x.toFloat() to t.y.toFloat()
@@ -61,7 +68,12 @@ class AndroidBackend(private val context: Context) : Backend {
                     ?: throw BackendException("no on-screen element matches ${describe(t.selector)}", ErrorCategory.TARGET)
                 r.exactCenterX() to r.exactCenterY()
             }
-            is Target.Image -> throw BackendException("image targets are not available on Android yet", ErrorCategory.UNSUPPORTED)
+            is Target.Image -> {
+                // Like Windows: up to 3 s for the template to show up, centre of the best match.
+                val (ix, iy) = findImage(t.ref, t.confidence, 3000, t.region)
+                    ?: throw BackendException("image \"${t.ref}\" not found on screen", ErrorCategory.TARGET)
+                ix.toFloat() to iy.toFloat()
+            }
             Target.Current -> throw BackendException("Android has no pointer position; pick a point instead", ErrorCategory.UNSUPPORTED)
         }.also { (x, y) ->
             if (x < 0 || y < 0 || x > s.width || y > s.height) {
@@ -142,10 +154,20 @@ class AndroidBackend(private val context: Context) : Backend {
             }
             is InputAction.Http -> return http(action)
             is InputAction.FileOp -> return file(action)
-            is InputAction.Ocr -> throw BackendException("text recognition (OCR) is not available on Android yet", ErrorCategory.UNSUPPORTED)
-            is InputAction.FindImage -> throw BackendException("image search is not available on Android yet", ErrorCategory.UNSUPPORTED)
-            is InputAction.Pixel, is InputAction.SceneHash ->
-                throw BackendException("pixel and scene checks need screen capture, which is not available on Android", ErrorCategory.UNSUPPORTED)
+            is InputAction.Ocr -> {
+                val r = action.region
+                val shot = ScreenCapture.capture(context, px(r.x), px(r.y), px(r.w), px(r.h))
+                return Value.Str(TextRecognizers.recognize(context, shot.toBitmap()))
+            }
+            is InputAction.FindImage -> {
+                val found = findImage(action.ref, action.confidence, action.timeoutMs, action.region) ?: return Value.Null
+                return Value.list(Value.of(found.first), Value.of(found.second))
+            }
+            is InputAction.Pixel -> return Value.Str(ScreenCapture.pixelHex(context, px(action.x), px(action.y)))
+            is InputAction.SceneHash -> {
+                val r = action.region
+                return Value.Str(ScreenCapture.sceneHash(context, px(r.x), px(r.y), px(r.w), px(r.h)))
+            }
             is InputAction.SwitchProfile -> ProfileManager.activate(action.profileId)
             is InputAction.Window -> throw BackendException("Android has no desktop windows", ErrorCategory.UNSUPPORTED)
         }
@@ -153,6 +175,58 @@ class AndroidBackend(private val context: Context) : Backend {
     }
 
     override suspend fun confirm(message: String): Boolean = ConfirmBroker.ask(context, message)
+
+    /* ---------------------------------------------------------------- screen */
+
+    /** Engine coordinates (f64) to physical pixels, rounded like the Windows backend. */
+    private fun px(v: Double): Int = v.roundToInt()
+
+    /**
+     * Template images live in AutoFlow's own folder next to flow files: `AutoFlow/images/<ref>.png`, the same
+     * `<ref>.png` rule as the desktop's images folder (`safe_ref` in apps/desktop: letters, digits, `_ - .`).
+     */
+    private fun templateFile(ref: String): File {
+        val ok = ref.isNotEmpty() && ref.length <= 200 && !ref.startsWith('.') &&
+            ref.all { (it.isLetterOrDigit() && it.code < 128) || it == '_' || it == '-' || it == '.' }
+        if (!ok) throw BackendException("invalid image reference \"$ref\"", ErrorCategory.VALIDATION)
+        val f = File(File(sandboxRoot(), "images"), "$ref.png")
+        if (!f.isFile) {
+            throw BackendException(
+                "template image \"$ref\" is not on this phone (copy it to Android/data/${context.packageName}/files/AutoFlow/images/$ref.png)",
+                ErrorCategory.TARGET,
+            )
+        }
+        return f
+    }
+
+    /**
+     * Searches the screen (or [region], physical px) for a template until [timeoutMs] passes — `find_on_screen` in
+     * capture.rs. Returns the match centre in physical pixels, null when not found in time. The search itself runs
+     * on a worker thread and is interrupted (per row) when the run is stopped.
+     */
+    private suspend fun findImage(ref: String, confidence: Double, timeoutMs: Long, region: Target.Rect?): Pair<Int, Int>? {
+        val tpl = withContext(Dispatchers.IO) { ImageMatch.loadTemplate(templateFile(ref)) }
+        val s = DeviceState.screen(context)
+        val x = region?.let { px(it.x) } ?: 0
+        val y = region?.let { px(it.y) } ?: 0
+        val w = region?.let { px(it.w) } ?: s.width
+        val h = region?.let { px(it.h) } ?: s.height
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (true) {
+            val shot = ScreenCapture.capture(context, x, y, w, h)
+            val img = ImageMatch.fromCapture(shot)
+            val m = try {
+                runInterruptible(Dispatchers.Default) { ImageMatch.findTemplate(img, tpl) { Thread.currentThread().isInterrupted } }
+            } catch (_: ImageMatch.Stopped) {
+                throw CancellationException("stopped")
+            }
+            if (m != null && m.score.toDouble() >= confidence) {
+                return (shot.x + m.x + tpl.w / 2) to (shot.y + m.y + tpl.h / 2)
+            }
+            if (System.currentTimeMillis() >= deadline) return null
+            delay(250)
+        }
+    }
 
     /* --------------------------------------------------------------- intents */
 
@@ -237,9 +311,12 @@ class AndroidBackend(private val context: Context) : Backend {
 
     /* ------------------------------------------------------------------ file */
 
+    /** AutoFlow's own folder (Android/data/<app>/files/AutoFlow): flow files and template images. */
+    private fun sandboxRoot(): File = File(context.getExternalFilesDir(null) ?: context.filesDir, "AutoFlow").apply { mkdirs() }
+
     /** Files are limited to AutoFlow's own folder (Android/data/<app>/files/AutoFlow): no broad storage permission. */
     private fun sandboxed(path: String): File {
-        val root = File(context.getExternalFilesDir(null) ?: context.filesDir, "AutoFlow").apply { mkdirs() }
+        val root = sandboxRoot()
         val rel = path.removePrefix("/").removePrefix("AutoFlow/")
         val f = File(root, rel).canonicalFile
         val base = root.canonicalPath

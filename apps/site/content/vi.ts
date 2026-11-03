@@ -318,6 +318,8 @@ export const vi: Content = {
       { icon: "stop", h3: "Nút dừng nổi", p: "Khi luồng đang chạy, một nút Halt nhỏ luôn nằm trên cùng. Chạm một cái là dừng tất cả." },
       { icon: "clock", h3: "Thói quen", p: "Chạy luồng vào giờ cố định hoặc khi bắt đầu sạc — như thói quen thư giãn trước khi ngủ." },
       { icon: "map", h3: "Atlas trên di động", p: "Mẫu đọc bằng vuốt, tự động chạm và thói quen từ Atlas, sẵn sàng để chỉnh." },
+      { icon: "image", h3: "Cảnh & kiểm tra điểm ảnh", p: "Chụp một vùng một lần rồi để điều kiện so sánh nó với màn hình thật, hoặc chờ một điểm ảnh đổi sang màu mong muốn — qua quyền ghi màn hình của Android, cấp một lần mỗi khi mở ứng dụng." },
+      { icon: "text", h3: "Chữ trên màn hình (OCR)", p: "Đọc chữ trên màn hình bằng nhận dạng trên thiết bị (dịch vụ Google Play): Latin, Hàn, Nhật và Trung." },
     ],
     req: { h2: "Yêu cầu và thiết lập", items: ["Android 8.0 trở lên", "Cho phép cài đặt từ trình duyệt một lần (Android sẽ hỏi khi bạn mở APK)", "Sau lần mở đầu tiên, bật AutoFlow trong Cài đặt › Hỗ trợ tiếp cận — ứng dụng giải thích rõ dịch vụ làm gì trước khi đưa bạn đến đó"] },
     access: {

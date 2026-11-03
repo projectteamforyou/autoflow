@@ -158,7 +158,7 @@ class ConformanceTest {
         }
     }
 
-    @Test fun stageRunPausesOnTakeoverAndScreenProbesAreBlockedOnAndroid() {
+    @Test fun stageRunPausesOnTakeoverAndScreenProbesAreLimitedOnAndroid() {
         val base = """"schemaVersion":"1.0","id":"f","name":"t","createdAt":"2026-10-19T00:00:00.000Z","updatedAt":"2026-10-19T00:00:00.000Z""""
         val flow = FlowParser.parse(
             """{$base,"stage":{"display":"secondary"},"steps":[
@@ -183,8 +183,10 @@ class ConformanceTest {
         assertEquals(2, backend.effects.count { it.action is InputAction.Click })
 
         val probe = FlowParser.parse("""{$base,"steps":[{"id":"p","type":"pixelCheck","at":{"kind":"point","x":1,"y":1},"resultVar":"c"}]}""")
+        // Screen probes are "limited" on Android (screen-capture consent), no longer blocked before the run.
         val r = runBlocking { FlowRun(probe, FakeBackend(), RunOptions(clock = VirtualClock(0), skipCountdown = true)).start() }
-        assertEquals(ErrorCategory.UNSUPPORTED, r.error?.category)
+        assertTrue("${r.error}", r.error?.category != ErrorCategory.UNSUPPORTED)
+        assertTrue(isRunnableOn(probe.steps, Platform.ANDROID))
         assertTrue(isRunnableOn(probe.steps, Platform.WINDOWS))
     }
 

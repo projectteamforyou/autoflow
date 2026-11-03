@@ -39,9 +39,9 @@ export const STEP_CAPABILITIES: Record<StepType, Record<Platform, CapabilityNote
   file: { windows: S, android: L("cap.file.android"), web: U("cap.native") },
   ocr: { windows: S, android: L("cap.ocr.android"), web: U("cap.native") },
   findImage: { windows: S, android: L("cap.findImage.android"), web: U("cap.native") },
-  pixelCheck: { windows: S, android: U("cap.screenProbe.android"), web: L("cap.sandbox") },
-  waitForPixel: { windows: S, android: U("cap.screenProbe.android"), web: L("cap.sandbox") },
-  matchScene: { windows: S, android: U("cap.screenProbe.android"), web: L("cap.sandbox") },
+  pixelCheck: { windows: S, android: L("cap.screenProbe.android"), web: L("cap.sandbox") },
+  waitForPixel: { windows: S, android: L("cap.screenProbe.android"), web: L("cap.sandbox") },
+  matchScene: { windows: S, android: L("cap.screenProbe.android"), web: L("cap.sandbox") },
   runFlow: { windows: S, android: S, web: S },
   switchProfile: { windows: S, android: L("cap.switchProfile.android"), web: U("cap.native") },
   stop: { windows: S, android: S, web: S },
@@ -68,7 +68,7 @@ export const TRIGGER_CAPABILITIES: Record<Trigger["type"], Record<Platform, Capa
  * Scene and pixel conditions read the screen. Android has no screen-capture (MediaProjection)
  * integration, so they are blocked there with a clear note instead of silently never matching.
  */
-export const CONDITION_PROBE_CAPABILITY: Record<Platform, CapabilityNote> = { windows: S, android: U("cap.screenProbe.android"), web: L("cap.sandbox") };
+export const CONDITION_PROBE_CAPABILITY: Record<Platform, CapabilityNote> = { windows: S, android: L("cap.screenProbe.android"), web: L("cap.sandbox") };
 
 /** True when the step's own condition reads the screen (scene or pixel). */
 export function usesScreenProbe(s: Step): boolean {

@@ -156,14 +156,14 @@ fn new_fields_validate_and_round_trip() {
 }
 
 #[test]
-fn screen_probes_are_blocked_on_android_and_scored() {
+fn screen_probes_are_limited_on_android_and_scored() {
     let flow = mk_with(
         json!([{ "id": "i", "type": "if", "condition": { "pixel": { "at": { "kind": "point", "x": 1, "y": 1 }, "color": "#ffffff" } }, "then": [], "else": [] }]),
         json!({ "stage": { "display": "secondary", "pauseOnTakeover": false } }),
     );
+    // Android reads pixels and scenes through the screen-capture consent (limited, not blocked).
     let pf = autoflow_engine::preflight(&flow, Platform::Android);
-    assert_eq!(pf.blocked.len(), 1);
-    assert_eq!(pf.blocked[0].note_key.as_deref(), Some("cap.screenProbe.android"));
+    assert!(pf.blocked.is_empty(), "{:?}", pf.blocked);
     let keys: Vec<&str> = pf.risk.findings.iter().map(|f| f.key.as_str()).collect();
     assert!(keys.contains(&"risk.stageNoTakeover") && keys.contains(&"risk.screenRead"), "{keys:?}");
     assert!(pf.risk.permissions.contains(&"perm.screen".to_owned()));

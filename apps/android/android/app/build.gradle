@@ -57,6 +57,11 @@ dependencies {
     implementation "androidx.core:core-ktx:$androidxCoreVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation "androidx.work:work-runtime-ktx:$workVersion"
+    // ocr steps: ML Kit text recognition, unbundled (Google Play services) to keep the APK small.
+    implementation "com.google.android.gms:play-services-mlkit-text-recognition:$mlkitTextVersion"
+    implementation "com.google.android.gms:play-services-mlkit-text-recognition-chinese:$mlkitTextScriptVersion"
+    implementation "com.google.android.gms:play-services-mlkit-text-recognition-japanese:$mlkitTextScriptVersion"
+    implementation "com.google.android.gms:play-services-mlkit-text-recognition-korean:$mlkitTextScriptVersion"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutinesVersion"
     implementation project(':capacitor-android')
     testImplementation "junit:junit:$junitVersion"

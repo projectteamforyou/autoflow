@@ -37,7 +37,7 @@ jobs:
   engine:
     name: Engine (fmt, clippy, test) on Ubuntu
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -60,24 +60,52 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
+      - name: Free disk space on the runner (cargo target dirs when below 12 GB)
+        shell: powershell
+        run: |
+          $drive = (Get-Item $env:GITHUB_WORKSPACE).PSDrive.Name
+          $free = (Get-PSDrive $drive).Free / 1GB
+          Write-Host ("free on ${drive}: {0:N1} GB" -f $free)
+          if ($free -lt 12) {
+            $work = Split-Path (Split-Path $env:GITHUB_WORKSPACE -Parent) -Parent
+            Get-ChildItem $work -Directory | ForEach-Object {
+              Get-ChildItem $_.FullName -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+                $t = Join-Path $_.FullName 'target'
+                if ((Test-Path $t) -and ($t -ne (Join-Path $env:GITHUB_WORKSPACE 'target'))) { Write-Host "removing $t"; Remove-Item -Recurse -Force $t -ErrorAction SilentlyContinue }
+              }
+            }
+            Get-ChildItem (Join-Path $work '_temp') -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-1) } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+            $free = (Get-PSDrive $drive).Free / 1GB
+            Write-Host ("after cleanup: {0:N1} GB" -f $free)
+          }
+          if ($free -lt 6) { throw "less than 6 GB free on ${drive}: - clean the runner PC (see CLAUDE.md)" }
       - name: Rust toolchain (rustup if missing)
         # Self-hosted runners: install rustup once if absent; stable + clippy are kept up to date.
         shell: powershell
         run: |
+          # Native tools write progress to stderr; PowerShell 5 must not turn that into a terminating error.
+          $ErrorActionPreference = 'Continue'
           # rustup honours CARGO_HOME (some PCs set it machine-wide, e.g. C:\Rust\cargo); otherwise it is per account.
-          $cargoHome = if ($env:CARGO_HOME) { $env:CARGO_HOME } else { Join-Path $env:USERPROFILE '.cargo' }
+          # A runner service without CARGO_HOME (new office PCs) still finds the machine-wide install.
+          $cargoHome = if ($env:CARGO_HOME) { $env:CARGO_HOME } elseif (Test-Path 'C:\Rust\cargo\bin\rustup.exe') { 'C:\Rust\cargo' } else { Join-Path $env:USERPROFILE '.cargo' }
           $cargoBin = Join-Path $cargoHome 'bin'
+          Write-Host "CARGO_HOME=$cargoHome (rustup present: $(Test-Path (Join-Path $cargoBin 'rustup.exe')))"
+          [IO.File]::AppendAllText($env:GITHUB_ENV, "CARGO_HOME=$cargoHome`n")
           if (-not (Test-Path (Join-Path $cargoBin 'rustup.exe'))) {
+            # First run on this PC: install rustup into CARGO_HOME (curl.exe ships with Windows 10+; errors are printed).
             $init = Join-Path $env:RUNNER_TEMP 'rustup-init.exe'
-            $ProgressPreference = 'SilentlyContinue'
-            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-            Invoke-WebRequest -UseBasicParsing https://win.rustup.rs/x86_64 -OutFile $init
-            & $init -y --default-toolchain stable --profile minimal
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            Write-Host "rustup missing - downloading rustup-init to $init"
+            & curl.exe -fsSL --retry 3 -o $init https://win.rustup.rs/x86_64
+            if ($LASTEXITCODE -ne 0 -or -not (Test-Path $init)) { throw "could not download rustup-init (curl exit $LASTEXITCODE)" }
+            $env:CARGO_HOME = $cargoHome
+            $env:RUSTUP_HOME = if ($env:RUSTUP_HOME) { $env:RUSTUP_HOME } else { Join-Path (Split-Path $cargoHome -Parent) 'rustup' }
+            [IO.File]::AppendAllText($env:GITHUB_ENV, "RUSTUP_HOME=$($env:RUSTUP_HOME)`n")
+            & $init -y --no-modify-path --default-toolchain stable --profile minimal
+            if ($LASTEXITCODE -ne 0) { throw "rustup-init failed with exit code $LASTEXITCODE" }
           }
           [IO.File]::AppendAllText($env:GITHUB_PATH, "$cargoBin`n")
           & (Join-Path $cargoBin 'rustup.exe') toolchain install stable --profile minimal --component clippy --target x86_64-pc-windows-msvc
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($LASTEXITCODE -ne 0) { throw \"rustup toolchain install failed with exit code $LASTEXITCODE\" }
       - name: Stub frontend for generate_context!
         # apps/web/dist is built by the web pipeline; the type check only needs an index.html.
         shell: powershell

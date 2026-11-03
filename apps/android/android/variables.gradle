@@ -20,4 +20,7 @@ ext {
     coroutinesVersion = '1.10.2'
     serializationJsonVersion = '1.9.0'
     workVersion = '2.11.2'
+    // ML Kit Text Recognition v2, unbundled (models live in Google Play services): Latin, and the CJK script packs.
+    mlkitTextVersion = '19.0.2'
+    mlkitTextScriptVersion = '16.0.2'
 }

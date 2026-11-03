@@ -318,6 +318,8 @@ export const fr: Content = {
       { icon: "stop", h3: "Arrêt flottant", p: "Pendant l’exécution, un petit bouton Halt reste au premier plan. Un appui et tout s’arrête." },
       { icon: "clock", h3: "Routines", p: "Lancez des flux à une heure donnée ou au début de la charge — par exemple une routine pour décrocher le soir." },
       { icon: "map", h3: "Atlas sur mobile", p: "Lecteurs à balayage, appuis automatiques et routines d’Atlas, prêts à être ajustés." },
+      { icon: "image", h3: "Scènes et tests de pixel", p: "Capturez une zone une fois et laissez les conditions la comparer à l’écran réel, ou attendez qu’un pixel prenne une couleur, via l’autorisation de capture d’Android, accordée une fois par lancement." },
+      { icon: "text", h3: "Texte à l’écran (OCR)", p: "Lit le texte de l’écran avec la reconnaissance sur l’appareil (services Google Play) : latin, coréen, japonais et chinois." },
     ],
     req: { h2: "Prérequis et configuration", items: ["Android 8.0 ou plus récent", "Autorisez une fois l’installation depuis le navigateur (Android le demande à l’ouverture de l’APK)", "Après le premier lancement, activez AutoFlow dans Paramètres › Accessibilité ; l’app explique ce que fait le service avant de vous y envoyer"] },
     access: {
