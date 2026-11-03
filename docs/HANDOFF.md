@@ -1,8 +1,8 @@
 # AutoFlow — 인수인계 (새 채팅에서 이어서 작업용)
 
-갱신: 2026-11-01 21:30 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#26
+갱신: 2026-11-03 15:10 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#28
 
-## 1. 현재 배포 상태 (Windows 1.1.2 · Android 1.1.2)
+## 1. 현재 배포 상태 (Windows 1.1.2 · Android 1.1.3)
 | 항목 | 값 |
 |---|---|
 | 사이트 (12개 언어, 710페이지 — 가이드 24·대체 프로그램 21 × 12개 언어 포함) | https://autoflowmacro.com |
@@ -10,7 +10,7 @@
 | 관리자 | https://autoflowmacro.com/app/#/admin (projectteamforyou@gmail.com + 설정 코드) |
 | API | https://api.autoflowmacro.com (Railway `autoflow`/`api`, PostgreSQL) |
 | Windows 1.1.2 (Azure 서명: PROJECTTEAMFORYOU, 회사 PC 러너 `runner_label: OFFICE`; 1.1.0·1.1.1은 freezePrototype 때문에 빈 화면 → 1.1.2에서 수정) | https://dl.autoflowmacro.com/windows/AutoFlow-Setup-x64.exe · `AutoFlow-x64.msi` · `AutoFlow-portable-x64.exe` |
-| Android 1.1.2 (업로드 키 SHA-256 1fe265ee…) | https://dl.autoflowmacro.com/android/AutoFlow.apk |
+| Android 1.1.3 (업로드 키 SHA-256 1fe265ee…; Play에는 1.1.2가 검토 중, 1.1.3은 아직 Play 미업로드) | https://dl.autoflowmacro.com/android/AutoFlow.apk |
 | 버전 정보 | https://dl.autoflowmacro.com/latest.json |
 | GitHub 릴리스 (보관용) | https://github.com/projectteamforyou/autoflow/releases/tag/v1.1.2 |
 | Google Play | `com.projectteamforyou.autoflow` — 1.1.0이 **접근성 명시적 공개 누락으로 거부**(2026-10-20) → 1.1.2(versionCode 12)에 네이티브 공개 대화상자 추가, 프로덕션 트랙에 **저장만 됨**(거부 이후엔 API 자동 제출 불가). Console에서 접근성 API 선언 영상 링크 교체 + "검토를 위해 변경사항 보내기" 필요 |
@@ -87,6 +87,15 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
 - 엔진(3개 동일): 중첩 리스트 노드 예산(depth 64), Android Stop이 제스처 취소, confirm/pick 종료 시 완료, 공개 대화상자 요청 큐잉, Windows 패닉→failed/internal, 트리거 동기화 시 스케줄 상태 유지, OCR 중단 가능·캡처 16Mpx 제한, 정규식 미지원 기능 메시지 통일
 - 사이트: `/<lang>/changelog/`(content/changelog.ts, 영어 단일 소스) 신설, Android CTA "APK", Windows 설치 3단계+SmartScreen, Android 요구사항, FAQ 3개, 다운로드 카드 최신 버전(`/v1/stats.windowsVersion`), 폰 헤더 다운로드 아이콘, 404 언어 링크, 인쇄 CSS, JSON-LD offers 2개(verify 스크립트도 갱신). 검사: `pnpm --filter @autoflow/site verify` 722페이지
 - 새 페이지 추가 시: `PAGES`(config.ts)·모든 locale의 `nav.<id>`·`RENDER`·OG 이미지(SKIP_OG 없이 1회 빌드) 필요
+
+## 7-4. 오류 로그·미구현 점검 (PR #28, 2026-11-03)
+- 운영 API(Railway) 7일: 5xx 0건 / 19,084 요청. 4xx는 WordPress 스캐너 봇의 404(/wp/, /blog/ …)뿐. 마이그레이션 005·주문 정산 하우스키핑 정상 동작 확인
+- CI 실패 3건 수정: `ubuntu-latest`→26.04로 Playwright/Chromium 설치 불가(주간 스모크·Site·스크린샷) → 모든 Linux 잡 `ubuntu-24.04` 고정; `cargo fmt` 차이; 회사 러너 디스크 부족 → Windows 잡에 디스크 가드(12 GB 미만이면 다른 작업 폴더 `target` 정리, 6 GB 미만 실패) + `CARGO_HOME` 미설정 PC는 `C:\Rust\cargo` 자동 감지 + rustup 없으면 curl.exe로 설치(PowerShell 5에서는 네이티브 stderr를 파이프하지 말 것)
+- **GitHub 저장소에 `CLOUDFLARE_API_TOKEN` 시크릿이 없어 Site 워크플로의 배포 단계는 항상 skip** → 사이트 배포는 수동(`wrangler pages deploy`). 시크릿을 넣으면 main push마다 자동 배포됨
+- **Android 화면 캡처 구현**(그동안 "Android에서는 사용 불가"였던 기능): `system/ScreenCapture.kt`(MediaProjection, 앱 시작마다 1회 동의) + `CaptureService`(FGS mediaProjection) → 픽셀 검사·waitForPixel·장면 해시·scene_capture·findImage/이미지 타깃(`run/ImageMatch.kt`, Rust NCC 포팅)·OCR(`run/TextRecognition.kt`, ML Kit v2 unbundled: Latin/ko/ja/zh). 권한 `screenCapture` 추가. 기능 매트릭스(TS·Rust·Kotlin) 화면 프로브 = Android "limited". 템플릿 idle-collect·stage-ready-clicker가 Android 대상에 포함
+  - 참조 이미지는 `Android/data/com.projectteamforyou.autoflow/files/AutoFlow/images/<ref>.png` (앱 내 가져오기 UI는 아직 없음)
+  - 미구현으로 남긴 것: Android 위치 트리거(권한 정책상 보류), Keyforge 출력/텍스트 확장(Android), OCR 언어 옵션(기기 로케일로 선택)
+- Android 1.1.3 빌드 → GitHub Release v1.1.3 + R2 `android/AutoFlow.apk`(latest.json 갱신). Play 업로드는 1.1.2 심사 결과 확인 후 `android.yml` track=production version=1.1.3
 
 ## 8. 러너 메모
 - 회사 PC 러너(FELIXLEE*)는 **LocalSystem** 계정(WiX MSI ICE 검사에 필요). Rust는 `CARGO_HOME=C:\Rust\cargo`
