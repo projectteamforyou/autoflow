@@ -97,6 +97,13 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
   - 미구현으로 남긴 것: Android 위치 트리거(권한 정책상 보류), Keyforge 출력/텍스트 확장(Android), OCR 언어 옵션(기기 로케일로 선택)
 - Android 1.1.3 빌드 → GitHub Release v1.1.3 + R2 `android/AutoFlow.apk`(latest.json 갱신). Play 업로드는 1.1.2 심사 결과 확인 후 `android.yml` track=production version=1.1.3
 
+## 7-5. Play 1.1.3 업로드 (PR #32, 2026-11-03)
+- Play 1.1.2 승인됨(2026-10-24 제출 2 → 출시됨). 사이트·웹 앱에 Google Play 링크/배지(PR #30)
+- 1.1.3은 `FOREGROUND_SERVICE_MEDIA_PROJECTION`이 새로 들어가 Play가 **Console의 "포그라운드 서비스 권한 → 미디어 프로젝션" 선언** 없이는 출시 배정을 거부(`403 You must let us know whether your app uses any Foreground Service permissions`). 그 선언 섹션은 **해당 권한이 든 번들이 Play에 올라간 뒤에만** 나타남
+- 그래서 새 워크플로 **`play-upload.yml`**(수동, 재빌드 없음, 1분): `mode=upload`는 Android build 아티팩트의 서명 AAB를 트랙 없이 Play에 올림(`publish.mjs --upload-only`), `mode=submit`은 이미 올라간 versionCode를 트랙에 배정(`--submit`). 2026-11-03 18:21 versionCode 17 업로드 완료(run 41610291128)
+- 선언은 2026-11-03 19:03 사용자가 Console에서 작성·검토 전송(제출 3, "검토 중"). **이 심사가 끝나야** `play-upload.yml` → `mode=submit, version_code=17, track=production, release_name="1.1.3 (17)"`가 통과함(심사 중에는 같은 403). 출시 노트 12개 언어는 `store/whatsnew/`에 1.1.3으로 갱신됨
+- 다음 Android 릴리스부터 순서: `android.yml`(track=none) → 새 권한이 생겼으면 `play-upload.yml upload` → Console 선언 → `play-upload.yml submit`; 권한 변화가 없으면 `android.yml track=production`으로 한 번에
+
 ## 8. 러너 메모
 - 회사 PC 러너(FELIXLEE*)는 **LocalSystem** 계정(WiX MSI ICE 검사에 필요). Rust는 `CARGO_HOME=C:\Rust\cargo`
 - 집 PC 러너는 C 드라이브가 가득 참 → 정리 전까지 Windows 릴리스는 `runner_label: OFFICE`
@@ -105,5 +112,6 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
 ## 9. 남은 작업 후보 (다음 채팅)
 - Android Scenes/픽셀(MediaProjection) 지원
 - 실결제 1건(₩9,900) 후 PortOne 콘솔에서 취소로 끝까지 검증
-- Play 1.1.0 승인 후 1.1.1 프로덕션 업로드
+- Play 선언 심사 완료 후 `play-upload.yml submit` (versionCode 17 → production)
+- GitHub 시크릿 `CLOUDFLARE_API_TOKEN` 등록(사이트 자동 배포)
 - 집 PC 러너 디스크 정리, Google 서비스 계정 키 교체

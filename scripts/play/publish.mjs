@@ -204,7 +204,7 @@ async function finish(editId, verb) {
   try {
     if (verb === ':validate' && notSentForReview) return; // see below: :validate does not take the flag
     const r = await call(`/edits/${editId}${verb}${notSentForReview ? '?changesNotSentForReview=true' : ''}`, { method: 'POST' });
-    console.log(`${verb.slice(1)}d ${r.id ?? editId}`);
+    console.log(`${verb.slice(1)}${verb === ":commit" ? "ted" : "d"} ${r.id ?? editId}`);
   } catch (err) {
     // A new app (or one with Console changes pending) refuses an automatic review submission:
     // "Changes cannot be sent for review automatically … set changesNotSentForReview to true". Save the edit without
