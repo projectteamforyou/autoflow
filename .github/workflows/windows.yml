@@ -85,6 +85,8 @@ jobs:
         # Self-hosted runners: install rustup once if absent; stable + MSVC target are kept up to date.
         shell: powershell
         run: |
+          # Native tools write progress to stderr; PowerShell 5 must not turn that into a terminating error.
+          $ErrorActionPreference = 'Continue'
           # rustup honours CARGO_HOME (some PCs set it machine-wide, e.g. C:\Rust\cargo); otherwise it is per account.
           # A runner service without CARGO_HOME (new office PCs) still finds the machine-wide install.
           $cargoHome = if ($env:CARGO_HOME) { $env:CARGO_HOME } elseif (Test-Path 'C:\Rust\cargo\bin\rustup.exe') { 'C:\Rust\cargo' } else { Join-Path $env:USERPROFILE '.cargo' }
@@ -95,16 +97,16 @@ jobs:
             # First run on this PC: install rustup into CARGO_HOME (curl.exe ships with Windows 10+; errors are printed).
             $init = Join-Path $env:RUNNER_TEMP 'rustup-init.exe'
             Write-Host "rustup missing - downloading rustup-init to $init"
-            & curl.exe -fsSL --retry 3 -o $init https://win.rustup.rs/x86_64 2>&1 | ForEach-Object { Write-Host $_ }
+            & curl.exe -fsSL --retry 3 -o $init https://win.rustup.rs/x86_64
             if ($LASTEXITCODE -ne 0 -or -not (Test-Path $init)) { throw "could not download rustup-init (curl exit $LASTEXITCODE)" }
             $env:CARGO_HOME = $cargoHome
             $env:RUSTUP_HOME = if ($env:RUSTUP_HOME) { $env:RUSTUP_HOME } else { Join-Path (Split-Path $cargoHome -Parent) 'rustup' }
             [IO.File]::AppendAllText($env:GITHUB_ENV, "RUSTUP_HOME=$($env:RUSTUP_HOME)`n")
-            & $init -y --no-modify-path --default-toolchain stable --profile minimal 2>&1 | ForEach-Object { Write-Host $_ }
+            & $init -y --no-modify-path --default-toolchain stable --profile minimal
             if ($LASTEXITCODE -ne 0) { throw "rustup-init failed with exit code $LASTEXITCODE" }
           }
           [IO.File]::AppendAllText($env:GITHUB_PATH, "$cargoBin`n")
-          & (Join-Path $cargoBin 'rustup.exe') toolchain install stable --profile minimal --target x86_64-pc-windows-msvc 2>&1 | ForEach-Object { Write-Host $_ }
+          & (Join-Path $cargoBin 'rustup.exe') toolchain install stable --profile minimal --target x86_64-pc-windows-msvc
           if ($LASTEXITCODE -ne 0) { throw \"rustup toolchain install failed with exit code $LASTEXITCODE\" }
 
       - name: Decide signing mode
