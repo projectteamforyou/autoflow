@@ -1,7 +1,5 @@
-AutoFlow 1.0 cho Android:
-• Chế độ Dễ: tự động chạm chỉ trong vài giây
-• Chế độ Pro: macro với chạm, vuốt, nhập chữ, chờ, điều kiện và vòng lặp
-• Mẫu có sẵn để bắt đầu
-• Nút Dừng nổi, giới hạn chạy và điểm an toàn trước mỗi lần chạy
-• Kích hoạt theo lịch, khi sạc, Wi-Fi, tai nghe và phím tắt
-• Lưu trên máy, không quảng cáo, đồng bộ mã hóa đầu cuối tùy chọn
+AutoFlow 1.1.3
+• Android giờ đọc được màn hình: kiểm tra điểm ảnh, chờ màu, khớp cảnh, tìm ảnh tham chiếu và nhận dạng chữ trên màn hình (OCR), sau khi bạn đồng ý ghi màn hình
+• Dừng cũng hủy thao tác nhấn giữ hoặc kéo đang diễn ra
+• OCR chạy trên thiết bị qua dịch vụ Google Play (Latinh, Hàn, Nhật, Trung)
+• Dịch vụ Trợ năng được giải thích trong ứng dụng bằng 12 ngôn ngữ trước khi mở Cài đặt

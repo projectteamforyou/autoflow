@@ -1,7 +1,5 @@
-AutoFlow 1.0 para Android:
-• Modo Fácil: um autoclicker em segundos
-• Modo Pro: macros com toques, deslizes, texto, esperas, condições e repetições
-• Modelos para começar
-• Botão flutuante de Parar, limites e nota de segurança antes de cada execução
-• Gatilhos por horário, carregamento, Wi-Fi, fones e atalhos de teclado
-• Primeiro no aparelho, sem anúncios, sincronização opcional criptografada
+AutoFlow 1.1.3
+• O Android agora lê a tela: verificação de pixels, espera por uma cor, correspondência de cena, busca de imagem de referência e texto na tela (OCR), após o consentimento de captura
+• Parar também cancela um toque longo ou arrasto em andamento
+• O OCR roda no aparelho via Google Play Services (latino, coreano, japonês, chinês)
+• O serviço de acessibilidade é explicado no app, em 12 idiomas, antes de abrir as Configurações
