@@ -84,8 +84,11 @@ jobs:
         shell: powershell
         run: |
           # rustup honours CARGO_HOME (some PCs set it machine-wide, e.g. C:\Rust\cargo); otherwise it is per account.
-          $cargoHome = if ($env:CARGO_HOME) { $env:CARGO_HOME } else { Join-Path $env:USERPROFILE '.cargo' }
+          # A runner service without CARGO_HOME (new office PCs) still finds the machine-wide install.
+          $cargoHome = if ($env:CARGO_HOME) { $env:CARGO_HOME } elseif (Test-Path 'C:\Rust\cargo\bin\rustup.exe') { 'C:\Rust\cargo' } else { Join-Path $env:USERPROFILE '.cargo' }
           $cargoBin = Join-Path $cargoHome 'bin'
+          Write-Host "CARGO_HOME=$cargoHome (rustup present: $(Test-Path (Join-Path $cargoBin 'rustup.exe')))"
+          [IO.File]::AppendAllText($env:GITHUB_ENV, "CARGO_HOME=$cargoHome`n")
           if (-not (Test-Path (Join-Path $cargoBin 'rustup.exe'))) {
             $init = Join-Path $env:RUNNER_TEMP 'rustup-init.exe'
             $ProgressPreference = 'SilentlyContinue'
@@ -95,8 +98,8 @@ jobs:
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
           [IO.File]::AppendAllText($env:GITHUB_PATH, "$cargoBin`n")
-          & (Join-Path $cargoBin 'rustup.exe') toolchain install stable --profile minimal --component clippy --target x86_64-pc-windows-msvc
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & (Join-Path $cargoBin 'rustup.exe') toolchain install stable --profile minimal --component clippy --target x86_64-pc-windows-msvc 2>&1 | ForEach-Object { Write-Host $_ }
+          if ($LASTEXITCODE -ne 0) { throw \"rustup toolchain install failed with exit code $LASTEXITCODE\" }
       - name: Stub frontend for generate_context!
         # apps/web/dist is built by the web pipeline; the type check only needs an index.html.
         shell: powershell
