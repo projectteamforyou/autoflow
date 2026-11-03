@@ -318,6 +318,8 @@ export const id: Content = {
       { icon: "stop", h3: "Berhenti melayang", p: "Saat alur berjalan, tombol Halt kecil selalu di atas. Satu ketukan, semuanya berhenti." },
       { icon: "clock", h3: "Rutinitas", p: "Jalankan alur di jam tertentu atau saat mulai mengisi daya — misalnya rutinitas bersantai sebelum tidur." },
       { icon: "map", h3: "Atlas di ponsel", p: "Pembaca geser, auto tap, dan rutinitas dari Atlas, siap disesuaikan." },
+      { icon: "image", h3: "Adegan & pemeriksaan piksel", p: "Tangkap satu area sekali dan biarkan kondisi membandingkannya dengan layar langsung, atau tunggu sebuah piksel berubah warna — lewat izin tangkapan layar Android, sekali setiap aplikasi dibuka." },
+      { icon: "text", h3: "Teks di layar (OCR)", p: "Membaca teks dari layar dengan pengenalan di perangkat (layanan Google Play): Latin, Korea, Jepang, dan Mandarin." },
     ],
     req: { h2: "Persyaratan dan penyiapan", items: ["Android 8.0 atau lebih baru", "Izinkan pemasangan dari browser sekali (Android akan bertanya saat APK dibuka)", "Setelah dibuka pertama kali, aktifkan AutoFlow di Setelan › Aksesibilitas — aplikasi menjelaskan apa yang dilakukan layanan sebelum mengarahkan Anda ke sana"] },
     access: {

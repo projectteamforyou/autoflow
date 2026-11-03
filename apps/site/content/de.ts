@@ -318,6 +318,8 @@ export const de: Content = {
       { icon: "stop", h3: "Schwebender Stopp", p: "Während ein Flow läuft, bleibt ein kleiner Halt-Button immer obenauf. Ein Tipp, und alles stoppt." },
       { icon: "clock", h3: "Routinen", p: "Flows zu einer Uhrzeit oder beim Ladebeginn starten – etwa eine Abendroutine zum Abschalten." },
       { icon: "map", h3: "Atlas mobil", p: "Wisch-Reader, Auto-Tapper und Routinen aus Atlas, bereit zum Anpassen." },
+      { icon: "image", h3: "Szenen & Pixelprüfungen", p: "Nimm einen Bereich einmal auf und lass Bedingungen ihn mit dem Live-Bildschirm vergleichen, oder warte, bis ein Pixel eine Farbe annimmt – über Androids Bildschirmaufnahme-Freigabe, einmal pro App-Start." },
+      { icon: "text", h3: "Bildschirmtext (OCR)", p: "Liest Text vom Bildschirm mit Texterkennung auf dem Gerät (Google Play-Dienste): Lateinisch, Koreanisch, Japanisch und Chinesisch." },
     ],
     req: { h2: "Voraussetzungen und Einrichtung", items: ["Android 8.0 oder neuer", "Installation aus dem Browser einmal erlauben (Android fragt beim Öffnen der APK)", "Nach dem ersten Start AutoFlow unter Einstellungen › Bedienungshilfen einschalten – die App erklärt vorher genau, was der Dienst tut"] },
     access: {

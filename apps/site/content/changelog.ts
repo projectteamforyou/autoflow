@@ -14,6 +14,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.1.3",
+    date: "2026-11-03",
+    platforms: ["android"],
+    items: [
+      "Android can now read the screen: pixel checks, waiting for a colour, scene matching, finding a reference image and on-screen text (OCR) work through Android's screen-capture consent, which you grant once each time the app starts.",
+      "Stop (from the app, the notification or a hotkey) now also cancels a long press or drag that is still in progress.",
+      "OCR uses on-device text recognition from Google Play services (Latin, Korean, Japanese and Chinese).",
+    ],
+  },
+  {
     version: "1.1.2",
     date: "2026-10-24",
     platforms: ["android", "web"],
