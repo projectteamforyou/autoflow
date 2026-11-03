@@ -219,6 +219,14 @@ async function finish(editId, verb) {
       return;
     }
     console.error(String(err.message));
+    // A new Console-only declaration is required before the edit can be saved (e.g. after adding a foreground
+    // service type): Play answers 403 PERMISSION_DENIED with a "let us know whether your app uses …" message.
+    if (/let us know whether your app uses/i.test(String(err.message))) {
+      throw new Error(
+        `${err.message}\n\nPlay needs a Console declaration before this release can be saved:\n` +
+          `Play Console → 앱 콘텐츠(App content) → 해당 항목(예: 포그라운드 서비스 권한)을 작성·저장한 뒤 이 워크플로를 다시 실행하세요.`,
+      );
+    }
     if (!/-> 403/.test(String(err.message))) throw err;
     throw new Error(
       `${err.message}\n\nEvery earlier call was accepted; Play checks the release permission only here.\n` +
