@@ -93,6 +93,8 @@ object DeviceState {
                 oemHint(),
             ).joinToString(" · ")
             "inputMonitoring" -> accessibilityEnabled(context) to "hardware keyboard keys only, through the accessibility service"
+            "screenCapture" -> ScreenCapture.isActive to
+                "for pixel, scene, image and text (OCR) steps; Android asks for consent each time AutoFlow starts"
             else -> false to "unknown permission"
         }
         return buildJsonObject {
@@ -102,7 +104,9 @@ object DeviceState {
         }
     }
 
-    val PERMISSIONS = listOf("accessibility", "overlay", "notifications", "location", "notificationListener", "batteryOptimization", "inputMonitoring")
+    val PERMISSIONS = listOf(
+        "accessibility", "overlay", "notifications", "location", "notificationListener", "batteryOptimization", "inputMonitoring", "screenCapture",
+    )
 
     fun deviceInfo(context: Context): JsonObject {
         val s = screen(context)

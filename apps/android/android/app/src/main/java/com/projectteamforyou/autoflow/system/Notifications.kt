@@ -18,6 +18,7 @@ object Notifications {
     const val CHANNEL_FLOW = "flow_messages"
     const val CHANNEL_CONFIRM = "confirm"
     const val ID_RUN_SERVICE = 1001
+    const val ID_CAPTURE_SERVICE = 1002
     private val nextId = AtomicInteger(2000)
 
     fun createChannels(context: Context) {

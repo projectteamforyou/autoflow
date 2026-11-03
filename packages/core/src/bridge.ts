@@ -27,7 +27,7 @@ export type BridgeEvent =
   /** Monitors were added, removed, moved or rescaled (Stage panel, display chips). */
   | { kind: "displays"; displays: DisplayInfo[] };
 
-export type NativePermission = "accessibility" | "overlay" | "notifications" | "location" | "notificationListener" | "batteryOptimization" | "inputMonitoring";
+export type NativePermission = "accessibility" | "overlay" | "notifications" | "location" | "notificationListener" | "batteryOptimization" | "inputMonitoring" | "screenCapture";
 
 export interface PermissionStatus {
   permission: NativePermission;

@@ -51,7 +51,7 @@ pub fn step_capability(step_type: &str, platform: Platform) -> CapabilityNote {
         "file" => [S, l("cap.file.android"), u("cap.native")],
         "ocr" => [S, l("cap.ocr.android"), u("cap.native")],
         "findImage" => [S, l("cap.findImage.android"), u("cap.native")],
-        "pixelCheck" | "waitForPixel" | "matchScene" => [S, u("cap.screenProbe.android"), l("cap.sandbox")],
+        "pixelCheck" | "waitForPixel" | "matchScene" => [S, l("cap.screenProbe.android"), l("cap.sandbox")],
         "switchProfile" => [S, l("cap.switchProfile.android"), u("cap.native")],
         _ => [S, S, S],
     };
@@ -84,7 +84,7 @@ pub fn trigger_capability(trigger_type: &str, platform: Platform) -> CapabilityN
 pub fn condition_probe_capability(platform: Platform) -> CapabilityNote {
     match platform {
         Platform::Windows => S,
-        Platform::Android => u("cap.screenProbe.android"),
+        Platform::Android => l("cap.screenProbe.android"),
         Platform::Web => l("cap.sandbox"),
     }
 }

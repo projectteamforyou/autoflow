@@ -90,12 +90,16 @@ jobs:
           Write-Host "CARGO_HOME=$cargoHome (rustup present: $(Test-Path (Join-Path $cargoBin 'rustup.exe')))"
           [IO.File]::AppendAllText($env:GITHUB_ENV, "CARGO_HOME=$cargoHome`n")
           if (-not (Test-Path (Join-Path $cargoBin 'rustup.exe'))) {
+            # First run on this PC: install rustup into CARGO_HOME (curl.exe ships with Windows 10+; errors are printed).
             $init = Join-Path $env:RUNNER_TEMP 'rustup-init.exe'
-            $ProgressPreference = 'SilentlyContinue'
-            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-            Invoke-WebRequest -UseBasicParsing https://win.rustup.rs/x86_64 -OutFile $init
-            & $init -y --default-toolchain stable --profile minimal
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            Write-Host "rustup missing - downloading rustup-init to $init"
+            & curl.exe -fsSL --retry 3 -o $init https://win.rustup.rs/x86_64 2>&1 | ForEach-Object { Write-Host $_ }
+            if ($LASTEXITCODE -ne 0 -or -not (Test-Path $init)) { throw "could not download rustup-init (curl exit $LASTEXITCODE)" }
+            $env:CARGO_HOME = $cargoHome
+            $env:RUSTUP_HOME = if ($env:RUSTUP_HOME) { $env:RUSTUP_HOME } else { Join-Path (Split-Path $cargoHome -Parent) 'rustup' }
+            [IO.File]::AppendAllText($env:GITHUB_ENV, "RUSTUP_HOME=$($env:RUSTUP_HOME)`n")
+            & $init -y --no-modify-path --default-toolchain stable --profile minimal 2>&1 | ForEach-Object { Write-Host $_ }
+            if ($LASTEXITCODE -ne 0) { throw "rustup-init failed with exit code $LASTEXITCODE" }
           }
           [IO.File]::AppendAllText($env:GITHUB_PATH, "$cargoBin`n")
           & (Join-Path $cargoBin 'rustup.exe') toolchain install stable --profile minimal --component clippy --target x86_64-pc-windows-msvc 2>&1 | ForEach-Object { Write-Host $_ }

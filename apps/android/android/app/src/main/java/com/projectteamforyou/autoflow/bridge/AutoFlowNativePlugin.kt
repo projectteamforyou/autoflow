@@ -1,31 +1,40 @@
 package com.projectteamforyou.autoflow.bridge
 
 import android.Manifest
+import android.app.Activity
 import android.os.Build
+import androidx.activity.result.ActivityResult
 import com.getcapacitor.JSObject
 import com.getcapacitor.PermissionState
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
+import com.getcapacitor.annotation.ActivityCallback
 import com.getcapacitor.annotation.CapacitorPlugin
 import com.getcapacitor.annotation.Permission
 import com.getcapacitor.annotation.PermissionCallback
 import com.projectteamforyou.autoflow.a11y.AccessibilityDisclosure
 import com.projectteamforyou.autoflow.a11y.AutoFlowAccessibilityService
+import com.projectteamforyou.autoflow.engine.BackendException
 import com.projectteamforyou.autoflow.engine.FlowParseException
 import com.projectteamforyou.autoflow.engine.FlowParser
+import com.projectteamforyou.autoflow.engine.Target
 import com.projectteamforyou.autoflow.engine.Value
+import com.projectteamforyou.autoflow.engine.placeRect
 import com.projectteamforyou.autoflow.keyforge.ProfileManager
 import com.projectteamforyou.autoflow.run.RunManager
 import com.projectteamforyou.autoflow.secrets.SecretStore
+import com.projectteamforyou.autoflow.system.CaptureService
 import com.projectteamforyou.autoflow.system.DeviceState
 import com.projectteamforyou.autoflow.system.Intents
+import com.projectteamforyou.autoflow.system.ScreenCapture
 import com.projectteamforyou.autoflow.triggers.TriggerEngine
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
@@ -36,8 +45,10 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
+import kotlin.math.roundToInt
 
 /**
  * Capacitor plugin "AutoFlowNative" — the Android side of `BridgeCommands` in packages/core/src/bridge.ts.
@@ -108,6 +119,8 @@ class AutoFlowNativePlugin : Plugin() {
                 fail(call, "cancelled", "user")
             } catch (e: FlowParseException) {
                 fail(call, e.message ?: "invalid flow", "validation")
+            } catch (e: BackendException) {
+                fail(call, e.message ?: "failed", e.category.json)
             } catch (e: IllegalArgumentException) {
                 fail(call, e.message ?: "invalid arguments", "validation")
             } catch (e: Exception) {
@@ -140,6 +153,12 @@ class AutoFlowNativePlugin : Plugin() {
             requestPermissionForAlias("notifications", call, "onNotificationPermission")
             return
         }
+        if (permission == "screenCapture") {
+            // Granted in the system consent dialog, per process start; never through Settings.
+            if (ScreenCapture.isActive) return ok(call, DeviceState.permissionStatus(context, permission))
+            requestScreenCapture(call)
+            return
+        }
         val status = DeviceState.permissionStatus(context, permission)
         if (status["granted"] != JsonPrimitive(true) && permission in A11Y_PAGES) {
             // Play policy: the prominent disclosure always comes before Android's Accessibility settings.
@@ -159,6 +178,35 @@ class AutoFlowNativePlugin : Plugin() {
         val status = DeviceState.permissionStatus(context, "notifications")
         BridgeEvents.permission("notifications", status["granted"] == JsonPrimitive(true))
         ok(call, status)
+    }
+
+    /** Screen capture: the system consent dialog; [CaptureService] then takes the projection into the foreground. */
+    private fun requestScreenCapture(call: PluginCall) {
+        if (activity == null) return fail(call, "AutoFlow is not in the foreground", "environment")
+        try {
+            startActivityForResult(call, ScreenCapture.consentIntent(context), "onScreenCaptureResult")
+        } catch (e: Exception) {
+            fail(call, "screen capture is not available on this device: ${e.message ?: e.javaClass.simpleName}", "unsupported")
+        }
+    }
+
+    @ActivityCallback
+    private fun onScreenCaptureResult(call: PluginCall?, result: ActivityResult) {
+        val data = result.data
+        if (result.resultCode != Activity.RESULT_OK || data == null) {
+            if (call != null) ok(call, JsonObject(DeviceState.permissionStatus(context, "screenCapture") + ("declined" to JsonPrimitive(true))))
+            return
+        }
+        val started = CaptureService.start(context, result.resultCode, data)
+        scope.launch {
+            // getMediaProjection runs inside the foreground service (Android 10+ rule); give it a moment to attach.
+            var waited = 0
+            while (started && !ScreenCapture.isActive && waited < 4000) {
+                delay(50)
+                waited += 50
+            }
+            if (call != null) ok(call, DeviceState.permissionStatus(context, "screenCapture"))
+        }
     }
 
     @PluginMethod
@@ -252,9 +300,27 @@ class AutoFlowNativePlugin : Plugin() {
     @PluginMethod
     fun deck_pin(call: PluginCall) = fail(call, "Android has a single display; Stage mode needs a second monitor on Windows", "unsupported")
 
-    /** Scenes need screen capture, which AutoFlow for Android does not use (no MediaProjection). */
+    /** Captures a normalized region of the built-in display as a Scene: dHash + PNG thumbnail (needs screen capture). */
     @PluginMethod
-    fun scene_capture(call: PluginCall) = fail(call, "Scenes need screen capture, which is not available on Android; capture them in AutoFlow for Windows", "unsupported")
+    fun scene_capture(call: PluginCall) = async(call) {
+        val a = args(call)
+        val displayId = a.string("displayId") ?: "primary"
+        if (displayId != "primary") throw IllegalArgumentException("display \"$displayId\" is not connected")
+        val r = a["region"] as? JsonObject ?: throw IllegalArgumentException("region is required")
+        fun num(k: String): Double = (r[k] as? JsonPrimitive)?.doubleOrNull ?: Double.NaN
+        val region = Target.Rect(num("x"), num("y"), num("w"), num("h"))
+        fun unit(v: Double) = v.isFinite() && v >= 0.0 && v <= 1.0
+        if (!(unit(region.x) && unit(region.y) && unit(region.w) && unit(region.h)) || region.w <= 0.0 || region.h <= 0.0) {
+            throw IllegalArgumentException("the scene region must be a normalized rectangle inside the display")
+        }
+        // Same placement and clamping as the engine's scene probes (scene_rect in apps/desktop).
+        val s = DeviceState.screen(context)
+        val b = Target.Rect(0.0, 0.0, s.width.toDouble(), s.height.toDouble())
+        val r0 = placeRect(b, region, "normalized")
+        val rect = r0.copy(w = maxOf(1.0, minOf(r0.w, b.x + b.w - r0.x)), h = maxOf(1.0, minOf(r0.h, b.y + b.h - r0.y)))
+        val cap = ScreenCapture.sceneCapture(context, rect.x.roundToInt(), rect.y.roundToInt(), rect.w.roundToInt(), rect.h.roundToInt())
+        buildJsonObject { put("hash", cap.hash); put("thumb", cap.thumb); put("width", cap.width); put("height", cap.height) }
+    }
 
     @PluginMethod
     fun profiles_apply(call: PluginCall) = async(call) {
@@ -287,6 +353,10 @@ class AutoFlowNativePlugin : Plugin() {
     @PluginMethod
     fun open_settings(call: PluginCall) {
         val page = args(call).string("page") ?: "app"
+        if (page == "screenCapture") {
+            if (ScreenCapture.isActive) ok(call) else requestScreenCapture(call)
+            return
+        }
         if (page in A11Y_PAGES) {
             val act = activity ?: return fail(call, "AutoFlow is not in the foreground", "environment")
             AccessibilityDisclosure.request(act) { agreed -> ok(call, buildJsonObject { put("declined", !agreed) }) }
