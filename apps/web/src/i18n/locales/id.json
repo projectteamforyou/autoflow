@@ -1351,5 +1351,6 @@
   "settings.restore": "Pulihkan cadangan",
   "settings.apiUrlInvalid": "Masukkan alamat http(s) lengkap, mis. https://api.example.com",
   "import.restoredProfiles": "{n} alur dan {p} profil Keyforge dipulihkan dari cadangan.",
-  "share.copyManually": "Gagal menyalin ke papan klip — salin sendiri tautan di bawah."
+  "share.copyManually": "Gagal menyalin ke papan klip — salin sendiri tautan di bawah.",
+  "trial.play": "Juga di Google Play"
 }

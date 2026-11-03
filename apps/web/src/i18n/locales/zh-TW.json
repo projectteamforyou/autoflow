@@ -1351,5 +1351,6 @@
   "settings.restore": "還原備份",
   "settings.apiUrlInvalid": "請輸入完整的 http(s) 位址，例如 https://api.example.com",
   "import.restoredProfiles": "已從備份還原 {n} 個流程與 {p} 個 Keyforge 設定檔。",
-  "share.copyManually": "複製到剪貼簿失敗，請手動複製下方連結。"
+  "share.copyManually": "複製到剪貼簿失敗，請手動複製下方連結。",
+  "trial.play": "也可在 Google Play 取得"
 }

@@ -1351,5 +1351,6 @@
   "settings.restore": "バックアップを復元",
   "settings.apiUrlInvalid": "http(s) で始まる完全なアドレスを入力してください。例: https://api.example.com",
   "import.restoredProfiles": "バックアップからフロー {n} 件と Keyforge プロファイル {p} 件を復元しました。",
-  "share.copyManually": "クリップボードへのコピーに失敗しました。下のリンクを手動でコピーしてください。"
+  "share.copyManually": "クリップボードへのコピーに失敗しました。下のリンクを手動でコピーしてください。",
+  "trial.play": "Google Play でも入手できます"
 }

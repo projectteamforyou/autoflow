@@ -1351,5 +1351,6 @@
   "settings.restore": "Restaurar backup",
   "settings.apiUrlInvalid": "Informe um endereço http(s) completo, ex.: https://api.example.com",
   "import.restoredProfiles": "{n} fluxos e {p} perfis do Keyforge restaurados do backup.",
-  "share.copyManually": "Falha ao copiar para a área de transferência — copie o link abaixo manualmente."
+  "share.copyManually": "Falha ao copiar para a área de transferência — copie o link abaixo manualmente.",
+  "trial.play": "Também no Google Play"
 }

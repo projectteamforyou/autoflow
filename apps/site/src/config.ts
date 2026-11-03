@@ -27,6 +27,7 @@ export const DIRECT = {
 export const LINKS = {
   windows: `${API_ORIGIN}/v1/stats/download/windows`,
   android: `${API_ORIGIN}/v1/stats/download/android`,
+  play: "https://play.google.com/store/apps/details?id=com.projectteamforyou.autoflow",
   app: "/app/",
   atlas: (id: string) => `/app/#/atlas/${encodeURIComponent(id)}`,
   email: "projectteamforyou@gmail.com",

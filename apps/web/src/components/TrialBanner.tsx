@@ -12,6 +12,8 @@ import { SITE_URL } from "../lib/site";
 import { useT } from "../i18n";
 import { hasNativeBridge } from "../platform";
 
+const PLAY_URL = "https://play.google.com/store/apps/details?id=com.projectteamforyou.autoflow";
+
 type Os = "windows" | "android" | "other";
 
 function detectOs(): Os {
@@ -80,6 +82,7 @@ export function TrialHero() {
       <div className="trial-hero-cta">
         {os === "android" ? [and, win] : [win, and]}
         <a className="text-link small" href={links.page} target="_blank" rel="noopener">{t("trial.more")} <Icon name="ExternalLink" size={13} /></a>
+        <a className="text-link small" href={PLAY_URL} target="_blank" rel="noopener">{t("trial.play")} <Icon name="ExternalLink" size={13} /></a>
       </div>
     </section>
   );

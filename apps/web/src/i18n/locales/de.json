@@ -1351,5 +1351,6 @@
   "settings.restore": "Backup wiederherstellen",
   "settings.apiUrlInvalid": "Gib eine vollständige http(s)-Adresse ein, z. B. https://api.example.com",
   "import.restoredProfiles": "{n} Flows und {p} Keyforge-Profile aus dem Backup wiederhergestellt.",
-  "share.copyManually": "Kopieren in die Zwischenablage fehlgeschlagen – kopiere den Link unten selbst."
+  "share.copyManually": "Kopieren in die Zwischenablage fehlgeschlagen – kopiere den Link unten selbst.",
+  "trial.play": "Auch bei Google Play"
 }
