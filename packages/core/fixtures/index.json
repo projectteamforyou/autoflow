@@ -157,6 +157,7 @@
     "category": "gaming",
     "platforms": [
       "windows",
+      "android",
       "web"
     ],
     "explain": "When you press Run\nPlays on the second display; pauses as soon as you move the mouse\n  Set collected = 0\n  Repeat while collected < rounds, at most once every 400ms:\n    In the lobby: start a round\n      Click left at 50% across, 68% down the screen\n    Reward screen: collect it\n      Click left at 50% across, 76% down the screen\n      Set collected = collected + 1\n      Write to the run log: Collected round {{collected}} of {{rounds}}\n  Show notification “Idle run finished”\nStops automatically after 30m · emergency stop Ctrl+Alt+Escape"
@@ -166,6 +167,7 @@
     "category": "gaming",
     "platforms": [
       "windows",
+      "android",
       "web"
     ],
     "explain": "When you press Run\nPlays on the second display; pauses as soon as you move the mouse\n  Repeat until stopped, at most once every 500ms:\n    If 50% across, 68% down the screen shows #2ecc71:\n      Click left at 50% across, 68% down the screen\n      Write to the run log: Ready button clicked at {{time()}}\nStops automatically after 1h · emergency stop Ctrl+Alt+Escape"
