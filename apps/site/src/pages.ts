@@ -32,6 +32,11 @@ function img(name: string, eager = false, sizes = "(max-width: 880px) 100vw, 560
 const ext = (t: Content, href: string, inner: string, cls: string) =>
   `<a class="${cls}" href="${href}" rel="noopener noreferrer" target="_blank">${inner}<span class="sr-only"> ${esc(t.a11y.newTab)}</span></a>`;
 
+/** Official Google Play badge (localized artwork from play.google.com/badges) linking to the store listing. */
+export function playBadge(ctx: Ctx, cls = "play-badge") {
+  return `<a class="${cls}" href="${LINKS.play}" rel="noopener noreferrer" target="_blank"><img src="/play-badge-${ctx.lang}.png" alt="${esc(ctx.t.cta.play)}" width="162" height="63" loading="lazy" decoding="async"><span class="sr-only"> ${esc(ctx.t.a11y.newTab)}</span></a>`;
+}
+
 /** "Personal edition · For individual users · Work use? Business license" under every download button row. */
 export function editionLine(ctx: Ctx) {
   const { t, lang } = ctx;
@@ -45,7 +50,8 @@ ${ext(t, LINKS.windows, `${brand("windows", 18)}<span>${esc(t.cta.windows)}</spa
 ${ext(t, LINKS.android, `${brand("android", 18)}<span>${esc(t.cta.android)}</span>`, "btn btn-secondary")}
 </div>
 ${editionLine(ctx)}
-${withWeb ? `<div class="hero-sub"><a class="text-link" href="${LINKS.app}">${esc(t.cta.webLong)}${icon("arrow", 16)}</a><span>${esc(t.cta.note)}</span></div>` : ""}`;
+${withWeb ? `<div class="hero-sub"><a class="text-link" href="${LINKS.app}">${esc(t.cta.webLong)}${icon("arrow", 16)}</a><span>${esc(t.cta.note)}</span></div>` : ""}
+<div class="play-band">${playBadge(ctx)}<span class="play-band-text">${esc(t.cta.playBanner)}</span></div>`;
 }
 
 function crumbs(ctx: Ctx, page: PageId) {
@@ -261,7 +267,7 @@ ${shareSection(ctx, w.seo.title)}`;
 function android(ctx: Ctx): PageOut {
   const { t } = ctx;
   const a = t.android;
-  const main = html`${pageHero(ctx, "android", a.h1, a.lead, `<div class="cta-row">${ext(t, LINKS.android, `${brand("android", 18)}<span>${esc(t.cta.android)}</span>`, "btn btn-primary")}<a class="btn btn-secondary" href="${LINKS.app}">${icon("browser", 18)}<span>${esc(t.cta.web)}</span></a></div>`)}
+  const main = html`${pageHero(ctx, "android", a.h1, a.lead, `<div class="cta-row cta-row-android">${playBadge(ctx, "play-badge play-badge-lg")}${ext(t, LINKS.android, `${brand("android", 18)}<span>${esc(t.cta.android)}</span>`, "btn btn-secondary")}<a class="btn btn-secondary" href="${LINKS.app}">${icon("browser", 18)}<span>${esc(t.cta.web)}</span></a></div>`)}
 <section class="section-tight"><div class="wrap">
 <div class="split"><div>${cards(a.items)}</div><div class="frame square">${img("android-automation")}</div></div>
 <div class="card mt-l"><h2 class="h2">${esc(a.req.h2)}</h2>${steps(a.req.items)}</div>
@@ -339,7 +345,7 @@ function download(ctx: Ctx): PageOut {
 <section class="section-tight" id="downloads"><div class="wrap">
 <div class="grid-3">
 <article class="card feature card-glow"><span class="tile">${brand("windows", 18)}</span><h2 class="h2">${esc(d.windows.h2)}</h2><p>${esc(d.windows.p)}</p><p class="muted">${esc(d.windows.meta)}<span class="dl-ver" data-version hidden> · ${esc(d.latest)} <b></b></span></p><div class="cta-row">${ext(t, LINKS.windows, `${icon("download", 18)}<span>${esc(t.cta.windows)}</span>`, "btn btn-primary")}</div></article>
-<article class="card feature"><span class="tile">${brand("android", 18)}</span><h2 class="h2">${esc(d.android.h2)}</h2><p>${esc(d.android.p)}</p><p class="muted">${esc(d.android.meta)}</p><div class="cta-row">${ext(t, LINKS.android, `${brand("android", 18)}<span>${esc(t.cta.android)}</span>`, "btn btn-secondary")}</div></article>
+<article class="card feature"><span class="tile">${brand("android", 18)}</span><h2 class="h2">${esc(d.android.h2)}</h2><p>${esc(d.android.p)}</p><p class="muted">${esc(d.android.meta)}</p><div class="cta-row cta-row-android">${playBadge(ctx)}${ext(t, LINKS.android, `${brand("android", 18)}<span>${esc(t.cta.android)}</span>`, "btn btn-secondary")}</div></article>
 <article class="card feature"><span class="tile">${icon("browser", 20)}</span><h2 class="h2">${esc(d.web.h2)}</h2><p>${esc(d.web.p)}</p><p class="muted">${esc(d.web.meta)}</p><div class="cta-row"><a class="btn btn-secondary" href="${LINKS.app}">${icon("arrow", 18)}<span>${esc(t.cta.web)}</span></a></div></article>
 </div>
 <div class="note mt-l">${icon("shield", 18)}<span>${md(d.verify)} <a href="${pagePath(ctx.lang, "changelog")}">${esc(d.releases)}</a></span></div>

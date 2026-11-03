@@ -1351,5 +1351,6 @@
   "settings.restore": "Восстановить из копии",
   "settings.apiUrlInvalid": "Введите полный адрес http(s), например https://api.example.com",
   "import.restoredProfiles": "Из копии восстановлено потоков: {n}, профилей Keyforge: {p}.",
-  "share.copyManually": "Не удалось скопировать в буфер обмена — скопируйте ссылку ниже вручную."
+  "share.copyManually": "Не удалось скопировать в буфер обмена — скопируйте ссылку ниже вручную.",
+  "trial.play": "Также в Google Play"
 }

@@ -41,7 +41,7 @@ export function baseGraph(ctx: Ctx, title: string, description: string, crumbs: 
       operatingSystem: "Windows, Android, Web",
       applicationCategory: "UtilitiesApplication",
       applicationSubCategory: "Automation",
-      downloadUrl: [DIRECT.windows, DIRECT.android],
+      downloadUrl: [DIRECT.windows, LINKS.play, DIRECT.android],
       installUrl: abs(LINKS.app),
       inLanguage: LOCALES.map((l) => l.hreflang),
       isAccessibleForFree: true,

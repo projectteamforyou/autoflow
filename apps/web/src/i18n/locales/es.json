@@ -1351,5 +1351,6 @@
   "settings.restore": "Restaurar copia",
   "settings.apiUrlInvalid": "Introduce una dirección http(s) completa, p. ej. https://api.example.com",
   "import.restoredProfiles": "Se restauraron {n} flujos y {p} perfiles de Keyforge desde la copia.",
-  "share.copyManually": "No se pudo copiar al portapapeles: copia el enlace de abajo tú mismo."
+  "share.copyManually": "No se pudo copiar al portapapeles: copia el enlace de abajo tú mismo.",
+  "trial.play": "También en Google Play"
 }

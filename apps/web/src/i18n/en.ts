@@ -79,6 +79,7 @@ export const en = {
   "trial.body": "Here, flows run on the Practice Canvas, a safe virtual screen. To automate your real PC or phone, install the free app (personal edition).",
   "trial.windows": "Download for Windows",
   "trial.android": "Download for Android",
+  "trial.play": "Also on Google Play",
   "dl.title": "Where will you use AutoFlow?",
   "dl.body": "Free on your own personal devices. Any other use — at or for work, freelance or contract jobs, companies, schools, public bodies or for profit — needs a Business license.",
   "dl.personal": "Personal use — free download",

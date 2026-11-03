@@ -573,3 +573,14 @@ ul { margin: 0; padding: 0; }
 .release-plat { display: inline-flex; flex-wrap: wrap; gap: 6px; }
 .dl-ver b { color: var(--af-text); font-weight: 600; }
 .nf-langs { justify-content: center; margin-top: 28px; }
+
+/* ------------------------------------------------------------------ Google Play badge + band */
+.play-badge { display: inline-flex; line-height: 0; border-radius: 8px; transition: transform 0.15s ease; }
+.play-badge:hover { transform: translateY(-1px); }
+.play-badge img { width: 162px; height: auto; display: block; }
+.play-badge-lg img { width: 186px; }
+.play-band { display: inline-flex; align-items: center; gap: 14px; margin: 22px auto 0; padding: 8px 18px 8px 8px; border-radius: 999px; border: 1px solid var(--af-border-strong); background: color-mix(in srgb, var(--af-surface) 78%, transparent); }
+.play-band-text { font-size: 14px; font-weight: 600; color: var(--af-text); }
+.page-hero .play-band { margin-top: 18px; }
+.cta-row-android { align-items: center; }
+@media (max-width: 420px) { .play-band { gap: 10px; padding-right: 12px; } .play-badge img { width: 140px; } }

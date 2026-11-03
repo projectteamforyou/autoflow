@@ -1351,5 +1351,6 @@
   "settings.restore": "Restaurer une sauvegarde",
   "settings.apiUrlInvalid": "Saisissez une adresse http(s) complète, p. ex. https://api.example.com",
   "import.restoredProfiles": "{n} flux et {p} profils Keyforge restaurés depuis la sauvegarde.",
-  "share.copyManually": "La copie dans le presse-papiers a échoué : copiez vous-même le lien ci-dessous."
+  "share.copyManually": "La copie dans le presse-papiers a échoué : copiez vous-même le lien ci-dessous.",
+  "trial.play": "Aussi sur Google Play"
 }

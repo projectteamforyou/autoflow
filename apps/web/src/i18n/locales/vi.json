@@ -1351,5 +1351,6 @@
   "settings.restore": "Khôi phục bản sao lưu",
   "settings.apiUrlInvalid": "Nhập địa chỉ http(s) đầy đủ, ví dụ https://api.example.com",
   "import.restoredProfiles": "Đã khôi phục {n} luồng và {p} hồ sơ Keyforge từ bản sao lưu.",
-  "share.copyManually": "Không sao chép được vào bảng tạm — hãy tự sao chép liên kết bên dưới."
+  "share.copyManually": "Không sao chép được vào bảng tạm — hãy tự sao chép liên kết bên dưới.",
+  "trial.play": "Cũng có trên Google Play"
 }
