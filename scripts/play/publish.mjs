@@ -27,6 +27,10 @@
  *        [--status completed|draft|inProgress|halted] [--no-images] [--dry-run]
  *   node scripts/play/publish.mjs --package com.projectteamforyou.autoflow --listing-only [--no-images] [--dry-run]
  *        (store page only — listings, promo video links, icon/feature/screenshots; no bundle, no track change)
+ *   node scripts/play/publish.mjs --package com.projectteamforyou.autoflow --upload-only --aab app-release.aab
+ *        (bundle only, no track — makes a new permission's Console declaration section appear; then --submit)
+ *   node scripts/play/publish.mjs --package com.projectteamforyou.autoflow --submit --version-code 42 --track production
+ *        (release a bundle already on Play, without rebuilding)
  *   node scripts/play/publish.mjs --package com.projectteamforyou.autoflow --check [--version-code 42]
  *        (pre-build: credentials, permissions, every locale accepted, version code still unused — nothing changes)
  */
@@ -404,6 +408,29 @@ async function submit() {
 }
 
 /**
+ * --upload-only: put a signed bundle on Play (App Bundle Explorer) without touching any track, listing or image. Used
+ * when a new permission needs a Console declaration first: the declaration section only appears after a bundle
+ * carrying the permission exists on Play. Once it is saved, `--submit --version-code N` releases that bundle.
+ */
+const UPLOAD_ONLY = has('upload-only');
+async function uploadOnly() {
+  ACCESS = await token();
+  const edit = await call('/edits', { method: 'POST', json: {} });
+  console.log(`edit ${edit.id} (bundle only)`);
+  const aab = await readFile(resolve(AAB));
+  const up = await call(`${UPLOAD}/applications/${PACKAGE}/edits/${edit.id}/bundles?uploadType=media`, { method: 'POST', body: aab, type: 'application/octet-stream' });
+  console.log(`uploaded versionCode ${up.versionCode} (${(aab.length / 1048576).toFixed(1)} MB)`);
+  try {
+    await finish(edit.id, ':validate');
+    await finish(edit.id, ':commit');
+  } catch (err) {
+    await call(`/edits/${edit.id}`, { method: 'DELETE' }).catch(() => {});
+    throw err;
+  }
+  console.log(`\nversionCode ${up.versionCode} is on Play (no track). Next: Console → 앱 콘텐츠 → 선언 작성 → then --submit --version-code ${up.versionCode}.`);
+}
+
+/**
  * --listing-only: the 12 listings (+ promo video links) and, unless --no-images, every image — no bundle, no track
  * change. For store-page (ASO) updates between releases; Play reviews the listing change on its own.
  */
@@ -424,7 +451,10 @@ async function listingOnly() {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  if (LISTING_ONLY) {
+  if (UPLOAD_ONLY) {
+    if (!PACKAGE || !AAB) { console.error('usage: --package <id> --upload-only --aab <file>'); process.exit(2); }
+    uploadOnly().catch((err) => { console.error(String(err?.message ?? err)); process.exit(1); });
+  } else if (LISTING_ONLY) {
     if (!PACKAGE) { console.error('usage: --package <id> --listing-only [--no-images] [--dry-run]'); process.exit(2); }
     listingOnly().catch((err) => { console.error(String(err?.message ?? err)); process.exit(1); });
   } else if (SUBMIT) {
