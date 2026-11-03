@@ -62,6 +62,25 @@ jobs:
         run: |
           if (-not (Test-Path apps/web/dist/index.html)) { throw "apps/web/dist/index.html is missing - the desktop app needs the web app build." }
 
+      - name: Free disk space on the runner (cargo target dirs when below 12 GB)
+        shell: powershell
+        run: |
+          $drive = (Get-Item $env:GITHUB_WORKSPACE).PSDrive.Name
+          $free = (Get-PSDrive $drive).Free / 1GB
+          Write-Host ("free on ${drive}: {0:N1} GB" -f $free)
+          if ($free -lt 12) {
+            $work = Split-Path (Split-Path $env:GITHUB_WORKSPACE -Parent) -Parent
+            Get-ChildItem $work -Directory | ForEach-Object {
+              Get-ChildItem $_.FullName -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+                $t = Join-Path $_.FullName 'target'
+                if ((Test-Path $t) -and ($t -ne (Join-Path $env:GITHUB_WORKSPACE 'target'))) { Write-Host "removing $t"; Remove-Item -Recurse -Force $t -ErrorAction SilentlyContinue }
+              }
+            }
+            Get-ChildItem (Join-Path $work '_temp') -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-1) } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+            $free = (Get-PSDrive $drive).Free / 1GB
+            Write-Host ("after cleanup: {0:N1} GB" -f $free)
+          }
+          if ($free -lt 6) { throw "less than 6 GB free on ${drive}: - clean the runner PC (see CLAUDE.md)" }
       - name: Rust toolchain (rustup if missing)
         # Self-hosted runners: install rustup once if absent; stable + MSVC target are kept up to date.
         shell: powershell

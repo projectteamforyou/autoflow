@@ -13,7 +13,7 @@
 - **무거운 작업은 주 1회 `schedule`·`workflow_dispatch`·태그로만**: E2E/브라우저 테스트, 스크린샷, 에뮬레이터, lint 보고서, 30분 넘는 작업. 선택형 무거운 단계는 입력 기본값 **off**.
   - 예: `ci.yml`의 Chromium 스모크 테스트(주 1회 월 03:17 UTC + 수동 `smoke`), `android.yml`의 에뮬레이터 `smoke`(기본 off), `play-listing.yml`의 `images`(기본 off), `play-demo-video.yml`(수동만).
 - **cron은 6시간 이상 간격**. dependabot을 추가한다면 `monthly` + `groups` + `open-pull-requests-limit: 3` 이하.
-- **Linux 전용 잡**(bash·apt-get·Docker·에뮬레이터)은 `ubuntu-latest` 유지. **macOS 잡은 수동 입력이 켜졌을 때만**.
+- **Linux 잡은 `ubuntu-24.04`로 고정**(`ubuntu-latest`는 2026-11부터 26.04 → Playwright/Chromium 설치 불가로 CI·Site·스크린샷이 깨짐). **macOS 잡은 수동 입력이 켜졌을 때만**.
 
 ## 조직 러너 (self-hosted, Windows) 사용법
 
@@ -24,7 +24,8 @@
   - **기본 셸은 PowerShell 5** → `run:`에 `&&` 금지. 줄을 나누고 `if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }`로 확인. **`shell: pwsh` 금지**(회사 PC 러너는 PowerShell 7이 PATH에 없음) → `shell: powershell`.
   - PowerShell 5의 `>>`·`Out-File`은 UTF-16/BOM으로 써서 `GITHUB_OUTPUT`·`GITHUB_ENV`·`GITHUB_PATH`가 깨짐 → `[IO.File]::AppendAllText($env:GITHUB_OUTPUT, "key=value`n")`.
   - **화면이 필요한 테스트**(클립보드, 화면 캡처, 전역 단축키, SendInput)는 `runner.environment == 'self-hosted'`일 때 건너뜀. 예: `crates/engine/tests/windows_smoke.rs`, `windows_e2e.rs`(`--ignored`).
-- **Android 빌드**는 러너에 JDK 21·17과 Android SDK(`C:\Android\sdk`, `ANDROID_HOME`)가 설치된 뒤에만 self-hosted로 옮깁니다. 그때 bash 단계는 `shell: bash`, `apt-get`·에뮬레이터 단계는 `ubuntu-latest`에 남깁니다. **현재는 아직 `ubuntu-latest`**.
+- **Android 빌드**는 러너에 JDK 21·17과 Android SDK(`C:\Android\sdk`, `ANDROID_HOME`)가 설치된 뒤에만 self-hosted로 옮깁니다. 그때 bash 단계는 `shell: bash`, `apt-get`·에뮬레이터 단계는 `ubuntu-24.04`에 남깁니다. **현재는 아직 `ubuntu-24.04`**.
+- Windows 잡은 시작 시 C: 여유가 12 GB 미만이면 다른 작업 폴더의 `target`을 지우고, 6 GB 미만이면 실패합니다(러너 PC 디스크 정리 필요).
 - 러너가 모두 꺼져 있으면 Windows 잡은 대기 상태로 남습니다(분은 소모되지 않음). PC를 켜면 이어서 실행됩니다.
 
 ## 데스크톱(Tauri) 주의

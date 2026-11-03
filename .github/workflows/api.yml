@@ -26,7 +26,7 @@ concurrency:
 jobs:
   test:
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     services:
       postgres:
@@ -72,7 +72,7 @@ jobs:
   docker:
     # Image build only on the default branch (Railway builds the real image on deploy).
     if: github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: test
     timeout-minutes: 15
     steps:

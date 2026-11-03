@@ -1161,9 +1161,18 @@ mod tests {
         assert_eq!(translate_js_regex(r"[\d\s]"), Ok(r"[[0-9]\s]".to_owned()));
         assert_eq!(translate_js_regex("(?i)x"), Err("Invalid group"));
         assert!(translate_js_regex("(?:x)").is_ok());
-        assert_eq!(ev(r#"matches("ab", "a(?=b)")"#).expect_err("lookahead").message, "invalid pattern: lookaround and named groups are not supported");
-        assert_eq!(ev(r#"matches("ab", "(?<!x)b")"#).expect_err("lookbehind").message, "invalid pattern: lookaround and named groups are not supported");
-        assert_eq!(ev(r#"matches("ab", "(?<n>a)")"#).expect_err("named").message, "invalid pattern: lookaround and named groups are not supported");
+        assert_eq!(
+            ev(r#"matches("ab", "a(?=b)")"#).expect_err("lookahead").message,
+            "invalid pattern: lookaround and named groups are not supported"
+        );
+        assert_eq!(
+            ev(r#"matches("ab", "(?<!x)b")"#).expect_err("lookbehind").message,
+            "invalid pattern: lookaround and named groups are not supported"
+        );
+        assert_eq!(
+            ev(r#"matches("ab", "(?<n>a)")"#).expect_err("named").message,
+            "invalid pattern: lookaround and named groups are not supported"
+        );
         assert_eq!(ev(r#"matches("aa", "(a)\\1")"#).expect_err("backref").message, "invalid pattern: back-references are not supported");
         assert_eq!(ev(r#"matches("ab", "(?:a)b")"#).expect("group"), Value::Bool(true));
         assert!(ev("matches('abc123', '^[a-z]+\\\\d+$')").expect("ok").truthy());

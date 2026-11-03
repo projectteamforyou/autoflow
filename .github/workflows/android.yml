@@ -34,7 +34,7 @@ concurrency:
 
 jobs:
   android:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 75
     outputs:
       # Only the version-run suffix: a job output that contains a secret's value is dropped by Actions, and the key
@@ -201,7 +201,7 @@ jobs:
   release-apk:
     needs: android
     if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || inputs.version != ''
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: write
@@ -239,7 +239,7 @@ jobs:
     needs: android
     # Emulator smoke test (~15 min): on demand only.
     if: inputs.smoke
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read
