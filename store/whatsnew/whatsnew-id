@@ -1,7 +1,5 @@
-AutoFlow 1.0 untuk Android:
-• Mode Mudah: auto clicker dalam hitungan detik
-• Mode Pro: makro dengan ketuk, geser, teks, jeda, kondisi, dan perulangan
-• Template siap pakai
-• Tombol Berhenti mengambang, batas jalan, dan skor keamanan sebelum setiap proses
-• Pemicu jadwal, pengisian daya, Wi-Fi, headphone, dan pintasan keyboard
-• Utamakan perangkat, tanpa iklan, sinkronisasi terenkripsi end-to-end opsional
+AutoFlow 1.1.3
+• Android kini membaca layar: pemeriksaan piksel, menunggu warna, pencocokan adegan, mencari gambar referensi, dan teks di layar (OCR), setelah Anda menyetujui tangkapan layar
+• Berhenti juga membatalkan tekan lama atau seret yang sedang berjalan
+• OCR berjalan di perangkat lewat layanan Google Play (Latin, Korea, Jepang, Mandarin)
+• Layanan Aksesibilitas dijelaskan di dalam aplikasi, dalam 12 bahasa, sebelum Setelan dibuka
