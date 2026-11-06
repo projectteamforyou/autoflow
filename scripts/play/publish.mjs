@@ -42,7 +42,7 @@ import { readFile, readdir, appendFile } from 'node:fs/promises';
 import { existsSync, readdirSync } from 'node:fs';
 import { createSign } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const STORE = join(ROOT, 'store');
@@ -492,7 +492,9 @@ async function fail(err) {
   process.exit(1);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Run as a CLI (not imported by tests). Compared as URLs: on Windows argv[1] is `D:\…\publish.mjs` while import.meta.url
+// is `file:///D:/…/publish.mjs`, so a string comparison never matches and the script silently did nothing there.
+if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   if (UPLOAD_ONLY) {
     if (!PACKAGE || !AAB) { console.error('usage: --package <id> --upload-only (--aab <file> | --aab-dir <folder>)'); process.exit(2); }
     uploadOnly().catch(fail);
