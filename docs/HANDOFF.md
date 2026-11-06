@@ -103,6 +103,8 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
 - 그래서 새 워크플로 **`play-upload.yml`**(수동, 재빌드 없음, 1분): `mode=upload`는 Android build 아티팩트의 서명 AAB를 트랙 없이 Play에 올림(`publish.mjs --upload-only`), `mode=submit`은 이미 올라간 versionCode를 트랙에 배정(`--submit`). 2026-11-03 18:21 versionCode 17 업로드 완료(run 41610291128)
 - 선언은 2026-11-03 19:03 사용자가 Console에서 작성·검토 전송(제출 3, "검토 중"). **이 심사가 끝나야** `play-upload.yml` → `mode=submit, version_code=17, track=production, release_name="1.1.3 (17)"`가 통과함(심사 중에는 같은 403). 출시 노트 12개 언어는 `store/whatsnew/`에 1.1.3으로 갱신됨
 - 다음 Android 릴리스부터 순서: `android.yml`(track=none) → 새 권한이 생겼으면 `play-upload.yml upload` → Console 선언 → `play-upload.yml submit`; 권한 변화가 없으면 `android.yml track=production`으로 한 번에
+- **2026-11-06 보완(PR #34)**: 매시간 submit 재시도가 hosted 러너에서 64회 ≈ 80분을 써서(월 환산 ~720분 = 조직 2,000분의 36%) `play-upload.yml`을 **self-hosted Windows 러너 기본**(`runner` 입력: `self-hosted`|`hosted`)으로 옮김. 모든 `run:`이 `node …` 한 줄이라 PowerShell 5/bash 공통. 러너 PC가 전부 꺼져 있으면 잡은 대기(분 소모 없음, `concurrency`가 다음 dispatch 때 이전 대기 잡을 취소). `publish.mjs`: 선언 미작성/검토 중 403은 **exit 3**(`::notice` + 잡 요약 기록, 오류 두 번 출력 제거), `--aab-dir <폴더>`로 아티팩트 안의 .aab를 스스로 찾음
+- 2026-11-03 19:41 KST부터 매시간 자동 submit 재시도 중(Claude 예약 작업 `Play 1.1.3 production submit (hourly until approved)`): 2026-11-06 10:13 KST까지 전부 같은 403 → Google의 제출 3 심사가 아직 열려 있음. 통과 시 예약 작업이 스스로 꺼지고 이 절에 제출 시각이 추가됨
 
 ## 8. 러너 메모
 - 회사 PC 러너(FELIXLEE*)는 **LocalSystem** 계정(WiX MSI ICE 검사에 필요). Rust는 `CARGO_HOME=C:\Rust\cargo`

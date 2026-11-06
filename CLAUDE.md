@@ -19,7 +19,7 @@
 
 - 러너: 집 PC `부산집업무용`, `부산집업무용-2` / 회사 PC `FELIXLEE`, `FELIXLEE-2`. 라벨 `[self-hosted, Windows]`. **러너 사용 시간은 무료**(2,000분에 포함되지 않음).
 - Windows 서비스로 동작 → **화면(데스크톱 세션) 없음**. 설치됨: Git, Node LTS, VS Build Tools(C++). (PowerShell 7은 일부 PC에만 있음)
-- Windows 잡은 `runs-on: [self-hosted, Windows]`.
+- Windows 잡은 `runs-on: [self-hosted, Windows]`. Play API 호출만 하는 `play-upload.yml`도 기본 self-hosted(`runner=hosted`로 바꾸면 ubuntu, 1회 1분 과금).
   - **Rust**: rustup이 없으면 설치하는 단계를 둡니다(`rust.yml`/`windows.yml`의 "Rust toolchain (rustup if missing)" 참고). `dtolnay/rust-toolchain`·`rust-cache`는 쓰지 않음(러너에 그대로 남음).
   - **기본 셸은 PowerShell 5** → `run:`에 `&&` 금지. 줄을 나누고 `if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }`로 확인. **`shell: pwsh` 금지**(회사 PC 러너는 PowerShell 7이 PATH에 없음) → `shell: powershell`.
   - PowerShell 5의 `>>`·`Out-File`은 UTF-16/BOM으로 써서 `GITHUB_OUTPUT`·`GITHUB_ENV`·`GITHUB_PATH`가 깨짐 → `[IO.File]::AppendAllText($env:GITHUB_OUTPUT, "key=value`n")`.
