@@ -29,13 +29,17 @@
  *        (store page only — listings, promo video links, icon/feature/screenshots; no bundle, no track change)
  *   node scripts/play/publish.mjs --package com.projectteamforyou.autoflow --upload-only --aab app-release.aab
  *        (bundle only, no track — makes a new permission's Console declaration section appear; then --submit)
+ *        (--aab-dir <folder> instead of --aab takes the one .aab found in that folder, e.g. a downloaded artifact)
  *   node scripts/play/publish.mjs --package com.projectteamforyou.autoflow --submit --version-code 42 --track production
  *        (release a bundle already on Play, without rebuilding)
  *   node scripts/play/publish.mjs --package com.projectteamforyou.autoflow --check [--version-code 42]
  *        (pre-build: credentials, permissions, every locale accepted, version code still unused — nothing changes)
+ *
+ * Exit codes: 0 done · 1 error · 2 usage · 3 Play refused the edit because a Console-only declaration is missing or
+ * still under Google review (`You must let us know whether your app uses …`): nothing to fix in code, run again later.
  */
-import { readFile, readdir } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { readFile, readdir, appendFile } from 'node:fs/promises';
+import { existsSync, readdirSync } from 'node:fs';
 import { createSign } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -57,13 +61,30 @@ const arg = (name, fallback = null) => {
 const has = (name) => argv.includes(`--${name}`);
 
 const PACKAGE = arg('package');
-const AAB = arg('aab');
+const AAB_DIR = arg('aab-dir');
+let AAB = arg('aab');
+if (!AAB && AAB_DIR) {
+  try {
+    AAB = findBundle(AAB_DIR);
+  } catch (err) {
+    console.error(String(err.message));
+    process.exit(1);
+  }
+}
 const TRACK = arg('track', 'internal');
 const STATUS = arg('status', 'completed');
 const CHECK = has('check');
 const DRY = has('dry-run');
 const IMAGES = !has('no-images');
 const VERSION_CODE = arg('version-code');
+
+/** The one .aab inside a folder (a downloaded build artifact): none or several is a mistake worth stopping on. */
+function findBundle(dir) {
+  const list = (dirPath) => readdirSync(dirPath, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? list(join(dirPath, e.name)) : e.name.endsWith('.aab') ? [join(dirPath, e.name)] : []));
+  const found = existsSync(dir) ? list(dir) : [];
+  if (found.length !== 1) throw new Error(`expected exactly one .aab under ${dir}, found ${found.length}${found.length ? `: ${found.join(', ')}` : ''}`);
+  return found[0];
+}
 
 /** Same count as check-listing.mjs: the stricter of code points and UTF-16 units, so emoji never overflow on Play. */
 const len = (s) => Math.max([...s].length, s.length);
@@ -198,6 +219,10 @@ async function call(path, { method = 'GET', json, body, type } = {}) {
   return text ? JSON.parse(text) : {};
 }
 
+/** Play refused the edit for a Console-only declaration that is missing or under review — not a code problem. */
+class DeclarationPending extends Error {}
+const EXIT_DECLARATION_PENDING = 3;
+
 /** Validate/commit an edit; a 403 here means a missing release permission (Play checks it last, not first). */
 let notSentForReview = false;
 async function finish(editId, verb) {
@@ -222,13 +247,15 @@ async function finish(editId, verb) {
       console.log(`committed ${r.id ?? editId} (not sent for review)`);
       return;
     }
-    console.error(String(err.message));
-    // A new Console-only declaration is required before the edit can be saved (e.g. after adding a foreground
-    // service type): Play answers 403 PERMISSION_DENIED with a "let us know whether your app uses …" message.
+    // A Console-only declaration is required before the edit can be saved (e.g. after adding a foreground service
+    // type): Play answers 403 PERMISSION_DENIED with a "let us know whether your app uses …" message. The same 403
+    // keeps coming while Google reviews a declaration that was already sent (게시 개요 → 제출 활동 → "검토 중"), so
+    // there is nothing to fix here — the caller just runs again later (exit code 3, see DeclarationPending).
     if (/let us know whether your app uses/i.test(String(err.message))) {
-      throw new Error(
+      throw new DeclarationPending(
         `${err.message}\n\nPlay needs a Console declaration before this release can be saved:\n` +
-          `Play Console → 앱 콘텐츠(App content) → 해당 항목(예: 포그라운드 서비스 권한)을 작성·저장한 뒤 이 워크플로를 다시 실행하세요.`,
+          `· 아직 안 썼다면: Play Console → 앱 콘텐츠(App content) → 해당 항목(예: 포그라운드 서비스 권한 → 미디어 프로젝션)을 작성·저장하고 게시 개요에서 검토를 위해 전송\n` +
+          `· 이미 보냈다면: 게시 개요 → 제출 활동의 상태가 "검토 중"인 동안은 같은 403이 납니다. 심사가 끝난 뒤 다시 실행하세요(보통 며칠, 최대 7일).`,
       );
     }
     if (!/-> 403/.test(String(err.message))) throw err;
@@ -450,23 +477,35 @@ async function listingOnly() {
   console.log(notSentForReview ? '\n저장됨 — Console 게시 개요에서 "검토를 위해 변경사항 보내기"를 눌러야 심사가 시작됩니다.' : '\n등록정보 변경 제출 완료 — Google 심사 후 스토어에 반영됩니다.');
 }
 
+/** Prints the error once and maps it to an exit code; on GitHub Actions a pending declaration also leaves a notice. */
+async function fail(err) {
+  const msg = String(err?.message ?? err);
+  console.error(msg);
+  if (err instanceof DeclarationPending) {
+    const note = 'Play: Console 선언이 없거나 아직 Google 검토 중(제출 활동 "검토 중") — 코드로 고칠 것 없음, 심사 후 다시 실행';
+    if (process.env.GITHUB_ACTIONS) {
+      console.log(`::notice title=Play declaration pending::${note}`);
+      if (process.env.GITHUB_STEP_SUMMARY) await appendFile(process.env.GITHUB_STEP_SUMMARY, `### ⏳ ${note}\n\n\`\`\`\n${msg}\n\`\`\`\n`).catch(() => {});
+    }
+    process.exit(EXIT_DECLARATION_PENDING);
+  }
+  process.exit(1);
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
   if (UPLOAD_ONLY) {
-    if (!PACKAGE || !AAB) { console.error('usage: --package <id> --upload-only --aab <file>'); process.exit(2); }
-    uploadOnly().catch((err) => { console.error(String(err?.message ?? err)); process.exit(1); });
+    if (!PACKAGE || !AAB) { console.error('usage: --package <id> --upload-only (--aab <file> | --aab-dir <folder>)'); process.exit(2); }
+    uploadOnly().catch(fail);
   } else if (LISTING_ONLY) {
     if (!PACKAGE) { console.error('usage: --package <id> --listing-only [--no-images] [--dry-run]'); process.exit(2); }
-    listingOnly().catch((err) => { console.error(String(err?.message ?? err)); process.exit(1); });
+    listingOnly().catch(fail);
   } else if (SUBMIT) {
     if (!PACKAGE) { console.error('usage: --package <id> --submit [--version-code N] [--track production] [--status completed]'); process.exit(2); }
-    submit().catch((err) => { console.error(String(err?.message ?? err)); process.exit(1); });
+    submit().catch(fail);
   } else if (!PACKAGE || (!AAB && !CHECK && !DRY)) {
     console.error('usage: --package <id> (--aab <file> [--track internal] [--status completed] | --check [--version-code N]) [--no-images] [--dry-run]');
     process.exit(2);
   } else {
-    (CHECK ? check() : publish()).catch((err) => {
-      console.error(String(err?.message ?? err));
-      process.exit(1);
-    });
+    (CHECK ? check() : publish()).catch(fail);
   }
 }
