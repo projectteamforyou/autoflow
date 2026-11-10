@@ -92,6 +92,15 @@ describe("secure headers and error format", () => {
     expect(tooBig.json.error.code).toBe("payload_too_large");
   });
 
+  it("tells crawlers there is nothing to index (robots.txt was the most frequent 404 in production)", async () => {
+    const t = makeApp(db);
+    const r = await t.call("GET", "/robots.txt");
+    expect(r.status).toBe(200);
+    expect(r.headers.get("content-type")).toMatch(/^text\/plain/);
+    expect(r.headers.get("cache-control")).toBe("public, max-age=86400");
+    expect(r.text).toBe("User-agent: *\nDisallow: /\n");
+  });
+
   it("hides internal error details in production", async () => {
     const t = makeApp(db, { env: "production" });
     t.deps.sql = new Proxy(t.deps.sql, {
