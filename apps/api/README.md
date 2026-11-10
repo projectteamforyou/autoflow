@@ -41,7 +41,7 @@ Migrations in `migrations/*.sql` are applied automatically at startup inside one
 | `APP_ORIGINS` | `https://autoflowmacro.com,http://localhost:5173,tauri://localhost,http://tauri.localhost,https://localhost` | Strict CORS allowlist (comma list, `*` rejected) |
 | `PUBLIC_APP_URL` | `https://autoflowmacro.com` | Base for email and share links |
 | `RESEND_API_KEY` | — | Enables email via Resend; otherwise console (dev) / disabled (prod) |
-| `MAIL_FROM` | `AutoFlow <no-reply@autoflow.app>` | Sender (must be a verified Resend domain) |
+| `MAIL_FROM` | `AutoFlow <no-reply@autoflowmacro.com>` | Sender (its domain must be verified in Resend) |
 | `TRUST_PROXY_HOPS` | `1` | Trusted proxies for `X-Forwarded-For` (Railway edge = 1) |
 | `LOG_LEVEL` | `info` (prod) / `debug` | `silent` in tests |
 | `ATLAS_REQUIRE_VERIFIED_EMAIL` | `true` | Publishing requires a verified email |

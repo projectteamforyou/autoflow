@@ -113,7 +113,7 @@ const EnvSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   APP_ORIGINS: z.string().optional(),
   PUBLIC_APP_URL: z.string().url().default("https://autoflowmacro.com"),
-  MAIL_FROM: z.string().min(3).default("AutoFlow <no-reply@autoflow.app>"),
+  MAIL_FROM: z.string().min(3).default("AutoFlow <no-reply@autoflowmacro.com>"),
   RESEND_API_KEY: z.string().min(1).optional(),
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error", "silent"]).optional(),

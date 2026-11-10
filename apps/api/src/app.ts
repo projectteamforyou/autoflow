@@ -144,6 +144,14 @@ export function createApp(deps: AppDeps): Hono<AppEnv> {
 
   app.get("/", (c) => c.json({ name: "AutoFlow API", version: config.version, docs: "/v1/openapi.yaml" }));
 
+  // Crawlers ask every host for this (Railway's access log showed it as the most frequent 404):
+  // the API has nothing to index, so answer once and let them cache it.
+  app.get("/robots.txt", (c) => {
+    c.header("Content-Type", "text/plain; charset=utf-8");
+    c.header("Cache-Control", "public, max-age=86400");
+    return c.body("User-agent: *\nDisallow: /\n");
+  });
+
   app.notFound((c) => c.json(errorJson("not_found", "Route not found"), 404));
 
   app.onError((err, c) => {
