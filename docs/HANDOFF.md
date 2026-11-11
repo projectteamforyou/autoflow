@@ -1,6 +1,6 @@
 # AutoFlow — 인수인계 (새 채팅에서 이어서 작업용)
 
-갱신: 2026-11-03 15:10 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#28
+갱신: 2026-11-11 10:40 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#28
 
 ## 1. 현재 배포 상태 (Windows 1.1.2 · Android 1.1.3)
 | 항목 | 값 |
@@ -13,6 +13,7 @@
 | Android 1.1.3 (업로드 키 SHA-256 1fe265ee…; Play에는 1.1.2가 검토 중, 1.1.3은 아직 Play 미업로드) | https://dl.autoflowmacro.com/android/AutoFlow.apk |
 | 버전 정보 | https://dl.autoflowmacro.com/latest.json |
 | GitHub 릴리스 (보관용) | https://github.com/projectteamforyou/autoflow/releases/tag/v1.1.2 |
+| Google Play 계정 (2026-11-09 이전됨) | 구 조직 계정 4800355049082027013(projectteamforyou@gmail.com) → **개인 계정 PROJECTTEAM FOR YOU, ID 5661763859416322517, 소유자 projectteamforyoudevelop@gmail.com**. 결제 프로필: 판매자 ID 442894745571811440 / 4307-3816-1623(이유상). 패키지명·App Signing·업로드 키 동일, 코드 변경 없음(7-7 참고) |
 | Google Play | `com.projectteamforyou.autoflow` — 1.1.0이 **접근성 명시적 공개 누락으로 거부**(2026-10-20) → 1.1.2(versionCode 12)에 네이티브 공개 대화상자 추가, 프로덕션 트랙에 **저장만 됨**(거부 이후엔 API 자동 제출 불가). Console에서 접근성 API 선언 영상 링크 교체 + "검토를 위해 변경사항 보내기" 필요 |
 | 접근성 시연 영상 (네이티브 공개 포함) | https://dl.autoflowmacro.com/play/autoflow-accessibility-demo-en.mp4 · `-ko.mp4` |
 | 접근성 시연 영상 (실제 에뮬레이터 녹화) | https://github.com/work517/autoflow/releases/tag/play-demo-video |
@@ -107,6 +108,18 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
 - **PR #35**: 첫 self-hosted 실행이 1초 만에 "성공"으로 끝났는데 출력이 없었음 → `publish.mjs`의 메인 모듈 판별 `import.meta.url === \`file://${process.argv[1]}\``가 Windows 경로(`D:\…`)와 절대 일치하지 않아 CLI가 아무것도 안 하고 exit 0. `pathToFileURL(resolve(argv[1])).href === import.meta.url`로 고침. 이후 run 42149461318(부산집 러너)에서 스크립트가 정상 실행되어 같은 403 + notice 확인
 - 2026-11-03 19:41 KST부터 매시간 자동 submit 재시도 중(Claude 예약 작업 `Play 1.1.3 production submit (hourly until approved)`): 2026-11-10 21:18 KST까지 전부 같은 403 → Google의 제출 3 심사가 아직 열려 있음. 통과 시 예약 작업이 스스로 꺼지고 이 절에 제출 시각이 추가됨
 - 2026-11-09 15:19 ~ 11-10 12:14 KST 사이에는 다른 403 `The caller does not have permission`(POST /edits 자체가 거부)이 났음 = 서비스 계정이 Console 앱 권한을 잃은 상태. 11-10 13:13 KST 재시도부터 다시 선언 대기 403으로 돌아옴(Console에서 권한이 복구된 것으로 보임). 구분법: 선언 대기는 `:validate`/`commit`에서만 403, 권한 상실은 첫 `POST /edits`부터 403
+
+## 7-7. Play 개발자 계정 이전 점검 (2026-11-11)
+사용자 안내: 2026-11-09 앱이 조직 계정 → 개인 계정(ID 5661763859416322517)으로 이전됨. 7-5의 2026-11-09 15:19~11-10 12:14 KST `The caller does not have permission` 403이 바로 이 이전 구간(서비스 계정이 새 Console에 초대되기 전)이고, 11-10 13:13 KST부터 서비스 계정이 새 계정의 앱을 다시 읽음(`now: production · completed · 1.1.2 (12)`).
+점검 결과(이 저장소 기준):
+1. **Play Developer API 서비스 계정** — 새 Console에 이미 초대·반영됨(매시간 submit 재시도가 인증·조회 통과). 다음 403이 `:validate`에서만 나므로 권한은 정상. 할 일: 새 Console → 사용자 및 권한에서 `zumple-play-publisher@origma-509009.iam.gserviceaccount.com`에 "프로덕션으로 출시·테스트 트랙 출시·앱 버전 관리·스토어 등록정보 관리"가 다 있는지 한 번만 확인. 서버 영수증 검증은 없음(결제는 PortOne) → 해당 없음
+2. **RTDN Pub/Sub** — 앱에 Google Play Billing 없음(`BillingClient` 미사용, 결제는 PortOne 웹) → 해당 없음
+3. **AdMob/app-ads.txt** — 광고 SDK·광고 ID 없음(Manifest 주석 "No ads") → 해당 없음
+4. **Firebase·GCP·Play Integrity** — 미사용(ML Kit는 Play services 번들, 계정 무관) → 해당 없음. 서비스 계정의 GCP 프로젝트(origma-509009)는 Play 계정과 연결 불필요(초대만으로 동작)
+5. **스토어 등록정보 연락처** — `store/listing/*.json`에는 제목·설명만 있고 개발자 이름·이메일·웹사이트·개인정보처리방침 URL은 Console 계정 설정값 → 새 Console에서 확인 필요: 개발자 이름 `PROJECTTEAM FOR YOU`(기존 표기와 동일하게), 이메일 projectteamforyou@gmail.com, 웹사이트 https://autoflowmacro.com, 개인정보처리방침 https://autoflowmacro.com/ko/privacy/ (앱 콘텐츠 → 개인정보처리방침)
+6. **앱 내 표기** — 웹/앱의 사업자 정보(`apps/web/src/pages/Settings.tsx` BusinessInfo)는 전자상거래법상 판매자(프로젝트팀포유, 495-25-02209) 표기로 Play 계정과 무관, 이메일도 projectteamforyou@gmail.com 유지 → 수정 없음. 사이트 저작권 "Projectteamforyou"·Windows 서명 "PROJECTTEAMFORYOU"도 그대로
+7. **테스터 목록** — `android.yml`의 태그 push가 internal 트랙에 올리므로 internal 테스터 이메일 목록(이전 시 소실)을 새 Console → 테스트 → 내부 테스트에서 재등록(또는 공개 링크 재생성). alpha/beta 미사용
+**주의 2건**: (a) 1.1.3의 포그라운드 서비스 선언(제출 3)은 **구 계정에서 11-03에 전송**했으므로 새 계정에는 "검토 중" 상태가 이어지지 않았을 수 있음 → 새 Console → 앱 콘텐츠 → 포그라운드 서비스 권한(미디어 프로젝션)이 비어 있으면 다시 작성 후 게시 개요에서 "검토를 위해 변경사항 전송". 이게 1.1.3 submit 403이 7일 넘게 이어지는 가장 유력한 원인. (b) 2023-11 이후 만든 **개인 계정은 프로덕션 액세스 권한(비공개 테스트 12명·14일)** 조건이 있음 — 이전된 앱은 이미 프로덕션 출시 상태라 보통 면제되지만, 새 Console 대시보드에 "프로덕션 액세스 권한 신청" 작업이 보이면 그것부터 처리해야 1.1.3 제출이 통과함
 
 ## 7-6. 운영 로그 점검 (2026-11-10)
 - Railway `api`(배포 afcd6d1f, 2026-11-03 커밋 6baf27d) 120시간: 60,158 요청, **5xx 0건**, 4xx 701건. 4xx는 전부 (a) WordPress/.env/.git 스캐너 봇의 404(11-06 15시 UTC 한 시간에 194건 몰림, 전역 rate limit이 처리), (b) 크롤러의 `/robots.txt` 404(32건, 가장 잦은 단일 경로), (c) `POST /v1/stats/hit` 400 2건(4일간, 무시). 앱 로그 error 0건, warn은 `mail.disabled`·`mail.not_configured`뿐
