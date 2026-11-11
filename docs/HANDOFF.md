@@ -44,7 +44,7 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
 ## 4. 비밀값 위치 (값은 문서에 쓰지 않음)
 - GitHub Secrets: AZURE_CLIENT_ID/TENANT_ID/CLIENT_SECRET, ANDROID_KEYSTORE_BASE64/PASSWORD, ANDROID_KEY_ALIAS/PASSWORD, PLAY_SERVICE_ACCOUNT_JSON
 - GitHub Variables: AZURE_SIGN_ENDPOINT/ACCOUNT(ultarineosigning)/PROFILE(ultarineo-public)
-- Railway: SETTINGS_ENCRYPTION_KEY, ADMIN_EMAILS, ADMIN_SETUP_CODE, DATABASE_URL 등. **RESEND_API_KEY·MAIL_FROM은 아직 없음**(7-6 참고) → 가입 인증·비밀번호 재설정 메일이 발송되지 않음
+- Railway: SETTINGS_ENCRYPTION_KEY, ADMIN_EMAILS, ADMIN_SETUP_CODE, DATABASE_URL 등. RESEND_API_KEY·MAIL_FROM(2026-11-11 11:10 KST 등록, 발송 확인 — 7-6)
 - Android 업로드 키: 사용자 PC `C:\keys\autoflow\autoflow-release.jks` (백업 필수)
 
 ## 5. 정책
@@ -124,6 +124,7 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
 ## 7-6. 운영 로그 점검 (2026-11-10)
 - Railway `api`(배포 afcd6d1f, 2026-11-03 커밋 6baf27d) 120시간: 60,158 요청, **5xx 0건**, 4xx 701건. 4xx는 전부 (a) WordPress/.env/.git 스캐너 봇의 404(11-06 15시 UTC 한 시간에 194건 몰림, 전역 rate limit이 처리), (b) 크롤러의 `/robots.txt` 404(32건, 가장 잦은 단일 경로), (c) `POST /v1/stats/hit` 400 2건(4일간, 무시). 앱 로그 error 0건, warn은 `mail.disabled`·`mail.not_configured`뿐
 - **메일 미설정**: Railway에 `RESEND_API_KEY`가 없어 `DisabledMailer`로 동작. 2026-11-04 07:22 KST 실제 가입 1건(auth.signup)의 인증 메일이 **버려짐**(`mail.not_configured tag=verify_email`). 비밀번호 찾기도 같은 상태로 조용히 아무것도 안 보냄. 할 일: Resend에서 `autoflowmacro.com` 도메인 인증 → Railway 변수 `RESEND_API_KEY`, `MAIL_FROM=AutoFlow <no-reply@autoflowmacro.com>` 등록 → 재배포. 그 전까지 관리자는 `ADMIN_SETUP_CODE`로 인증(web Admin 페이지), 일반 사용자는 Atlas 게시 불가(`ATLAS_REQUIRE_VERIFIED_EMAIL`)
+- **2026-11-11 11:10 KST 해결**: 사용자가 Resend 도메인 인증 후 Railway에 `RESEND_API_KEY`·`MAIL_FROM` 등록 → 재배포(c9eec8bc)에서 `mail.disabled` 경고 사라짐, 비밀번호 재설정 메일 테스트 `mail.sent` 확인. 11-04 가입자는 앱 설정의 "인증 메일 다시 보내기"로 인증 가능
 - 패치: API `GET /robots.txt` → `Disallow: /`(200, 하루 캐시; 크롤러 404 반복 제거). `MAIL_FROM` 기본값을 `no-reply@autoflow.app`(남의 도메인)에서 `no-reply@autoflowmacro.com`으로 교정 — 키만 넣고 MAIL_FROM을 빠뜨려도 Resend가 거부하지 않도록
 - GitHub Actions: 11-03 이후 실패는 `Play upload` 시간별 재시도(선언 대기 403, 의도된 실패)와 `Android build` run 17(같은 403, 2026-11-03 production 트랙 시도)뿐. CI(주간 스모크 포함)·API·rust·Site 모두 성공. 사이트·API·`dl.autoflowmacro.com/latest.json`(1.1.2) 응답 정상
 
@@ -137,5 +138,4 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
 - 실결제 1건(₩9,900) 후 PortOne 콘솔에서 취소로 끝까지 검증
 - Play 선언 심사 완료 후 `play-upload.yml submit` (versionCode 17 → production)
 - GitHub 시크릿 `CLOUDFLARE_API_TOKEN` 등록(사이트 자동 배포)
-- Railway `RESEND_API_KEY`·`MAIL_FROM` 등록(Resend 도메인 인증 후) — 지금은 가입 인증 메일이 발송되지 않음(7-6)
 - 집 PC 러너 디스크 정리, Google 서비스 계정 키 교체
