@@ -1,6 +1,6 @@
 /** Security hardening: log redaction, production CORS defaults, Atlas report visibility, relay body timeouts, hostile flows. */
 import { describe, expect, it } from "vitest";
-import { redactPath } from "../src/app.js";
+import { isRoutineHeartbeat, redactPath } from "../src/app.js";
 import { loadConfig } from "../src/config.js";
 import { createLogger } from "../src/logger.js";
 import { makeApp, sampleFlow, useTestDb } from "./helpers.js";
@@ -23,6 +23,31 @@ describe("access-log redaction", () => {
     expect((await t.call("GET", `/v1/shares/${id}`)).status).toBe(200);
     expect(lines.join("\n")).not.toContain(id);
     expect(lines.some((l) => l.includes('"/v1/shares/:id"'))).toBe(true);
+  });
+
+  it("logs quick, successful heartbeats at debug and everything else at info", async () => {
+    expect(isRoutineHeartbeat("POST", "/v1/stats/hit", 204, 5)).toBe(true);
+    expect(isRoutineHeartbeat("POST", "/v1/stats/leave", 204, 5)).toBe(true);
+    expect(isRoutineHeartbeat("GET", "/", 200, 1)).toBe(true);
+    expect(isRoutineHeartbeat("GET", "/health", 200, 1)).toBe(true);
+    expect(isRoutineHeartbeat("OPTIONS", "/v1/sync/items", 204, 1)).toBe(true);
+    expect(isRoutineHeartbeat("POST", "/v1/stats/hit", 400, 2)).toBe(false);
+    expect(isRoutineHeartbeat("POST", "/v1/stats/hit", 204, 1_500)).toBe(false);
+    expect(isRoutineHeartbeat("GET", "/v1/stats", 200, 3)).toBe(false);
+    expect(isRoutineHeartbeat("GET", "/v1/stats/download/windows", 302, 3)).toBe(false);
+    expect(isRoutineHeartbeat("GET", "/.git/HEAD", 404, 0)).toBe(false);
+
+    const lines: string[] = [];
+    const t = makeApp(db, { logger: createLogger("info", {}, (l) => lines.push(l)) });
+    expect((await t.call("POST", "/v1/stats/hit", { body: { sid: "tab_0000000000000001", surface: "app", newVisit: true } })).status).toBe(204);
+    expect((await t.call("GET", "/")).status).toBe(200);
+    expect(lines.filter((l) => l.includes("http.request"))).toHaveLength(0);
+    expect((await t.call("POST", "/v1/stats/hit", { body: { sid: "x" } })).status).toBe(400);
+    expect((await t.call("GET", "/.git/HEAD")).status).toBe(404);
+    const logged = lines.filter((l) => l.includes("http.request"));
+    expect(logged).toHaveLength(2);
+    expect(logged[0]).toContain('"status":400');
+    expect(logged[1]).toContain('"/.git/HEAD"');
   });
 });
 
