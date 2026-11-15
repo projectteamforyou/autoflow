@@ -41,6 +41,14 @@ export function redactPath(path: string): string {
     .slice(0, 200);
 }
 
+/** Quiet, successful heartbeats: the apps' presence ping, its page-hide beacon and uptime probes of the root/health routes. */
+const HEARTBEAT_PATHS = new Set(["/v1/stats/hit", "/v1/stats/leave", "/health", "/"]);
+export function isRoutineHeartbeat(method: string, path: string, status: number, ms: number): boolean {
+  if (status >= 300 || ms >= 1_000) return false;
+  if (method === "OPTIONS") return true;
+  return HEARTBEAT_PATHS.has(path);
+}
+
 function errorJson(code: ErrorBody["error"]["code"], message: string): ErrorBody {
   return { error: { code, message } };
 }
@@ -78,17 +86,23 @@ export function createApp(deps: AppDeps): Hono<AppEnv> {
   });
 
   // Access log: method, path (never the query string — it may carry cursors or search text), status, latency.
+  // Routine heartbeats (the apps' once-a-minute presence ping, uptime probes) made up ~96 % of the production
+  // log; a quick, successful one is logged at debug so the info log is left to real traffic. Anything that
+  // fails, redirects or is slow still logs at info.
   app.use(async (c, next) => {
     const started = performance.now();
     await next();
-    logger.info("http.request", {
+    const ms = Math.round(performance.now() - started);
+    const fields = {
       requestId: c.get("requestId"),
       method: c.req.method,
       path: redactPath(c.req.path),
       status: c.res.status,
-      ms: Math.round(performance.now() - started),
+      ms,
       userId: c.get("auth")?.user.id,
-    });
+    };
+    if (isRoutineHeartbeat(c.req.method, c.req.path, c.res.status, ms)) logger.debug("http.request", fields);
+    else logger.info("http.request", fields);
   });
 
   app.use(

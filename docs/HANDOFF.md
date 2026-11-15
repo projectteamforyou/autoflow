@@ -127,6 +127,7 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
 - **2026-11-11 11:10 KST 해결**: 사용자가 Resend 도메인 인증 후 Railway에 `RESEND_API_KEY`·`MAIL_FROM` 등록 → 재배포(c9eec8bc)에서 `mail.disabled` 경고 사라짐, 비밀번호 재설정 메일 테스트 `mail.sent` 확인. 11-04 가입자는 앱 설정의 "인증 메일 다시 보내기"로 인증 가능
 - 패치: API `GET /robots.txt` → `Disallow: /`(200, 하루 캐시; 크롤러 404 반복 제거). `MAIL_FROM` 기본값을 `no-reply@autoflow.app`(남의 도메인)에서 `no-reply@autoflowmacro.com`으로 교정 — 키만 넣고 MAIL_FROM을 빠뜨려도 Resend가 거부하지 않도록
 - GitHub Actions: 11-03 이후 실패는 `Play upload` 시간별 재시도(선언 대기 403, 의도된 실패)와 `Android build` run 17(같은 403, 2026-11-03 production 트랙 시도)뿐. CI(주간 스모크 포함)·API·rust·Site 모두 성공. 사이트·API·`dl.autoflowmacro.com/latest.json`(1.1.2) 응답 정상
+- **2026-11-15 13:40 KST 재점검(PR #40)**: Railway `api`(c9eec8bc) 48시간 17,533 요청, **5xx 0건**, 4xx 4건(`/.git/HEAD`·`/.git/config` 스캐너 404 등, 모두 0ms), 300ms 넘는 요청 0건, 앱 로그 warn/error 0건. 접근 로그의 96 %가 앱의 1분 하트비트(`POST /v1/stats/hit` 204, 열린 앱 7대 ≈ 시간당 420건)와 가동 감시 `GET /`(5분)여서 **빠르고 성공한 하트비트(`/v1/stats/hit`·`/v1/stats/leave`·`/`·`/health`, OPTIONS)는 debug 레벨로** 내림(`isRoutineHeartbeat`). 실패(≥300)·1초 이상은 그대로 info. 프로덕션 `LOG_LEVEL`은 info이므로 Railway 로그는 실제 트래픽·오류만 남음. Actions는 `Play upload` 시간별 403(의도된 실패) 외 전부 성공(CI 주간 스모크 11-09 성공)
 
 ## 8. 러너 메모
 - 회사 PC 러너(FELIXLEE*)는 **LocalSystem** 계정(WiX MSI ICE 검사에 필요). Rust는 `CARGO_HOME=C:\Rust\cargo`
