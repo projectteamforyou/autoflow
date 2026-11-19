@@ -154,8 +154,8 @@ export function BillingSection({ user, onUser, purchase = false }: { user: User;
   // Fixed by language: Korean pays with PortOne in won, everyone else with PayPal in dollars.
   const provider: PaymentProvider = providerForLocale(loc);
   const providerReady = !!config?.providers[provider].enabled;
-  // Fetch the PortOne SDK before the buyer clicks: the KCP popup is only allowed inside the click's
-  // user activation, and a script download in between would spend it (popup blocked → KCP 3017).
+  // Fetch the PortOne SDK before the buyer clicks so the KCP window opens right after the click
+  // instead of after a script download.
   useEffect(() => {
     if (provider === "portone" && providerReady) void loadPortOne().catch(() => undefined);
   }, [provider, providerReady]);

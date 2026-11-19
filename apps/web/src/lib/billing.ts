@@ -3,13 +3,14 @@
  * /v1/billing/config; the server creates every order and verifies every payment itself — this
  * file only starts checkout and reports where the buyer came back.
  *
- * - PortOne (KCP, KRW): the V2 browser SDK opens KCP's payment window as a popup on PC and
- *   redirects in the same tab on mobile (windowType { pc: POPUP, mobile: REDIRECTION }). KCP's
- *   card-issuer authentication is a popup of its own, so an in-page iframe on PC ends in KCP's
- *   "신용카드 인증 오류" followed by "[3017] 팝업 차단" (seen 2026-11-19); the popup must also keep
- *   its opener, which is why /app/* is served with Cross-Origin-Opener-Policy: same-origin-allow-popups.
- *   Browsers allow the popup only inside the click's user activation, so the SDK is preloaded when
- *   the checkout page mounts and requestPayment follows the checkout call without other waits.
+ * - PortOne (KCP, KRW): the V2 browser SDK in an in-page iframe on PC and a same-tab redirect on
+ *   mobile (windowType { pc: IFRAME, mobile: REDIRECTION }). PortOne refuses POPUP/REDIRECTION for
+ *   KCP on PC ("PC환경에서 지원하지 않는 PG사 창 유형"). Inside that iframe KCP still opens the
+ *   card-issuer authentication (ISP/앱카드) in a window of its own and talks to it through
+ *   window.opener, so /app/* must be served with Cross-Origin-Opener-Policy: same-origin-allow-popups;
+ *   with the site-wide `same-origin` the opener is severed and KCP reports "신용카드 인증 오류" and
+ *   then "[3017] 팝업 차단" (seen 2026-11-19). The SDK is preloaded when the checkout page mounts
+ *   so the window opens right after the click.
  * - PayPal (USD): same-tab redirect to PayPal's approval page; PayPal sends the buyer back to
  *   /billing/return, where the server captures.
  */
@@ -156,8 +157,8 @@ export async function startCheckout(provider: PaymentProvider, period: BillingPe
     currency: p.currency,
     payMethod: p.payMethod,
     customer: { email: p.customer.email },
-    // PC: a popup (KCP's card authentication needs one; an iframe ends in 3017). Mobile: same tab.
-    windowType: { pc: "POPUP", mobile: "REDIRECTION" },
+    // PC: in-page iframe (the only KCP window type PortOne allows on PC). Mobile: same tab.
+    windowType: { pc: "IFRAME", mobile: "REDIRECTION" },
     // Mobile (redirection) comes back here with ?paymentId=…&code=…; the server verifies either way.
     redirectUrl: returnUrl,
   });

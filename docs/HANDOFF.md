@@ -131,10 +131,9 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
 
 ## 7-8. KCP 실결제 시도 — 인증 오류·3017 팝업 차단 수정 (2026-11-19)
 - 2026-11-19 사용자가 `/app/#/business`에서 ₩9,900 실결제 시도: KCP 창(iframe) → BC카드 선택 → 카드 인증 창 `spay.kcp.co.kr/cardPopupRedirect.do`가 **"신용카드 인증 오류 발생"**, 이어 KCP 본창이 **"[3017] 팝업 차단기능 혹은 팝업차단 프로그램이 동작중"**. 결제 미완료(PortOne 결제 생성 안 됨, 환불할 것 없음)
-- 원인 2가지(둘 다 우리 쪽): (1) PC에서 `windowType.pc: "IFRAME"` — KCP PC 결제창은 카드사 인증(ISP/앱카드)을 **별도 팝업**으로 띄우므로 iframe 안에서는 팝업 점검·인증이 깨짐. (2) 사이트 `_headers`의 `Cross-Origin-Opener-Policy: same-origin`이 `/app/*`에도 적용돼 KCP가 여는 교차 출처 팝업이 **opener를 잃음**(인증 창이 부모 세션에 결과를 못 돌려줌)
-- 수정: `apps/web/src/lib/billing.ts` `windowType: { pc: "POPUP", mobile: "REDIRECTION" }`; `apps/site/src/assets.ts` `/app/*`에 `Cross-Origin-Opener-Policy: same-origin-allow-popups` 덮어쓰기(사이트 나머지는 `same-origin` 유지, COEP 없음이라 crossOriginIsolated 영향 없음); `Billing.tsx`에서 결제 페이지 마운트 시 PortOne SDK 선로딩(팝업은 클릭의 user activation 안에서만 허용되므로 클릭 뒤 SDK 다운로드로 활성화를 소모하지 않도록)
-- 확인 방법: 배포 후 Chrome에서 `/app/#/business` → 결제 → KCP 창이 **새 창**으로 뜨고 카드 인증까지 진행되는지. 팝업 차단 아이콘이 뜨면 주소창에서 허용 후 재시도. 결제 성공 시 PortOne 콘솔에서 취소(9. 남은 작업)
-- 참고: PortOne V2 문서에는 PG별 windowType 지원표가 없음. KCP는 PC `POPUP`, 모바일 `REDIRECTION`이 안전한 조합(iframe 금지)
+- 원인: 사이트 `_headers`의 `Cross-Origin-Opener-Policy: same-origin`이 `/app/*`에도 적용됨. KCP PC 결제창(iframe)은 카드사 인증(ISP/앱카드)을 **별도 창**으로 열고 `window.opener`로 결과를 돌려받는데, COOP `same-origin`이 그 opener를 끊어 인증 창이 "인증 오류"를 내고 KCP가 이를 팝업 차단(3017)으로 보고함. `windowType.pc`는 `IFRAME`이 맞음 — PortOne은 KCP PC에 `POPUP`/`REDIRECTION`을 지정하면 "PC환경에서 지원하지 않는 PG사 창 유형"으로 거절(사용자가 공유한 WindowLayout 실적용 가이드 `portone-kcp-iframe-guide-20261119`, display 저장소 PR #49 검증)
+- 수정(`apps/site/src/assets.ts`, `/app/*`만): `! Cross-Origin-Opener-Policy` 후 `same-origin-allow-popups`(사이트 나머지는 `same-origin` 유지, COEP 없음이라 crossOriginIsolated 영향 없음); `! Permissions-Policy` 후 `payment=(self)`; `img-src`에 PG 도메인 추가. 웹: `Billing.tsx`에서 결제 섹션 마운트 시 PortOne SDK 선로딩(클릭 직후 창이 뜨도록). `windowType { pc: IFRAME, mobile: REDIRECTION }`·frame-src·form-action·connect-src·`style-src 'unsafe-inline'`·모바일 복귀(`/billing/return`)·대기 주문 '다시 확인'은 이미 가이드와 일치
+- **사이트 배포가 필요**(헤더는 Cloudflare Pages `_headers`): Site 워크플로의 배포 단계는 `CLOUDFLARE_API_TOKEN` 시크릿이 없어 skip → 2장 수동 배포 명령으로 올린 뒤 Chrome 개발자도구 Network에서 `/app/` 응답 헤더 `cross-origin-opener-policy: same-origin-allow-popups` 확인 → `/app/#/business` 결제 → 카드 인증 창까지 진행되는지. 성공 시 PortOne 콘솔에서 취소(9. 남은 작업)
 
 ## 8. 러너 메모
 - 회사 PC 러너(FELIXLEE*)는 **LocalSystem** 계정(WiX MSI ICE 검사에 필요). Rust는 `CARGO_HOME=C:\Rust\cargo`
