@@ -3,8 +3,13 @@
  * /v1/billing/config; the server creates every order and verifies every payment itself — this
  * file only starts checkout and reports where the buyer came back.
  *
- * - PortOne (KCP, KRW): the V2 browser SDK in an in-page iframe on PC and a same-tab redirect on
- *   mobile (windowType { pc: IFRAME, mobile: REDIRECTION }). Never a popup or new window.
+ * - PortOne (KCP, KRW): the V2 browser SDK opens KCP's payment window as a popup on PC and
+ *   redirects in the same tab on mobile (windowType { pc: POPUP, mobile: REDIRECTION }). KCP's
+ *   card-issuer authentication is a popup of its own, so an in-page iframe on PC ends in KCP's
+ *   "신용카드 인증 오류" followed by "[3017] 팝업 차단" (seen 2026-11-19); the popup must also keep
+ *   its opener, which is why /app/* is served with Cross-Origin-Opener-Policy: same-origin-allow-popups.
+ *   Browsers allow the popup only inside the click's user activation, so the SDK is preloaded when
+ *   the checkout page mounts and requestPayment follows the checkout call without other waits.
  * - PayPal (USD): same-tab redirect to PayPal's approval page; PayPal sends the buyer back to
  *   /billing/return, where the server captures.
  */
@@ -103,7 +108,7 @@ declare global {
 let sdk: Promise<NonNullable<Window["PortOne"]>> | null = null;
 
 /** Loads the PortOne V2 browser SDK once (allowed by the app CSP: script-src https://cdn.portone.io). */
-function loadPortOne(): Promise<NonNullable<Window["PortOne"]>> {
+export function loadPortOne(): Promise<NonNullable<Window["PortOne"]>> {
   if (window.PortOne) return Promise.resolve(window.PortOne);
   sdk ??= new Promise((resolve, reject) => {
     const s = document.createElement("script");
@@ -151,8 +156,8 @@ export async function startCheckout(provider: PaymentProvider, period: BillingPe
     currency: p.currency,
     payMethod: p.payMethod,
     customer: { email: p.customer.email },
-    // KCP would otherwise open its own window: keep it in-page on PC, same tab on mobile.
-    windowType: { pc: "IFRAME", mobile: "REDIRECTION" },
+    // PC: a popup (KCP's card authentication needs one; an iframe ends in 3017). Mobile: same tab.
+    windowType: { pc: "POPUP", mobile: "REDIRECTION" },
     // Mobile (redirection) comes back here with ?paymentId=…&code=…; the server verifies either way.
     redirectUrl: returnUrl,
   });

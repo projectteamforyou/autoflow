@@ -24,7 +24,7 @@ packages/core   공용 엔진(TS): 스키마(34개 단계), 식 언어, 실행 �
                 Safety Score, 멀티 모니터(displays.ts)·Scenes(dHash), 요금 정책(plans), 홍보 문구(promo)
 apps/web        React PWA — Stage(멀티 모니터), Admin(결제 키), Billing, 권한 카드(설정 맨 위)
 apps/site       정적 사이트 생성기 (content/<lang>.ts, legal/*.ts), 고아 방지 조판(util.ts noOrphans)
-apps/api        Hono API — billing(PortOne iframe/redirect, PayPal redirect, 웹훅 없음), admin, stats
+apps/api        Hono API — billing(PortOne 팝업(PC)/redirect(모바일), PayPal redirect, 웹훅 없음), admin, stats
 apps/desktop    Tauri 2 (Windows) + crates/engine (Rust)
 apps/android    Capacitor 8 + Kotlin 엔진 (AccessibilityService)
 scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, windows/*.ps1
@@ -128,6 +128,13 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
 - 패치: API `GET /robots.txt` → `Disallow: /`(200, 하루 캐시; 크롤러 404 반복 제거). `MAIL_FROM` 기본값을 `no-reply@autoflow.app`(남의 도메인)에서 `no-reply@autoflowmacro.com`으로 교정 — 키만 넣고 MAIL_FROM을 빠뜨려도 Resend가 거부하지 않도록
 - GitHub Actions: 11-03 이후 실패는 `Play upload` 시간별 재시도(선언 대기 403, 의도된 실패)와 `Android build` run 17(같은 403, 2026-11-03 production 트랙 시도)뿐. CI(주간 스모크 포함)·API·rust·Site 모두 성공. 사이트·API·`dl.autoflowmacro.com/latest.json`(1.1.2) 응답 정상
 - **2026-11-15 13:40 KST 재점검(PR #40)**: Railway `api`(c9eec8bc) 48시간 17,533 요청, **5xx 0건**, 4xx 4건(`/.git/HEAD`·`/.git/config` 스캐너 404 등, 모두 0ms), 300ms 넘는 요청 0건, 앱 로그 warn/error 0건. 접근 로그의 96 %가 앱의 1분 하트비트(`POST /v1/stats/hit` 204, 열린 앱 7대 ≈ 시간당 420건)와 가동 감시 `GET /`(5분)여서 **빠르고 성공한 하트비트(`/v1/stats/hit`·`/v1/stats/leave`·`/`·`/health`, OPTIONS)는 debug 레벨로** 내림(`isRoutineHeartbeat`). 실패(≥300)·1초 이상은 그대로 info. 프로덕션 `LOG_LEVEL`은 info이므로 Railway 로그는 실제 트래픽·오류만 남음. Actions는 `Play upload` 시간별 403(의도된 실패) 외 전부 성공(CI 주간 스모크 11-09 성공)
+
+## 7-8. KCP 실결제 시도 — 인증 오류·3017 팝업 차단 수정 (2026-11-19)
+- 2026-11-19 사용자가 `/app/#/business`에서 ₩9,900 실결제 시도: KCP 창(iframe) → BC카드 선택 → 카드 인증 창 `spay.kcp.co.kr/cardPopupRedirect.do`가 **"신용카드 인증 오류 발생"**, 이어 KCP 본창이 **"[3017] 팝업 차단기능 혹은 팝업차단 프로그램이 동작중"**. 결제 미완료(PortOne 결제 생성 안 됨, 환불할 것 없음)
+- 원인 2가지(둘 다 우리 쪽): (1) PC에서 `windowType.pc: "IFRAME"` — KCP PC 결제창은 카드사 인증(ISP/앱카드)을 **별도 팝업**으로 띄우므로 iframe 안에서는 팝업 점검·인증이 깨짐. (2) 사이트 `_headers`의 `Cross-Origin-Opener-Policy: same-origin`이 `/app/*`에도 적용돼 KCP가 여는 교차 출처 팝업이 **opener를 잃음**(인증 창이 부모 세션에 결과를 못 돌려줌)
+- 수정: `apps/web/src/lib/billing.ts` `windowType: { pc: "POPUP", mobile: "REDIRECTION" }`; `apps/site/src/assets.ts` `/app/*`에 `Cross-Origin-Opener-Policy: same-origin-allow-popups` 덮어쓰기(사이트 나머지는 `same-origin` 유지, COEP 없음이라 crossOriginIsolated 영향 없음); `Billing.tsx`에서 결제 페이지 마운트 시 PortOne SDK 선로딩(팝업은 클릭의 user activation 안에서만 허용되므로 클릭 뒤 SDK 다운로드로 활성화를 소모하지 않도록)
+- 확인 방법: 배포 후 Chrome에서 `/app/#/business` → 결제 → KCP 창이 **새 창**으로 뜨고 카드 인증까지 진행되는지. 팝업 차단 아이콘이 뜨면 주소창에서 허용 후 재시도. 결제 성공 시 PortOne 콘솔에서 취소(9. 남은 작업)
+- 참고: PortOne V2 문서에는 PG별 windowType 지원표가 없음. KCP는 PC `POPUP`, 모바일 `REDIRECTION`이 안전한 조합(iframe 금지)
 
 ## 8. 러너 메모
 - 회사 PC 러너(FELIXLEE*)는 **LocalSystem** 계정(WiX MSI ICE 검사에 필요). Rust는 `CARGO_HOME=C:\Rust\cargo`

@@ -25,7 +25,7 @@ import { EditionNote } from "../components/Edition";
 import { LicensedDownloads } from "../components/TrialBanner";
 import { Seg } from "../components/ui";
 import { ApiError, auth, type User } from "../lib/api";
-import { billingApi, providerForLocale, startCheckout, type BillingConfig, type BillingStatus, type LicenseDto, type OrderDto } from "../lib/billing";
+import { billingApi, loadPortOne, providerForLocale, startCheckout, type BillingConfig, type BillingStatus, type LicenseDto, type OrderDto } from "../lib/billing";
 import { SITE_URL } from "../lib/site";
 import { useStore } from "../lib/store";
 import { getLocale, useLocale, useT } from "../i18n";
@@ -154,6 +154,11 @@ export function BillingSection({ user, onUser, purchase = false }: { user: User;
   // Fixed by language: Korean pays with PortOne in won, everyone else with PayPal in dollars.
   const provider: PaymentProvider = providerForLocale(loc);
   const providerReady = !!config?.providers[provider].enabled;
+  // Fetch the PortOne SDK before the buyer clicks: the KCP popup is only allowed inside the click's
+  // user activation, and a script download in between would spend it (popup blocked → KCP 3017).
+  useEffect(() => {
+    if (provider === "portone" && providerReady) void loadPortOne().catch(() => undefined);
+  }, [provider, providerReady]);
 
   const setUsage = async (usageType: "personal" | "business") => {
     if (usageType === user.usageType) return;

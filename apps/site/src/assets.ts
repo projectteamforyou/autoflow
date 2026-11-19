@@ -163,9 +163,10 @@ export async function buildCloudflare(opts: { scriptHashes: string[]; styleHashe
     "upgrade-insecure-requests",
   ].join("; ");
   // The SPA under /app/ needs a different policy (its own bundles, BYO-AI provider calls, workers).
-  // Business plan checkout: the PortOne V2 browser SDK renders KCP in an in-page iframe on PC and
-  // redirects in the same tab on mobile (never a popup). PayPal is a plain same-tab redirect to its
-  // approval page and back, so it needs no CSP entries.
+  // Business plan checkout: the PortOne V2 browser SDK opens KCP's payment window as a popup on PC
+  // (KCP's card-issuer authentication is itself a popup, so an in-page iframe ends in KCP's "[3017]
+  // 팝업 차단" / "신용카드 인증 오류") and redirects in the same tab on mobile. PayPal is a plain
+  // same-tab redirect to its approval page and back, so it needs no CSP entries.
   const appCsp = [
     "default-src 'self'",
     `script-src 'self' 'wasm-unsafe-eval' https://static.cloudflareinsights.com ${PAYMENT_SCRIPT_SOURCES}`,
@@ -195,6 +196,8 @@ export async function buildCloudflare(opts: { scriptHashes: string[]; styleHashe
 /app/*
   ! Content-Security-Policy
   Content-Security-Policy: ${appCsp}
+  ! Cross-Origin-Opener-Policy
+  Cross-Origin-Opener-Policy: same-origin-allow-popups
 
 /assets/*
   ! Cache-Control
