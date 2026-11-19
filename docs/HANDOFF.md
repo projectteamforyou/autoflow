@@ -92,7 +92,7 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
 ## 7-4. 오류 로그·미구현 점검 (PR #28, 2026-11-03)
 - 운영 API(Railway) 7일: 5xx 0건 / 19,084 요청. 4xx는 WordPress 스캐너 봇의 404(/wp/, /blog/ …)뿐. 마이그레이션 005·주문 정산 하우스키핑 정상 동작 확인
 - CI 실패 3건 수정: `ubuntu-latest`→26.04로 Playwright/Chromium 설치 불가(주간 스모크·Site·스크린샷) → 모든 Linux 잡 `ubuntu-24.04` 고정; `cargo fmt` 차이; 회사 러너 디스크 부족 → Windows 잡에 디스크 가드(12 GB 미만이면 다른 작업 폴더 `target` 정리, 6 GB 미만 실패) + `CARGO_HOME` 미설정 PC는 `C:\Rust\cargo` 자동 감지 + rustup 없으면 curl.exe로 설치(PowerShell 5에서는 네이티브 stderr를 파이프하지 말 것)
-- **GitHub 저장소에 `CLOUDFLARE_API_TOKEN` 시크릿이 없어 Site 워크플로의 배포 단계는 항상 skip** → 사이트 배포는 수동(`wrangler pages deploy`). 시크릿을 넣으면 main push마다 자동 배포됨
+- ~~GitHub 저장소에 `CLOUDFLARE_API_TOKEN` 시크릿이 없어 Site 워크플로의 배포 단계는 항상 skip~~ → **2026-11-19 19:30 KST 사용자가 `CLOUDFLARE_API_TOKEN`·`CLOUDFLARE_ACCOUNT_ID` 시크릿 등록** → 이후 main push(apps/site·apps/web·packages 변경)마다 자동 배포. 수동은 Actions → Site → Run workflow(MCP 연동 계정은 dispatch·rerun 403이라 사람이 눌러야 함). 이 세션 컨테이너에서 `wrangler pages deploy`는 불가: 환경 프록시가 api.cloudflare.com의 Authorization을 저장된 전체 토큰으로 바꿔 넣어 Pages 업로드용 JWT가 거부됨(8000013)
 - **Android 화면 캡처 구현**(그동안 "Android에서는 사용 불가"였던 기능): `system/ScreenCapture.kt`(MediaProjection, 앱 시작마다 1회 동의) + `CaptureService`(FGS mediaProjection) → 픽셀 검사·waitForPixel·장면 해시·scene_capture·findImage/이미지 타깃(`run/ImageMatch.kt`, Rust NCC 포팅)·OCR(`run/TextRecognition.kt`, ML Kit v2 unbundled: Latin/ko/ja/zh). 권한 `screenCapture` 추가. 기능 매트릭스(TS·Rust·Kotlin) 화면 프로브 = Android "limited". 템플릿 idle-collect·stage-ready-clicker가 Android 대상에 포함
   - 참조 이미지는 `Android/data/com.projectteamforyou.autoflow/files/AutoFlow/images/<ref>.png` (앱 내 가져오기 UI는 아직 없음)
   - 미구현으로 남긴 것: Android 위치 트리거(권한 정책상 보류), Keyforge 출력/텍스트 확장(Android), OCR 언어 옵션(기기 로케일로 선택)
@@ -144,5 +144,4 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
 - Android Scenes/픽셀(MediaProjection) 지원
 - 실결제 1건(₩9,900) 후 PortOne 콘솔에서 취소로 끝까지 검증
 - Play 선언 심사 완료 후 `play-upload.yml submit` (versionCode 17 → production)
-- GitHub 시크릿 `CLOUDFLARE_API_TOKEN` 등록(사이트 자동 배포)
 - 집 PC 러너 디스크 정리, Google 서비스 계정 키 교체
