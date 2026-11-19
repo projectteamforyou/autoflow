@@ -4,7 +4,13 @@
  * file only starts checkout and reports where the buyer came back.
  *
  * - PortOne (KCP, KRW): the V2 browser SDK in an in-page iframe on PC and a same-tab redirect on
- *   mobile (windowType { pc: IFRAME, mobile: REDIRECTION }). Never a popup or new window.
+ *   mobile (windowType { pc: IFRAME, mobile: REDIRECTION }). PortOne refuses POPUP/REDIRECTION for
+ *   KCP on PC ("PC환경에서 지원하지 않는 PG사 창 유형"). Inside that iframe KCP still opens the
+ *   card-issuer authentication (ISP/앱카드) in a window of its own and talks to it through
+ *   window.opener, so /app/* must be served with Cross-Origin-Opener-Policy: same-origin-allow-popups;
+ *   with the site-wide `same-origin` the opener is severed and KCP reports "신용카드 인증 오류" and
+ *   then "[3017] 팝업 차단" (seen 2026-11-19). The SDK is preloaded when the checkout page mounts
+ *   so the window opens right after the click.
  * - PayPal (USD): same-tab redirect to PayPal's approval page; PayPal sends the buyer back to
  *   /billing/return, where the server captures.
  */
@@ -103,7 +109,7 @@ declare global {
 let sdk: Promise<NonNullable<Window["PortOne"]>> | null = null;
 
 /** Loads the PortOne V2 browser SDK once (allowed by the app CSP: script-src https://cdn.portone.io). */
-function loadPortOne(): Promise<NonNullable<Window["PortOne"]>> {
+export function loadPortOne(): Promise<NonNullable<Window["PortOne"]>> {
   if (window.PortOne) return Promise.resolve(window.PortOne);
   sdk ??= new Promise((resolve, reject) => {
     const s = document.createElement("script");
@@ -151,7 +157,7 @@ export async function startCheckout(provider: PaymentProvider, period: BillingPe
     currency: p.currency,
     payMethod: p.payMethod,
     customer: { email: p.customer.email },
-    // KCP would otherwise open its own window: keep it in-page on PC, same tab on mobile.
+    // PC: in-page iframe (the only KCP window type PortOne allows on PC). Mobile: same tab.
     windowType: { pc: "IFRAME", mobile: "REDIRECTION" },
     // Mobile (redirection) comes back here with ?paymentId=…&code=…; the server verifies either way.
     redirectUrl: returnUrl,
