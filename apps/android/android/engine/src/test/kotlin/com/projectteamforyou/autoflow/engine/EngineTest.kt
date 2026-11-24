@@ -74,6 +74,105 @@ class EngineTest {
         assertEquals(Hotkey("Escape", listOf("ctrl", "alt")), f.hotkeys.stop)
     }
 
+    private fun issues(json: String): List<ValidationIssue> = try {
+        FlowParser.parse(json)
+        emptyList()
+    } catch (e: FlowParseException) {
+        e.issues
+    }
+
+    @Test fun schemaParityWithZod() {
+        // zod's `.url()` is WHATWG `new URL`: template placeholders, braces and spaces in the path/query are fine.
+        val http = mk("""[{"id":"h","type":"http","url":"https://example.com/?q={{name}}&r={a b}"}]""")
+        assertEquals("https://example.com/?q={{name}}&r={a b}", (http.steps[0] as Step.Http).url)
+        mk("""[{"id":"o","type":"openUrl","url":"mailto:someone@example.com"}]""")
+        mk("""[{"id":"o","type":"openUrl","url":"HTTPS://EXAMPLE.COM/"}]""")
+        // ... but only http(s) (and mailto for openUrl) may be opened or requested.
+        assertEquals(listOf("steps.0.url" to "only http(s) and mailto URLs can be opened"), issues(flowJson("""[{"id":"o","type":"openUrl","url":"file:///x"}]""")).map { it.path to it.message })
+        assertEquals(listOf("steps.0.url" to "only http(s) URLs can be requested"), issues(flowJson("""[{"id":"h","type":"http","url":"file:///x"}]""")).map { it.path to it.message })
+        assertTrue(issues(flowJson("""[{"id":"h","type":"http","url":"mailto:a@b.c"}]""")).any { it.message == "only http(s) URLs can be requested" })
+        assertTrue(issues(flowJson("""[{"id":"o","type":"openUrl","url":"javascript:alert(1)"}]""")).any { it.message == "only http(s) and mailto URLs can be opened" })
+        // A missing scheme or an empty host is "Invalid url", as with `new URL`.
+        for (bad in listOf("example.com/x", "https://", "http:///", "http://:80", "http://user@/x", "1http://x", "https://exa mple.com/")) {
+            assertTrue(bad, issues(flowJson("""[{"id":"h","type":"http","url":"$bad"}]""")).any { it.path == "steps.0.url" && it.message == "Invalid url" })
+        }
+        // onError strategy "goto" needs a target (schema.ts refine).
+        val goto = issues(flowJson("""[{"id":"w","type":"wait","ms":1,"onError":{"strategy":"goto"}}]"""))
+        assertEquals(listOf("steps.0.onError.gotoStepId" to "gotoStepId is required for strategy \"goto\""), goto.map { it.path to it.message })
+        mk("""[{"id":"w","type":"wait","ms":1,"onError":{"strategy":"goto","gotoStepId":"w"}}]""")
+        // rect coordinates are bounded like `coord` (±1 000 000).
+        assertTrue(issues(flowJson("""[{"id":"o","type":"ocr","region":{"x":0,"y":0,"w":2000000,"h":10},"resultVar":"t"}]""")).any { it.path == "steps.0.region.w" })
+        assertTrue(issues(flowJson("""[{"id":"w","type":"window","op":"move","match":{"title":"x"},"rect":{"x":-1e7,"y":0,"w":1,"h":1}}]""")).any { it.path == "steps.0.rect.x" })
+        // variables[].initial: string | number | boolean | (string | number)[] — nothing nested.
+        val vars = mk("[]", """"variables":[{"name":"a","initial":"x"},{"name":"b","type":"number","initial":2},{"name":"c","type":"boolean","initial":true},{"name":"d","type":"list","initial":["x",1]}]""")
+        assertEquals(Value.list(Value.Str("x"), Value.Num(1.0)), vars.variables[3].initial)
+        for (bad in listOf("[[1]]", "[true]", """{"k":1}""", """[{"k":1}]""", "[null]")) {
+            assertEquals(bad, listOf("variables.0.initial" to "Invalid input"), issues(flowJson("[]", """"variables":[{"name":"a","initial":$bad}]""")).map { it.path to it.message })
+        }
+    }
+
+    @Test fun numberVariablesMustStartAsNumbers() {
+        // engine.ts initVars: a non-numeric initial/input fails the run before the first step.
+        val flow = mk("""[{"id":"c","type":"click","target":$CLICK}]""", """"variables":[{"name":"n","type":"number","initial":"abc"}]""")
+        val o = run(flow)
+        assertEquals(RunStatus.FAILED, o.result.status)
+        assertEquals(ErrorCategory.EXPRESSION, o.result.error?.category)
+        assertEquals("variable \"n\": \"abc\" is not a number", o.result.error?.message)
+        assertTrue(o.backend.effects.isEmpty())
+        val list = mk("""[{"id":"c","type":"click","target":$CLICK}]""", """"variables":[{"name":"n","type":"number","initial":[1]}]""")
+        assertEquals("variable \"n\": [1] is not a number", run(list).result.error?.message)
+        val ok = mk("""[{"id":"c","type":"click","target":$CLICK}]""", """"variables":[{"name":"n","type":"number","initial":" 12 "},{"name":"b","type":"number","initial":true}]""")
+        val r = run(ok).result
+        assertEquals(RunStatus.COMPLETED, r.status)
+        assertEquals(Value.Num(12.0), r.vars["n"])
+        assertEquals(Value.Num(1.0), r.vars["b"])
+        // Inputs are checked the same way.
+        val input = runBlocking {
+            FlowRun(ok, FakeBackend(), RunOptions(clock = VirtualClock(0), skipCountdown = true, inputs = mapOf("n" to Value.Str("x")))).start()
+        }
+        assertEquals("variable \"n\": \"x\" is not a number", input.error?.message)
+    }
+
+    @Test fun screenProbesCountAsScreenCoordinates() {
+        val screen = """"screen":{"width":1920,"height":1080,"scale":1}"""
+        val pixel = mk("""[{"id":"p","type":"pixelCheck","at":{"kind":"point","x":1,"y":1},"resultVar":"c"}]""", screen)
+        assertTrue(usesScreenCoordinates(pixel.steps))
+        assertEquals(ErrorCategory.ENVIRONMENT, run(pixel).result.error?.category)
+        val waitPx = mk("""[{"id":"p","type":"waitForPixel","at":{"kind":"point","x":1,"y":1,"space":"screen"},"color":"#000000","timeoutMs":1}]""")
+        assertTrue(usesScreenCoordinates(waitPx.steps))
+        val cond = mk("""[{"id":"i","type":"if","condition":{"pixel":{"at":{"kind":"point","x":1,"y":1},"color":"#000000"}},"then":[]}]""")
+        assertTrue(usesScreenCoordinates(cond.steps))
+        val ocr = mk("""[{"id":"o","type":"ocr","region":{"x":0,"y":0,"w":10,"h":10},"resultVar":"t"}]""")
+        assertTrue(usesScreenCoordinates(ocr.steps))
+        val normalized = mk("""[{"id":"p","type":"pixelCheck","at":{"kind":"point","x":0.5,"y":0.5,"space":"normalized"},"resultVar":"c"}]""")
+        assertFalse(usesScreenCoordinates(normalized.steps))
+        assertFalse(usesScreenCoordinates(mk("""[{"id":"w","type":"wait","ms":1}]""").steps))
+    }
+
+    @Test fun riskAnalysisParity() {
+        // WHATWG IPv4 spellings all name the loopback / private ranges.
+        for (u in listOf("http://127.0.0.1/", "http://0x7f000001/", "http://0177.0.0.1/", "http://127.1/", "http://2130706433/", "http://0x7f.1/", "http://[::1]/", "http://localhost:8080/x", "http://a.localhost/", "http://10.0.0.1/", "http://192.168.1.1/", "http://172.16.0.1/", "http://169.254.1.1/", "http://0/", "http://[::ffff:127.0.0.1]/", "http://[fe80::1]/", "http://[fc00::1]/", "http://LOCALHOST./", "HTTP:\\\\127.1\\x", "http://user:pw@127.1:81/", "http://%6Cocalhost/")) {
+            assertTrue(u, isLocalNetworkUrl(u))
+        }
+        for (u in listOf("http://example.com/", "http://8.8.8.8/", "http://172.32.0.1/", "http://[2001:db8::1]/", "http://127.0.0.1.example.com/", "mailto:root@127.0.0.1", "http://{{host}}/", "not a url", "http://[::1", "http://999.1.1.1/", "http://1.2.3.4.5/", "http://0x7g/", "http://localhost.example/")) {
+            assertFalse(u, isLocalNetworkUrl(u))
+        }
+        // A stored secret leaving the vault: typed, copied, shown or sent anywhere.
+        fun keys(json: String) = analyzeRisk(mk(json)).findings.map { it.key }
+        assertEquals(listOf("risk.networkSend", "risk.secretExposed"), keys("""[{"id":"h","type":"http","method":"POST","url":"https://example.com/","body":"{\"t\":\"{{secret:tok}}\"}"}]"""))
+        assertEquals(listOf("risk.networkRead"), keys("""[{"id":"h","type":"http","url":"https://example.com/","body":"plain"}]"""))
+        assertEquals(listOf("risk.secretExposed"), keys("""[{"id":"c","type":"clipboard","op":"set","value":"{{ secret:pw }}"}]"""))
+        assertEquals(listOf("risk.clipboardRead"), keys("""[{"id":"c","type":"clipboard","op":"get","var":"v"}]"""))
+        assertEquals(listOf("risk.secretExposed"), keys("""[{"id":"n","type":"notify","title":"t","body":"{{secret:pw}}"}]"""))
+        assertEquals(listOf("risk.secretExposed"), keys("""[{"id":"n","type":"notify","title":"{{secret:pw}}"}]"""))
+        assertEquals(listOf("risk.secretExposed"), keys("""[{"id":"c","type":"confirm","message":"{{secret:pw}}?"}]"""))
+        assertEquals(emptyList<String>(), keys("""[{"id":"c","type":"confirm","message":"{{name}}?"}]"""))
+        val r = analyzeRisk(mk("""[{"id":"c","type":"clipboard","op":"set","value":"{{secret:pw}}"}]"""))
+        assertEquals(20, r.findings.single().weight)
+        assertTrue(r.needsConfirm)
+        assertEquals(listOf("risk.localNetwork"), keys("""[{"id":"h","type":"http","url":"http://0x7f.1/"}]""").filter { it == "risk.localNetwork" })
+    }
+
     @Test fun loopsVariablesAndConditionsDeterministically() {
         val flow = mk(
             """[{"id":"v","type":"setVar","name":"n","value":"0"},

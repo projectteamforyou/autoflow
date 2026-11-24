@@ -1,0 +1,351 @@
+{
+  "vars": {
+    "cr": "a\rb",
+    "nbsp": "a b",
+    "nel": "ab",
+    "nl": "\n",
+    "nul": "a\u0000b",
+    "abcnl": "abc\n",
+    "tab": "a\tb",
+    "big": {
+      "$repeat": [
+        "x",
+        350000
+      ]
+    },
+    "l": [
+      {
+        "$repeat": [
+          "x",
+          350000
+        ]
+      },
+      {
+        "$repeat": [
+          "x",
+          350000
+        ]
+      },
+      {
+        "$repeat": [
+          "x",
+          350000
+        ]
+      }
+    ]
+  },
+  "cases": [
+    {
+      "expr": "matches(\"user.name@ex-ample.com\", \"^[\\\\w.-]+@[\\\\w-.]+$\")",
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "expr": "matches(\"a-b\", \"[a-\\\\d]+\")",
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "expr": "matches(cr, \"^a.b$\")",
+      "expect": {
+        "value": false
+      }
+    },
+    {
+      "expr": "matches(nbsp, \"a\\\\sb\")",
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "expr": "matches(nel, \"a\\\\sb\")",
+      "expect": {
+        "value": false
+      }
+    },
+    {
+      "expr": "matches(tab, \"a\\\\sb\")",
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "expr": "matches(\"a{\", \"a{\")",
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "expr": "matches(\"aa\", \"a{2}\")",
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "expr": "matches(\"a{,2}\", \"a{,2}\")",
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "expr": "matches(\"x\", \"[]\")",
+      "expect": {
+        "value": false
+      }
+    },
+    {
+      "expr": "matches(nl, \"[^]\")",
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "expr": "matches(nul, \"a\\\\0b\")",
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "expr": "matches(abcnl, \"abc$\")",
+      "expect": {
+        "value": false
+      }
+    },
+    {
+      "expr": "matches(\"xB\", \"\\\\A\")",
+      "expect": {
+        "value": false
+      }
+    },
+    {
+      "expr": "matches(\"ABC\", \"(?i)abc\")",
+      "expect": {
+        "error": "invalid pattern: lookaround and named groups are not supported"
+      }
+    },
+    {
+      "expr": "matches(\"aaa\", \"a*+a\")",
+      "expect": {
+        "error": "invalid pattern: nothing to repeat"
+      }
+    },
+    {
+      "expr": "matches(\"x\", \"\\\\p{L}\")",
+      "expect": {
+        "error": "invalid pattern: \\p is not supported"
+      }
+    },
+    {
+      "expr": "matches(\"order-123\", \"^order-\\\\d+$\")",
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "expr": "matches(\"naïve\", \"^\\\\w+$\")",
+      "expect": {
+        "value": false
+      }
+    },
+    {
+      "expr": "1e400 / 1e400",
+      "expect": {
+        "error": "number out of range"
+      }
+    },
+    {
+      "expr": "1e308 / 0.1",
+      "expect": {
+        "error": "number out of range"
+      }
+    },
+    {
+      "expr": "7 % -3",
+      "expect": {
+        "value": 1
+      }
+    },
+    {
+      "expr": "-7 % 3",
+      "expect": {
+        "value": -1
+      }
+    },
+    {
+      "expr": "\"5\" * \"2\"",
+      "expect": {
+        "value": 10
+      }
+    },
+    {
+      "expr": "round(0.49999999999999994)",
+      "expect": {
+        "value": 0
+      }
+    },
+    {
+      "expr": "round(-2.5)",
+      "expect": {
+        "value": -2
+      }
+    },
+    {
+      "expr": "round(2.5)",
+      "expect": {
+        "value": 3
+      }
+    },
+    {
+      "expr": "round(4503599627370497)",
+      "expect": {
+        "value": 4503599627370497
+      }
+    },
+    {
+      "expr": "num(\"0x-1\")",
+      "expect": {
+        "error": "\"0x-1\" is not a number"
+      }
+    },
+    {
+      "expr": "num(\"0x10\")",
+      "expect": {
+        "value": 16
+      }
+    },
+    {
+      "expr": "num(\" 12 \")",
+      "expect": {
+        "value": 12
+      }
+    },
+    {
+      "expr": "str(1e21)",
+      "expect": {
+        "value": "1e+21"
+      }
+    },
+    {
+      "expr": "str(0.1+0.2)",
+      "expect": {
+        "value": "0.30000000000000004"
+      }
+    },
+    {
+      "expr": "str(-0)",
+      "expect": {
+        "value": "0"
+      }
+    },
+    {
+      "expr": "date(1e300)",
+      "expect": {
+        "value": "NaN-NaN-NaN"
+      }
+    },
+    {
+      "expr": "time(8.65e15)",
+      "expect": {
+        "value": "NaN:NaN:NaN"
+      }
+    },
+    {
+      "expr": "str(l)",
+      "expect": {
+        "error": "string too large"
+      }
+    },
+    {
+      "expr": "join(l, \"\")",
+      "expect": {
+        "error": "string too large"
+      }
+    },
+    {
+      "expr": "l + \"\"",
+      "expect": {
+        "error": "string too large"
+      }
+    },
+    {
+      "expr": "len(l)",
+      "expect": {
+        "value": 3
+      }
+    },
+    {
+      "expr": "len(big)",
+      "expect": {
+        "value": 350000
+      }
+    },
+    {
+      "expr": "range(50000) == range(50000)",
+      "expect": {
+        "error": "expression too expensive"
+      }
+    },
+    {
+      "expr": "contains(range(30000), 29999)",
+      "expect": {
+        "error": "expression too expensive"
+      }
+    },
+    {
+      "expr": "range(9000) == range(9000)",
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "expr": "[1,2,3][-1]",
+      "expect": {
+        "value": 3
+      }
+    },
+    {
+      "expr": "\"héllo\"[1]",
+      "expect": {
+        "value": "é"
+      }
+    },
+    {
+      "expr": "substr(\"hello\", -3)",
+      "expect": {
+        "value": "llo"
+      }
+    },
+    {
+      "expr": "\"a\" < \"b\"",
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "expr": "[1] == [1]",
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "expr": "true == \"true\"",
+      "expect": {
+        "value": false
+      }
+    },
+    {
+      "expr": "null == 0",
+      "expect": {
+        "value": false
+      }
+    },
+    {
+      "expr": "[5,6][1.9]",
+      "expect": {
+        "value": 6
+      }
+    }
+  ]
+}

@@ -40,7 +40,10 @@ export async function create(deps: AppDeps, auth: AuthContext | undefined, input
   const sizeBytes = Buffer.byteLength(JSON.stringify(input.flow ?? null));
   if (sizeBytes > deps.config.limits.shares.maxFlowBytes) throw new ApiError(413, "payload_too_large", `Shared flows are limited to ${deps.config.limits.shares.maxFlowBytes} bytes`);
   const { flow, risk, contentHash } = await vetFlow(input.flow);
-  const expiresAt = input.expiresInDays ? new Date(deps.now().getTime() + input.expiresInDays * 86_400_000) : null;
+  // A signed-in owner may keep a link forever (they can delete it); an anonymous share has no owner to clean
+  // it up, so it always expires — after the requested days or the anonymous default.
+  const days = input.expiresInDays ?? (auth ? null : deps.config.limits.shares.anonymousExpiryDays);
+  const expiresAt = days ? new Date(deps.now().getTime() + days * 86_400_000) : null;
   for (let attempt = 0; attempt < 5; attempt++) {
     const share = await shares.insertShare(deps.sql, {
       id: base62Id(10),

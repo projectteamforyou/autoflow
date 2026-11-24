@@ -13,10 +13,25 @@ function openapiYaml(): string {
   return openapi;
 }
 
+const HEALTH_CACHE_MS = 5_000;
+
 export function healthRoutes() {
   const r = new Hono<AppEnv>();
+  // /health is exempt from rate limiting (uptime monitors), so the database ping is shared for a few
+  // seconds: a burst of probes must not tie up the connection pool for real traffic.
+  let cached: { at: number; ok: boolean } | null = null;
+  let inFlight: Promise<boolean> | null = null;
   r.get("/health", async (c) => {
-    const ok = await pingDb(c.get("deps").sql);
+    const now = Date.now();
+    let ok: boolean;
+    if (cached && now - cached.at < HEALTH_CACHE_MS) ok = cached.ok;
+    else {
+      inFlight ??= pingDb(c.get("deps").sql).finally(() => {
+        inFlight = null;
+      });
+      ok = await inFlight;
+      cached = { at: Date.now(), ok };
+    }
     return c.json({ status: ok ? "ok" : "degraded", db: ok ? "ok" : "unreachable" }, ok ? 200 : 503);
   });
   return r;

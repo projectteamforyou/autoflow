@@ -129,7 +129,9 @@ export const OnError = z.object({
   maxBackoffMs: ms.optional(),
   /** 0..1: each delay is reduced by a random share of up to `jitter` (spreads retry storms). */
   jitter: z.number().min(0).max(1).optional(),
-});
+})
+  // Without a target the executor silently fell back to "stop"; the lint rule only warned.
+  .refine((o) => o.strategy !== "goto" || !!o.gotoStepId, { message: 'gotoStepId is required for strategy "goto"', path: ["gotoStepId"] });
 export type OnError = z.infer<typeof OnError>;
 
 /* -------------------------------------------------------------------- steps */
@@ -282,7 +284,18 @@ export const LaunchAppStep = z.object({
   args: z.array(z.string().max(260)).max(16).default([]),
 });
 
-export const OpenUrlStep = z.object({ ...base, type: z.literal("openUrl"), url: z.string().url().max(2048) });
+/**
+ * Web addresses a flow may open or call. The backends refuse anything else at run time (Windows
+ * shell.rs, Android), so file:, javascript:, ms-settings: and friends are rejected up front instead
+ * of passing lint and the Safety Score and failing on the first run.
+ */
+const OPEN_URL_SCHEME = /^(https?|mailto):/i;
+const HTTP_URL_SCHEME = /^https?:/i;
+export const OpenUrlStep = z.object({
+  ...base,
+  type: z.literal("openUrl"),
+  url: z.string().url().max(2048).refine((u) => OPEN_URL_SCHEME.test(u), { message: "only http(s) and mailto URLs can be opened" }),
+});
 
 export const WindowStep = z.object({
   ...base,
@@ -302,7 +315,7 @@ export const HttpStep = z.object({
   ...base,
   type: z.literal("http"),
   method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]).default("GET"),
-  url: z.string().url().max(2048),
+  url: z.string().url().max(2048).refine((u) => HTTP_URL_SCHEME.test(u), { message: "only http(s) URLs can be requested" }),
   headers: z
     .record(z.string().max(2000))
     .refine((h) => Object.keys(h).length <= 50, { message: "at most 50 headers" })

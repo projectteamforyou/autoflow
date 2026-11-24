@@ -5,7 +5,7 @@
  * (Korean → PortOne/KRW, others → PayPal/USD). Also the /billing/return page that PortOne
  * (mobile redirect) and PayPal send buyers back to, which shows the order's license key once.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   BILLING_CONTACT_EMAIL,
@@ -139,14 +139,23 @@ export function BillingSection({ user, onUser, purchase = false }: { user: User;
   const [busy, setBusy] = useState(false);
   const [newKey, setNewKey] = useState<string | null>(null);
 
+  // A refresh started before a payment settled must not overwrite the paid status it raced with:
+  // every refresh and every settled status bumps the generation, and stale responses are dropped.
+  const gen = useRef(0);
+  const settle = useCallback((s: BillingStatus) => {
+    gen.current++;
+    setStatus(s);
+  }, []);
   const refresh = useCallback(async () => {
+    const mine = ++gen.current;
     try {
       const [c, s] = await Promise.all([billingApi.config(), billingApi.status()]);
+      if (mine !== gen.current) return;
       setConfig(c);
       setStatus(s);
       setFailed(false);
     } catch {
-      setFailed(true);
+      if (mine === gen.current) setFailed(true);
     }
   }, []);
   useEffect(() => void refresh(), [refresh, user.usageType]);
@@ -181,7 +190,7 @@ export function BillingSection({ user, onUser, purchase = false }: { user: User;
       if (r.kind === "failed") toast("warning", t("billing.failed", { message: r.message }));
       else if (r.kind === "confirm") {
         const done = await billingApi.confirm(r.provider, r.paymentId);
-        setStatus(done.billing);
+        settle(done.billing);
         if (done.licenseKey) setNewKey(done.licenseKey);
         toast("success", t("billing.paid", { date: formatDate(done.billing.entitlement!.validUntil) }));
       }
@@ -199,7 +208,7 @@ export function BillingSection({ user, onUser, purchase = false }: { user: User;
     setBusy(true);
     try {
       const done = await billingApi.confirm(o.provider, o.paymentId);
-      setStatus(done.billing);
+      settle(done.billing);
       if (done.licenseKey) setNewKey(done.licenseKey);
       toast("success", t("billing.paid", { date: formatDate(done.billing.entitlement!.validUntil) }));
     } catch (e) {
@@ -211,7 +220,7 @@ export function BillingSection({ user, onUser, purchase = false }: { user: User;
   };
 
   const onRedeemed = (s: BillingStatus) => {
-    setStatus(s);
+    settle(s);
     if (s.usageType !== user.usageType) onUser({ ...user, usageType: s.usageType });
   };
 
@@ -295,6 +304,14 @@ function Licenses({ keys }: { keys: LicenseDto[] }) {
       <summary className="label" style={{ cursor: "pointer" }}>{t("billing.license.yours")}</summary>
       <div style={{ overflowX: "auto" }}>
         <table className="table" style={{ marginTop: 8 }}>
+          <thead>
+            <tr>
+              <th scope="col">{t("table.key")}</th>
+              <th scope="col">{t("table.period")}</th>
+              <th scope="col">{t("table.source")}</th>
+              <th scope="col">{t("table.activatedAt")}</th>
+            </tr>
+          </thead>
           <tbody>
             {keys.map((k) => (
               <tr key={k.id}>
@@ -319,6 +336,15 @@ function Orders({ orders, busy, onRecheck }: { orders: OrderDto[]; busy: boolean
     <details className="small">
       <summary className="label" style={{ cursor: "pointer" }}>{t("billing.orders")}</summary>
       <table className="table" style={{ marginTop: 8 }}>
+        <thead>
+          <tr>
+            <th scope="col">{t("table.date")}</th>
+            <th scope="col">{t("table.period")}</th>
+            <th scope="col">{t("table.amount")}</th>
+            <th scope="col">{t("table.status")}</th>
+            <th scope="col"><span className="sr-only">{t("table.actions")}</span></th>
+          </tr>
+        </thead>
         <tbody>
           {orders.map((o) => (
             <tr key={o.id}>
@@ -350,9 +376,11 @@ export function BillingReturnPage() {
 
   const run = useCallback(async () => {
     if (params.get("cancelled") === "1") return setState({ kind: "error", text: t("billing.cancelled") });
+    // The return URL is attacker-controllable, so its `message` is never shown: known PG codes map to
+    // our own copy and everything else gets the generic text.
     const code = params.get("code");
-    if (code) return setState({ kind: "error", text: t("billing.failed", { message: params.get("message") || code }) });
-    if (!paymentId) return setState({ kind: "error", text: t("billing.failed", { message: "missing payment id" }) });
+    if (code) return setState({ kind: "error", text: code === "FAILURE_TYPE_PG" ? t("billing.failedPg") : /CANCEL/i.test(code) ? t("billing.cancelled") : t("billing.failedGeneric") });
+    if (!paymentId) return setState({ kind: "error", text: t("billing.missingPaymentId") });
     if (!(await auth.me().catch(() => null))) return setState({ kind: "signin", text: t("billing.signInFirst") });
     setState({ kind: "working", text: t("billing.verifying") });
     // A card payment can take a moment to settle at the PG; ask a few times before giving up.
@@ -366,7 +394,7 @@ export function BillingReturnPage() {
           continue;
         }
         if (e instanceof ApiError && e.code === "payment_not_completed") return setState({ kind: "pending", text: t("billing.pendingCheck") });
-        return setState({ kind: "error", text: e instanceof ApiError && e.code === "payment_failed" ? t("billing.failed", { message: e.message }) : (e as Error).message });
+        return setState({ kind: "error", text: e instanceof ApiError && (e.code === "payment_failed" || e.code === "payment_declined") ? t("billing.failed", { message: e.message }) : (e as Error).message });
       }
     }
   }, [params, paymentId, provider, t]);

@@ -84,6 +84,8 @@ type Sinks = Vec<(&'static str, Arc<dyn HookSink>)>;
 
 static SINKS: RwLock<Sinks> = RwLock::new(Vec::new());
 static CAPS_ON: AtomicBool = AtomicBool::new(false);
+/// CapsLock is physically down: a held key auto-repeats WM_KEYDOWN while Windows toggles the lock only once.
+static CAPS_DOWN: AtomicBool = AtomicBool::new(false);
 
 struct HookThread {
     thread_id: u32,
@@ -137,8 +139,13 @@ unsafe extern "system" fn keyboard_proc(code: i32, wparam: WPARAM, lparam: LPARA
         if is_down || is_up {
             let injected = k.flags.0 & LLKHF_INJECTED.0 != 0;
             let ours = injected && k.dwExtraInfo == INJECTED_MARKER;
-            if is_down && k.vkCode == 0x14 && !injected {
-                CAPS_ON.fetch_xor(true, Ordering::SeqCst);
+            if k.vkCode == 0x14 {
+                // Injected presses (a flow's `key` step, another remapper) change the real lock state too.
+                if is_down && !CAPS_DOWN.swap(true, Ordering::SeqCst) {
+                    CAPS_ON.fetch_xor(true, Ordering::SeqCst);
+                } else if is_up {
+                    CAPS_DOWN.store(false, Ordering::SeqCst);
+                }
             }
             let text = if is_down {
                 let shift = down(0x10);

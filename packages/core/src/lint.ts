@@ -1,7 +1,7 @@
 /**
  * Flow linter: catches mistakes before a run (Pro editor gutter + template publishing gate).
  */
-import type { Condition, DisplayRef, Flow, Step, Target } from "./schema.js";
+import type { Condition, DisplayRef, Flow, Hotkey, Step, Target } from "./schema.js";
 import { walkSteps, childLists } from "./schema.js";
 import { checkExpr, referencedVars, scanPlaceholders } from "./expr.js";
 
@@ -127,6 +127,10 @@ export function lintFlow(flow: Flow, opts: { knownFlowIds?: string[] } = {}): Li
   }
 
   if (!flow.hotkeys.stop) out.push({ severity: "error", key: "lint.noStopHotkey" });
+  // A global hotkey without a modifier (plain "a", Space, Enter) would swallow that key in every app
+  // once registered — the desktop refuses it; say so before the flow is saved or shared.
+  const hotkeys: Array<Hotkey | undefined> = [flow.trigger.type === "hotkey" ? flow.trigger.hotkey : undefined, flow.hotkeys.start, flow.hotkeys.pause, flow.hotkeys.stop];
+  for (const h of hotkeys) if (h && !isSafeGlobalHotkey(h)) out.push({ severity: "error", key: "lint.hotkeyNoModifier", params: { hotkey: [...h.modifiers, h.key].join("+") } });
   if (flow.trigger.type === "schedule" && !flow.trigger.cron && !flow.trigger.everyMs) out.push({ severity: "error", key: "lint.scheduleEmpty" });
   return out;
 }
@@ -162,4 +166,22 @@ export function displayRefs(flow: Pick<Flow, "steps"> & Partial<Pick<Flow, "stag
     if ((s.type === "if" || s.type === "waitFor" || s.type === "loop") && s.condition?.pixel) add(s.condition.pixel.at.display);
   });
   return refs;
+}
+
+const MODIFIER_KEYS = new Set(["control", "ctrl", "shift", "alt", "altgraph", "meta", "os", "fn", "capslock", "numlock", "scrolllock"]);
+
+/**
+ * A system-wide hotkey the desktop will register without hijacking ordinary typing: a function key
+ * on its own, or any other non-modifier key with at least one modifier — and never Shift alone with
+ * a printable character (that is just an upper-case letter). Mirrors `check_flow_hotkey` in
+ * apps/desktop/src-tauri/src/triggers.rs.
+ */
+export function isSafeGlobalHotkey(h: Hotkey): boolean {
+  const key = h.key.trim();
+  if (!key || MODIFIER_KEYS.has(key.toLowerCase())) return false;
+  if (/^f([1-9]|1[0-9]|2[0-4])$/i.test(key)) return true;
+  const mods = new Set(h.modifiers);
+  if (mods.size === 0) return false;
+  if (mods.size === 1 && mods.has("shift") && [...key].length === 1) return false;
+  return true;
 }

@@ -30,6 +30,9 @@ pub const MAX_STEPS: u32 = 20_000;
 pub const MAX_STRING: usize = 1_000_000;
 /// Maximum list length produced by an expression.
 pub const MAX_LIST: usize = 100_000;
+/// Total UTF-16 units held by the strings of one list (expr.ts `MAX_LIST_CHARS`): the node and
+/// string limits alone allow 100 000 × 1 MB, which this engine would copy on every `push`.
+pub const MAX_LIST_CHARS: usize = 16_000_000;
 
 /// Variables visible to expressions, in insertion order.
 pub type Vars = IndexMap<String, Value>;
@@ -435,6 +438,11 @@ pub fn to_str(v: &Value) -> String {
     v.to_js_string()
 }
 
+/// `to_str` with the expr.ts "string too large" check applied while the text is built.
+fn to_str_checked(v: &Value) -> Result<String, ExprError> {
+    v.to_js_string_limited(MAX_STRING).ok_or_else(|| ExprError::new("string too large"))
+}
+
 fn to_num(v: &Value) -> Result<f64, ExprError> {
     match v {
         Value::Num(n) => Ok(*n),
@@ -455,9 +463,32 @@ fn to_num(v: &Value) -> Result<f64, ExprError> {
 
 /// Loose equality used by `==` (see `eq` in expr.ts).
 pub fn loose_eq(a: &Value, b: &Value) -> bool {
-    if let (Value::List(x), Value::List(y)) = (a, b) {
-        return x.len() == y.len() && x.iter().zip(y).all(|(p, q)| loose_eq(p, q));
+    let mut unlimited = u32::MAX;
+    loose_eq_budgeted(a, b, &mut unlimited).unwrap_or(false)
+}
+
+/// `loose_eq` that charges every element comparison to the evaluator's step budget (expr.ts `eq`):
+/// lists can share sub-lists, so a deep comparison is exponential in nesting depth and must be bounded.
+fn loose_eq_budgeted(a: &Value, b: &Value, steps_left: &mut u32) -> Result<bool, ExprError> {
+    if *steps_left == 0 {
+        return Err(ExprError::new("expression too expensive"));
     }
+    *steps_left -= 1;
+    if let (Value::List(x), Value::List(y)) = (a, b) {
+        if x.len() != y.len() {
+            return Ok(false);
+        }
+        for (p, q) in x.iter().zip(y) {
+            if !loose_eq_budgeted(p, q, steps_left)? {
+                return Ok(false);
+            }
+        }
+        return Ok(true);
+    }
+    Ok(loose_eq_scalar(a, b))
+}
+
+fn loose_eq_scalar(a: &Value, b: &Value) -> bool {
     if matches!(a, Value::Num(_)) || matches!(b, Value::Num(_)) {
         if matches!(a, Value::Null) || matches!(b, Value::Null) {
             return false; // `a === b` with exactly one side null and the other a number
@@ -489,17 +520,25 @@ const MAX_LIST_DEPTH: usize = 64;
 /// repeated) cannot hide 2^n leaves behind a small top-level length. Shared sub-lists are counted
 /// each time they are reached: that is the work every later deep operation (clone, to_js_string,
 /// eq, JSON) would do.
-fn list_nodes(list: &[Value], depth: usize, left: &mut usize) -> Result<(), ExprError> {
+fn list_nodes(list: &[Value], depth: usize, left: &mut (usize, usize)) -> Result<(), ExprError> {
     if depth > MAX_LIST_DEPTH {
         return Err(ExprError::new("list too large"));
     }
     for x in list {
-        if *left == 0 {
+        if left.0 == 0 {
             return Err(ExprError::new("list too large"));
         }
-        *left -= 1;
-        if let Value::List(inner) = x {
-            list_nodes(inner, depth + 1, left)?;
+        left.0 -= 1;
+        match x {
+            Value::List(inner) => list_nodes(inner, depth + 1, left)?,
+            Value::Str(t) => {
+                let n = utf16_len(t);
+                if n > left.1 {
+                    return Err(ExprError::new("list too large"));
+                }
+                left.1 -= n;
+            }
+            _ => {}
         }
     }
     Ok(())
@@ -510,7 +549,7 @@ fn guard(v: Value) -> Result<Value, ExprError> {
         Value::Str(s) if s.len() > MAX_STRING && utf16_len(s) > MAX_STRING => Err(ExprError::new("string too large")),
         Value::List(l) if l.len() > MAX_LIST => Err(ExprError::new("list too large")),
         Value::List(l) => {
-            let mut left = MAX_LIST;
+            let mut left = (MAX_LIST, MAX_LIST_CHARS);
             list_nodes(l, 0, &mut left)?;
             Ok(v)
         }
@@ -603,12 +642,32 @@ fn unsupported_regex_feature(p: &str) -> Option<&'static str> {
                 if !in_class && matches!(chars.get(i + 1), Some('1'..='9')) {
                     return Some("back-references are not supported");
                 }
+                match chars.get(i + 1) {
+                    Some('p') => return Some("\\p is not supported"),
+                    Some('P') => return Some("\\P is not supported"),
+                    Some('k') => return Some("\\k is not supported"),
+                    _ => {}
+                }
                 i += 1;
             }
             '[' if !in_class => in_class = true,
             ']' if in_class => in_class = false,
-            '(' if !in_class && chars.get(i + 1) == Some(&'?') && matches!(chars.get(i + 2), Some('=' | '!' | '<')) => {
+            '(' if !in_class && chars.get(i + 1) == Some(&'?') && chars.get(i + 2) != Some(&':') => {
+                // Also inline flags such as `(?i)`: safe-regex.ts reports them with the same message.
                 return Some("lookaround and named groups are not supported");
+            }
+            '*' | '+' | '?' | '{' if !in_class => {
+                // A quantifier right after a quantifier (`a*+`, `a**`, `a{2}+`, `a*??`) is "nothing to repeat"
+                // in JavaScript; the regex crate reads some of them as nested repetition.
+                let prev = i.checked_sub(1).map(|j| chars[j]);
+                let prev_escaped = i >= 2 && chars[i - 2] == '\\';
+                let after_quantifier = matches!(prev, Some('*' | '+' | '?' | '}')) && !prev_escaped;
+                if after_quantifier && (chars[i] != '?' || (i >= 2 && chars[i - 2] == '?' && chars[i - 1] == '?')) {
+                    let lazy = chars[i] == '?' && prev != Some('?');
+                    if !lazy {
+                        return Some("nothing to repeat");
+                    }
+                }
             }
             _ => {}
         }
@@ -617,48 +676,132 @@ fn unsupported_regex_feature(p: &str) -> Option<&'static str> {
     None
 }
 
-/// Translates a JavaScript regular expression to the `regex` crate dialect: `\d \w \b` are
-/// ASCII-only in JavaScript but Unicode-aware in Rust.
+/// ECMAScript `\s` (WhiteSpace + LineTerminator), spelled out because the `regex` crate's `\s`
+/// is Unicode White_Space (includes U+0085, lacks U+FEFF).
+const JS_SPACE: &str = "\\t\\n\\x0B\\x0C\\r \\u{00A0}\\u{1680}\\u{2000}-\\u{200A}\\u{2028}\\u{2029}\\u{202F}\\u{205F}\\u{3000}\\u{FEFF}";
+/// ECMAScript `.`: any UTF-16 unit but a LineTerminator (`\n \r U+2028 U+2029`); the crate's `.` only excludes `\n`.
+const JS_DOT: &str = "[^\\n\\r\\u{2028}\\u{2029}]";
+
+/// Translates a JavaScript regular expression to the `regex` crate dialect so `matches()` gives the
+/// same answer as the TypeScript engine (`safe-regex.ts`): `\d \w \b` are ASCII-only in JavaScript,
+/// `.` and `\s` cover different characters, `\0` is NUL, a `{` that does not start a `{n,m}`
+/// quantifier is a literal (Annex B), `[]` never matches and `[^]` matches anything.
 fn translate_js_regex(p: &str) -> Result<String, &'static str> {
-    let mut out = String::with_capacity(p.len() + 8);
-    let mut chars = p.chars().peekable();
+    let chars: Vec<char> = p.chars().collect();
+    let mut out = String::with_capacity(p.len() + 16);
     let mut in_class = false;
-    while let Some(c) = chars.next() {
+    let mut i = 0;
+    // Inside a class a `-` next to a class escape (`[\w-.]`, `[a-\d]`) is a literal hyphen in
+    // JavaScript (Annex B); the crate would read it as a range and reject or mis-parse it.
+    let escapes_class =
+        |j: usize| matches!(chars.get(j), Some('\\')) && matches!(chars.get(j + 1), Some('d' | 'D' | 'w' | 'W' | 's' | 'S'));
+    while i < chars.len() {
+        let c = chars[i];
         match c {
-            // JavaScript has no inline flag groups such as `(?i)`; reject them like `new RegExp`.
-            '(' if !in_class && chars.peek() == Some(&'?') => {
-                let mut ahead = chars.clone();
-                ahead.next();
-                if !matches!(ahead.peek(), Some(':' | '=' | '!' | '<')) {
+            '(' if !in_class && chars.get(i + 1) == Some(&'?') => {
+                // JavaScript has no inline flag groups such as `(?i)`; reject them like `new RegExp`.
+                if !matches!(chars.get(i + 2), Some(':' | '=' | '!' | '<')) {
                     return Err("Invalid group");
                 }
                 out.push(c);
             }
-            '\\' => match chars.next() {
-                Some('d') => out.push_str("[0-9]"),
-                Some('D') => out.push_str("[^0-9]"),
-                Some('w') => out.push_str("[0-9A-Za-z_]"),
-                Some('W') => out.push_str("[^0-9A-Za-z_]"),
-                Some('b') if in_class => out.push_str("\\x08"),
-                Some('b') => out.push_str("(?-u:\\b)"),
-                Some('B') => out.push_str("(?-u:\\B)"),
-                Some('/') => out.push('/'),
-                Some(other) => {
-                    out.push('\\');
-                    out.push(other);
+            '\\' => {
+                i += 1;
+                match chars.get(i) {
+                    Some('d') => out.push_str(if in_class { "0-9" } else { "[0-9]" }),
+                    Some('D') => out.push_str("[^0-9]"),
+                    Some('w') => out.push_str(if in_class { "0-9A-Za-z_" } else { "[0-9A-Za-z_]" }),
+                    Some('W') => out.push_str("[^0-9A-Za-z_]"),
+                    Some('s') => {
+                        if !in_class {
+                            out.push('[');
+                        }
+                        out.push_str(JS_SPACE);
+                        if !in_class {
+                            out.push(']');
+                        }
+                    }
+                    Some('S') => {
+                        out.push_str("[^");
+                        out.push_str(JS_SPACE);
+                        out.push(']');
+                    }
+                    Some('b') if in_class => out.push_str("\\x08"),
+                    Some('b') => out.push_str("(?-u:\\b)"),
+                    Some('B') => out.push_str("(?-u:\\B)"),
+                    Some('0') if !matches!(chars.get(i + 1), Some('0'..='9')) => out.push_str("\\x00"),
+                    Some('/') => out.push('/'),
+                    // `\xHH` / `\uHHHH` only with the full digit count; otherwise JavaScript reads a literal x / u.
+                    Some('x')
+                        if !(chars.get(i + 1).is_some_and(|c| c.is_ascii_hexdigit())
+                            && chars.get(i + 2).is_some_and(|c| c.is_ascii_hexdigit())) =>
+                    {
+                        out.push('x')
+                    }
+                    Some('u') if !(1..=4).all(|k| chars.get(i + k).is_some_and(|c| c.is_ascii_hexdigit())) => out.push('u'),
+                    // Identity escapes: `\A`, `\z`, `\Z`, `\e`, `\a`, `\h`, `\R`, `\X`, `\G`, `\Q`, `\E`, `\c`… are the
+                    // letter itself in JavaScript, but anchors / classes / quoting in the regex crate.
+                    Some(&other) if other.is_ascii_alphanumeric() && !matches!(other, 'n' | 't' | 'r' | 'f' | 'v' | 'x' | 'u') => {
+                        out.push(other)
+                    }
+                    Some(&other) => {
+                        out.push('\\');
+                        out.push(other);
+                    }
+                    None => out.push('\\'),
                 }
-                None => out.push('\\'),
-            },
+                // `[\w-.]`: the hyphen after a class escape is literal.
+                if in_class && chars.get(i + 1) == Some(&'-') && chars.get(i + 2).is_some_and(|n| *n != ']') {
+                    out.push_str("\\-");
+                    i += 1;
+                }
+            }
+            '-' if in_class && escapes_class(i + 1) => out.push_str("\\-"),
             '[' if !in_class => {
-                in_class = true;
-                out.push(c);
+                if chars.get(i + 1) == Some(&']') {
+                    // `[]` matches nothing at all: start-and-end of text followed by a character never does either.
+                    out.push_str("(?:\\A\\z[\\s\\S])");
+                    i += 1;
+                } else if chars.get(i + 1) == Some(&'^') && chars.get(i + 2) == Some(&']') {
+                    out.push_str("[\\s\\S]");
+                    i += 2;
+                } else {
+                    in_class = true;
+                    out.push(c);
+                }
             }
             ']' if in_class => {
                 in_class = false;
                 out.push(c);
             }
+            '.' if !in_class => out.push_str(JS_DOT),
+            '{' if !in_class => {
+                // Only `{n}`, `{n,}`, `{n,m}` quantify; any other `{` is a literal brace in JavaScript.
+                let mut j = i + 1;
+                let mut digits = 0;
+                while matches!(chars.get(j), Some('0'..='9')) {
+                    j += 1;
+                    digits += 1;
+                }
+                let mut valid = digits > 0;
+                if valid && chars.get(j) == Some(&',') {
+                    j += 1;
+                    while matches!(chars.get(j), Some('0'..='9')) {
+                        j += 1;
+                    }
+                }
+                valid = valid && chars.get(j) == Some(&'}');
+                if valid {
+                    out.extend(&chars[i..=j]);
+                    i = j;
+                } else {
+                    out.push_str("\\{");
+                }
+            }
+            '}' if !in_class => out.push_str("\\}"),
             _ => out.push(c),
         }
+        i += 1;
     }
     Ok(out)
 }
@@ -695,46 +838,55 @@ fn nested_quantifier() -> &'static Regex {
 }
 
 #[allow(clippy::too_many_lines, clippy::cast_precision_loss)]
-fn call(name: &str, a: &[Value], env: &ExprEnv<'_>) -> Result<Value, ExprError> {
-    let s = |i: usize| a[i].to_js_string();
+fn call(name: &str, a: &[Value], env: &ExprEnv<'_>, steps_left: &mut u32) -> Result<Value, ExprError> {
+    let s = |i: usize| to_str_checked(&a[i]);
     Ok(match name {
         "len" => {
             arity(name, a, 1, 1)?;
             match &a[0] {
                 Value::List(l) => Value::Num(l.len() as f64),
-                v => Value::Num(utf16_len(&v.to_js_string()) as f64),
+                v => Value::Num(utf16_len(&to_str_checked(v)?) as f64),
             }
         }
         "upper" => {
             arity(name, a, 1, 1)?;
-            Value::Str(s(0).to_uppercase())
+            Value::Str(s(0)?.to_uppercase())
         }
         "lower" => {
             arity(name, a, 1, 1)?;
-            Value::Str(s(0).to_lowercase())
+            Value::Str(s(0)?.to_lowercase())
         }
         "trim" => {
             arity(name, a, 1, 1)?;
-            Value::Str(js_trim(&s(0)).to_owned())
+            Value::Str(js_trim(&s(0)?).to_owned())
         }
         "contains" => {
             arity(name, a, 2, 2)?;
             match &a[0] {
-                Value::List(l) => Value::Bool(l.iter().any(|x| loose_eq(x, &a[1]))),
-                v => Value::Bool(v.to_js_string().contains(&s(1))),
+                Value::List(l) => {
+                    let mut found = false;
+                    for x in l {
+                        if loose_eq_budgeted(x, &a[1], steps_left)? {
+                            found = true;
+                            break;
+                        }
+                    }
+                    Value::Bool(found)
+                }
+                v => Value::Bool(to_str_checked(v)?.contains(&s(1)?)),
             }
         }
         "startsWith" => {
             arity(name, a, 2, 2)?;
-            Value::Bool(s(0).starts_with(&s(1)))
+            Value::Bool(s(0)?.starts_with(&s(1)?))
         }
         "endsWith" => {
             arity(name, a, 2, 2)?;
-            Value::Bool(s(0).ends_with(&s(1)))
+            Value::Bool(s(0)?.ends_with(&s(1)?))
         }
         "replace" => {
             arity(name, a, 3, 3)?;
-            let (src, from, to) = (s(0), s(1), s(2));
+            let (src, from, to) = (s(0)?, s(1)?, s(2)?);
             // Size the result first: replace(s, "", s) would otherwise square the input in memory.
             let (n, from_len, to_len) = (utf16_len(&src), utf16_len(&from), utf16_len(&to));
             let pieces = if from.is_empty() { n } else { src.matches(from.as_str()).count() + 1 };
@@ -748,19 +900,30 @@ fn call(name: &str, a: &[Value], env: &ExprEnv<'_>) -> Result<Value, ExprError> 
             arity(name, a, 2, 3)?;
             let start = to_num(&a[1])?;
             let len = if a.len() == 3 { Some(to_num(&a[2])?) } else { None };
-            Value::Str(js_substr(&s(0), start, len))
+            Value::Str(js_substr(&s(0)?, start, len))
         }
         "split" => {
             arity(name, a, 2, 2)?;
-            Value::List(js_split(&s(0), &s(1)).into_iter().take(MAX_LIST).map(Value::Str).collect())
+            Value::List(js_split(&s(0)?, &s(1)?).into_iter().take(MAX_LIST).map(Value::Str).collect())
         }
         "join" => {
             arity(name, a, 2, 2)?;
-            let sep = s(1);
-            let parts: Vec<String> = match &a[0] {
-                Value::List(l) => l.iter().map(Value::to_js_string).collect(),
-                v => vec![v.to_js_string()],
+            let sep = s(1)?;
+            let items: &[Value] = match &a[0] {
+                Value::List(l) => l,
+                v => std::slice::from_ref(v),
             };
+            // Same running total as expr.ts: refuse before building an oversized result.
+            let mut total = items.len().saturating_sub(1) * utf16_len(&sep);
+            let mut parts = Vec::with_capacity(items.len());
+            for x in items {
+                let part = to_str_checked(x)?;
+                total += utf16_len(&part);
+                if total > MAX_STRING {
+                    return Err(ExprError::new("string too large"));
+                }
+                parts.push(part);
+            }
             Value::Str(parts.join(&sep))
         }
         "num" => {
@@ -769,7 +932,7 @@ fn call(name: &str, a: &[Value], env: &ExprEnv<'_>) -> Result<Value, ExprError> 
         }
         "str" => {
             arity(name, a, 1, 1)?;
-            Value::Str(s(0))
+            Value::Str(s(0)?)
         }
         "round" => {
             arity(name, a, 1, 2)?;
@@ -835,7 +998,7 @@ fn call(name: &str, a: &[Value], env: &ExprEnv<'_>) -> Result<Value, ExprError> 
         }
         "defined" => {
             arity(name, a, 1, 1)?;
-            Value::Bool(env.vars.contains_key(&s(0)))
+            Value::Bool(env.vars.contains_key(&s(0)?))
         }
         "push" => {
             arity(name, a, 2, 2)?;
@@ -867,7 +1030,7 @@ fn call(name: &str, a: &[Value], env: &ExprEnv<'_>) -> Result<Value, ExprError> 
         }
         "matches" => {
             arity(name, a, 2, 2)?;
-            let pattern = s(1);
+            let pattern = s(1)?;
             if utf16_len(&pattern) > 200 {
                 return Err(ExprError::new("pattern too long"));
             }
@@ -878,7 +1041,7 @@ fn call(name: &str, a: &[Value], env: &ExprEnv<'_>) -> Result<Value, ExprError> 
                 return Err(ExprError::new(format!("invalid pattern: {why}")));
             }
             let re = compile_pattern(&pattern)?;
-            let subject = utf16(&s(0));
+            let subject = utf16(&s(0)?);
             let subject = String::from_utf16_lossy(&subject[..subject.len().min(10_000)]);
             Value::Bool(re.is_match(&subject))
         }
@@ -915,7 +1078,10 @@ impl Evaluator<'_, '_> {
             "&&" | "||" => Ok(x),
             _ => {
                 let y = self.ev(b)?;
-                apply_binary(op, x, y)
+                let mut left = MAX_STEPS.saturating_sub(self.steps);
+                let out = apply_binary(op, x, y, &mut left);
+                self.steps = MAX_STEPS - left;
+                out
             }
         }
     }
@@ -949,14 +1115,17 @@ impl Evaluator<'_, '_> {
             Node::Idx(a, i) => {
                 let a = self.ev(a)?;
                 let i = to_num(&self.ev(i)?)?.trunc();
-                Ok(index(a, i))
+                index(a, i)
             }
             Node::Call(f, args) => {
                 let mut vals = Vec::with_capacity(args.len());
                 for a in args {
                     vals.push(self.ev(a)?);
                 }
-                guard(call(f, &vals, self.env)?)
+                let mut left = MAX_STEPS.saturating_sub(self.steps);
+                let out = call(f, &vals, self.env, &mut left);
+                self.steps = MAX_STEPS - left;
+                guard(out?)
             }
             Node::Lit(v) => Ok(v.clone()),
             Node::Bin(op, a, b) => self.binary(op, a, b),
@@ -966,27 +1135,27 @@ impl Evaluator<'_, '_> {
 
 #[inline(never)]
 #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation, clippy::cast_sign_loss, clippy::needless_pass_by_value)]
-fn index(a: Value, i: f64) -> Value {
+fn index(a: Value, i: f64) -> Result<Value, ExprError> {
     let pick = |len: usize| -> Option<usize> {
         let idx = if i < 0.0 { len as f64 + i } else { i };
         (idx >= 0.0 && idx < len as f64).then_some(idx as usize)
     };
-    match a {
+    Ok(match a {
         Value::List(l) => pick(l.len()).map_or(Value::Null, |k| l[k].clone()),
         other => {
-            let units = utf16(&other.to_js_string());
+            let units = utf16(&to_str_checked(&other)?);
             pick(units.len()).map_or(Value::Null, |k| Value::Str(String::from_utf16_lossy(&units[k..=k])))
         }
-    }
+    })
 }
 
 #[inline(never)]
 #[allow(clippy::needless_pass_by_value)]
-fn apply_binary(op: &str, x: Value, y: Value) -> Result<Value, ExprError> {
+fn apply_binary(op: &str, x: Value, y: Value, steps_left: &mut u32) -> Result<Value, ExprError> {
     match op {
         "+" => {
             if matches!(x, Value::Str(_)) || matches!(y, Value::Str(_)) {
-                return guard(Value::Str(x.to_js_string() + &y.to_js_string()));
+                return guard(Value::Str(to_str_checked(&x)? + &to_str_checked(&y)?));
             }
             if let (Value::List(l), Value::List(r)) = (&x, &y) {
                 let mut out = l.clone();
@@ -1003,10 +1172,11 @@ fn apply_binary(op: &str, x: Value, y: Value) -> Result<Value, ExprError> {
                 return Err(ExprError::new("division by zero"));
             }
             let n = to_num(&x)?;
-            Ok(Value::Num(if op == "/" { n / d } else { n % d }))
+            // Guarded like + - *: 1e308 / 0.1 or 1e400 / 1e400 must not leak Infinity / NaN into variables.
+            guard(Value::Num(if op == "/" { n / d } else { n % d }))
         }
-        "==" => Ok(Value::Bool(loose_eq(&x, &y))),
-        "!=" => Ok(Value::Bool(!loose_eq(&x, &y))),
+        "==" => Ok(Value::Bool(loose_eq_budgeted(&x, &y, steps_left)?)),
+        "!=" => Ok(Value::Bool(!loose_eq_budgeted(&x, &y, steps_left)?)),
         "<" | "<=" | ">" | ">=" => {
             let ord = if let (Value::Str(l), Value::Str(r)) = (&x, &y) {
                 Some(compare_utf16(l, r))
@@ -1123,7 +1293,11 @@ pub fn interpolate_with(text: &str, env: &ExprEnv<'_>, secret: SecretLookup<'_>,
                 None => return Err(ExprError::new(format!("secret \"{name}\" is not available on this device"))),
             }
         } else {
-            out.push_str(&eval_expr(inner, env)?.to_js_string());
+            out.push_str(&to_str_checked(&eval_expr(inner, env)?)?);
+        }
+        // expr.ts checks after every placeholder: thousands of `{{big}}` must not build a multi-GB string.
+        if out.len() > MAX_STRING && utf16_len(&out) > MAX_STRING {
+            return Err(ExprError::new("string too large"));
         }
         last = whole.end();
     }
@@ -1158,7 +1332,16 @@ mod tests {
     #[test]
     fn regex_translation() {
         assert_eq!(translate_js_regex(r"\d+"), Ok("[0-9]+".to_owned()));
-        assert_eq!(translate_js_regex(r"[\d\s]"), Ok(r"[[0-9]\s]".to_owned()));
+        assert_eq!(translate_js_regex(r"[\d\s]"), Ok(format!("[0-9{JS_SPACE}]")));
+        // Annex B: a hyphen next to a class escape is a literal, `.` excludes every line terminator,
+        // a stray `{` is a literal brace, `[]` never matches and `[^]` matches anything.
+        assert_eq!(translate_js_regex(r"[\w-.]"), Ok(r"[0-9A-Za-z_\-.]".to_owned()));
+        assert_eq!(translate_js_regex(r"[a-\d]"), Ok(r"[a\-0-9]".to_owned()));
+        assert_eq!(translate_js_regex("a.b"), Ok(format!("a{JS_DOT}b")));
+        assert_eq!(translate_js_regex("a{"), Ok(r"a\{".to_owned()));
+        assert_eq!(translate_js_regex("a{2,3}"), Ok("a{2,3}".to_owned()));
+        assert_eq!(translate_js_regex(r"\A\0"), Ok(r"A\x00".to_owned()));
+        assert_eq!(translate_js_regex("[^]"), Ok(r"[\s\S]".to_owned()));
         assert_eq!(translate_js_regex("(?i)x"), Err("Invalid group"));
         assert!(translate_js_regex("(?:x)").is_ok());
         assert_eq!(

@@ -17,7 +17,7 @@
  */
 import type { Condition, DisplayRef, Flow, Humanize, OnError, Platform, Scene, Step, Target, Hotkey } from "./schema.js";
 import { walkSteps } from "./schema.js";
-import { evalExpr, interpolate, toStr, truthy, type ExprEnv, type Value } from "./expr.js";
+import { evalExpr, interpolate, toNum, toStr, truthy, type ExprEnv, type Value } from "./expr.js";
 import {
   colorDistance,
   displayRefKey,
@@ -580,7 +580,12 @@ export class FlowRun {
       const inputs = this.opts.inputs;
       const input = inputs && Object.prototype.hasOwnProperty.call(inputs, v.name) ? inputs[v.name] : undefined;
       let val: Value = input ?? (v.initial as Value | undefined) ?? defaultFor(v.type);
-      if (v.type === "number") val = Number(val);
+      if (v.type === "number") {
+        // "abc" would become NaN and surface much later as a misleading "number out of range".
+        const n = typeof val === "boolean" ? Number(val) : Array.isArray(val) ? NaN : numberOrNaN(val);
+        if (!Number.isFinite(n)) throw new RunFailure({ message: `variable "${v.name}": ${JSON.stringify(val)} is not a number`, category: "expression" });
+        val = n;
+      }
       if (v.type === "boolean") val = val === true || val === "true";
       this.vars[v.name] = val;
     }
@@ -1052,6 +1057,15 @@ export class FlowRun {
   }
 }
 
+/** `toNum` semantics (JavaScript `Number(string)`) without throwing: NaN for anything that is not a number. */
+function numberOrNaN(v: Value): number {
+  try {
+    return toNum(v);
+  } catch {
+    return NaN;
+  }
+}
+
 function defaultFor(t: string): Value {
   return t === "number" ? 0 : t === "boolean" ? false : t === "list" ? [] : "";
 }
@@ -1070,7 +1084,11 @@ function usesScreenCoordinates(steps: Step[]): boolean {
     const ts: Target[] = [];
     if ("target" in s && s.target) ts.push(s.target as Target);
     if (s.type === "drag") ts.push(s.from, s.to);
+    // Probes read pixels at recorded positions too: a different screen geometry needs the same confirmation.
+    if (s.type === "pixelCheck" || s.type === "waitForPixel") ts.push(s.at);
+    if ("condition" in s && s.condition?.pixel) ts.push(s.condition.pixel.at);
     if (ts.some((t) => (t.kind === "point" || t.kind === "region") && t.space === "screen")) uses = true;
+    if (s.type === "ocr") uses = true; // the region is always in screen pixels
   });
   return uses;
 }

@@ -7,7 +7,7 @@ import { Field, HotkeyInput, Seg, Switch, download, pickFile } from "../componen
 import { DEFAULT_API_URL, useStore } from "../lib/store";
 import { ApiError, auth, type User } from "../lib/api";
 import { deriveSyncKey, keyCheck } from "../lib/crypto";
-import { hasSyncKey, setSyncKey, syncNow } from "../lib/sync";
+import { hasSyncKey, resetSyncState, setSyncKey, syncNow } from "../lib/sync";
 import { confirmDialog, promptDialog } from "../lib/dialog";
 import { restoreBackupFile, toastRestored } from "../lib/actions";
 import { formatNumber, formatRelative, getLocale, setLocale, useLocale, useT } from "../i18n";
@@ -196,7 +196,7 @@ function BusinessInfo() {
           </div>
         ))}
       </dl>
-      <p className="subtle" style={{ marginTop: 8 }}>© Copyright 2026, Projectteamforyou. All rights reserved.</p>
+      <p className="subtle" style={{ marginTop: 8 }}>{t("settings.copyright", { brand: "Projectteamforyou" })}</p>
     </details>
   );
 }
@@ -288,7 +288,7 @@ function AccountSection() {
             <button className="btn sm ghost" onClick={async () => {
               // Offline logout still clears the local session and UI.
               try { await auth.logout(); } catch { /* token already dropped by auth.logout's finally */ }
-              setUser(null); setSyncKey(null); setUnlocked(false); await update({ sync: { enabled: false } });
+              setUser(null); await resetSyncState(); setUnlocked(false); await update({ sync: { enabled: false } });
             }}><Icon name="LogOut" size={14} /> {t("account.logout")}</button>
           </div>
           <div className="callout info small"><Icon name="Lock" size={16} /> {t("sync.e2e")}</div>
@@ -308,7 +308,7 @@ function AccountSection() {
             <button className="btn sm ghost" style={{ color: "var(--af-danger)" }} onClick={async () => {
               const pw = await promptDialog({ title: t("account.deleteTitle"), body: t("account.deleteBody"), tone: "danger", input: { label: t("account.password"), type: "password" }, confirmLabel: t("account.delete") });
               if (!pw) return;
-              try { await auth.deleteAccount(pw); setUser(null); setSyncKey(null); await update({ sync: { enabled: false } }); toast("success", t("account.deleted")); } catch (e) { toast("error", (e as Error).message); }
+              try { await auth.deleteAccount(pw); setUser(null); await resetSyncState(); await update({ sync: { enabled: false } }); toast("success", t("account.deleted")); } catch (e) { toast("error", (e as Error).message); }
             }}><Icon name="Trash2" size={14} /> {t("account.delete")}</button>
             {user.isAdmin && <Link className="btn sm ghost" to="/admin"><Icon name="Shield" size={14} /> {t("admin.open")}</Link>}
           </div>

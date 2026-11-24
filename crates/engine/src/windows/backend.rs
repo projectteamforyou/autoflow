@@ -12,7 +12,8 @@ use ::windows::core::{BOOL, PCWSTR};
 use ::windows::Win32::Foundation::{HWND, LPARAM, WPARAM};
 use ::windows::Win32::System::Threading::GetCurrentThreadId;
 use ::windows::Win32::UI::WindowsAndMessaging::{
-    EnumThreadWindows, MessageBoxW, PostMessageW, IDYES, MB_ICONQUESTION, MB_SETFOREGROUND, MB_TOPMOST, MB_YESNO, WM_CLOSE,
+    EnumThreadWindows, MessageBoxW, PostMessageW, IDNO, IDYES, MB_ICONQUESTION, MB_SETFOREGROUND, MB_TOPMOST, MB_YESNO, WM_CLOSE,
+    WM_COMMAND,
 };
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -34,7 +35,9 @@ pub trait Host: Send + Sync {
 }
 
 unsafe extern "system" fn close_window(hwnd: HWND, _: LPARAM) -> BOOL {
-    // SAFETY: posting WM_CLOSE to a window of our own helper thread.
+    // SAFETY: posting to a window of our own helper thread. A MB_YESNO box has no Cancel button, so
+    // WM_CLOSE is ignored ("ESC has no effect"); pressing its No button (WM_COMMAND IDNO) dismisses it.
+    let _ignored = unsafe { PostMessageW(Some(hwnd), WM_COMMAND, WPARAM(IDNO.0 as usize), LPARAM(0)) };
     let _ignored = unsafe { PostMessageW(Some(hwnd), WM_CLOSE, WPARAM(0), LPARAM(0)) };
     BOOL(1)
 }

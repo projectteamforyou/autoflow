@@ -235,8 +235,11 @@ describe("Atlas ratings, reports and moderation", () => {
     const t = makeApp(db, { limits: { atlas: { reportHideThreshold: 2 } } });
     const author = await t.signup({ verified: true });
     const id = (await publish(t, author.token, sampleFlow({ name: "Report me" }))).json.template.id;
-    const [a, b] = [await t.signup(), await t.signup()];
+    const [a, b] = [await t.signup({ verified: true }), await t.signup({ verified: true })];
+    const unverified = await t.signup();
 
+    // Reports count only from verified accounts (same gate as publishing): throw-away signups cannot hide a template.
+    expect((await t.call("POST", `/v1/atlas/templates/${id}/reports`, { token: unverified.token, body: { reason: "spam" } })).status).toBe(403);
     expect((await t.call("POST", `/v1/atlas/templates/${id}/reports`, { token: a.token, body: { reason: "bogus" } })).status).toBe(400);
     expect((await t.call("POST", `/v1/atlas/templates/${id}/reports`, { token: author.token, body: { reason: "spam" } })).status).toBe(403);
     expect((await t.call("POST", `/v1/atlas/templates/${id}/reports`, { token: a.token, body: { reason: "malicious", details: "clicks buy buttons" } })).status).toBe(202);

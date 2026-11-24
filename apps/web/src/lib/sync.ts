@@ -54,14 +54,25 @@ async function localHash(kind: Kind, value: Flow | InputProfile): Promise<string
   return kind === "flow" ? flowContentHash(value as Flow) : sha256Hex(stableStringify(value));
 }
 
-/** Applies one remote item locally. Returns "conflict" when both sides changed. */
+/** Applies one remote item locally. Counts a conflict when both sides changed; local data is never lost. */
 async function applyRemote(item: RemoteItem, state: SyncState, report: SyncReport): Promise<void> {
   const key = `${item.kind}:${item.id}`;
   const st = useStore.getState();
   const known = state[key];
+  const kind = item.kind as Kind;
+  const local = kind === "flow" ? st.flows.find((f) => f.id === item.id) : st.profiles.find((p) => p.id === item.id);
+  // Local hash vs. what this device last synced: a mismatch (or no record at all) means it was edited here.
+  const lh = local ? await localHash(kind, local) : undefined;
   if (item.deleted) {
-    if (item.kind === "flow" && st.flows.some((f) => f.id === item.id)) await st.deleteFlow(item.id);
-    if (item.kind === "profile" && st.profiles.some((p) => p.id === item.id)) await st.deleteProfile(item.id);
+    if (local && lh !== known?.hash) {
+      // Edited here after another device deleted it: keep the local copy. With hash null the push step
+      // below sees a mismatch and uploads it as a new revision on top of the tombstone.
+      state[key] = { rev: item.revision, hash: null };
+      report.conflicts++;
+      return;
+    }
+    // Local-only delete: the server already holds the tombstone, so no DELETE goes back out.
+    if (local) await (kind === "flow" ? st.deleteFlow(item.id, { remote: false }) : st.deleteProfile(item.id, { remote: false }));
     state[key] = { rev: item.revision, hash: null };
     report.deleted++;
     return;
@@ -72,25 +83,28 @@ async function applyRemote(item: RemoteItem, state: SyncState, report: SyncRepor
     return;
   }
   const plain = await open({ iv: item.iv, data: item.ciphertext }, syncKey!);
-  if (item.kind === "flow") {
+  let remote: Flow | InputProfile;
+  if (kind === "flow") {
     const parsed = parseFlow(JSON.parse(plain));
     if (!parsed.ok) return;
-    const local = st.flows.find((f) => f.id === item.id);
-    const lh = local ? await localHash("flow", local) : undefined;
-    const localChanged = local && known && lh !== known.hash;
-    if (localChanged && lh !== item.contentHash) {
-      await st.saveFlow({ ...parsed.flow, id: newId("f"), name: `${parsed.flow.name} (conflict)`.slice(0, 120) }, { snapshot: false });
-      report.conflicts++;
-      // Keep the local version; it will be uploaded on top of the server revision.
-      state[key] = { rev: item.revision, hash: known!.hash };
-      return;
-    }
-    await st.saveFlow(parsed.flow, { snapshot: true, note: "sync" });
+    remote = parsed.flow;
   } else {
     const r = InputProfileSchema.safeParse(JSON.parse(plain));
     if (!r.success) return;
-    await st.saveProfile(r.data);
+    remote = r.data;
   }
+  if (local && lh !== known?.hash && lh !== item.contentHash) {
+    // Both sides changed: keep the remote copy as a "(conflict)" duplicate and the local version as is;
+    // it will be uploaded on top of the server revision.
+    const name = `${remote.name} (conflict)`;
+    if (kind === "flow") await st.saveFlow({ ...(remote as Flow), id: newId("f"), name: name.slice(0, 120) }, { snapshot: false });
+    else await st.saveProfile({ ...(remote as InputProfile), id: newId("p"), name: name.slice(0, 80) });
+    report.conflicts++;
+    state[key] = { rev: item.revision, hash: known?.hash ?? null };
+    return;
+  }
+  if (kind === "flow") await st.saveFlow(remote as Flow, { snapshot: true, note: "sync" });
+  else await st.saveProfile(remote as InputProfile);
   state[key] = { rev: item.revision, hash: item.contentHash };
   report.downloaded++;
 }
@@ -150,6 +164,12 @@ export async function syncNow(): Promise<SyncReport> {
   await useStore.getState().updateSettings({ sync: { ...useStore.getState().settings.sync, cursor, lastSyncAt: Date.now() } });
   if (paused) throw paused;
   return report;
+}
+
+/** Forgets what this device synced (revisions/hashes). Called when the session ends so another account starts clean. */
+export async function resetSyncState(): Promise<void> {
+  syncKey = null;
+  await kv.del(STATE);
 }
 
 /** Tombstones an item on the server after a local delete. */

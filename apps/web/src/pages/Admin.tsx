@@ -262,7 +262,7 @@ function EntitlementCard() {
   const change = async (action: "grant" | "revoke") => {
     try {
       await api("/v1/admin/billing/entitlements", { method: "POST", json: { email, action, ...(action === "grant" ? { months } : {}), ...(note ? { note } : {}) } });
-      toast("success", t("admin.granted"));
+      toast("success", t(action === "grant" ? "admin.granted" : "admin.revoked"));
       await lookup();
     } catch (e) {
       toast("error", (e as Error).message);
@@ -388,6 +388,17 @@ function LicenseKeysCard() {
       ) : (
         <div style={{ overflowX: "auto" }}>
           <table className="table small">
+            <thead>
+              <tr>
+                <th scope="col">{t("table.date")}</th>
+                <th scope="col">{t("table.key")}</th>
+                <th scope="col">{t("table.period")}</th>
+                <th scope="col">{t("table.status")}</th>
+                <th scope="col">{t("table.redeemedBy")}</th>
+                <th scope="col">{t("table.note")}</th>
+                <th scope="col"><span className="sr-only">{t("table.actions")}</span></th>
+              </tr>
+            </thead>
             <tbody>
               {keys.map((k) => (
                 <tr key={k.id}>
@@ -436,6 +447,16 @@ function OrdersCard() {
       ) : (
         <div style={{ overflowX: "auto" }}>
           <table className="table small">
+            <thead>
+              <tr>
+                <th scope="col">{t("table.date")}</th>
+                <th scope="col">{t("table.buyer")}</th>
+                <th scope="col">{t("table.provider")}</th>
+                <th scope="col">{t("table.period")}</th>
+                <th scope="col">{t("table.amount")}</th>
+                <th scope="col">{t("table.status")}</th>
+              </tr>
+            </thead>
             <tbody>
               {orders.map((o) => (
                 <tr key={o.id}>

@@ -15,7 +15,8 @@ describe("share links", () => {
     expect(s.flow.folder).toBeUndefined();
     expect(s.flow.favorite).toBe(false);
     expect(s.risk.level).toBe("low");
-    expect(s.expiresAt).toBeNull();
+    // Nobody can delete an anonymous share, so it always expires (default 30 days); owners may keep theirs.
+    expect(Math.round((Date.parse(s.expiresAt) - Date.parse(s.createdAt)) / 86_400_000)).toBe(30);
     expect(s.owned).toBe(false);
 
     const got = await t.call("GET", `/v1/shares/${s.id}`);

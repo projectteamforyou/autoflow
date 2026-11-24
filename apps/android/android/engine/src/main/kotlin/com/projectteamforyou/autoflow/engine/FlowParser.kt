@@ -8,7 +8,6 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.doubleOrNull
-import java.net.URI
 
 data class ValidationIssue(val path: String, val message: String)
 
@@ -127,6 +126,33 @@ private val DATETIME_RE = Regex("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\
 private const val MS_MAX = 86_400_000L
 /** Coordinates are bounded to ±1 000 000 (`coord` in schema.ts). */
 private const val COORD = 1_000_000.0
+/** schema.ts `OPEN_URL_SCHEME` / `HTTP_URL_SCHEME`: the only schemes the backends open or request. */
+private val OPEN_URL_SCHEME = Regex("^(https?|mailto):", RegexOption.IGNORE_CASE)
+private val HTTP_URL_SCHEME = Regex("^https?:", RegexOption.IGNORE_CASE)
+private val URL_SCHEME = Regex("^[A-Za-z][A-Za-z0-9+.-]*:")
+/** Schemes whose authority WHATWG parses as a host (every other scheme is opaque: `mailto:x` has no host to check). */
+private val SPECIAL_SCHEMES = setOf("http", "https", "ws", "wss", "ftp", "file")
+
+/**
+ * Whether WHATWG `new URL(s)` would succeed, for the address shapes flows contain: a scheme is required, and a
+ * special scheme other than `file:` needs a non-empty host (`https://` and `http:///` alone fail; `http:///x` does
+ * not — WHATWG skips extra slashes — but `http://:80`, `http://user@/x` and whitespace in the host do). Exotic host
+ * failures (bad percent-encoding, out-of-range IPv4 literals, > 65535 ports) are not reproduced.
+ */
+internal fun isWhatwgUrl(s: String): Boolean {
+    val m = URL_SCHEME.find(s) ?: return false
+    val scheme = m.value.dropLast(1).lowercase()
+    if (scheme !in SPECIAL_SCHEMES || scheme == "file") return true
+    var i = m.value.length
+    while (i < s.length && (s[i] == '/' || s[i] == '\\')) i++
+    val end = s.indexOfAny(charArrayOf('/', '\\', '?', '#'), i).let { if (it < 0) s.length else it }
+    var authority = s.substring(i, end)
+    authority = authority.substringAfterLast('@')
+    val host = if (authority.startsWith("[")) authority.substringBefore(']', authority) else authority.substringBeforeLast(':')
+    if (host.isEmpty()) return false
+    if (host.any { it <= ' ' }) return false
+    return true
+}
 private val HEADER_RE = Regex("^[!#$%&'*+.^_`|~0-9A-Za-z-]{1,256}$")
 private val SCENE_RE = Regex("^[A-Za-z0-9_-]+$")
 private val HASH_RE = Regex("^[0-9a-f]{16}$")
@@ -257,10 +283,20 @@ private class Reader(val o: JsonObject, val path: String, val issues: MutableLis
         }
     }
 
-    fun url(key: String): String? {
+    /**
+     * `z.string().url().max(2048).refine(...)` in schema.ts. zod's `.url()` is WHATWG `new URL()`, which accepts
+     * `{{var}}`, braces and spaces in the path/query (`https://example.com/?q={{name}}` is a valid template), so
+     * java.net.URI (RFC 2396, rejects all of those) cannot be used here. What is checked: a scheme, and for http(s) a
+     * non-empty host after `//` — the two ways `new URL()` fails for the addresses flows contain. The `kind` picks
+     * the schema's scheme refinement: openUrl allows http(s) and mailto, http only http(s).
+     */
+    fun url(key: String, kind: String): String? {
         val s = str(key, max = 2048) ?: return null
-        val ok = runCatching { URI(s) }.getOrNull()?.let { it.scheme != null && (it.scheme !in listOf("http", "https") || !it.host.isNullOrEmpty()) } ?: false
-        if (!ok) fail(key, "Invalid url")
+        if (!isWhatwgUrl(s)) fail(key, "Invalid url")
+        when (kind) {
+            "openUrl" -> if (!OPEN_URL_SCHEME.containsMatchIn(s)) fail(key, "only http(s) and mailto URLs can be opened")
+            "http" -> if (!HTTP_URL_SCHEME.containsMatchIn(s)) fail(key, "only http(s) URLs can be requested")
+        }
         return s
     }
 
@@ -268,9 +304,11 @@ private class Reader(val o: JsonObject, val path: String, val issues: MutableLis
 
     /* -------------------------------------------------------------- shapes */
 
+    /** schema.ts `rect`: four `coord`s, each bounded to ±1 000 000 so native executors never see absurd values. */
     fun rect(key: String, required: Boolean = true): Target.Rect? {
         val r = child(key) ?: run { if (required && !has(key)) fail(key, "Required"); return null }
-        val x = r.num("x"); val y = r.num("y"); val w = r.num("w"); val h = r.num("h")
+        val x = r.num("x", min = -COORD, max = COORD); val y = r.num("y", min = -COORD, max = COORD)
+        val w = r.num("w", min = -COORD, max = COORD); val h = r.num("h", min = -COORD, max = COORD)
         return if (x != null && y != null && w != null && h != null) Target.Rect(x, y, w, h) else null
     }
 
@@ -352,11 +390,15 @@ private class Reader(val o: JsonObject, val path: String, val issues: MutableLis
 
     fun onError(): OnError? {
         val r = child("onError") ?: return null
+        val strategy = r.enum("strategy", listOf("stop", "continue", "retry", "goto"), "stop")!!
+        val gotoStepId = r.id("gotoStepId", required = false)
+        // Without a target the executor silently fell back to "stop"; the lint rule only warned (schema.ts refine).
+        if (strategy == "goto" && gotoStepId.isNullOrEmpty()) r.fail("gotoStepId", "gotoStepId is required for strategy \"goto\"")
         return OnError(
-            strategy = r.enum("strategy", listOf("stop", "continue", "retry", "goto"), "stop")!!,
+            strategy = strategy,
             retries = r.int("retries", 0, 0, 10)!!,
             backoffMs = r.ms("backoffMs", 500)!!,
-            gotoStepId = r.id("gotoStepId", required = false),
+            gotoStepId = gotoStepId,
             backoff = if (r.has("backoff")) r.enum("backoff", listOf("fixed", "linear", "exponential"), null) else null,
             maxBackoffMs = if (r.has("maxBackoffMs")) r.ms("maxBackoffMs", null) else null,
             jitter = if (r.has("jitter")) r.num("jitter", min = 0.0, max = 1.0) else null,
@@ -415,7 +457,7 @@ private class Reader(val o: JsonObject, val path: String, val issues: MutableLis
             "confirm" -> Step.Confirm(meta, str("message", max = 500) ?: return null, varName("resultVar", false))
             "clipboard" -> Step.Clipboard(meta, enum("op", listOf("set", "get"), null) ?: return null, str("value", false, max = 10000), varName("var", false))
             "launchApp" -> Step.LaunchApp(meta, str("app", min = 1, max = 260) ?: return null, stringList("args", 16, 260) ?: emptyList())
-            "openUrl" -> Step.OpenUrl(meta, url("url") ?: return null)
+            "openUrl" -> Step.OpenUrl(meta, url("url", "openUrl") ?: return null)
             "window" -> {
                 val op = enum("op", listOf("focus", "minimize", "maximize", "restore", "close", "move", "resize"), null) ?: return null
                 val m = child("match") ?: run { fail("match", "Required"); return null }
@@ -432,7 +474,7 @@ private class Reader(val o: JsonObject, val path: String, val issues: MutableLis
                     h.o.keys.forEach { k -> h.str(k, max = 2000)?.let { headers[k] = it } }
                 }
                 Step.Http(
-                    meta, enum("method", listOf("GET", "POST", "PUT", "PATCH", "DELETE"), "GET")!!, url("url") ?: return null, headers,
+                    meta, enum("method", listOf("GET", "POST", "PUT", "PATCH", "DELETE"), "GET")!!, url("url", "http") ?: return null, headers,
                     str("body", false, max = 100_000), varName("resultVar", false),
                 )
             }
@@ -568,10 +610,15 @@ private class Reader(val o: JsonObject, val path: String, val issues: MutableLis
         return a.mapIndexedNotNull { i, e ->
             val r = (e as? JsonObject)?.let { Reader(it, p("variables.$i"), issues) } ?: run { fail("variables.$i", "Expected object"); return@mapIndexedNotNull null }
             val name = r.varName("name") ?: return@mapIndexedNotNull null
-            val initial = r.o["initial"]?.takeIf { it !is JsonNull }?.let { Value.fromJson(it) }
-            val tooLong = { v: Value -> v is Value.Str && v.v.length > 10_000 }
-            if (initial != null && (tooLong(initial) || (initial is Value.VList && (initial.items.size > 10_000 || initial.items.any(tooLong))))) {
-                r.fail("initial", "Invalid input")
+            val initial = r.o["initial"]?.takeIf { it !is JsonNull }?.let { e ->
+                // schema.ts `VariableDef.initial`: string(≤10 000) | number | boolean | array(≤10 000) of string(≤10 000) | number.
+                // Nested arrays, objects and booleans inside a list fail the zod union with "Invalid input".
+                val okScalar = { x: JsonElement, allowBool: Boolean ->
+                    x is JsonPrimitive && (if (x.isString) x.content.length <= 10_000 else x.doubleOrNull != null || (allowBool && x.booleanOrNull != null))
+                }
+                val ok = okScalar(e, true) || (e is JsonArray && e.size <= 10_000 && e.all { okScalar(it, false) })
+                if (!ok) r.fail("initial", "Invalid input")
+                Value.fromJson(e)
             }
             VariableDef(name, r.enum("type", listOf("string", "number", "boolean", "list"), "string")!!, initial, r.str("prompt", false, max = 200))
         }
