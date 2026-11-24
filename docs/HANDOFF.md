@@ -1,6 +1,6 @@
 # AutoFlow — 인수인계 (새 채팅에서 이어서 작업용)
 
-갱신: 2026-11-24 12:45 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#42(7-9는 PR 준비 중)
+갱신: 2026-11-24 12:45 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#43 (7-9)
 
 ## 1. 현재 배포 상태 (Windows 1.1.2 · Android 1.1.3)
 | 항목 | 값 |
