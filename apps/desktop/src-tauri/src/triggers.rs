@@ -274,9 +274,8 @@ pub fn sync(app: &AppHandle, flows: &[serde_json::Value], emergency: Hotkey) -> 
             // Every flow carries the default Ctrl+Alt+Esc stop hotkey. Once the user moves the emergency stop
             // elsewhere, binding it per flow would hand it to the first flow and report every other flow as
             // failed; keep it as one extra Halt instead (what it did before the emergency stop changed).
-            let c = combo(&f.hotkeys.stop);
-            if !owner.contains_key(&c) {
-                owner.insert(c, ("emergency stop (default)".into(), next_id));
+            if let std::collections::hash_map::Entry::Vacant(e) = owner.entry(combo(&f.hotkeys.stop)) {
+                e.insert(("emergency stop (default)".into(), next_id));
                 hotkeys.push((next_id, f.hotkeys.stop.clone()));
                 table.bindings.insert(next_id, Binding::Halt);
                 next_id += 1;
