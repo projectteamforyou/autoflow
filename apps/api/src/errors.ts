@@ -30,6 +30,7 @@ export type ErrorCode =
   | "payment_not_completed"
   | "payment_mismatch"
   | "payment_failed"
+  | "payment_declined"
   | "too_many_pending_orders"
   | "invalid_license_key"
   | "license_key_used"

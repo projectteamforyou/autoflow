@@ -33,7 +33,7 @@ export interface Limits {
   sync: { maxItems: number; maxBytes: number; maxItemBytes: number; pageSize: number; maxPageSize: number; pageByteBudget: number };
   devices: { maxPerUser: number };
   atlas: { reportHideThreshold: number; maxPerAuthor: number; maxFlowBytes: number; requireVerifiedEmail: boolean };
-  shares: { maxFlowBytes: number; maxExpiryDays: number };
+  shares: { maxFlowBytes: number; maxExpiryDays: number; anonymousExpiryDays: number };
   relay: { maxBodyBytes: number; maxResponseBytes: number; timeoutMs: number };
   session: { ttlMs: number; touchIntervalMs: number };
   tokens: { resetTtlMs: number; verifyTtlMs: number };
@@ -84,7 +84,7 @@ export const DEFAULT_LIMITS: Limits = {
   sync: { maxItems: 5000, maxBytes: 50 * 1024 * 1024, maxItemBytes: 2 * 1024 * 1024, pageSize: 100, maxPageSize: 500, pageByteBudget: 8 * 1024 * 1024 },
   devices: { maxPerUser: 50 },
   atlas: { reportHideThreshold: 3, maxPerAuthor: 100, maxFlowBytes: 512 * 1024, requireVerifiedEmail: true },
-  shares: { maxFlowBytes: 256 * 1024, maxExpiryDays: 365 },
+  shares: { maxFlowBytes: 256 * 1024, maxExpiryDays: 365, anonymousExpiryDays: 30 },
   relay: { maxBodyBytes: 256 * 1024, maxResponseBytes: 16 * 1024 * 1024, timeoutMs: 120_000 },
   session: { ttlMs: 30 * 86_400_000, touchIntervalMs: 5 * 60_000 },
   tokens: { resetTtlMs: 60 * 60_000, verifyTtlMs: 7 * 86_400_000 },

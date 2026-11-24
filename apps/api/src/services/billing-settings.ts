@@ -6,6 +6,7 @@
  */
 import { BILLING_PERIODS, BUSINESS_PRICES, CURRENCIES, type PriceTable } from "@autoflow/core";
 import type { AppDeps } from "../deps.js";
+import type { Db } from "../db/client.js";
 import { getSetting, putSetting } from "../db/billing.js";
 import { SecretBox, maskSecret } from "../lib/secrets.js";
 
@@ -49,8 +50,8 @@ function normalizePrices(p: Partial<PriceTable> | undefined): PriceTable {
   return out;
 }
 
-export async function loadStoredBillingSettings(deps: AppDeps): Promise<StoredBillingSettings> {
-  const raw = await getSetting<Partial<StoredBillingSettings>>(deps.sql, BILLING_SETTINGS_KEY);
+export async function loadStoredBillingSettings(deps: AppDeps, db: Db = deps.sql): Promise<StoredBillingSettings> {
+  const raw = await getSetting<Partial<StoredBillingSettings>>(db, BILLING_SETTINGS_KEY);
   return {
     portone: { ...EMPTY_BILLING_SETTINGS.portone, ...raw?.portone },
     paypal: { ...EMPTY_BILLING_SETTINGS.paypal, ...raw?.paypal },
@@ -100,7 +101,16 @@ export class EncryptionUnavailableError extends Error {}
 
 /** Applies the patch and returns the list of changed field names (for the audit log — no values). */
 export async function saveBillingSettings(deps: AppDeps, patch: BillingSettingsPatch, actorId: string): Promise<string[]> {
-  const cur = await loadStoredBillingSettings(deps);
+  // Read-modify-write under the settings row lock: two operators (or two tabs) saving at once must not
+  // overwrite each other's change — e.g. a price edit clobbering a freshly entered PayPal secret.
+  return deps.sql.begin(async (tx) => {
+    await tx`SELECT pg_advisory_xact_lock(hashtext(${BILLING_SETTINGS_KEY}))`;
+    return applyBillingSettingsPatch(deps, tx, patch, actorId);
+  });
+}
+
+async function applyBillingSettingsPatch(deps: AppDeps, tx: Db, patch: BillingSettingsPatch, actorId: string): Promise<string[]> {
+  const cur = await loadStoredBillingSettings(deps, tx);
   const next: StoredBillingSettings = structuredClone(cur);
   const changed: string[] = [];
   const b = box(deps);
@@ -145,6 +155,6 @@ export async function saveBillingSettings(deps: AppDeps, patch: BillingSettingsP
         }
       }
   }
-  if (changed.length) await putSetting(deps.sql, BILLING_SETTINGS_KEY, next, actorId);
+  if (changed.length) await putSetting(tx, BILLING_SETTINGS_KEY, next, actorId);
   return changed;
 }

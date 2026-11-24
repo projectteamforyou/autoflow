@@ -82,10 +82,22 @@ export async function findOrderByPayment(db: Db, provider: PaymentProvider, prov
  * pending → paid, exactly once. Concurrent confirmations of the same payment serialize on the
  * row lock; only the first sees `status = 'pending'` and gets the order back.
  */
+/**
+ * Orders the provider may still settle: pending ones, and ones only *we* closed (the buyer gave up
+ * in the app, or the 72 h expiry) while the PG window could still have been open. An order the
+ * provider itself failed/cancelled, or that we refused for a mismatch, is final.
+ */
+export const REOPENABLE_REASONS = ["cancelled_by_user", "expired"] as const;
+export function isReopenable(o: Pick<Order, "status" | "failureReason">): boolean {
+  return o.status === "pending" || (o.status === "cancelled" && REOPENABLE_REASONS.includes(o.failureReason as (typeof REOPENABLE_REASONS)[number]));
+}
+
+const reopenable = (db: Db) => db`(status = 'pending' OR (status = 'cancelled' AND failure_reason IN ${db(REOPENABLE_REASONS as unknown as string[])}))`;
+
 export async function markOrderPaid(db: Db, orderId: string, paidAt: Date, validUntil: Date | null, raw: unknown): Promise<Order | null> {
   const rows = await db<OrderRow[]>`
-    UPDATE orders SET status = 'paid', paid_at = ${paidAt}, valid_until = ${validUntil}, raw = ${db.json(raw as never)}
-    WHERE id = ${orderId} AND status = 'pending'
+    UPDATE orders SET status = 'paid', paid_at = ${paidAt}, valid_until = ${validUntil}, failure_reason = NULL, raw = ${db.json(raw as never)}
+    WHERE id = ${orderId} AND ${reopenable(db)}
     RETURNING ${db(ORDER_COLS)}`;
   return rows[0] ? mapOrder(rows[0]) : null;
 }
@@ -93,9 +105,36 @@ export async function markOrderPaid(db: Db, orderId: string, paidAt: Date, valid
 export async function markOrderFailed(db: Db, orderId: string, status: "failed" | "cancelled", reason: string, raw: unknown): Promise<Order | null> {
   const rows = await db<OrderRow[]>`
     UPDATE orders SET status = ${status}, failure_reason = ${reason.slice(0, 300)}, raw = ${raw === undefined ? null : db.json(raw as never)}
-    WHERE id = ${orderId} AND status = 'pending'
+    WHERE id = ${orderId} AND ${reopenable(db)}
     RETURNING ${db(ORDER_COLS)}`;
   return rows[0] ? mapOrder(rows[0]) : null;
+}
+
+/** Failure reasons that mean "money moved and our refund call did not go through" — retried by housekeeping. */
+export const REFUND_PENDING_REASONS = ["amount_mismatch", "capture_amount_mismatch"] as const;
+
+/** Orders whose refund still has to be retried (see REFUND_PENDING_REASONS). Oldest first. */
+export async function listOrdersAwaitingRefund(db: Db, createdAfter: Date, limit: number): Promise<Order[]> {
+  const rows = await db<OrderRow[]>`
+    SELECT ${db(ORDER_COLS)} FROM orders
+    WHERE status = 'failed' AND failure_reason IN ${db(REFUND_PENDING_REASONS as unknown as string[])} AND provider_payment_id IS NOT NULL AND created_at > ${createdAfter}
+    ORDER BY created_at ASC LIMIT ${limit}`;
+  return rows.map(mapOrder);
+}
+
+/** Records that a retried refund went through (reason → `<reason>_refunded`), only if it is still pending. */
+export async function markOrderRefunded(db: Db, orderId: string, reason: string): Promise<boolean> {
+  const rows = await db`
+    UPDATE orders SET failure_reason = ${`${reason}_refunded`.slice(0, 300)}
+    WHERE id = ${orderId} AND status = 'failed' AND failure_reason = ${reason}
+    RETURNING id`;
+  return rows.length > 0;
+}
+
+/** The stored provider payload of an order (for a retried refund that needs e.g. the PayPal capture id). */
+export async function getOrderRaw(db: Db, orderId: string): Promise<unknown> {
+  const rows = await db<{ raw: unknown }[]>`SELECT raw FROM orders WHERE id = ${orderId}`;
+  return rows[0]?.raw ?? null;
 }
 
 /** The buyer gives up on a pending order: pending → cancelled, only for the owner. */
@@ -117,9 +156,10 @@ export async function countPendingOrders(db: Db, userId: string): Promise<number
  * (closed tab, lost connection). Oldest first so a stuck order is retried before fresh ones.
  */
 export async function listPendingOrdersToReconcile(db: Db, createdAfter: Date, limit: number): Promise<Order[]> {
+  // Orders the buyer cancelled in the app are included: the PG window may have completed after the click.
   const rows = await db<OrderRow[]>`
     SELECT ${db(ORDER_COLS)} FROM orders
-    WHERE status = 'pending' AND provider_payment_id IS NOT NULL AND created_at > ${createdAfter}
+    WHERE ${reopenable(db)} AND provider_payment_id IS NOT NULL AND created_at > ${createdAfter}
     ORDER BY created_at ASC LIMIT ${limit}`;
   return rows.map(mapOrder);
 }

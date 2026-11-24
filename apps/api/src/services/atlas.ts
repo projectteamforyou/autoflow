@@ -159,6 +159,8 @@ export async function report(deps: AppDeps, auth: AuthContext, id: string, reaso
   // unknown ids, so reports cannot be used to probe for unpublished templates.
   if (!t || t.status !== "published") throw errors.notFound("Template");
   if (t.authorId === auth.user.id) throw errors.forbidden("You cannot report your own template");
+  // Same gate as publishing: otherwise three throw-away signups from one IP could hide any community template.
+  if (deps.config.limits.atlas.requireVerifiedEmail && !auth.user.emailVerifiedAt) throw errors.forbidden("Verify your email before reporting templates");
   const created = await atlas.insertReport(deps.sql, { templateId: id, reporterId: auth.user.id, reason, details });
   if (!created) throw new ApiError(409, "duplicate", "You already reported this template");
   const pending = await atlas.countPendingReports(deps.sql, id);

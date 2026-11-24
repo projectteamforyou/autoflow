@@ -49,7 +49,7 @@ import type { AppDeps, AuthContext } from "../deps.js";
 import * as db from "../db/billing.js";
 import type { LicenseKey, Order } from "../db/billing.js";
 import { findUserByEmail, lockUser, updateUsageType, type User } from "../db/users.js";
-import type { Db } from "../db/client.js";
+import type { Db, Tx } from "../db/client.js";
 import { base62Id, sha256Hex } from "../lib/crypto.js";
 import { loadBillingSettings, type BillingSettings } from "./billing-settings.js";
 import { normalizeEmail } from "./auth.js";
@@ -157,11 +157,12 @@ export function adminLicenseDto(k: LicenseKey) {
 type KeyFields = Omit<Parameters<typeof db.insertLicenseKey>[1], "keyHash" | "keyHint">;
 
 /** A fresh key and its stored form (hash + hint). Retries the astronomically unlikely hash collision. */
-async function issueKey(tx: Db, fields: KeyFields): Promise<{ key: string; row: LicenseKey }> {
+async function issueKey(tx: Tx, fields: KeyFields): Promise<{ key: string; row: LicenseKey }> {
   for (let attempt = 0; ; attempt++) {
     const key = generateLicenseKey();
     try {
-      const row = await db.insertLicenseKey(tx, { ...fields, keyHash: sha256Hex(key), keyHint: licenseKeyHint(key) });
+      // A savepoint: without one the unique violation would abort the enclosing transaction and the retry could never run.
+      const row = await tx.savepoint((sp) => db.insertLicenseKey(sp, { ...fields, keyHash: sha256Hex(key), keyHint: licenseKeyHint(key) }));
       return { key, row };
     } catch (err) {
       const e = err as { code?: string; constraint_name?: string };
@@ -406,6 +407,16 @@ async function confirmPortone(deps: AppDeps, s: BillingSettings, order: Order): 
   }
 }
 
+/** Capture issues the buyer can still recover from on the same PayPal approval. */
+const PAYPAL_RETRYABLE_ISSUES = new Set(["INSTRUMENT_DECLINED", "PAYER_ACTION_REQUIRED", "TRANSACTION_REFUSED"]);
+
+/** The completed capture id inside a stored PayPal order payload (for a retried refund). */
+function paypalCaptureIdFrom(raw: unknown): string | null {
+  const ord = raw as pay.PaypalOrder | null;
+  const cap = ord?.purchase_units?.[0]?.payments?.captures?.find((c) => c.status === "COMPLETED") ?? ord?.purchase_units?.[0]?.payments?.captures?.[0];
+  return cap?.id ?? null;
+}
+
 function paypalAmountOk(order: Order, amount: pay.PaypalAmount | undefined): boolean {
   return amount?.currency_code === order.currency && typeof amount.value === "string" && fromDecimalAmount(amount.value, order.currency) === order.amount;
 }
@@ -421,10 +432,15 @@ async function confirmPaypal(deps: AppDeps, s: BillingSettings, order: Order): P
   if (!unit || unit.custom_id !== order.id || !paypalAmountOk(order, unit.amount)) return reject(deps, order, "failed", "amount_mismatch", ord, "payment_mismatch");
   if (ord.status === "VOIDED") return reject(deps, order, "cancelled", "provider_voided", ord, "payment_failed");
   if (ord.status === "APPROVED") {
+    // Money only moves on our capture: an order we already closed (buyer cancelled, expired) is never captured.
+    if (order.status !== "pending") throw notCompleted(ord.status);
     const cap = await pay.paypalCaptureOrder(deps, creds, id, `capture-${order.id}`);
     if (cap.order) ord = cap.order;
     else if (cap.issue === "ORDER_ALREADY_CAPTURED") ord = (await pay.paypalGetOrder(deps, creds, id)) ?? ord;
-    else throw new ApiError(402, "payment_failed", "PayPal declined the payment", { reason: cap.issue ?? `status_${cap.status}` });
+    // The buyer may still pick another funding source on the same approval (INSTRUMENT_DECLINED, PAYER_ACTION_REQUIRED):
+    // the order stays pending, the client is told, and reconciliation does not count it as rejected.
+    else if (cap.issue && PAYPAL_RETRYABLE_ISSUES.has(cap.issue)) throw new ApiError(402, "payment_declined", "PayPal declined the payment", { reason: cap.issue });
+    else return reject(deps, order, "failed", cap.issue ? `paypal_${cap.issue.toLowerCase()}` : `paypal_status_${cap.status}`, ord, "payment_failed");
   }
   if (ord.status !== "COMPLETED") throw notCompleted(ord.status);
   const capture = ord.purchase_units?.[0]?.payments?.captures?.find((c) => c.status === "COMPLETED");
@@ -444,11 +460,21 @@ export async function confirm(deps: AppDeps, auth: AuthContext, input: { provide
   if (!order || order.userId !== auth.user.id) throw errors.notFound("Order");
   let result = order;
   let licenseKey: string | null = null;
-  if (order.status === "pending") {
+  if (db.isReopenable(order)) {
+    // Also for an order the buyer cancelled in the app or that expired: the PG window may have completed
+    // after the click, and money that moved is honoured (or refunded on a mismatch), never kept silently.
     const s = await loadBillingSettings(deps);
-    const settled = input.provider === "portone" ? await confirmPortone(deps, s, order) : await confirmPaypal(deps, s, order);
-    result = settled.order;
-    licenseKey = settled.licenseKey;
+    try {
+      const settled = input.provider === "portone" ? await confirmPortone(deps, s, order) : await confirmPaypal(deps, s, order);
+      result = settled.order;
+      licenseKey = settled.licenseKey;
+    } catch (err) {
+      // A cancelled order the provider has not settled keeps answering as before.
+      if (order.status === "cancelled" && err instanceof ApiError && err.code === "payment_not_completed") {
+        throw new ApiError(402, "payment_failed", "The payment failed or was cancelled", { reason: order.failureReason });
+      }
+      throw err;
+    }
   } else if (order.status !== "paid") {
     throw new ApiError(402, "payment_failed", "The payment failed or was cancelled", { reason: order.failureReason });
   }
@@ -466,12 +492,55 @@ export async function confirm(deps: AppDeps, auth: AuthContext, input: { provide
  * issued here is never shown (the buyer sees it masked in their status, as after any purchase).
  * One order's failure never stops the sweep; "not completed yet" is the normal outcome.
  */
-export async function reconcilePendingOrders(deps: AppDeps): Promise<{ checked: number; settled: number; rejected: number; failed: number }> {
+export interface ReconcileResult {
+  checked: number;
+  settled: number;
+  rejected: number;
+  failed: number;
+  /** Refunds that had failed earlier (mismatch) and went through on this sweep / are still outstanding. */
+  refunded: number;
+  refundPending: number;
+}
+
+let reconcileInFlight: Promise<ReconcileResult> | null = null;
+
+export async function reconcilePendingOrders(deps: AppDeps): Promise<ReconcileResult> {
+  // A sweep can outlast the hourly interval (200 orders × 20 s provider timeout): never run two at once,
+  // or a refund/cancel could be sent to the provider twice.
+  if (reconcileInFlight) return reconcileInFlight;
+  reconcileInFlight = reconcileOnce(deps).finally(() => {
+    reconcileInFlight = null;
+  });
+  return reconcileInFlight;
+}
+
+async function reconcileOnce(deps: AppDeps): Promise<ReconcileResult> {
   const now = deps.now();
-  const orders = await db.listPendingOrdersToReconcile(deps.sql, new Date(now.getTime() - RECONCILE_WINDOW_MS), RECONCILE_BATCH);
-  const out = { checked: 0, settled: 0, rejected: 0, failed: 0 };
-  if (!orders.length) return out;
+  const since = new Date(now.getTime() - RECONCILE_WINDOW_MS);
+  const orders = await db.listPendingOrdersToReconcile(deps.sql, since, RECONCILE_BATCH);
+  const refunds = await db.listOrdersAwaitingRefund(deps.sql, since, RECONCILE_BATCH);
+  const out: ReconcileResult = { checked: 0, settled: 0, rejected: 0, failed: 0, refunded: 0, refundPending: 0 };
+  if (!orders.length && !refunds.length) return out;
   const s = await loadBillingSettings(deps);
+  for (const order of refunds) {
+    // The mismatch was detected but the refund call failed (provider outage): try again until it goes through.
+    out.refundPending++;
+    try {
+      let ok = false;
+      if (order.provider === "portone" && s.portone.apiSecret) ok = await pay.portoneCancel(deps, s.portone.apiSecret, order.providerPaymentId!, "Amount or currency did not match the order");
+      else if (order.provider === "paypal" && s.paypal.clientId && s.paypal.clientSecret) {
+        const captureId = paypalCaptureIdFrom(await db.getOrderRaw(deps.sql, order.id));
+        if (captureId) ok = await pay.paypalRefundCapture(deps, { env: s.paypal.env, clientId: s.paypal.clientId, clientSecret: s.paypal.clientSecret }, captureId, `refund-${order.id}`);
+      }
+      if (ok && (await db.markOrderRefunded(deps.sql, order.id, order.failureReason!))) {
+        out.refunded++;
+        out.refundPending--;
+        deps.logger.info("billing.refund_retried", { orderId: order.id, provider: order.provider });
+      } else deps.logger.warn("billing.refund_pending", { orderId: order.id, provider: order.provider, contact: BILLING_CONTACT_EMAIL });
+    } catch (err) {
+      deps.logger.warn("billing.refund_retry_failed", { orderId: order.id, provider: order.provider, error: err instanceof Error ? err.message : String(err) });
+    }
+  }
   for (const order of orders) {
     out.checked++;
     try {
@@ -485,6 +554,7 @@ export async function reconcilePendingOrders(deps: AppDeps): Promise<{ checked: 
         deps.logger.debug("billing.reconcile_skipped", { orderId: order.id, provider: order.provider });
         continue;
       }
+      if (err instanceof ApiError && err.code === "payment_declined") continue; // still open: the buyer can retry
       if (err instanceof ApiError && (err.code === "payment_failed" || err.code === "payment_mismatch")) {
         // `reject` already marked the order and logged why.
         out.rejected++;

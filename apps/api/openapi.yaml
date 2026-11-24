@@ -48,6 +48,18 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Health" }
 
+  /robots.txt:
+    get:
+      tags: [system]
+      summary: Crawler policy (the API is not indexable)
+      security: []
+      responses:
+        "200":
+          description: "Disallow: /"
+          content:
+            text/plain:
+              schema: { type: string }
+
   /v1/meta:
     get:
       tags: [system]
@@ -312,6 +324,102 @@ paths:
             application/json:
               schema: { type: object }
         "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/me/admin-claim:
+    post:
+      tags: [account]
+      summary: Operator bootstrap without email (ADMIN_EMAILS account + ADMIN_SETUP_CODE)
+      description: Marks the signed-in operator account as verified when the deployment's setup code matches. Rate-limited per account; a wrong code, a non-operator email or a deployment without a code all answer 403.
+      x-internal: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, minLength: 1, maxLength: 200 }
+      responses:
+        "200":
+          description: The refreshed account
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+
+  /v1/stats:
+    get:
+      tags: [system]
+      summary: Public usage counters (cached 10 s) and the current Windows version
+      security: []
+      responses:
+        "200":
+          description: Snapshot
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                properties:
+                  updatedAt: { type: string, format: date-time }
+                  windowsVersion: { type: [string, "null"] }
+
+  /v1/stats/hit:
+    post:
+      tags: [system]
+      summary: Presence heartbeat from the site and the apps (anonymous session id)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sid, surface]
+              properties:
+                sid: { type: string }
+                surface: { type: string, enum: [site, app, windows, android] }
+                newVisit: { type: boolean, default: false }
+      responses:
+        "204": { description: Recorded }
+        "400": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+
+  /v1/stats/leave:
+    post:
+      tags: [system]
+      summary: Presence end (sent with sendBeacon; malformed bodies are ignored)
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sid: { type: string }
+      responses:
+        "204": { description: Recorded (or ignored) }
+        "429": { $ref: "#/components/responses/Error" }
+
+  /v1/stats/download/{platform}:
+    get:
+      tags: [system]
+      summary: Count a download and redirect to the current installer on dl.autoflowmacro.com
+      security: []
+      parameters:
+        - name: platform
+          in: path
+          required: true
+          schema: { type: string, enum: [windows, android] }
+      responses:
+        "302": { description: Redirect to the versioned download URL (HEAD requests are not counted) }
+        "400": { $ref: "#/components/responses/Error" }
 
   /v1/sync:
     get:
