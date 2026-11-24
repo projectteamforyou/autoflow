@@ -124,12 +124,13 @@ interface State {
   toasts: Toast[];
   init(): Promise<void>;
   saveFlow(flow: Flow, opts?: { snapshot?: boolean; note?: string }): Promise<Flow>;
-  deleteFlow(id: string): Promise<void>;
+  /** `remote: false` skips the server tombstone (used when applying a deletion that came from the server). */
+  deleteFlow(id: string, opts?: { remote?: boolean }): Promise<void>;
   duplicateFlow(id: string): Promise<Flow | undefined>;
   installTemplate(templateId: string): Promise<Flow | undefined>;
   versions(flowId: string): Promise<Version[]>;
   saveProfile(p: InputProfile): Promise<void>;
-  deleteProfile(id: string): Promise<void>;
+  deleteProfile(id: string, opts?: { remote?: boolean }): Promise<void>;
   recordRun(r: RunRecord): Promise<void>;
   deleteRun(id: string): Promise<void>;
   clearRuns(): Promise<void>;
@@ -189,11 +190,11 @@ export const useStore = create<State>((set, get) => ({
     return next;
   },
 
-  async deleteFlow(id) {
+  async deleteFlow(id, opts) {
     await db.delete("flows", id);
     for (const v of await db.byIndex<Version>("versions", "flowId", id)) await db.delete("versions", v.key);
     set({ flows: get().flows.filter((f) => f.id !== id) });
-    void import("./sync").then((m) => m.deleteRemote("flow", id));
+    if (opts?.remote !== false) void import("./sync").then((m) => m.deleteRemote("flow", id));
   },
 
   async duplicateFlow(id) {
@@ -225,10 +226,10 @@ export const useStore = create<State>((set, get) => ({
     set({ profiles: [...get().profiles.filter((x) => x.id !== p.id), next].sort((a, b) => b.priority - a.priority) });
   },
 
-  async deleteProfile(id) {
+  async deleteProfile(id, opts) {
     await db.delete("profiles", id);
     set({ profiles: get().profiles.filter((p) => p.id !== id) });
-    void import("./sync").then((m) => m.deleteRemote("profile", id));
+    if (opts?.remote !== false) void import("./sync").then((m) => m.deleteRemote("profile", id));
   },
 
   async recordRun(r) {

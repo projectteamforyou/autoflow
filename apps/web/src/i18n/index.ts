@@ -19,7 +19,8 @@ const subs = new Set<() => void>();
 
 function stored(): LocaleCode | null {
   try {
-    const v = localStorage.getItem("af.locale");
+    // "af-lang" is the language picked on the marketing site (same origin), used until the app has its own.
+    const v = localStorage.getItem("af.locale") ?? localStorage.getItem("af-lang");
     return v && LOCALES.some((l) => l.code === v) ? (v as LocaleCode) : null;
   } catch {
     return null;

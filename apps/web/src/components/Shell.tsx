@@ -46,7 +46,8 @@ export function Shell({ children, flush, title, actions }: { children: ReactNode
   }, []);
   return (
     <div className="shell">
-      <a href="#main" className="sr-only">{t("a11y.skip")}</a>
+      {/* HashRouter would read "#main" as the route /main, so move focus by hand. */}
+      <a href="#main" className="sr-only" onClick={(e) => { e.preventDefault(); document.getElementById("main")?.focus(); }}>{t("a11y.skip")}</a>
       <aside className="sidebar" aria-label={t("a11y.mainNav")}>
         <NavLink to="/welcome?step=choose" className="brand" title={t("nav.chooseMode")}>
           <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" />
@@ -84,7 +85,7 @@ export function Shell({ children, flush, title, actions }: { children: ReactNode
           <LangMenu />
           <ThemeToggle />
         </header>
-        <main id="main" className={`content${flush ? " flush" : ""}`}>{children}</main>
+        <main id="main" tabIndex={-1} className={`content${flush ? " flush" : ""}`}>{children}</main>
       </div>
       <nav className="mobile-nav" aria-label={t("a11y.mainNav")}>
         {[NAV[0]!, NAV[1]!, NAV[2]!, NAV[5]!, NAV2[3]!].map((n) => (
@@ -230,6 +231,7 @@ export function PulseBar() {
 }
 
 export function Toasts() {
+  const t = useT();
   const toasts = useStore((s) => s.toasts);
   const dismiss = useStore((s) => s.dismissToast);
   const icon = { success: "Check", error: "OctagonX", warning: "ShieldAlert", info: "Info" } as const;
@@ -244,7 +246,7 @@ export function Toasts() {
               {tt.action.label}
             </button>
           )}
-          <button className="btn ghost icon sm" onClick={() => dismiss(tt.id)} aria-label="Dismiss">
+          <button className="btn ghost icon sm" onClick={() => dismiss(tt.id)} aria-label={t("common.dismiss")}>
             <Icon name="X" size={14} />
           </button>
         </div>
@@ -346,7 +348,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
               <span className="truncate">{it.label}</span>
             </li>
           ))}
-          {items.length === 0 && <li className="muted">{t("common.noResults")}</li>}
+          {items.length === 0 && <li className="muted" role="presentation">{t("common.noResults")}</li>}
         </ul>
       </div>
     </div>

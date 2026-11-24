@@ -4,7 +4,11 @@ import { Icon } from "./Icon";
 import { useT } from "../i18n";
 
 export function Modal({ title, icon, onClose, children, footer, wide }: { title: ReactNode; icon?: string; onClose: () => void; children: ReactNode; footer?: ReactNode; wide?: boolean }) {
+  const t = useT();
   const ref = useRef<HTMLDivElement>(null);
+  // Callers pass inline arrows for onClose, so the trap must not re-run (and re-focus) on every render.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
     const el = ref.current;
@@ -12,7 +16,7 @@ export function Modal({ title, icon, onClose, children, footer, wide }: { title:
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
       }
       if (e.key === "Tab" && el) {
         const items = [...el.querySelectorAll<HTMLElement>("a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex='-1'])")];
@@ -33,7 +37,7 @@ export function Modal({ title, icon, onClose, children, footer, wide }: { title:
       window.removeEventListener("keydown", onKey, true);
       prev?.focus?.();
     };
-  }, [onClose]);
+  }, []);
   return (
     <div className="backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className={`modal${wide ? " wide" : ""}`} role="dialog" aria-modal="true" aria-label={typeof title === "string" ? title : undefined} ref={ref}>
@@ -44,7 +48,7 @@ export function Modal({ title, icon, onClose, children, footer, wide }: { title:
             </div>
           )}
           <h2 className="grow">{title}</h2>
-          <button className="btn ghost icon sm" onClick={onClose} aria-label="Close">
+          <button className="btn ghost icon sm" onClick={onClose} aria-label={t("common.close")}>
             <Icon name="X" />
           </button>
         </div>

@@ -4,6 +4,7 @@
  */
 import { DEFAULT_API_URL, useStore } from "./store";
 import { vault } from "./crypto";
+import { kv } from "./db";
 
 export class ApiError extends Error {
   constructor(public readonly status: number, public readonly code: string, message: string, public readonly body?: unknown) {
@@ -29,7 +30,17 @@ export async function setToken(token: string | null): Promise<void> {
   } else {
     await vault.delete(TOKEN);
     await vault.delete(TOKEN_ORIGIN);
+    // The device's sync bookkeeping (server revisions/hashes) belongs to this account; another
+    // account signing in on the same device must not inherit it.
+    await kv.del("sync:state").catch(() => undefined);
   }
+}
+
+/** Whether the stored token is sent to the configured server (it was issued by another origin otherwise). */
+async function tokenAttaches(): Promise<boolean> {
+  // Sessions from before the origin was recorded keep working against the default server.
+  const origin = (await vault.get(TOKEN_ORIGIN)) ?? DEFAULT_API_URL.replace(/\/+$/, "");
+  return origin === apiOrigin();
 }
 
 export async function api<T>(path: string, init: Omit<RequestInit, "headers"> & { json?: unknown; auth?: boolean; headers?: Record<string, string> } = {}): Promise<T> {
@@ -38,9 +49,7 @@ export async function api<T>(path: string, init: Omit<RequestInit, "headers"> & 
   if (init.json !== undefined) headers["Content-Type"] = "application/json";
   if (init.auth !== false) {
     const token = await getToken();
-    // Sessions from before the origin was recorded keep working against the default server.
-    const origin = (await vault.get(TOKEN_ORIGIN)) ?? DEFAULT_API_URL.replace(/\/+$/, "");
-    if (token && origin === base) headers.Authorization = `Bearer ${token}`;
+    if (token && (await tokenAttaches())) headers.Authorization = `Bearer ${token}`;
   }
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 20_000);
@@ -93,7 +102,9 @@ export const auth = {
       return (await api<{ user: User }>("/v1/me")).user;
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
-        await setToken(null);
+        // Only a rejected token means the session is over; a 401 from a server that never saw
+        // the token (different origin) must not wipe the session it belongs to.
+        if (await tokenAttaches()) await setToken(null);
         return null;
       }
       throw e;

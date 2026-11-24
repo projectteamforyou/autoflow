@@ -26,8 +26,10 @@ export function md(s: string): string {
   let out = brk(s);
   out = out.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   out = out.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_m, label: string, href: string) => {
+    // Copy comes from translation files: only plain web/mail links become anchors (no javascript:, data:…).
+    if (!/^(\/|#|https?:\/\/|mailto:)/.test(href)) return label;
     const ext = /^https?:/.test(href);
-    return `<a href="${href}"${ext ? ' rel="noopener noreferrer" target="_blank"' : ""}>${label}</a>`;
+    return `<a href="${esc(href)}"${ext ? ' rel="noopener noreferrer" target="_blank"' : ""}>${label}</a>`;
   });
   out = out.replace(/\{email\}/g, `<a href="mailto:${LINKS.email}">${LINKS.email}</a>`);
   return out;
