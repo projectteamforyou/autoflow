@@ -105,7 +105,14 @@ function stepFindings(s: Step): RiskFinding[] {
       if (DYNAMIC.test(s.url)) f.push({ stepId: s.id, key: "risk.dynamicUrl", weight: 10, needsConfirm: true });
       break;
     case "type":
-      if (/\{\{\s*secret:/.test(s.text)) f.push({ stepId: s.id, key: "risk.secretInput", weight: 10, needsConfirm: false });
+      if (SECRET.test(s.text)) f.push({ stepId: s.id, key: "risk.secretInput", weight: 10, needsConfirm: false });
+      break;
+    case "notify":
+      // A secret in a notification or question is shown on screen (and kept by the OS): the flow must say so.
+      if (SECRET.test(s.title) || SECRET.test(s.body)) f.push({ stepId: s.id, key: "risk.secretExposed", weight: 20, needsConfirm: true });
+      break;
+    case "confirm":
+      if (SECRET.test(s.message)) f.push({ stepId: s.id, key: "risk.secretExposed", weight: 20, needsConfirm: true });
       break;
     case "window":
       if (s.op === "close") f.push({ stepId: s.id, key: "risk.windowClose", weight: 12, needsConfirm: false });
@@ -115,6 +122,8 @@ function stepFindings(s: Step): RiskFinding[] {
       break;
     case "clipboard":
       if (s.op === "get") f.push({ stepId: s.id, key: "risk.clipboardRead", weight: 8, needsConfirm: false });
+      // A copied secret sits in the clipboard (and clipboard history / sync) for any app to read.
+      else if (s.op === "set" && SECRET.test(s.value ?? "")) f.push({ stepId: s.id, key: "risk.secretExposed", weight: 20, needsConfirm: true });
       break;
     case "ocr":
     case "findImage":

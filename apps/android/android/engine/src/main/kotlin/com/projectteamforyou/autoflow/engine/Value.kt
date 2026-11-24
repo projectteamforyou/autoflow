@@ -46,9 +46,9 @@ sealed class Value {
 }
 
 /**
- * Node budget for the deep walks below (toJson, toStr, looseEq): a list can nest shared sub-lists, so the number of
- * leaves is not bounded by any single `size`. Every element visited spends one; exhausting it throws the same
- * "list too large" the expression guard throws, so no walk can recurse past that limit.
+ * Node budget for [toJson]: a list can nest shared sub-lists, so the number of leaves is not bounded by any single
+ * `size`. Every element visited spends one; exhausting it throws the same "list too large" the expression guard
+ * throws, so the walk cannot recurse past that limit. (toStr and looseEq are bounded differently, see below.)
  */
 private fun nodeBudget() = intArrayOf(MAX_LIST)
 
@@ -79,14 +79,33 @@ fun truthy(v: Value): Boolean = when (v) {
 }
 
 /** expr.ts `toStr`: null → "", lists joined with ",", numbers formatted like JavaScript's `String(n)`. */
-fun toStr(v: Value): String = toStr(v, nodeBudget())
-
-private fun toStr(v: Value, budget: IntArray): String = when (v) {
+fun toStr(v: Value): String = when (v) {
     Value.Null -> ""
-    is Value.VList -> v.items.joinToString(",") { spendNode(budget); toStr(it, budget) }
+    // Nested lists could otherwise stringify into hundreds of MB before any size guard runs (expr.ts `listToStr`).
+    is Value.VList -> listToStr(v.items, intArrayOf(MAX_STRING))
     is Value.Num -> jsNumberToString(v.v)
     is Value.Str -> v.v
     is Value.Bool -> if (v.v) "true" else "false"
+}
+
+/**
+ * expr.ts `listToStr`: builds the joined text against a character budget (UTF-16 units, `budget[0]` = what is left)
+ * and throws "string too large" before the whole string exists. Mirrors the TypeScript accounting exactly — a nested
+ * list is charged once while it is built and once more as a part of its parent — so all engines fail on the same input.
+ */
+private fun listToStr(list: List<Value>, budget: IntArray): String {
+    val parts = ArrayList<String>(list.size)
+    for ((i, x) in list.withIndex()) {
+        val s = when (x) {
+            is Value.VList -> listToStr(x.items, budget)
+            Value.Null -> ""
+            else -> toStr(x)
+        }
+        budget[0] -= s.length + (if (i > 0) 1 else 0)
+        if (budget[0] < 0) throw ExprError("string too large")
+        parts.add(s)
+    }
+    return parts.joinToString(",")
 }
 
 /** expr.ts `toNum`: throws [ExprError] for strings that are not numbers. */
@@ -111,12 +130,18 @@ fun jsCoerceNumber(v: Value): Double = when (v) {
     is Value.VList -> jsStringToNumber(toStr(v))
 }
 
-/** expr.ts `eq`: element-wise for lists, numeric when either side is a number, strict otherwise. */
-fun looseEq(a: Value, b: Value): Boolean = looseEq(a, b, nodeBudget())
+/** expr.ts `eq` with a fresh step budget — for callers outside an expression evaluation. */
+fun looseEq(a: Value, b: Value): Boolean = looseEq(a, b, Budget())
 
-private fun looseEq(a: Value, b: Value, budget: IntArray): Boolean {
+/**
+ * expr.ts `eq`: element-wise for lists, numeric when either side is a number, strict otherwise. Every element
+ * comparison is charged to the evaluator's step [budget]: lists can share sub-lists (`setVar v = [v, v]` doubles the
+ * logical size each time), so the walk is exponential in nesting depth and must be bounded like everything else.
+ */
+fun looseEq(a: Value, b: Value, budget: Budget): Boolean {
+    budget.spend()
     if (a is Value.VList && b is Value.VList) {
-        return a.items.size == b.items.size && a.items.indices.all { spendNode(budget); looseEq(a.items[it], b.items[it], budget) }
+        return a.items.size == b.items.size && a.items.indices.all { looseEq(a.items[it], b.items[it], budget) }
     }
     if (a is Value.Num || b is Value.Num) {
         if (a == Value.Null || b == Value.Null) return strictEq(a, b)
@@ -167,8 +192,12 @@ fun jsStringToNumber(raw: String): Double {
             else -> 0
         }
         if (radix != 0) {
+            // StringNumericLiteral allows no sign after a radix prefix: Number("0x-1") and Number("0x+1") are NaN
+            // (BigInteger would accept the sign).
+            val digits = s.substring(2)
+            if (digits.startsWith("-") || digits.startsWith("+")) return Double.NaN
             return try {
-                java.math.BigInteger(s.substring(2), radix).toDouble()
+                java.math.BigInteger(digits, radix).toDouble()
             } catch (_: NumberFormatException) {
                 Double.NaN
             }

@@ -346,7 +346,15 @@ class FlowRun(
         for (v in flow.variables) {
             // An explicit null input is "not provided" (engine.ts `inputs[name] ?? initial`).
             var value: Value = opts.inputs[v.name]?.takeIf { it != Value.Null } ?: v.initial ?: defaultFor(v.type)
-            if (v.type == "number") value = Value.Num(jsCoerceNumber(value))
+            if (v.type == "number") {
+                // "abc" would become NaN and surface much later as a misleading "number out of range" (engine.ts initVars):
+                // booleans coerce, lists never do, strings follow `Number(string)`.
+                val n = if (value is Value.VList) Double.NaN else jsCoerceNumber(value)
+                if (!n.isFinite()) {
+                    throw RunFailure(RunError(message = "variable \"${v.name}\": ${value.toJson()} is not a number", category = ErrorCategory.EXPRESSION))
+                }
+                value = Value.Num(n)
+            }
             if (v.type == "boolean") value = Value.of(value == Value.TRUE || value == Value.Str("true"))
             vars[v.name] = value
         }
@@ -829,10 +837,20 @@ fun toRunError(e: Throwable, stepId: String? = null, path: String? = null): RunE
     else -> RunError(stepId, path, e.message ?: e.toString(), ErrorCategory.ACTION)
 }
 
+/** engine.ts `usesScreenCoordinates`: whether a changed screen geometry needs the user's confirmation before the run. */
 fun usesScreenCoordinates(steps: List<Step>): Boolean {
     var uses = false
     walkSteps(steps) { s, _, _ ->
-        if (s.targets().any { (it is Target.Point && it.space == "screen") || (it is Target.Region && it.space == "screen") }) uses = true
+        val ts = ArrayList<Target>(s.targets())
+        // Probes read pixels at recorded positions too: a different screen geometry needs the same confirmation.
+        when (s) {
+            is Step.PixelCheck -> ts.add(s.at)
+            is Step.WaitForPixel -> ts.add(s.at)
+            else -> Unit
+        }
+        s.condition()?.pixel?.let { ts.add(it.at) }
+        if (ts.any { (it is Target.Point && it.space == "screen") || (it is Target.Region && it.space == "screen") }) uses = true
+        if (s is Step.Ocr) uses = true // the region is always in screen pixels
     }
     return uses
 }

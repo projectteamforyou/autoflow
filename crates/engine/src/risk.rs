@@ -108,7 +108,7 @@ fn step_findings(s: &Step) -> Vec<RiskFinding> {
             FileOp::Append | FileOp::Copy => f("risk.fileWrite", 12, true),
             FileOp::Read | FileOp::Exists => f("risk.fileRead", 6, false),
         }),
-        StepKind::Http { method, url, headers, .. } => {
+        StepKind::Http { method, url, headers, body, .. } => {
             if *method == HttpMethod::Get {
                 out.push(f("risk.networkRead", 8, false));
             } else {
@@ -123,6 +123,9 @@ fn step_findings(s: &Step) -> Vec<RiskFinding> {
             // Even a GET leaks whatever variables or secrets are interpolated into its headers.
             if headers.values().any(|v| is_dynamic(v)) {
                 out.push(f("risk.requestVars", 10, true));
+            }
+            if body.as_deref().is_some_and(|b| secret_ref().is_match(b)) {
+                out.push(f("risk.secretExposed", 20, true));
             }
             if is_local_network_url(url) {
                 out.push(f("risk.localNetwork", 15, true));
@@ -141,6 +144,14 @@ fn step_findings(s: &Step) -> Vec<RiskFinding> {
             if secret_ref().is_match(text) {
                 out.push(f("risk.secretInput", 10, false));
             }
+        }
+        // A secret shown in a notification / question or copied to the clipboard leaves the vault (risk.ts).
+        StepKind::Notify { title, body } if secret_ref().is_match(title) || secret_ref().is_match(body) => {
+            out.push(f("risk.secretExposed", 20, true))
+        }
+        StepKind::Confirm { message, .. } if secret_ref().is_match(message) => out.push(f("risk.secretExposed", 20, true)),
+        StepKind::Clipboard { op: crate::schema::ClipboardOp::Set, value: Some(value), .. } if secret_ref().is_match(value) => {
+            out.push(f("risk.secretExposed", 20, true));
         }
         StepKind::Window { op: WindowOp::Close, .. } => out.push(f("risk.windowClose", 12, false)),
         StepKind::AndroidGlobal { action } => {
