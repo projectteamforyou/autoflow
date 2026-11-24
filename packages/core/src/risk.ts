@@ -28,6 +28,8 @@ export interface RiskReport {
 const SENSITIVE_URL = /(pay|checkout|bank|transfer|wallet|purchase|billing|order|captcha|login|signin|auth)/i;
 /** `{{...}}` interpolation: the real target is only known at run time, so keyword checks can be dodged. */
 const DYNAMIC = /\{\{/;
+/** A stored secret leaving the vault: typed, copied, shown or sent anywhere. */
+const SECRET = /\{\{\s*secret:/;
 
 function isLocalIpv4(o: number[]): boolean {
   const [a, b] = o as [number, number];
@@ -92,6 +94,7 @@ function stepFindings(s: Step): RiskFinding[] {
       if (DYNAMIC.test(s.url)) f.push({ stepId: s.id, key: "risk.dynamicUrl", weight: 10, needsConfirm: true });
       // Even a GET leaks whatever variables or secrets are interpolated into its headers.
       if (Object.values(s.headers ?? {}).some((v) => DYNAMIC.test(v))) f.push({ stepId: s.id, key: "risk.requestVars", weight: 10, needsConfirm: true });
+      if (s.body && SECRET.test(s.body)) f.push({ stepId: s.id, key: "risk.secretExposed", weight: 20, needsConfirm: true });
       if (isLocalNetworkUrl(s.url)) f.push({ stepId: s.id, key: "risk.localNetwork", weight: 15, needsConfirm: true });
       break;
     case "launchApp":

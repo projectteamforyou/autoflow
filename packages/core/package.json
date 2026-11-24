@@ -7,12 +7,17 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
     "./schema.json": "./dist/flow.schema.json"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && node scripts/emit-json-schema.mjs && node scripts/emit-fixtures.mjs && node scripts/emit-conformance.mjs",
+    "build": "tsc -p tsconfig.build.json && node scripts/emit-json-schema.mjs && node scripts/emit-fixtures.mjs && node scripts/emit-conformance.mjs && node scripts/emit-expressions.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "lint": "tsc -p tsconfig.json --noEmit"

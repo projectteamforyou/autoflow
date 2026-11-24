@@ -119,7 +119,11 @@ pub fn key_spec(name: &str) -> Option<KeySpec> {
     let mut chars = canon.chars();
     let (Some(c), None) = (chars.next(), chars.next()) else { return None };
     if c.is_ascii_alphabetic() {
-        return Some(k(u16::from(c.to_ascii_uppercase() as u8), false));
+        let mut spec = k(u16::from(c.to_ascii_uppercase() as u8), false);
+        // W3C `key: "A"` is the shifted letter (the web sandbox and Android type it that way);
+        // canonical_key lower-cases letters for hotkey comparison, so look at the original spelling.
+        spec.implied[0] = name.len() == 1 && name.as_bytes()[0].is_ascii_uppercase();
+        return Some(spec);
     }
     if c.is_ascii_digit() {
         return Some(k(u16::from(c as u8), false));

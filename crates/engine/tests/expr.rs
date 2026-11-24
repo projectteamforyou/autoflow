@@ -191,3 +191,62 @@ fn date_functions_use_local_time() {
     assert_eq!(get("weekday()"), n(f64::from(t.weekday().num_days_from_sunday())));
     assert_eq!(get("random(1, 10)"), n(6.0));
 }
+
+/// Replays `packages/core/fixtures/engine/expressions.json` (written by the TypeScript evaluator): the
+/// regex dialect, number formatting, coercions, budgets and equality cost must answer identically.
+#[test]
+fn expression_fixture_matches_typescript() {
+    use serde_json::Value as Json;
+    let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../packages/core/fixtures/engine/expressions.json");
+    let doc: Json =
+        serde_json::from_str(&std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()))).unwrap();
+    fn expand(v: &Json) -> Value {
+        match v {
+            Json::Null => Value::Null,
+            Json::Bool(b) => Value::Bool(*b),
+            Json::Number(n) => Value::Num(n.as_f64().unwrap()),
+            Json::String(s) => Value::Str(s.clone()),
+            Json::Array(a) => Value::List(a.iter().map(expand).collect()),
+            Json::Object(o) if o.contains_key("$repeat") => {
+                let r = o["$repeat"].as_array().unwrap();
+                Value::Str(r[0].as_str().unwrap().repeat(r[1].as_u64().unwrap() as usize))
+            }
+            Json::Object(_) => panic!("unexpected object in vars"),
+        }
+    }
+    let mut vars = Vars::new();
+    for (k, v) in doc["vars"].as_object().unwrap() {
+        vars.insert(k.clone(), expand(v));
+    }
+    // 2026-01-01T00:00:00Z, like the emitter; only date()/time() of out-of-range values are exercised.
+    let now = || 1_767_225_600_000.0;
+    let random = || 0.5;
+    let env = ExprEnv { vars: &vars, now: &now, random: &random };
+    let mut failures = Vec::new();
+    for case in doc["cases"].as_array().unwrap() {
+        let expr = case["expr"].as_str().unwrap();
+        let got = eval_expr(expr, &env);
+        let want = &case["expect"];
+        let ok = match (&got, want.get("error")) {
+            (Err(e), Some(msg)) => e.message == msg.as_str().unwrap(),
+            (Ok(v), None) => *v == expand(&want["value"]),
+            _ => false,
+        };
+        if !ok {
+            failures.push(format!(
+                "{expr}\n    want {want}\n    got  {}",
+                match &got {
+                    Ok(v) => v.to_js_string(),
+                    Err(e) => format!("error: {}", e.message),
+                }
+            ));
+        }
+    }
+    assert!(
+        failures.is_empty(),
+        "{} of {} cases differ from the TypeScript evaluator:\n{}",
+        failures.len(),
+        doc["cases"].as_array().unwrap().len(),
+        failures.join("\n")
+    );
+}

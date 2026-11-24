@@ -82,6 +82,26 @@ pub fn check_emergency(h: &Hotkey) -> Result<(), String> {
     Ok(())
 }
 
+/// A flow hotkey (trigger / start / pause / stop) the desktop may register system-wide without
+/// hijacking ordinary typing: a function key on its own, or any other non-modifier key with at least
+/// one modifier — never Shift alone with a printable character. A shared flow with `{ key: "a" }`
+/// would otherwise swallow every `a` typed anywhere in Windows. Mirrors `isSafeGlobalHotkey` in
+/// packages/core/src/lint.ts.
+pub fn check_flow_hotkey(h: &Hotkey) -> Result<(), String> {
+    let key = canonical_key(&h.key).filter(|k| !k.is_empty()).ok_or_else(|| format!("unknown key \"{}\"", h.key))?;
+    if is_modifier(&key) {
+        return Err("a hotkey needs a key besides the modifiers".into());
+    }
+    let function_key = key.strip_prefix('F').and_then(|n| n.parse::<u8>().ok()).is_some_and(|n| (1..=24).contains(&n));
+    if h.modifiers.is_empty() && !function_key {
+        return Err("a hotkey needs at least one modifier (Ctrl, Alt, Shift or Win) unless it is a function key".into());
+    }
+    if is_printable(&key) && !h.modifiers.is_empty() && h.modifiers.iter().all(|m| *m == Modifier::Shift) {
+        return Err("Shift plus a character would swallow that letter in every app".into());
+    }
+    Ok(())
+}
+
 /// The emergency stop plus every combination with extra modifiers held, so Halt still fires
 /// while a flow holds Shift/Win/… down (`RegisterHotKey` matches modifiers exactly). Variants
 /// another app already uses are skipped silently.
@@ -192,6 +212,10 @@ pub fn sync(app: &AppHandle, flows: &[serde_json::Value], emergency: Hotkey) -> 
 
     for f in &ok_flows {
         let mut bind = |h: &Hotkey, b: Binding, failed: &mut Vec<TriggerFailure>, table: &mut TriggerTable| {
+            if let Err(reason) = check_flow_hotkey(h) {
+                fail(failed, &f.id, format!("{}: {reason}", h.to_display_string()));
+                return;
+            }
             let c = combo(h);
             if let Some((other, _)) = owner.get(&c) {
                 if other != &f.id {
@@ -244,7 +268,20 @@ pub fn sync(app: &AppHandle, flows: &[serde_json::Value], emergency: Hotkey) -> 
         if let Some(h) = &f.hotkeys.pause {
             bind(h, Binding::Pause(f.id.clone()), &mut failed, &mut table);
         }
-        if combo(&f.hotkeys.stop) != combo(&emergency) {
+        if combo(&f.hotkeys.stop) == combo(&emergency) {
+            // Halt already covers it.
+        } else if combo(&f.hotkeys.stop) == combo(&default_stop_hotkey()) {
+            // Every flow carries the default Ctrl+Alt+Esc stop hotkey. Once the user moves the emergency stop
+            // elsewhere, binding it per flow would hand it to the first flow and report every other flow as
+            // failed; keep it as one extra Halt instead (what it did before the emergency stop changed).
+            let c = combo(&f.hotkeys.stop);
+            if !owner.contains_key(&c) {
+                owner.insert(c, ("emergency stop (default)".into(), next_id));
+                hotkeys.push((next_id, f.hotkeys.stop.clone()));
+                table.bindings.insert(next_id, Binding::Halt);
+                next_id += 1;
+            }
+        } else {
             bind(&f.hotkeys.stop, Binding::Stop(f.id.clone()), &mut failed, &mut table);
         }
     }

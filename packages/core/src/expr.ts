@@ -33,6 +33,12 @@ const MAX_DEPTH = 64;
 const MAX_STEPS = 20_000;
 const MAX_STRING = 1_000_000;
 const MAX_LIST = 100_000;
+/**
+ * Total characters held by the strings of one list (UTF-16 units). The node and string limits alone
+ * still allow 100 000 × 1 MB: engines that copy values (Rust, Kotlin) would exhaust memory where the
+ * JavaScript engine merely shares references, so all three refuse such a list the same way.
+ */
+const MAX_LIST_CHARS = 16_000_000;
 
 const OPS = ["&&", "||", "==", "!=", "<=", ">=", "+", "-", "*", "/", "%", "!", "<", ">", "(", ")", ",", "?", ":", "[", "]"];
 
@@ -252,7 +258,7 @@ function safeRegex(pattern: string): SafeRegex {
   return re;
 }
 
-function toNum(v: Value): number {
+export function toNum(v: Value): number {
   if (typeof v === "number") return v;
   if (typeof v === "boolean") return v ? 1 : 0;
   if (v === null) return 0;
@@ -296,11 +302,12 @@ const MAX_LIST_DEPTH = 64;
  * cannot hide 2^n leaves behind a small top-level length. Shared sub-lists are counted each time
  * they are reached: that is the work every later deep operation (toStr, eq, JSON) would do.
  */
-function listNodes(list: Value[], depth: number, left: { n: number }): void {
+function listNodes(list: Value[], depth: number, left: { n: number; chars: number }): void {
   if (depth > MAX_LIST_DEPTH) throw new ExprError("list too large");
   for (const x of list) {
     if (--left.n < 0) throw new ExprError("list too large");
     if (Array.isArray(x)) listNodes(x, depth + 1, left);
+    else if (typeof x === "string" && (left.chars -= x.length) < 0) throw new ExprError("list too large");
   }
 }
 
@@ -308,7 +315,7 @@ function guard(v: Value): Value {
   if (typeof v === "string" && v.length > MAX_STRING) throw new ExprError("string too large");
   if (Array.isArray(v)) {
     if (v.length > MAX_LIST) throw new ExprError("list too large");
-    listNodes(v, 0, { n: MAX_LIST });
+    listNodes(v, 0, { n: MAX_LIST, chars: MAX_LIST_CHARS });
   }
   if (typeof v === "number" && !Number.isFinite(v)) throw new ExprError("number out of range");
   return v;
@@ -488,12 +495,13 @@ export function evaluate(node: Node, env: ExprEnv): Value {
           case "/": {
             const d = toNum(b);
             if (d === 0) throw new ExprError("division by zero");
-            return toNum(a) / d;
+            // Guarded like + - *: 1e308 / 0.1 or 1e400 / 1e400 must not leak Infinity / NaN into variables.
+            return guard(toNum(a) / d);
           }
           case "%": {
             const d = toNum(b);
             if (d === 0) throw new ExprError("division by zero");
-            return toNum(a) % d;
+            return guard(toNum(a) % d);
           }
           case "==":
             return eq(a, b, budget);

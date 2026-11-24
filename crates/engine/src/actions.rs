@@ -187,7 +187,33 @@ fn check_http_url(url: &str) -> Result<(), BackendError> {
     if parsed.scheme() != "http" && parsed.scheme() != "https" {
         return Err(BackendError::new(ErrorCategory::Validation, "only http and https URLs are allowed"));
     }
-    Ok(())
+    // Link-local ranges hold cloud metadata services (169.254.169.254, fd00:ec2::254) and nothing a
+    // flow should talk to; a host name is resolved first so `{{host}}` cannot smuggle one in.
+    // Loopback and private ranges stay reachable (local LLM servers, the user's own devices) and are
+    // flagged by the Safety Score instead.
+    let blocked = |ip: std::net::IpAddr| match ip {
+        std::net::IpAddr::V4(v4) => v4.is_link_local(),
+        std::net::IpAddr::V6(v6) => (v6.segments()[0] & 0xffc0) == 0xfe80 || v6.segments()[0] == 0xfd00 && v6.segments()[1] == 0x0ec2,
+    };
+    match parsed.host() {
+        Some(url::Host::Ipv4(ip)) if blocked(ip.into()) => {
+            Err(BackendError::new(ErrorCategory::Validation, "link-local addresses are not allowed"))
+        }
+        Some(url::Host::Ipv6(ip)) if blocked(ip.into()) => {
+            Err(BackendError::new(ErrorCategory::Validation, "link-local addresses are not allowed"))
+        }
+        Some(url::Host::Domain(host)) => {
+            use std::net::ToSocketAddrs as _;
+            let port = parsed.port_or_known_default().unwrap_or(80);
+            if let Ok(addrs) = (host, port).to_socket_addrs() {
+                if addrs.into_iter().any(|a| blocked(a.ip())) {
+                    return Err(BackendError::new(ErrorCategory::Validation, "link-local addresses are not allowed"));
+                }
+            }
+            Ok(())
+        }
+        _ => Ok(()),
+    }
 }
 
 #[cfg(feature = "net")]

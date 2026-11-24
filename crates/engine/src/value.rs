@@ -48,6 +48,44 @@ impl Value {
         }
     }
 
+    /// `to_js_string` with an output budget in UTF-16 units: `None` once the result would exceed it,
+    /// before the whole string is built (a 65 536-item list of 1 MB strings must not allocate 64 GB).
+    pub fn to_js_string_limited(&self, max_units: usize) -> Option<String> {
+        let mut out = String::new();
+        let mut left = max_units;
+        self.write_js(&mut out, &mut left).then_some(out)
+    }
+
+    fn write_js(&self, out: &mut String, left: &mut usize) -> bool {
+        match self {
+            Value::List(l) => {
+                for (i, x) in l.iter().enumerate() {
+                    if i > 0 {
+                        if *left == 0 {
+                            return false;
+                        }
+                        *left -= 1;
+                        out.push(',');
+                    }
+                    if !x.write_js(out, left) {
+                        return false;
+                    }
+                }
+                true
+            }
+            other => {
+                let s = other.to_js_string();
+                let n = utf16_len(&s);
+                if n > *left {
+                    return false;
+                }
+                *left -= n;
+                out.push_str(&s);
+                true
+            }
+        }
+    }
+
     /// JavaScript `Number(v)` (never throws; may return NaN).
     pub fn to_js_number(&self) -> f64 {
         match self {
