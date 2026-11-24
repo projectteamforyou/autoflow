@@ -1,6 +1,6 @@
 # AutoFlow — 인수인계 (새 채팅에서 이어서 작업용)
 
-갱신: 2026-11-11 10:40 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#28
+갱신: 2026-11-24 12:45 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#42(7-9는 PR 준비 중)
 
 ## 1. 현재 배포 상태 (Windows 1.1.2 · Android 1.1.3)
 | 항목 | 값 |
@@ -135,6 +135,18 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
 - 수정(`apps/site/src/assets.ts`, `/app/*`만): `! Cross-Origin-Opener-Policy` 후 `same-origin-allow-popups`(사이트 나머지는 `same-origin` 유지, COEP 없음이라 crossOriginIsolated 영향 없음); `! Permissions-Policy` 후 `payment=(self)`; `img-src`에 PG 도메인 추가. 웹: `Billing.tsx`에서 결제 섹션 마운트 시 PortOne SDK 선로딩(클릭 직후 창이 뜨도록). `windowType { pc: IFRAME, mobile: REDIRECTION }`·frame-src·form-action·connect-src·`style-src 'unsafe-inline'`·모바일 복귀(`/billing/return`)·대기 주문 '다시 확인'은 이미 가이드와 일치
 - **사이트 배포가 필요**(헤더는 Cloudflare Pages `_headers`): Site 워크플로의 배포 단계는 `CLOUDFLARE_API_TOKEN` 시크릿이 없어 skip → 2장 수동 배포 명령으로 올린 뒤 Chrome 개발자도구 Network에서 `/app/` 응답 헤더 `cross-origin-opener-policy: same-origin-allow-popups` 확인 → `/app/#/business` 결제 → 카드 인증 창까지 진행되는지. 성공 시 PortOne 콘솔에서 취소(9. 남은 작업)
 
+## 7-9. A–Z 전수 점검 — 엔진·아키텍처 업그레이드 (2026-11-24)
+- 방식: 기준선 전부 통과 확인(core 94·API 113·Rust 37 테스트, 웹 i18n 1354키×11, 사이트 722페이지) → 네 영역(코어 TS+Kotlin / Rust+데스크톱 / API / 웹+사이트)을 병렬 정밀 감사해 52건 도출 → 실제 코드 경로를 확인한 뒤 가치 순으로 패치. 결과 기준선: core 147·API 114·Rust 84 테스트, 웹 3 테스트(신규), i18n 1374키×11
+- **의존성 보안**: hono 4.13.13→4.13.21, @hono/node-server→1.19.19(취약점 8건 중 6건 해소; 남은 zod 메모리 고갈은 요청 본문 크기 제한으로 완화·v4 이행은 보류, node-server serveStatic은 미사용). Rust cookie·rustls-webpki·url·webpki-roots 패치 범프(`cargo audit` 취약점 0). `pnpm -r outdated`의 메이저(React 19, vite 8, vitest 5, zod 4, TypeScript 7)는 별도 작업으로 남김
+- **API(결제)**: 앱에서 주문을 취소(또는 72h 만료)한 뒤 이미 열려 있던 PG 창에서 결제가 완료되면 `confirm`·매시간 정산이 그 주문도 공급자에 확인 → 금액 일치면 정산(라이선스 발급), 불일치면 환불. 환불 호출이 실패한 불일치 주문(`amount_mismatch`)은 정산 스위프가 성공할 때까지 재시도(`…_refunded`). PayPal `INSTRUMENT_DECLINED` 등은 402 `payment_declined`로 주문을 열어 둠(다른 결제 수단 재시도). 정산 스위프 단일 실행 보장(1시간 넘게 걸릴 수 있음). `issueKey` 재시도를 세이브포인트 안에서(기존엔 트랜잭션이 이미 중단돼 재시도 불가). 관리자 결제 설정 저장은 advisory lock으로 직렬화
+- **API(기타)**: 마이그레이션 `006_device_fk_indexes.sql`(sessions/items.device_id 부분 인덱스 — 기기 삭제·계정 삭제 시 전체 스캔 제거), Atlas 신고는 이메일 인증 계정만(미인증 3계정으로 아무 템플릿이나 숨길 수 있었음), 익명 공유 기본 30일 만료(삭제 주체가 없음), `/health` DB ping 5초 캐시(rate limit 면제 경로), OpenAPI에 `/v1/me/admin-claim`·`/v1/stats/*`·`/robots.txt` 추가
+- **엔진 3종 동일 규칙**(TS·Rust 반영, Kotlin은 같은 PR): `/`·`%` 결과 guard(NaN/Infinity 변수 유입 차단), 리스트 총 문자 16M 한도(`MAX_LIST_CHARS`; 값을 복사하는 Rust/Kotlin의 OOM 방지), 리스트→문자열 변환을 1MB 예산 안에서 생성, `==`/`contains`가 단계 예산(20,000) 소모, onError goto는 gotoStepId 필수, openUrl은 http(s)/mailto·http는 http(s)만, 숫자 변수 초기값이 숫자가 아니면 실행 시작 시 명확한 오류, 화면 좌표 확인에 pixelCheck/waitForPixel/pixel 조건/ocr 포함. **새 fixture `fixtures/engine/expressions.json`(52건, TS가 생성)**을 Rust `tests/expr.rs`·Kotlin `ExpressionFixtureTest`가 재생 → 식 언어 패리티가 CI로 고정됨
+- **Rust 정규식 번역기**를 ECMAScript 방언에 맞춤: 클래스 안 `\w`·`\d`는 범위로(`[\w-.]`·`[a-\d]`의 `-`는 리터럴, Annex B), `.`이 `\r`·U+2028/2029 제외, `\s`는 ECMAScript 집합, `\0`=NUL, 수량자가 아닌 `{`는 리터럴, `[]`는 무매치·`[^]`는 전체, `\A` 등 식별 이스케이프는 글자 자체, `(?i)`·`a*+`·`\p`는 TS와 같은 메시지로 거절
+- **Safety Score**: 클립보드 set·notify·confirm·http body에 `{{secret:}}`가 들어가면 확인 필요 항목 `risk.secretExposed`(12개 언어). **Lint**: 수식키 없는 전역 단축키(`a`, Space, Enter)는 오류 `lint.hotkeyNoModifier`(F1~F24 단독은 허용) — 데스크톱 `triggers_sync`도 같은 규칙으로 등록 거부(공유 플로우가 모든 앱의 `a`를 가로채는 문제). 긴급 정지를 바꾼 뒤 각 플로우의 기본 stop(Ctrl+Alt+Esc)이 첫 플로우에만 묶이고 나머지가 실패로 표시되던 문제 → 기본 stop은 추가 Halt로 유지
+- **Windows 백엔드**: `key:"A"`가 Shift+a(소문자로 입력되던 문제), Halt가 예/아니오 질문 창을 실제로 닫음(MB_YESNO는 WM_CLOSE 무시 → WM_COMMAND IDNO), CapsLock 추적이 자동 반복·주입 입력에도 정확, http 단계가 link-local(169.254/16, fe80::/10, fd00:ec2::)을 호스트명 해석 후에도 거절(루프백·사설망은 Safety Score로 표시만). 이 세션에선 `rustup target add x86_64-pc-windows-msvc` 후 `cargo clippy --no-default-features --target x86_64-pc-windows-msvc`로 Windows 전용 코드까지 `-D warnings` 통과(ring은 교차 컴파일 불가라 `net` 기능 제외)
+- **웹 앱**: 동기화가 데이터를 잃지 않음(Keyforge 프로필도 충돌 사본, 원격 삭제 vs 로컬 수정은 로컬 유지 후 재업로드, 끌어온 삭제가 원격 DELETE를 쏘지 않음; `sync.test.ts` 3건), 로그아웃·계정 삭제 시 `sync:state` 초기화(다른 계정이 리비전을 상속하던 문제), 401은 토큰을 실제로 보냈을 때만 세션 삭제, 결제 상태 새로고침이 결제 완료를 덮어쓰는 경쟁 제거, 복귀 URL `message` 비표시(코드→i18n), 건너뛰기 링크·모달 포커스·표 머리글·listbox 접근성, 하드코딩 영어 제거, 사이트의 `af-lang` 언어 선택 승계, 사이트 `md()` 링크 href 이스케이프·스킴 제한
+- **보류/주의**: 단계별 `stepTimeoutMs`가 Windows의 블로킹 액션(window 대기·findImage·http·confirm)을 중단시키지 못함(TS는 AbortSignal) — 백엔드에 deadline 전달 설계 필요. 데스크톱 크레이트는 이 컨테이너에서 Windows 타깃 `cargo check`가 ring 때문에 끝까지 가지 않으므로 PR의 rust.yml Windows 잡으로 확인. 웹 PWA 메인 번들 755 kB(페이지 lazy 분할 후보)
+
 ## 8. 러너 메모
 - 회사 PC 러너(FELIXLEE*)는 **LocalSystem** 계정(WiX MSI ICE 검사에 필요). Rust는 `CARGO_HOME=C:\Rust\cargo`
 - 집 PC 러너는 C 드라이브가 가득 참 → 정리 전까지 Windows 릴리스는 `runner_label: OFFICE`
@@ -143,5 +155,6 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
 ## 9. 남은 작업 후보 (다음 채팅)
 - Android Scenes/픽셀(MediaProjection) 지원
 - 실결제 1건(₩9,900) 후 PortOne 콘솔에서 취소로 끝까지 검증
-- Play 선언 심사 완료 후 `play-upload.yml submit` (versionCode 17 → production)
-- 집 PC 러너 디스크 정리, Google 서비스 계정 키 교체
+- Play 선언 심사 완료 후 `play-upload.yml submit` (versionCode 17 → production) — 7-5 참조
+- 집 PC 러너 디스크 정리, Google 서비스 계정 키 교체, Cloudflare API 토큰 교체(2026-11-19 채팅에 노출 → 새 토큰으로 GitHub 시크릿 `CLOUDFLARE_API_TOKEN` 갱신)
+- 7-9 보류 항목: Windows 단계 타임아웃 선점, 웹 페이지 lazy 분할, 메이저 의존성(React 19·vite 8·vitest 5·zod 4) 이행
