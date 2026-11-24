@@ -1,6 +1,6 @@
 # AutoFlow — 인수인계 (새 채팅에서 이어서 작업용)
 
-갱신: 2026-11-24 12:45 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#43 (7-9)
+갱신: 2026-11-24 16:35 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#43 (7-9)
 
 ## 1. 현재 배포 상태 (Windows 1.1.2 · Android 1.1.3)
 | 항목 | 값 |
@@ -107,6 +107,7 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
 - **2026-11-06 보완(PR #34)**: 매시간 submit 재시도가 hosted 러너에서 64회 ≈ 80분을 써서(월 환산 ~720분 = 조직 2,000분의 36%) `play-upload.yml`을 **self-hosted Windows 러너 기본**(`runner` 입력: `self-hosted`|`hosted`)으로 옮김. 모든 `run:`이 `node …` 한 줄이라 PowerShell 5/bash 공통. 러너 PC가 전부 꺼져 있으면 잡은 대기(분 소모 없음, `concurrency`가 다음 dispatch 때 이전 대기 잡을 취소). `publish.mjs`: 선언 미작성/검토 중 403은 **exit 3**(`::notice` + 잡 요약 기록, 오류 두 번 출력 제거), `--aab-dir <폴더>`로 아티팩트 안의 .aab를 스스로 찾음
 - **PR #35**: 첫 self-hosted 실행이 1초 만에 "성공"으로 끝났는데 출력이 없었음 → `publish.mjs`의 메인 모듈 판별 `import.meta.url === \`file://${process.argv[1]}\``가 Windows 경로(`D:\…`)와 절대 일치하지 않아 CLI가 아무것도 안 하고 exit 0. `pathToFileURL(resolve(argv[1])).href === import.meta.url`로 고침. 이후 run 42149461318(부산집 러너)에서 스크립트가 정상 실행되어 같은 403 + notice 확인
 - 2026-11-03 19:41 KST부터 매시간 자동 submit 재시도 중(Claude 예약 작업 `Play 1.1.3 production submit (hourly until approved)`): 2026-11-10 21:18 KST까지 전부 같은 403 → Google의 제출 3 심사가 아직 열려 있음. 통과 시 예약 작업이 스스로 꺼지고 이 절에 제출 시각이 추가됨
+- **2026-11-24 16:28 KST 제출 완료**(run 45348187162, hosted 러너 — self-hosted 러너 PC가 꺼져 있어 1분 과금). `validated`→`committed`, production versionCode 17 (1.1.3) → Google 심사 대기. 원인은 7-7 (a)대로 **개인 계정으로 이전되면서 포그라운드 서비스 선언이 비어 있었음**: 사용자가 11-24 Console 앱 콘텍츠에서 SPECIAL_USE(RunService)·MEDIA_PROJECTION(CaptureService) 두 항목을 작성해 검토 전송한 직후 403이 사라짐. 6시간 예약 작업은 비활성화. 다음 Android 릴리스는 7-5 순서대로(권한 변화 없으면 `android.yml track=production` 한 번에)
 - 2026-11-09 15:19 ~ 11-10 12:14 KST 사이에는 다른 403 `The caller does not have permission`(POST /edits 자체가 거부)이 났음 = 서비스 계정이 Console 앱 권한을 잃은 상태. 11-10 13:13 KST 재시도부터 다시 선언 대기 403으로 돌아옴(Console에서 권한이 복구된 것으로 보임). 구분법: 선언 대기는 `:validate`/`commit`에서만 403, 권한 상실은 첫 `POST /edits`부터 403
 
 ## 7-7. Play 개발자 계정 이전 점검 (2026-11-11)
@@ -155,6 +156,6 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
 ## 9. 남은 작업 후보 (다음 채팅)
 - Android Scenes/픽셀(MediaProjection) 지원
 - 실결제 1건(₩9,900) 후 PortOne 콘솔에서 취소로 끝까지 검증
-- Play 선언 심사 완료 후 `play-upload.yml submit` (versionCode 17 → production) — 7-5 참조
+- ~~Play 선언 심사 완료 후 `play-upload.yml submit`~~ → 2026-11-24 16:28 KST 제출 완료(7-5). Play 심사 결과(출시됨/거부)만 Console에서 확인
 - 집 PC 러너 디스크 정리, Google 서비스 계정 키 교체, Cloudflare API 토큰 교체(2026-11-19 채팅에 노출 → 새 토큰으로 GitHub 시크릿 `CLOUDFLARE_API_TOKEN` 갱신)
 - 7-9 보류 항목: Windows 단계 타임아웃 선점, 웹 페이지 lazy 분할, 메이저 의존성(React 19·vite 8·vitest 5·zod 4) 이행
