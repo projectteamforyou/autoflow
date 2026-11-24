@@ -897,7 +897,7 @@ impl FlowRun {
 
     fn run_all(&mut self, flow: &Flow) -> Flowing {
         self.preflight_checks(flow)?;
-        self.init_vars(flow);
+        self.init_vars(flow)?;
         let countdown = flow.limits.countdown_ms;
         if !self.opts.skip_countdown && countdown > 0 {
             self.shared.set_state(RunState::Countdown);
@@ -1224,17 +1224,29 @@ impl FlowRun {
         Ok(self.eval(&c.expr)?.truthy())
     }
 
-    fn init_vars(&mut self, flow: &Flow) {
+    fn init_vars(&mut self, flow: &Flow) -> Flowing {
         for v in &flow.variables {
             let input = self.opts.inputs.get(&v.name).filter(|x| !matches!(x, Value::Null));
             let mut val = input.cloned().or_else(|| v.initial.clone()).unwrap_or_else(|| default_for(v.var_type));
             match v.var_type {
-                VarType::Number => val = Value::Num(val.to_js_number()),
+                VarType::Number => {
+                    // "abc" would become NaN and surface much later as a misleading "number out of range" (engine.ts initVars).
+                    let n = if matches!(val, Value::List(_)) { f64::NAN } else { val.to_js_number() };
+                    if !n.is_finite() {
+                        let shown = serde_json::to_string(&val).unwrap_or_default();
+                        return Err(Signal::Fail(RunError::new(
+                            ErrorCategory::Expression,
+                            format!("variable \"{}\": {shown} is not a number", v.name),
+                        )));
+                    }
+                    val = Value::Num(n);
+                }
                 VarType::Boolean => val = Value::Bool(val == Value::Bool(true) || val == Value::Str("true".into())),
                 VarType::String | VarType::List => {}
             }
             self.vars.insert(v.name.clone(), val);
         }
+        Ok(())
     }
 
     fn run_top_level(&mut self, steps: &[Step]) -> Flowing {
@@ -1957,11 +1969,19 @@ fn default_for(t: VarType) -> Value {
 /// True when any step targets points/regions in `screen` space (`usesScreenCoordinates`).
 pub fn uses_screen_coordinates(steps: &[Step]) -> bool {
     let mut uses = false;
+    let on_screen = |t: &Target| matches!(t, Target::Point { space: Space::Screen, .. } | Target::Region { space: Space::Screen, .. });
     crate::schema::walk_steps(steps, &mut |s, _, _| {
-        for t in s.targets() {
-            if matches!(t, Target::Point { space: Space::Screen, .. } | Target::Region { space: Space::Screen, .. }) {
-                uses = true;
-            }
+        if s.targets().into_iter().any(on_screen) {
+            uses = true;
+        }
+        // Probes read pixels at recorded positions too: a different screen geometry needs the same confirmation.
+        match &s.kind {
+            StepKind::PixelCheck { at, .. } | StepKind::WaitForPixel { at, .. } if on_screen(at) => uses = true,
+            StepKind::Ocr { .. } => uses = true, // the region is always in screen pixels
+            _ => {}
+        }
+        if s.condition().and_then(|c| c.pixel.as_ref()).is_some_and(|px| on_screen(&px.at)) {
+            uses = true;
         }
     });
     uses

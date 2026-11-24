@@ -1614,10 +1614,15 @@ impl Validator {
             self.issue(path, format!("Array must contain at least {min} element(s)"));
         }
     }
-    pub(crate) fn url(&mut self, path: &str, s: &str) {
+    /// `z.string().url()` plus the scheme refinement of schema.ts: the backends refuse anything but
+    /// http(s) (and mailto for openUrl) at run time, so file:, javascript:, ms-settings: … are
+    /// rejected up front instead of passing lint and the Safety Score.
+    pub(crate) fn url(&mut self, path: &str, s: &str, schemes: &[&str], refine_msg: &str) {
         self.max(path, s, 2048);
-        if url::Url::parse(s).is_err() {
-            self.issue(path, "Invalid url");
+        match url::Url::parse(s) {
+            Err(_) => self.issue(path, "Invalid url"),
+            Ok(u) if !schemes.contains(&u.scheme()) => self.issue(path, refine_msg),
+            Ok(_) => {}
         }
     }
     pub(crate) fn datetime(&mut self, path: &str, s: &str) {
@@ -1759,6 +1764,9 @@ impl Validator {
             self.ms(&format!("{p}.onError.backoffMs"), oe.backoff_ms);
             if let Some(g) = &oe.goto_step_id {
                 self.id(&format!("{p}.onError.gotoStepId"), g);
+            } else if oe.strategy == ErrorStrategy::Goto {
+                // Without a target the executor silently fell back to "stop" (schema.ts refine).
+                self.issue(&format!("{p}.onError.gotoStepId"), "gotoStepId is required for strategy \"goto\"");
             }
             if let Some(m) = oe.max_backoff_ms {
                 self.ms(&format!("{p}.onError.maxBackoffMs"), m);
@@ -1836,7 +1844,9 @@ impl Validator {
                     self.max(&format!("{p}.args.{i}"), a, 260);
                 }
             }
-            StepKind::OpenUrl { url } => self.url(&f("url"), url),
+            StepKind::OpenUrl { url } => {
+                self.url(&f("url"), url, &["http", "https", "mailto"], "only http(s) and mailto URLs can be opened")
+            }
             StepKind::Window { match_, rect, .. } => {
                 self.opt_max(&f("match.title"), match_.title.as_ref(), 260);
                 self.opt_max(&f("match.app"), match_.app.as_ref(), 260);
@@ -1846,7 +1856,7 @@ impl Validator {
             }
             StepKind::AndroidGlobal { .. } | StepKind::Break | StepKind::Continue => {}
             StepKind::Http { url, headers, body, result_var, .. } => {
-                self.url(&f("url"), url);
+                self.url(&f("url"), url, &["http", "https"], "only http(s) URLs can be requested");
                 if headers.len() > 50 {
                     self.issue(&f("headers"), "at most 50 headers");
                 }
