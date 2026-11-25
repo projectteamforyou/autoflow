@@ -1,18 +1,18 @@
 # AutoFlow — 인수인계 (새 채팅에서 이어서 작업용)
 
-갱신: 2026-11-25 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#45 (7-10, 1.2.0)
+갱신: 2026-11-25 14:50 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#46 (7-10, 1.2.0)
 
-## 1. 현재 배포 상태 (Windows 1.1.2 · Android 1.1.3)
+## 1. 현재 배포 상태 (Windows 1.2.0 · Android 1.2.0 · 웹 1.2.0)
 | 항목 | 값 |
 |---|---|
 | 사이트 (12개 언어, 710페이지 — 가이드 24·대체 프로그램 21 × 12개 언어 포함) | https://autoflowmacro.com |
 | 웹 앱 (PWA) | https://autoflowmacro.com/app/ |
 | 관리자 | https://autoflowmacro.com/app/#/admin (projectteamforyou@gmail.com + 설정 코드) |
 | API | https://api.autoflowmacro.com (Railway `autoflow`/`api`, PostgreSQL) |
-| Windows 1.1.2 (Azure 서명: PROJECTTEAMFORYOU, 회사 PC 러너 `runner_label: OFFICE`; 1.1.0·1.1.1은 freezePrototype 때문에 빈 화면 → 1.1.2에서 수정) | https://dl.autoflowmacro.com/windows/AutoFlow-Setup-x64.exe · `AutoFlow-x64.msi` · `AutoFlow-portable-x64.exe` |
-| Android 1.1.3 (업로드 키 SHA-256 1fe265ee…; Play에는 1.1.2가 검토 중, 1.1.3은 아직 Play 미업로드) | https://dl.autoflowmacro.com/android/AutoFlow.apk |
+| Windows 1.2.0 (Azure 서명: PROJECTTEAMFORYOU, 회사 PC 러너 `runner_label: OFFICE`, 2026-11-25) | https://dl.autoflowmacro.com/windows/AutoFlow-Setup-x64.exe · `AutoFlow-x64.msi`(ko-KR) · `AutoFlow-portable-x64.exe` |
+| Android 1.2.0 (versionCode 20, 업로드 키 SHA-256 1fe265ee…; Play 프로덕션에 2026-11-25 14:15 KST 제출 → Google 심사 대기) | https://dl.autoflowmacro.com/android/AutoFlow.apk |
 | 버전 정보 | https://dl.autoflowmacro.com/latest.json |
-| GitHub 릴리스 (보관용) | https://github.com/projectteamforyou/autoflow/releases/tag/v1.1.2 |
+| GitHub 릴리스 (보관용) | https://github.com/projectteamforyou/autoflow/releases/tag/v1.2.0 |
 | Google Play 계정 (2026-11-09 이전됨) | 구 조직 계정 4800355049082027013(projectteamforyou@gmail.com) → **개인 계정 PROJECTTEAM FOR YOU, ID 5661763859416322517, 소유자 projectteamforyoudevelop@gmail.com**. 결제 프로필: 판매자 ID 442894745571811440 / 4307-3816-1623(이유상). 패키지명·App Signing·업로드 키 동일, 코드 변경 없음(7-7 참고) |
 | Google Play | `com.projectteamforyou.autoflow` — 1.1.0이 **접근성 명시적 공개 누락으로 거부**(2026-10-20) → 1.1.2(versionCode 12)에 네이티브 공개 대화상자 추가, 프로덕션 트랙에 **저장만 됨**(거부 이후엔 API 자동 제출 불가). Console에서 접근성 API 선언 영상 링크 교체 + "검토를 위해 변경사항 보내기" 필요 |
 | 접근성 시연 영상 (네이티브 공개 포함) | https://dl.autoflowmacro.com/play/autoflow-accessibility-demo-en.mp4 · `-ko.mp4` |
@@ -161,10 +161,13 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
 - **Android**: 참조 이미지 가져오기(2048px 한도·OOM 방어), 앱 목록, 트리거 실행 실패 알림, 예약 실행을 expedited work로(재시도 시 중복 실행 방지), 실행 알림에 현재 단계. **새 `<uses-permission>` 없음**(Play 선언 추가 불필요)
 - **웹 기타**: 화면별 lazy 로딩(시작 번들 755→535 kB) + 화면 단위 ErrorBoundary, 새 버전 안내(PWA), 상단 바가 1280–1536px에서 겹치고 휴대폰에서 Run이 화면 밖으로 나가던 문제 수정
 - **검증 한계(정직하게)**: Windows 트레이·알림·이미지 가져오기와 Android 런타임 동작은 컴파일·단위 테스트까지만(실기기 미실행). Android WebView에서 백업 파일 내려받기(blob)는 기존 방식 그대로라 미확인
-- **릴리스**: PR #45 병합 → `windows.yml`(version 1.2.0) · `android.yml`(version 1.2.0, track production) 디스패치 예정 — 결과는 이 줄에 갱신
+- **릴리스(2026-11-25 완료)**: PR #45 병합(main 26567c6, 13:59 KST) → Site·API·CI·rust 워크플로 통과, 사이트 changelog·`/app/`(lazy 청크 43개, Settings 청크에 1.2.0) 반영 확인, API `/health` 200
+  - **Android**: `android.yml` run 45550497317(version 1.2.0, track production) 성공 — versionCode 20 업로드, 12개 언어 문구·이미지, `track production: completed` → `committed`(14:15 KST). 새 권한 없음. 심사 결과는 Console에서 확인
+  - **Windows**: 첫 두 번(run 45550493450)은 러너 `FELIXLEE`에서 `light.exe LGHT0217 … The Windows Installer Service could not be accessed`로 실패 — 회사 러너가 LocalSystem이 아니라 `ghrunner` 계정으로 돌고 있었음. **PR #46**: LocalSystem이 아닐 때만 Tauri의 WiX 폴더(`%LOCALAPPDATA%\tauri\WixTools314`)의 `light.exe`를 `-sval`을 붙여 넘기는 작은 전달 프로그램(csc로 빌드, 원본은 `light-real.exe`)으로 바꿔 ICE 검증을 건너뜀(LocalSystem이면 기존대로 전체 ICE). `setup-node`의 `cache: pnpm` 제거(self-hosted에서 post 단계가 완성된 빌드를 실패 처리). 시험 빌드 run 45553133695(FELIXLEE-2)에서 MSI 2종 서명·검증 확인 → main 1892a22에서 run 45554470570 성공(14:40 KST), GitHub Release v1.2.0에 setup.exe·MSI(en-US, ko-KR)·portable.exe 첨부
+  - **R2 미러**: 이 컨테이너에서 `publish-r2.mjs`는 GitHub API 단계에서 막힘(저장소 이름 변경 리다이렉트가 숫자 ID 경로라 프록시가 거부). 저장소가 public이라 `https://github.com/projectteamforyou/autoflow/releases/download/v1.2.0/<파일>`을 curl로 받아(8개, `SHA256SUMS*.txt`와 일치 확인) 같은 규칙으로 `wrangler@3 r2 object put` → `releases/v1.2.0/*`, 고정 주소 4개, `latest.json`(1.2.0). 실제 주소에서 내려받은 4개 파일의 SHA-256이 릴리스와 일치(setup 976feaea…, msi d250ea7e…, portable b93287c7…, apk db0efd43…)
 
 ## 8. 러너 메모
-- 회사 PC 러너(FELIXLEE*)는 **LocalSystem** 계정(WiX MSI ICE 검사에 필요). Rust는 `CARGO_HOME=C:\Rust\cargo`
+- 회사 PC 러너(FELIXLEE*)는 2026-11-25 현재 **`ghrunner` 계정**으로 동작(예전엔 LocalSystem). WiX ICE 검사는 LocalSystem에서만 되므로 `windows.yml`이 그 외 계정에서는 `-sval`로 MSI를 만듦(7-10). 전체 ICE 검사를 되살리려면 러너 서비스를 LocalSystem으로 바꾸면 됨. Rust는 `CARGO_HOME=C:\Rust\cargo`
 - 집 PC 러너는 C 드라이브가 가득 참 → 정리 전까지 Windows 릴리스는 `runner_label: OFFICE`
 - PowerShell 7 없음 → 워크플로는 `shell: powershell`, 출력 파일은 `[IO.File]::AppendAllText`
 
