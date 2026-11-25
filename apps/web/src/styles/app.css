@@ -266,6 +266,12 @@ kbd {
 .editor-bar .name { font-size: 16px; font-weight: 650; background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 4px 8px; min-width: 120px; max-width: 360px; }
 .editor-bar .name:hover { border-color: var(--af-border); }
 .editor-bar .name:focus { outline: none; border-color: var(--af-primary); }
+.editor-bar .save-error { color: var(--af-danger); max-width: 280px; min-width: 0; }
+/* Phones: "Not saved: …" gets a line of its own instead of squeezing the name field. */
+@media (max-width: 900px) {
+  .editor-bar { flex-wrap: wrap; row-gap: 2px; }
+  .editor-bar .save-error { order: 10; flex: 1 0 100%; max-width: 100%; white-space: normal; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+}
 .lint-list { display: grid; gap: 6px; }
 .lint-item { display: flex; gap: 8px; padding: 8px 10px; border-radius: 10px; background: var(--af-surface-2); font-size: 12.5px; cursor: pointer; }
 .lint-item.error { box-shadow: inset 3px 0 0 var(--af-danger); }

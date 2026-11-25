@@ -8,9 +8,10 @@ import { TriggerBadge } from "../components/TriggerBadge";
 import { FlowCard } from "./Home";
 import { useStore } from "../lib/store";
 import { confirmDialog, promptDialog } from "../lib/dialog";
-import { downloadBackup, exportToFile, restoreBackupFile, shareLink, startFlow, toastRestored } from "../lib/actions";
+import { downloadBackup, exportToFile, importFileTooLarge, restoreBackupFile, shareLink, startFlow, toastRestored } from "../lib/actions";
+import { blockImeSubmit } from "../lib/ime";
 import { formatRelative, useT } from "../i18n";
-import { ImportReview } from "./ImportFlow";
+import { ImportReview } from "../components/ImportReview";
 
 type Sort = "updated" | "name" | "created" | "lastRun";
 
@@ -18,6 +19,23 @@ type Sort = "updated" | "name" | "created" | "lastRun";
 const MAX_FOLDER = 120;
 const MAX_TAG = 32;
 const MAX_TAGS = 20;
+
+/** View preferences in localStorage. This is the start-up page: storage that throws (blocked, private mode) must not break it. */
+function readPref<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
+  try {
+    const v = localStorage.getItem(key);
+    return allowed.includes(v as T) ? (v as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+function writePref(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* the choice lasts for this visit only */
+  }
+}
 
 /** Everything the search box matches, lower-cased: name, description, tags, folder, step labels and typed text. */
 function haystack(f: Flow): string {
@@ -40,8 +58,8 @@ export function Library() {
   const toast = useStore((s) => s.toast);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"all" | "favorites" | "easy" | "pro">("all");
-  const [view, setView] = useState<"grid" | "list">(() => (localStorage.getItem("af.libView") as "grid" | "list") ?? "grid");
-  const [sort, setSort] = useState<Sort>(() => (localStorage.getItem("af.libSort") as Sort) ?? "updated");
+  const [view, setView] = useState<"grid" | "list">(() => readPref("af.libView", ["grid", "list"], "grid"));
+  const [sort, setSort] = useState<Sort>(() => readPref<Sort>("af.libSort", ["updated", "name", "created", "lastRun"], "updated"));
   const [tag, setTag] = useState<string | null>(null);
   const [pending, setPending] = useState<Awaited<ReturnType<typeof importFlow>> | null>(null);
   // The folder filter lives in the URL (#/flows?folder=Work) so the command palette can link to a folder.
@@ -84,15 +102,16 @@ export function Library() {
   const picked = useMemo(() => (selected ? flows.filter((f) => selected.has(f.id)) : []), [flows, selected]);
 
   const importFile = async (file: File) => {
-    if (file.size > 2_000_000) return toast("error", t("import.tooLarge"));
+    // 2 MB for a single flow, 50 MB for a backup (decided from the first bytes, before the file is read).
+    if (await importFileTooLarge(file)) return toast("error", t("import.tooLarge"));
     // Backup files contain several flows (and Keyforge profiles, settings).
     try {
       const r = await restoreBackupFile(file);
       if (r) return toastRestored(r);
+      setPending(await importFlow(await file.text()));
     } catch (e) {
       return toast("error", (e as Error).message);
     }
-    setPending(await importFlow(await file.text()));
   };
 
   const onImportFile = async () => {
@@ -131,7 +150,7 @@ export function Library() {
     for (const f of list) await del(f.id);
     setSelected((s) => (s ? new Set([...s].filter((id) => !list.some((f) => f.id === id))) : s));
     // Undo re-saves the flows as they were (their version history is gone, as with a single delete).
-    toast("info", one ? t("flows.deleted") : t("flows.bulk.deleted", { n: list.length }), { label: t("common.undo"), run: () => void (async () => { for (const f of list) await saveFlow(f, { snapshot: false }); })() });
+    toast("info", one ? t("flows.deleted") : t("flows.bulk.deleted", { n: list.length }), { label: t("common.undo"), run: () => void (async () => { for (const f of list) await saveFlow(f, { snapshot: false }); })().catch((e) => toast("error", (e as Error).message)) });
   };
 
   const rename = async (f: Flow) => {
@@ -196,8 +215,8 @@ export function Library() {
           </div>
           <div className="row wrap">
             <Seg value={filter} onChange={setFilter} label={t("flows.filter")} options={[{ value: "all", label: t("flows.all") }, { value: "favorites", label: t("flows.favorites"), icon: "Star" }, { value: "easy", label: t("mode.easy") }, { value: "pro", label: t("mode.pro") }]} />
-            <Seg value={sort} onChange={(v) => { setSort(v); localStorage.setItem("af.libSort", v); }} label={t("flows.sort")} options={[{ value: "updated", label: t("flows.sort.updated") }, { value: "name", label: t("flows.sort.name") }, { value: "created", label: t("flows.sort.created") }, { value: "lastRun", label: t("flows.sort.lastRun") }]} />
-            <Seg value={view} onChange={(v) => { setView(v); localStorage.setItem("af.libView", v); }} label={t("flows.view")} options={[{ value: "grid", label: "", icon: "LayoutGrid" }, { value: "list", label: "", icon: "ListOrdered" }]} />
+            <Seg value={sort} onChange={(v) => { setSort(v); writePref("af.libSort", v); }} label={t("flows.sort")} options={[{ value: "updated", label: t("flows.sort.updated") }, { value: "name", label: t("flows.sort.name") }, { value: "created", label: t("flows.sort.created") }, { value: "lastRun", label: t("flows.sort.lastRun") }]} />
+            <Seg value={view} onChange={(v) => { setView(v); writePref("af.libView", v); }} label={t("flows.view")} options={[{ value: "grid", label: "", icon: "LayoutGrid" }, { value: "list", label: "", icon: "ListOrdered" }]} />
             <button className="btn sm ghost" aria-pressed={!!selected} onClick={() => setSelected(selected ? null : new Set())} disabled={!flows.length}><Icon name="ListChecks" size={15} /> {t("flows.select")}</button>
             <button className="btn sm ghost" onClick={() => downloadBackup()} disabled={!flows.length}><Icon name="Download" size={15} /> {t("flows.backup")}</button>
           </div>
@@ -307,13 +326,13 @@ export function Library() {
           flow={menuFlow}
           onClose={() => setMenu(null)}
           items={[
-            { icon: "Play", label: t("flows.run"), run: () => void startFlow(menuFlow, navigate) },
-            { icon: "Pen", label: t("flows.rename"), run: () => void rename(menuFlow) },
-            { icon: "Copy", label: t("flows.duplicate"), run: () => void dup(menuFlow.id) },
-            { icon: "FolderInput", label: t("flows.folder.move"), run: () => setMoving([menuFlow]) },
-            { icon: "Share2", label: t("flows.share"), run: () => void shareLink(menuFlow) },
-            { icon: "Download", label: t("flows.export"), run: () => void exportToFile(menuFlow) },
-            { icon: "Trash2", label: t("common.delete"), danger: true, run: () => void removeMany([menuFlow]) },
+            { id: "run", icon: "Play", label: t("flows.run"), run: () => void startFlow(menuFlow, navigate) },
+            { id: "rename", icon: "Pen", label: t("flows.rename"), run: () => void rename(menuFlow) },
+            { id: "duplicate", icon: "Copy", label: t("flows.duplicate"), run: () => void dup(menuFlow.id) },
+            { id: "move", icon: "FolderInput", label: t("flows.folder.move"), run: () => setMoving([menuFlow]) },
+            { id: "share", icon: "Share2", label: t("flows.share"), run: () => void shareLink(menuFlow) },
+            { id: "export", icon: "Download", label: t("flows.export"), run: () => void exportToFile(menuFlow) },
+            { id: "delete", icon: "Trash2", label: t("common.delete"), danger: true, run: () => void removeMany([menuFlow]) },
           ]}
         />
       )}
@@ -323,13 +342,13 @@ export function Library() {
 }
 
 /** "More" sheet of one flow: the same actions on grid cards and list rows (a sheet works with touch and keyboard alike). */
-function FlowMenu({ flow, items, onClose }: { flow: Flow; items: { icon: string; label: string; danger?: boolean; run: () => void }[]; onClose: () => void }) {
+function FlowMenu({ flow, items, onClose }: { flow: Flow; items: { id: string; icon: string; label: string; danger?: boolean; run: () => void }[]; onClose: () => void }) {
   return (
     <Modal title={<span className="truncate" style={{ display: "block" }}>{flow.name}</span>} icon={flow.icon} onClose={onClose}>
       <div className="stack-xs">
         {items.map((it) => (
-          // Close first: the action may open a dialog of its own.
-          <button key={it.label} className="nav-link" style={it.danger ? { color: "var(--af-danger)" } : undefined} onClick={() => { onClose(); it.run(); }}>
+          // Close first: the action may open a dialog of its own. Keyed by id: labels are translations and may collide.
+          <button key={it.id} className="nav-link" style={it.danger ? { color: "var(--af-danger)" } : undefined} onClick={() => { onClose(); it.run(); }}>
             <Icon name={it.icon} />
             {it.label}
           </button>
@@ -348,7 +367,7 @@ function FolderPicker({ flows, folders, onPick, onClose }: { flows: Flow[]; fold
     <Modal title={t("flows.folder.move")} icon="FolderInput" onClose={onClose}>
       <div className="stack">
         <p className="small muted truncate">{flows.length === 1 ? flows[0]!.name : t("flows.select.count", { n: flows.length })}</p>
-        <form className="input-group" onSubmit={(e) => { e.preventDefault(); if (name.trim()) onPick(name); }}>
+        <form className="input-group" onKeyDown={blockImeSubmit} onSubmit={(e) => { e.preventDefault(); if (name.trim()) onPick(name); }}>
           <input className="input" value={name} maxLength={MAX_FOLDER} onChange={(e) => setName(e.target.value)} placeholder={t("flows.folder.new")} aria-label={t("flows.folder.new")} />
           <button className="btn primary" disabled={!name.trim()}><Icon name="Plus" size={15} /> {t("flows.folder.create")}</button>
         </form>

@@ -66,8 +66,8 @@ export async function askScreenChange(rec: ScreenInfo, now: ScreenInfo): Promise
   });
 }
 
-function begin(flow: Flow, where: "canvas" | "native", runId: string, plat: Platform): Live {
-  const record: RunRecord = { id: runId, flowId: flow.id, flowName: flow.name, platform: plat, where, status: "running", actions: 0, iterations: 0, durationMs: 0, startedAt: Date.now(), events: [] };
+function begin(flow: Flow, where: "canvas" | "native", runId: string, plat: Platform, partial = false): Live {
+  const record: RunRecord = { id: runId, flowId: flow.id, flowName: flow.name, platform: plat, where, status: "running", actions: 0, iterations: 0, durationMs: 0, startedAt: Date.now(), events: [], ...(partial ? { partial: true } : {}) };
   const l: Live = { runId, record };
   live.set(runId, l);
   useStore.getState().setActive({ runId, flowId: flow.id, flowName: flow.name, where, state: "preflight", startedAt: Date.now(), actions: 0 });
@@ -108,6 +108,8 @@ export interface CanvasRunOptions {
   /** Simulated monitors, pixels and scenes (Stage / multi-monitor practice). */
   world?: PracticeWorld;
   displays?: DisplayInfo[];
+  /** "Run from here" / "Run only this step": the Ledger marks the record as a partial run. */
+  partial?: boolean;
 }
 
 /** onMissingDisplay "ask" on the canvas: the same question native runs ask in a system dialog. */
@@ -119,7 +121,7 @@ export async function askMissingDisplay(label: string): Promise<boolean> {
 export async function runInCanvas(flow: Flow, opts: CanvasRunOptions = {}): Promise<{ run: FlowRun; done: Promise<RunResult>; backend: SandboxBackend }> {
   const plat = simulatedPlatform(flow);
   const runId = `canvas_${Date.now().toString(36)}`;
-  const l = begin(flow, "canvas", runId, plat);
+  const l = begin(flow, "canvas", runId, plat, opts.partial);
   const flows = useStore.getState().flows;
   const secrets = await vault.snapshot();
   const backend = new SandboxBackend({
@@ -195,7 +197,7 @@ export async function runNative(flow: Flow, inputs?: Record<string, unknown>, op
   // `transient` (run from here / only this step): the temporary flow keeps the real flow's id, so the executor
   // must not store it as the copy that hotkeys and schedules start, nor remember its approval.
   const { runId } = await invoke("run_start", { flow, inputs, approvedRisk, approvedScreenChange, ...(opts.transient ? { transient: true } : {}) });
-  begin(flow, "native", runId, platform);
+  begin(flow, "native", runId, platform, opts.transient);
   return runId;
 }
 

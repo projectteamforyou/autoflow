@@ -7,8 +7,10 @@ import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { createFlow, findStep, type Flow, type LintIssue, type Step } from "@autoflow/core";
-import { ProEditor } from "./ProEditor";
+import { ProEditor, canReinsert } from "./ProEditor";
 import { clearCopiedStep, readCopiedStep } from "../../lib/stepClipboard";
+import { useStore } from "../../lib/store";
+import { popModal, pushModal } from "../../lib/modalStack";
 
 // Keys instead of texts: the assertions must not depend on the wording (or on which keys are translated yet).
 vi.mock("../../i18n", async (orig) => {
@@ -29,6 +31,7 @@ let host: HTMLDivElement;
 let root: Root;
 let flow: Flow;
 const runs: string[] = [];
+let changes = 0;
 let revealStep: string | null = null;
 const lint: LintIssue[] = [{ severity: "warning", key: "lint.empty", stepId: "c" }];
 
@@ -36,7 +39,7 @@ function render() {
   act(() => {
     root.render(
       <MemoryRouter>
-        <ProEditor flow={flow} lint={lint} revealStep={revealStep} onChange={(f) => { flow = f; render(); }} onRunPartial={(id, mode) => runs.push(`${mode}:${id}`)} onShortcuts={() => runs.push("shortcuts")} />
+        <ProEditor flow={flow} lint={lint} revealStep={revealStep} onChange={(f) => { changes++; flow = f; render(); }} onRunPartial={(id, mode) => runs.push(`${mode}:${id}`)} onShortcuts={() => runs.push("shortcuts")} />
       </MemoryRouter>,
     );
   });
@@ -53,6 +56,8 @@ beforeEach(() => {
   flow = base();
   revealStep = null;
   runs.length = 0;
+  changes = 0;
+  useStore.setState({ toasts: [] });
   clearCopiedStep();
   render();
 });
@@ -194,6 +199,96 @@ describe("ProEditor", () => {
     expect(menu.querySelectorAll("button.palette-item")).toHaveLength(1);
     press("Enter", {}, search);
     expect(flow.steps[0]!.type).toBe("matchScene");
+    expect(host.querySelector(".quick-add")).toBeNull();
+  });
+
+  const undoToast = () => useStore.getState().toasts.find((x) => x.text === "editor.stepDeleted")!;
+
+  test("delete → Undo toast re-inserts the step at its old place", () => {
+    act(() => node("a")!.click());
+    press("Delete");
+    expect(flow.steps.map((s) => s.id)).toEqual(["G", "z"]);
+    act(() => undoToast().action!.run());
+    expect(flow.steps.map((s) => s.id)).toEqual(["a", "G", "z"]);
+    expect(selectedId()).toBe("a");
+  });
+
+  test("delete → Ctrl+Z → the toast's Undo does not insert the step a second time", () => {
+    const before = flow;
+    act(() => node("a")!.click());
+    press("Delete");
+    // Ctrl+Z in the editor page: the previous flow (with the step) is shown again.
+    flow = before;
+    render();
+    changes = 0;
+    act(() => undoToast().action!.run());
+    expect(changes).toBe(0);
+    expect(flow.steps.map((s) => s.id)).toEqual(["a", "G", "z"]);
+    // Also for a container whose child is already back somewhere else.
+    expect(canReinsert(flow.steps, { id: "new", type: "group", name: "N", body: [click("c")] } as Step)).toBe(false);
+    expect(canReinsert(flow.steps, { id: "new", type: "group", name: "N", body: [click("new2")] } as Step)).toBe(true);
+  });
+
+  test("the Undo toast does nothing once the editor shows another flow or is closed", () => {
+    act(() => node("a")!.click());
+    press("Delete");
+    const toast = undoToast();
+    // Same component instance, other flow (defensive: the page remounts per flow).
+    flow = { ...createFlow({ name: "other" }), steps: [click("q")] };
+    render();
+    changes = 0;
+    act(() => toast.action!.run());
+    expect(changes).toBe(0);
+    act(() => root.unmount());
+    root = createRoot(host);
+    toast.action!.run();
+    expect(changes).toBe(0);
+    expect(flow.steps.map((s) => s.id)).toEqual(["q"]);
+  });
+
+  test("Delete with a selection that no longer exists changes nothing (no empty undo entry)", () => {
+    act(() => node("a")!.click());
+    flow = { ...flow, steps: flow.steps.filter((s) => s.id !== "a") };
+    render();
+    changes = 0;
+    press("Delete");
+    press("Backspace");
+    expect(changes).toBe(0);
+    expect(useStore.getState().toasts).toHaveLength(0);
+  });
+
+  test("Ctrl+C copies the step, but not while text is selected on the page", () => {
+    act(() => node("a")!.click());
+    const sel = vi.spyOn(window, "getSelection").mockReturnValue({ toString: () => "some text" } as Selection);
+    press("c", { ctrlKey: true });
+    expect(readCopiedStep()).toBeNull();
+    expect(useStore.getState().toasts).toHaveLength(0);
+    sel.mockReturnValue({ toString: () => "" } as Selection);
+    press("c", { ctrlKey: true });
+    expect(readCopiedStep()!.id).toBe("a");
+    expect(useStore.getState().toasts.map((x) => x.text)).toEqual(["editor.stepCopied"]);
+  });
+
+  test("step shortcuts do nothing behind an open dialog", () => {
+    act(() => node("a")!.click());
+    const modal = pushModal();
+    press("Delete");
+    press("d", { ctrlKey: true });
+    popModal(modal);
+    expect(changes).toBe(0);
+    press("Delete");
+    expect(flow.steps.map((s) => s.id)).toEqual(["G", "z"]);
+  });
+
+  test("add-step menu: Enter that confirms an IME composition does not pick a step", () => {
+    act(() => host.querySelector<HTMLElement>(".connector .add")!.click());
+    const search = host.querySelector<HTMLInputElement>(".quick-add input")!;
+    press("Enter", { isComposing: true }, search);
+    press("Enter", { keyCode: 229 }, search); // Safari: the keydown after compositionend
+    expect(changes).toBe(0);
+    expect(host.querySelector(".quick-add")).not.toBeNull();
+    press("Enter", {}, search);
+    expect(changes).toBe(1);
     expect(host.querySelector(".quick-add")).toBeNull();
   });
 });

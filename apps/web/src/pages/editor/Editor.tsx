@@ -14,8 +14,20 @@ import { partialFlow, type PartialMode } from "../../lib/partialRun";
 import { EasyEditor } from "./EasyEditor";
 import { ProEditor } from "./ProEditor";
 import { ShortcutsSheet, isTypingTarget } from "./Shortcuts";
+import { openModalCount } from "../../lib/modalStack";
 
+/**
+ * One editor instance per flow. Going from /flows/A to /flows/B (command palette, Pulse bar pen,
+ * Secrets links) keeps the route element mounted, so without the key A's session state would leak
+ * into B: undo history, "Not saved", selection, the version-snapshot flag, a pending save.
+ * Unmounting A runs its cleanup, which flushes a pending save.
+ */
 export function EditorPage() {
+  const { id } = useParams();
+  return <EditorInner key={id} />;
+}
+
+function EditorInner() {
   const { id } = useParams();
   // /flows/<id>?step=<stepId> (Ledger "failed step", Pulse bar): the Pro editor selects and reveals that step.
   const [query] = useSearchParams();
@@ -31,6 +43,7 @@ export function EditorPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const saveFailing = useRef(false);
   const [panel, setPanel] = useState<null | "explain" | "versions" | "json" | "icon" | "shortcuts">(null);
+  // True once this session has put a version snapshot of the pre-session steps into the history.
   const sessionSnap = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout>>();
   // Latest edit + dirty flag, so leaving the page inside the debounce window still saves it.
@@ -62,11 +75,14 @@ export function EditorPage() {
    * failing streak — or every time when the save was asked for explicitly (`loud`: Ctrl+S, Run).
    */
   const persist = useCallback(
-    async (f: Flow, loud = false): Promise<Flow | null> => {
+    async (f: Flow, loud: boolean | "leaving" = false): Promise<Flow | null> => {
       dirtyRef.current = false;
       try {
+        // The store snapshots only when the steps differ from the stored flow (saveFlow). A save that
+        // changed nothing but the name, or a Run, must not use up this session's one snapshot.
+        const before = sessionSnap.current ? undefined : useStore.getState().flows.find((x) => x.id === f.id);
         const saved = await save(f, { snapshot: !sessionSnap.current });
-        sessionSnap.current = true;
+        if (before && JSON.stringify(before.steps) !== JSON.stringify(saved.steps)) sessionSnap.current = true;
         saveFailing.current = false;
         setSaveError(null);
         // A newer edit made while this save was running is still waiting for its own save.
@@ -77,7 +93,9 @@ export function EditorPage() {
         if (flowRef.current === f) dirtyRef.current = true;
         const issue = saveIssue(e);
         setSaveError(issue);
-        if (loud || !saveFailing.current) useStore.getState().toast("error", t("editor.notSavedToast", { issue }));
+        // Leaving the editor: the edits are gone with it, so say which flow lost them — and keep the toast until it is read.
+        if (loud === "leaving") useStore.getState().toast("warning", t("editor.leftUnsaved", { name: f.name.trim() || "?", issue }), { label: t("common.ok"), run: () => undefined });
+        else if (loud || !saveFailing.current) useStore.getState().toast("error", t("editor.notSavedToast", { issue }));
         saveFailing.current = true;
         return null;
       }
@@ -98,11 +116,18 @@ export function EditorPage() {
     [persist],
   );
 
-  /** Every edit goes through here: remembers the state it replaces, then commits. */
+  /**
+   * Every edit goes through here: remembers the state it replaces, then commits.
+   * `own: true` gives the edit an undo entry of its own (restoring a version), never merged into a burst.
+   */
   const update = useCallback(
-    (next: Flow) => {
+    (next: Flow, opts: { own?: boolean } = {}) => {
       const prev = flowRef.current;
-      if (prev && prev !== next) setHistory(record(history.current, prev, editKind(prev, next), Date.now()));
+      if (prev && prev !== next) {
+        // The Easy editor rebuilds the steps (new ids) on every change: there the burst is recognised by time alone.
+        const easy = prev.mode === "easy" && next.mode === "easy" && toEasy(prev) !== null;
+        setHistory(record(history.current, prev, opts.own ? null : editKind(prev, next, easy), Date.now()));
+      }
       commit(next);
     },
     [commit, setHistory],
@@ -127,10 +152,27 @@ export function EditorPage() {
   useEffect(
     () => () => {
       clearTimeout(timer.current);
-      if (dirtyRef.current && flowRef.current) void persist(flowRef.current);
+      // Flush the edit that is still inside the debounce window. In the "Not saved" state this is one
+      // more attempt; if it is refused again the edits are lost with the editor, and a toast says so.
+      if (dirtyRef.current && flowRef.current) void persist(flowRef.current, "leaving");
     },
     [persist],
   );
+
+  /**
+   * Back / Practice: with a refused save the edits exist only in this editor. Tries once more, then
+   * asks before leaving. Resolves true when it is fine to go.
+   */
+  const mayLeave = useCallback(async (): Promise<boolean> => {
+    const f = flowRef.current;
+    if (!f || (!dirtyRef.current && !saveFailing.current)) return true;
+    clearTimeout(timer.current);
+    if (await persist(f)) return true;
+    const ok = await confirmDialog({ title: t("editor.leaveUnsaved.title"), body: t("editor.leaveUnsaved.body", { name: f.name.trim() || "?" }), tone: "warning", confirmLabel: t("editor.leaveUnsaved.leave"), cancelLabel: t("editor.leaveUnsaved.stay") });
+    // Confirmed: the unmount must not try again and warn a second time.
+    if (ok) dirtyRef.current = false;
+    return ok;
+  }, [persist, t]);
 
   const lint = useMemo(() => (flow ? lintFlow(flow, { knownFlowIds: useStore.getState().flows.map((f) => f.id) }) : []), [flow]);
   const easyOk = useMemo(() => (flow ? toEasy(flow) !== null : false), [flow]);
@@ -159,7 +201,9 @@ export function EditorPage() {
     const onKey = (e: KeyboardEvent) => {
       if (!flow) return;
       const typing = isTypingTarget(e.target);
-      if (e.key === "?" && !typing && !e.ctrlKey && !e.metaKey && !e.altKey && panel === null) {
+      // Any open dialog (this editor's panels, confirm / prompt dialogs, step pickers) owns the keyboard.
+      const modal = panel !== null || openModalCount() > 0;
+      if (e.key === "?" && !typing && !e.ctrlKey && !e.metaKey && !e.altKey && !modal) {
         e.preventDefault();
         setPanel("shortcuts");
         return;
@@ -168,7 +212,7 @@ export function EditorPage() {
       const k = e.key.toLowerCase();
       // Undo / redo: in a text field the browser's own text undo wins; behind an open dialog nothing happens.
       if ((k === "z" || k === "y") && !e.altKey) {
-        if (typing || panel !== null) return;
+        if (typing || modal) return;
         e.preventDefault();
         if (k === "y" || e.shiftKey) redo();
         else undo();
@@ -206,13 +250,13 @@ export function EditorPage() {
       flush
       title={
         <div className="editor-bar grow">
-          <button className="btn ghost icon sm" onClick={() => navigate(-1)} aria-label={t("common.back")}><Icon name="ArrowLeft" size={16} /></button>
+          <button className="btn ghost icon sm" onClick={() => void mayLeave().then((ok) => ok && navigate(-1))} aria-label={t("common.back")}><Icon name="ArrowLeft" size={16} /></button>
           <button className="tile-icon" style={{ width: 32, height: 32, border: 0, cursor: "pointer", background: `linear-gradient(135deg, ${flow.color}, ${flow.color}99)` }} onClick={() => setPanel("icon")} aria-label={t("editor.icon")}>
             <Icon name={flow.icon} size={16} />
           </button>
           <input className="name" value={flow.name} onChange={(e) => update({ ...flow, name: e.target.value.slice(0, 120) || " " })} aria-label={t("editor.name")} />
           {saveError ? (
-            <span className="small truncate" role="status" title={t("editor.notSaved", { issue: saveError })} style={{ color: "var(--af-danger)", maxWidth: 280 }}>{t("editor.notSaved", { issue: saveError })}</span>
+            <span className="small truncate save-error" role="status" title={t("editor.notSaved", { issue: saveError })}>{t("editor.notSaved", { issue: saveError })}</span>
           ) : (
             <span className="small subtle">{dirty ? t("editor.saving") : t("editor.savedShort")}</span>
           )}
@@ -244,7 +288,7 @@ export function EditorPage() {
           <button className="btn sm ghost" onClick={() => void shareLink(flow)} title={t("flows.share")}><Icon name="Share2" size={15} /></button>
           <button className="btn sm ghost" onClick={() => void exportToFile(flow)} title={t("flows.export")}><Icon name="Download" size={15} /></button>
           <button className="btn sm ghost" onClick={() => setPanel("shortcuts")} title={`${t("shortcuts.title")} (?)`} aria-label={t("shortcuts.title")}><Icon name="Keyboard" size={15} /></button>
-          <button className="btn sm" onClick={() => { void persist(flow); navigate(`/canvas?flow=${flow.id}`); }}><Icon name="Target" size={15} /> {t("editor.practice")}</button>
+          <button className="btn sm" onClick={() => void mayLeave().then((ok) => ok && navigate(`/canvas?flow=${flow.id}`))}><Icon name="Target" size={15} /> {t("editor.practice")}</button>
           <button
             className="btn sm primary"
             disabled={errors > 0}
@@ -258,7 +302,7 @@ export function EditorPage() {
     >
       {flow.mode === "easy" && easyOk ? <EasyEditor flow={flow} onChange={update} /> : <ProEditor flow={flow} onChange={update} lint={lint} revealStep={stepParam} onRunPartial={(id, mode) => void runPartial(id, mode)} onShortcuts={() => setPanel("shortcuts")} />}
       {panel === "explain" && <ExplainPanel flow={flow} onClose={() => setPanel(null)} />}
-      {panel === "versions" && <VersionsPanel flow={flow} onRestore={(v) => { commit({ ...v.flow, id: flow.id, revision: flow.revision }); setHistory(createHistory()); setPanel(null); }} onClose={() => setPanel(null)} />}
+      {panel === "versions" && <VersionsPanel flow={flow} onRestore={(v) => { sessionSnap.current = false; update({ ...v.flow, id: flow.id, revision: flow.revision }, { own: true }); setPanel(null); }} onClose={() => setPanel(null)} />}
       {panel === "json" && <JsonPanel flow={flow} onApply={(f) => { update(f); setPanel(null); }} onClose={() => setPanel(null)} />}
       {panel === "icon" && <IconPanel flow={flow} onChange={update} onClose={() => setPanel(null)} />}
       {panel === "shortcuts" && <ShortcutsSheet pro={!(flow.mode === "easy" && easyOk)} onClose={() => setPanel(null)} />}

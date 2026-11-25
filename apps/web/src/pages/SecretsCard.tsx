@@ -8,6 +8,7 @@ import { confirmDialog, promptDialog } from "../lib/dialog";
 import { SECRET_NAME, deleteSecret, listSecrets, secretUsage, setSecret } from "../lib/secrets";
 import { hasNativeBridge } from "../platform";
 import { useT } from "../i18n";
+import { blockImeSubmit } from "../lib/ime";
 
 /**
  * Settings card for flow secrets ({{secret:name}}). Values are write-only: this screen lists names,
@@ -111,7 +112,7 @@ export function SecretsCard() {
           ))}
         </div>
       )}
-      <form className="grid cols-2" style={{ alignItems: "start" }} onSubmit={(e) => { e.preventDefault(); void add(); }}>
+      <form className="grid cols-2" style={{ alignItems: "start" }} onKeyDown={blockImeSubmit} onSubmit={(e) => { e.preventDefault(); void add(); }}>
         <Field label={t("secrets.name")} error={name && !nameOk ? t("secrets.nameRule") : null}>
           <input className="input mono" value={name} maxLength={40} onChange={(e) => setName(e.target.value.trim())} placeholder="recorded_1" spellCheck={false} autoComplete="off" aria-invalid={!!name && !nameOk} />
         </Field>

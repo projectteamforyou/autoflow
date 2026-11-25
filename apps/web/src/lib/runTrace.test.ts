@@ -76,6 +76,13 @@ describe("log text", () => {
     expect(eventLine({ type: "var", name: "n", value: 3, at: 0 })).toBe("var n = 3");
   });
 
+  it("an unknown event type (newer native engine) gets a plain line instead of throwing", () => {
+    const future = { type: "screenshot", at: 5, stepId: "C" } as unknown as RunEvent;
+    expect(eventLine(future)).toBe("screenshot");
+    expect(() => eventLine(future).toLowerCase()).not.toThrow();
+    expect(runLogText({ id: "r", flowName: "F", status: "completed", where: "native", platform: "windows", startedAt: 0, durationMs: 1, actions: 0, iterations: 0, events: [future] })).toContain("screenshot");
+  });
+
   it("exports a header and one timed line per event", () => {
     const text = runLogText({ id: "r1", flowName: "Demo", status: "failed", where: "canvas", platform: "web", startedAt: 0, durationMs: 1560, actions: 2, iterations: 2, steps: 5, dropped: 500, events: EVENTS });
     const lines = text.trimEnd().split("\n");

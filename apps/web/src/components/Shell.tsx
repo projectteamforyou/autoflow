@@ -8,6 +8,7 @@ import { TrialChip } from "./TrialBanner";
 import { EditionNote } from "./Edition";
 import { useStore } from "../lib/store";
 import { useDialogs } from "../lib/dialog";
+import { blockImeSubmit, isImeKey } from "../lib/ime";
 import { haltAll, liveCounters, pauseRun, resumeRun, stopRun } from "../lib/runner";
 import { setLocale, useLocale, useT } from "../i18n";
 import { downloadBackup, startFlow } from "../lib/actions";
@@ -319,7 +320,7 @@ export function DialogHost() {
     >
       {top.body && <div className="muted">{top.body}</div>}
       {top.input && (
-        <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="field">
+        <form onKeyDown={blockImeSubmit} onSubmit={(e) => { e.preventDefault(); submit(); }} className="field">
           <span>{top.input.label}</span>
           {top.input.type === "textarea" ? (
             <textarea className="textarea mono" value={value} onChange={(e) => setValue(e.target.value)} placeholder={top.input.placeholder} rows={6} />
@@ -380,6 +381,8 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
           value={q}
           onChange={(e) => { setQ(e.target.value); setSel(0); }}
           onKeyDown={(e) => {
+            // Enter / arrows that belong to an IME composition (Korean, Japanese…) confirm or move inside it.
+            if (isImeKey(e)) return;
             if (e.key === "ArrowDown") { e.preventDefault(); setSel((s) => Math.min(shown.length - 1, s + 1)); }
             if (e.key === "ArrowUp") { e.preventDefault(); setSel((s) => Math.max(0, s - 1)); }
             if (e.key === "Enter") go(sel);

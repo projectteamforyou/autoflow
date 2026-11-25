@@ -11,6 +11,7 @@ import { hasSyncKey, resetSyncState, setSyncKey, syncNow } from "../lib/sync";
 import { confirmDialog, promptDialog } from "../lib/dialog";
 import { downloadBackup, restoreBackupFile, toastRestored } from "../lib/actions";
 import { SecretsCard } from "./SecretsCard";
+import { isImeKey } from "../lib/ime";
 import { formatNumber, formatRelative, getLocale, setLocale, useLocale, useT } from "../i18n";
 import { usePublicStats } from "../lib/stats";
 import { hasNativeBridge, invoke } from "../platform";
@@ -151,7 +152,7 @@ function ApiUrlField() {
           value={draft}
           onChange={(e) => { setDraft(e.target.value); if (error) setError(null); }}
           onBlur={commit}
-          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commit(); } }}
+          onKeyDown={(e) => { if (isImeKey(e)) return; if (e.key === "Enter") { e.preventDefault(); commit(); } }}
           aria-invalid={!!error}
           spellCheck={false}
         />

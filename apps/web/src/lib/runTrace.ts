@@ -89,6 +89,8 @@ export function eventLine(e: RunEvent, labels?: ReadonlyMap<string, string>): st
     case "retry": return `retry #${e.attempt} ${name(e.stepId)}${e.delayMs ? ` in ${e.delayMs}ms` : ""}${e.error ? ` ${e.error}` : ""}`;
     case "timeout": return `timeout ${name(e.stepId)} after ${e.timeoutMs}ms`;
     case "error": return `ERROR ${e.error.category}: ${e.error.message}${e.error.stepId ? ` (step ${name(e.error.stepId)})` : ""}`;
+    // An event type this build does not know (a newer native engine): a plain line, never a throw.
+    default: return String((e as { type?: unknown }).type ?? "event");
   }
 }
 

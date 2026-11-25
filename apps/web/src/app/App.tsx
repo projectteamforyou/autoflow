@@ -10,11 +10,15 @@ import { armedFlows } from "../lib/triggers";
 import { Home } from "../pages/Home";
 import { Library } from "../pages/Library";
 import { Onboarding } from "../pages/Onboarding";
+import { ErrorBoundary } from "../components/ErrorBoundary";
+import { loadPageChunk } from "../lib/lazyPage";
 
 // Home and the library open instantly; every other screen is its own chunk, fetched the first time it is
 // opened (from disk in the desktop / Android shells, from the precache in the PWA). The start-up bundle was
 // one 755 kB file that also carried the operator page, billing and the editors.
-const page = <K extends string>(load: () => Promise<Record<K, ComponentType>>, name: K) => lazy(() => load().then((m) => ({ default: m[name] })));
+// A chunk that fails to load (old hashed file after an update, offline) reloads the page once; if it
+// fails again the error reaches <ErrorBoundary> below (lib/lazyPage.ts).
+const page = <K extends string>(load: () => Promise<Record<K, ComponentType>>, name: K) => lazy(() => loadPageChunk(name, load).then((m) => ({ default: m[name] })));
 const EditorPage = page(() => import("../pages/editor/Editor"), "EditorPage");
 const CanvasPage = page(() => import("../pages/Canvas"), "CanvasPage");
 const LedgerPage = page(() => import("../pages/Ledger"), "LedgerPage");
@@ -81,10 +85,11 @@ function Effects() {
   return null;
 }
 
-export function App() {
+/** The routes inside the error boundary; the boundary resets when the path changes. */
+function Screens() {
+  const loc = useLocation();
   return (
-    <HashRouter>
-      <Effects />
+    <ErrorBoundary resetKey={loc.pathname}>
       <Suspense fallback={<div className="page-loading" role="status" aria-busy="true" />}>
       <Routes>
         <Route path="/welcome" element={<Onboarding />} />
@@ -111,6 +116,15 @@ export function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </Suspense>
+    </ErrorBoundary>
+  );
+}
+
+export function App() {
+  return (
+    <HashRouter>
+      <Effects />
+      <Screens />
       <PulseBar />
       <Toasts />
       <DialogHost />

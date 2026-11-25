@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { createFlow, type Flow, type Step } from "@autoflow/core";
-import { COALESCE_MS, HISTORY_CAP, canRedo, canUndo, createHistory, editKind, record, redo, structureKey, undo } from "./history";
+import { COALESCE_MS, EASY_KIND, HISTORY_CAP, canRedo, canUndo, createHistory, editKind, record, redo, structureKey, undo } from "./history";
 
 describe("history stack", () => {
   test("undo and redo walk the recorded states", () => {
@@ -97,6 +97,19 @@ describe("edit kind", () => {
     expect(editKind(a, flow([...a.steps, wait("c")]))).toBeNull();
     expect(editKind(a, flow([wait("a"), wait("b"), { id: "g", type: "group", name: "G", body: [] }]))).toBeNull();
     expect(editKind(a, flow([a.steps[1]!, a.steps[0]!]))).toBeNull();
+  });
+
+  test("Easy-mode edits are one kind although every edit regenerates the step ids", () => {
+    const a = flow([wait("a1")]);
+    const b = flow([wait("b1", 250)]); // what applyEasy does: same shape, new ids
+    expect(editKind(a, b)).toBeNull();
+    expect(editKind(a, b, true)).toBe(EASY_KIND);
+    // …so a burst within the window is one undo entry, and a later edit a second one.
+    let h = record(createHistory<Flow>(), a, editKind(a, b, true), 1000);
+    h = record(h, b, editKind(b, a, true), 1300);
+    expect(h.past).toEqual([a]);
+    h = record(h, a, editKind(a, b, true), 1300 + COALESCE_MS);
+    expect(h.past).toEqual([a, a]);
   });
 
   test("the same ids in another slot are a different structure", () => {

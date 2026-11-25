@@ -20,7 +20,8 @@ export interface BackupFile {
   exportedAt: string;
   flows: Flow[];
   profiles: InputProfile[];
-  settings?: BackupSettings;
+  /** The whole settings ("Backup", "Export everything") or just `pausedTriggers` of the exported flows ("Export selected"). */
+  settings?: Partial<BackupSettings>;
 }
 
 /** Drops what must stay on the device: the sync account/cursor/key fingerprint and the onboarding flag. */
@@ -29,8 +30,32 @@ export function settingsForBackup(s: Settings): BackupSettings {
   return rest;
 }
 
-export function buildBackup(input: { flows: Flow[]; profiles?: InputProfile[]; settings?: Settings }, now = new Date()): BackupFile {
-  return { format: BACKUP_FORMAT, version: 1, exportedAt: now.toISOString(), flows: input.flows, profiles: input.profiles ?? [], ...(input.settings ? { settings: settingsForBackup(input.settings) } : {}) };
+/**
+ * `settings`: the whole settings travel with the file. `pausedTriggers` alone (a partial export): only
+ * the ids of the exported flows are written, so their triggers do not come back armed after a restore.
+ */
+export function buildBackup(input: { flows: Flow[]; profiles?: InputProfile[]; settings?: Settings; pausedTriggers?: readonly string[] }, now = new Date()): BackupFile {
+  const ids = new Set(input.flows.map((f) => f.id));
+  const paused = (input.pausedTriggers ?? []).filter((id) => ids.has(id));
+  const settings: Partial<BackupSettings> | undefined = input.settings ? settingsForBackup(input.settings) : paused.length ? { pausedTriggers: paused } : undefined;
+  return { format: BACKUP_FORMAT, version: 1, exportedAt: now.toISOString(), flows: input.flows, profiles: input.profiles ?? [], ...(settings ? { settings } : {}) };
+}
+
+/** Largest file accepted as a single flow / share import, and as a backup (a library with images and many flows). */
+export const MAX_FLOW_FILE_BYTES = 2_000_000;
+export const MAX_BACKUP_FILE_BYTES = 50_000_000;
+
+/**
+ * Cheap format sniff on the first bytes of a file, before anything is parsed: backups are written
+ * with `format` as the first key, so `"format":"autoflow.backup"` (any whitespace) shows up at once.
+ */
+export function looksLikeBackup(head: string): boolean {
+  return /"format"\s*:\s*"autoflow\.backup"/.test(head);
+}
+
+/** Size limit for an import file: 50 MB when it is a backup, 2 MB for everything else. `head` = its first few kB of text. */
+export function importSizeLimit(head: string): number {
+  return looksLikeBackup(head) ? MAX_BACKUP_FILE_BYTES : MAX_FLOW_FILE_BYTES;
 }
 
 export function backupFileName(now = new Date(), suffix = ""): string {

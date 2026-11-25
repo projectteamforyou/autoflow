@@ -58,11 +58,17 @@ export function redo<T>(h: History<T>, present: T, cap = HISTORY_CAP): { history
  * The "kind" of an edit for coalescing: the step structure (ids in tree order) of the flow before
  * and after. Typing in a field keeps both the same, so a burst merges; adding, removing, moving or
  * wrapping a step changes the structure and therefore always gets its own undo entry.
+ * `easy`: the edit was made in the Easy editor (see below).
  */
-export function editKind(prev: Flow, next: Flow): string | null {
+export function editKind(prev: Flow, next: Flow, easy = false): string | null {
+  // Easy editor: applyEasy regenerates the step ids on every change, so the structure never matches.
+  // Its edits (interval, repeat count, text…) are one kind and merge by time alone.
+  if (easy) return EASY_KIND;
   const a = structureKey(prev.steps);
   return a === structureKey(next.steps) ? a : null;
 }
+
+export const EASY_KIND = "easy";
 
 export function structureKey(steps: Step[]): string {
   const out: string[] = [];

@@ -5,7 +5,7 @@ import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
 import { Empty, Seg, download } from "../components/ui";
 import { RunStatus } from "./Home";
-import { EventRow } from "./Canvas";
+import { EventRow } from "../components/EventRow";
 import { useStore, type RunRecord } from "../lib/store";
 import { confirmDialog } from "../lib/dialog";
 import { startFlow } from "../lib/actions";
@@ -74,7 +74,7 @@ export function LedgerPage() {
                   const flow = flows.find((f) => f.id === r.flowId);
                   return (
                     <tr key={r.id} onClick={() => navigate(`/ledger/${r.id}`)} style={{ cursor: "pointer" }}>
-                      <td><RunStatus status={r.status} /></td>
+                      <td><RunStatus status={r.status} />{r.partial && <span className="badge" style={{ marginLeft: 6 }} title={t("ledger.partialHint")}>{t("ledger.partial")}</span>}</td>
                       <td className="truncate" style={{ maxWidth: 280 }}>{r.flowName}{r.error && <div className="small" style={{ color: "#f87171" }}>{r.error.message.slice(0, 80)}</div>}</td>
                       <td className="small muted">{formatRelative(r.startedAt)}</td>
                       <td className="small">{formatDuration(r.durationMs)}</td>
@@ -134,7 +134,7 @@ function RunDetail({ run, flow }: { run: RunRecord; flow?: Flow }) {
     >
       <div className="page">
         <div className="grid cols-4">
-          <div className="card"><div className="small muted">{t("ledger.status")}</div><RunStatus status={run.status} /></div>
+          <div className="card"><div className="small muted">{t("ledger.status")}</div><RunStatus status={run.status} />{run.partial && <span className="badge" style={{ marginLeft: 6 }} title={t("ledger.partialHint")}>{t("ledger.partial")}</span>}</div>
           <div className="card"><div className="small muted">{t("ledger.duration")}</div><b>{formatDuration(run.durationMs)}</b></div>
           <div className="card"><div className="small muted">{t("ledger.when")}</div><b>{formatRelative(run.startedAt)}</b></div>
           <div className="card"><div className="small muted">{t("ledger.where")}</div><b>{run.where === "canvas" ? t("pulse.canvas") : t(`platform.${run.platform}`)}</b></div>

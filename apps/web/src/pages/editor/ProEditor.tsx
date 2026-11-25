@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { STEP_CAPABILITIES, describeStep, describeTrigger, findStep, type Flow, type LintIssue, type Step } from "@autoflow/core";
 import { Icon } from "../../components/Icon";
-import { STEP_BY_TYPE, STEP_CATEGORIES, STEP_META, ancestorsOf, cloneWithNewIds, countNested, insertStep, isContainer, locate, moveStep, removeStep, siblingsAt, updateStep, visibleStepIds, wrapStep, type Location, type Slot, type WrapKind } from "../../lib/steps";
+import { STEP_BY_TYPE, STEP_CATEGORIES, STEP_META, ancestorsOf, childLists, cloneWithNewIds, countNested, insertStep, isContainer, locate, moveStep, removeStep, siblingsAt, updateStep, visibleStepIds, wrapStep, type Location, type Slot, type WrapKind } from "../../lib/steps";
 import { copyStep, readCopiedStep } from "../../lib/stepClipboard";
 import type { PartialMode } from "../../lib/partialRun";
 import { tp, useT } from "../../i18n";
@@ -10,6 +10,8 @@ import { useStore } from "../../lib/store";
 import { StepForm } from "./StepForm";
 import { FlowSettings } from "./FlowSettings";
 import { isTypingTarget } from "./Shortcuts";
+import { isImeKey } from "../../lib/ime";
+import { openModalCount } from "../../lib/modalStack";
 
 const DND_NEW = "application/x-autoflow-new";
 const DND_MOVE = "application/x-autoflow-move";
@@ -26,6 +28,14 @@ export function ProEditor({ flow, onChange, lint, onRunPartial, onShortcuts, rev
   const sel = selected ? findStep(flow.steps, selected) : undefined;
   const flowRef = useRef(flow);
   flowRef.current = flow;
+  // The "Step deleted · Undo" toast outlives this editor (other flow, Easy mode, another page).
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const canvasRef = useRef<HTMLDivElement>(null);
 
   const isCollapsed = (s: Step) => (s.type === "group" ? !!s.collapsed : folded.has(s.id));
@@ -70,13 +80,19 @@ export function ProEditor({ flow, onChange, lint, onRunPartial, onShortcuts, rev
   const remove = (id: string) => {
     const loc = locate(flow.steps, id);
     const { steps, removed } = removeStep(flow.steps, id);
-    setSteps(steps);
     if (selected === id) setSelected(null);
+    // A stale id (the step is already gone): nothing to remove, so no edit and no undo entry either.
     if (!removed || !loc) return;
+    setSteps(steps);
+    const flowId = flow.id;
     useStore.getState().toast("info", t("editor.stepDeleted"), {
       label: t("common.undo"),
       run: () => {
         const cur = flowRef.current;
+        // The toast is sticky, so by now the editor may show another flow or be closed — and the step
+        // may be back already (Ctrl+Z). Inserting it a second time would give the flow duplicate step
+        // ids, which the store refuses to load.
+        if (!mounted.current || cur.id !== flowId || !canReinsert(cur.steps, removed)) return;
         onChange({ ...cur, steps: insertStep(cur.steps, loc, removed) });
         setSelected(removed.id);
       },
@@ -123,7 +139,8 @@ export function ProEditor({ flow, onChange, lint, onRunPartial, onShortcuts, rev
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement;
       // Not while typing, and not from inside a dialog or the add-step menu (Delete there must not remove a step).
-      if (isTypingTarget(el) || el.tagName === "SELECT" || el.closest?.(".modal, .quick-add")) return;
+      // Nor behind any open dialog, wherever the focus happens to be.
+      if (isTypingTarget(el) || el.tagName === "SELECT" || el.closest?.(".modal, .quick-add") || openModalCount() > 0) return;
       const mod = e.ctrlKey || e.metaKey;
       const k = e.key.toLowerCase();
       if (mod && k === "v") {
@@ -135,12 +152,13 @@ export function ProEditor({ flow, onChange, lint, onRunPartial, onShortcuts, rev
       const step = findStep(flow.steps, selected);
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
-        if (selected !== "__flow") remove(selected);
+        if (selected !== "__flow" && step) remove(selected);
       } else if (mod && k === "d") {
         e.preventDefault();
         if (step) duplicate(step);
       } else if (mod && k === "c") {
-        if (step) {
+        // Text selected on the page (a description, a lint message): Ctrl+C is the browser's copy, not "copy step".
+        if (step && !window.getSelection?.()?.toString()) {
           copyStep(step);
           useStore.getState().toast("info", t("editor.stepCopied"));
         }
@@ -300,6 +318,12 @@ export function ProEditor({ flow, onChange, lint, onRunPartial, onShortcuts, rev
   );
 }
 
+/** False when `step` (or anything nested in it) has an id that is already in `root`: re-inserting it would duplicate ids. */
+export function canReinsert(root: Step[], step: Step): boolean {
+  if (findStep(root, step.id)) return false;
+  return childLists(step).every((list) => list.every((c) => canReinsert(root, c)));
+}
+
 function afterLoc(root: Step[], id: string): Location {
   const loc = locate(root, id);
   return loc ? { ...loc, index: loc.index + 1 } : { parentId: null, slot: "steps", index: root.length };
@@ -445,6 +469,8 @@ function QuickAdd({ onPick, onClose }: { onPick: (t: Step["type"]) => void; onCl
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => {
+            // Enter that confirms an IME composition (Korean, Japanese…) must not pick a step.
+            if (isImeKey(e)) return;
             if (e.key !== "Enter" || !first) return;
             e.preventDefault();
             onPick(first.type);

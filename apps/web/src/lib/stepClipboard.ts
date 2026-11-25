@@ -8,14 +8,24 @@ import { StepSchema, type Step } from "@autoflow/core";
 const KEY = "af.editor.clip";
 /** Fallback when localStorage is unavailable (private mode, quota): same-session copy & paste still works. */
 let memory: string | null = null;
+/** The last write did not reach localStorage and the older value could not be removed either: only `memory` is current. */
+let storageStale = false;
 
 export function copyStep(step: Step): void {
   const text = JSON.stringify(step);
   memory = text;
   try {
     localStorage.setItem(KEY, text);
+    storageStale = false;
   } catch {
-    /* private mode / quota: the in-memory copy is used */
+    // Private mode / quota: the in-memory copy is used. The key may still hold an OLDER step, which
+    // paste would otherwise prefer — remove it (removing needs no quota).
+    try {
+      localStorage.removeItem(KEY);
+      storageStale = false;
+    } catch {
+      storageStale = true;
+    }
   }
 }
 
@@ -23,7 +33,7 @@ export function copyStep(step: Step): void {
 export function readCopiedStep(): Step | null {
   let text = memory;
   try {
-    text = localStorage.getItem(KEY) ?? memory;
+    if (!storageStale) text = localStorage.getItem(KEY) ?? memory;
   } catch {
     /* fall back to memory */
   }
@@ -38,6 +48,7 @@ export function readCopiedStep(): Step | null {
 
 export function clearCopiedStep(): void {
   memory = null;
+  storageStale = false;
   try {
     localStorage.removeItem(KEY);
   } catch {

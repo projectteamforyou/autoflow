@@ -8,7 +8,7 @@ import { runInCanvas, runNative } from "./runner";
 import { useStore } from "./store";
 import { download } from "../components/ui";
 import { confirmDialog, promptDialog } from "./dialog";
-import { backupFileName, buildBackup, mergePausedTriggers, parseBackup } from "./backup";
+import { MAX_BACKUP_FILE_BYTES, MAX_FLOW_FILE_BYTES, backupFileName, buildBackup, importSizeLimit, mergePausedTriggers, parseBackup } from "./backup";
 import { t } from "../i18n";
 
 /** Collects declared input values (variables with a prompt) before a run. */
@@ -40,10 +40,13 @@ export async function startFlow(flow: Flow, navigate: NavigateFunction, opts: { 
     return;
   }
   if (opts.transient) {
+    // One sandbox run at a time: a second one would take over the Pulse bar while the first keeps running unseen.
+    if (useStore.getState().active) return useStore.getState().toast("warning", t("run.alreadyRunning"));
     const inputs = await collectInputs(flow);
     if (inputs === null) return;
+    if (useStore.getState().active) return useStore.getState().toast("warning", t("run.alreadyRunning"));
     try {
-      await runInCanvas(flow, { inputs, speed: useStore.getState().settings.canvasSpeed });
+      await runInCanvas(flow, { inputs, speed: useStore.getState().settings.canvasSpeed, partial: true });
     } catch (e) {
       useStore.getState().toast("error", (e as Error).message);
     }
@@ -73,17 +76,60 @@ export async function shareLink(flow: Flow): Promise<string> {
   return url;
 }
 
-/** Downloads a backup file. No `flows` = the whole library with Keyforge profiles and settings; with `flows` = just those flows. */
+/**
+ * Downloads a backup file. No `flows` = the whole library with Keyforge profiles and settings; with
+ * `flows` = just those flows (plus which of them have a paused trigger).
+ * Not pretty-printed: indentation roughly doubles a file that restore then has to read back.
+ */
 export function downloadBackup(flows?: Flow[]): void {
   const st = useStore.getState();
-  const backup = flows ? buildBackup({ flows }) : buildBackup({ flows: st.flows, profiles: st.profiles, settings: st.settings });
-  download(backupFileName(new Date(), flows ? `-${flows.length}-flows` : ""), JSON.stringify(backup, null, 2));
+  const backup = flows ? buildBackup({ flows, pausedTriggers: st.settings.pausedTriggers }) : buildBackup({ flows: st.flows, profiles: st.profiles, settings: st.settings });
+  download(backupFileName(new Date(), flows ? `-${flows.length}-flows` : ""), JSON.stringify(backup));
+}
+
+/**
+ * True when an import file is over its size limit: 2 MB for a single flow / share file, 50 MB for a
+ * backup. Which one it is is read from the first bytes only, so a huge non-backup file is never loaded.
+ */
+export async function importFileTooLarge(file: File): Promise<boolean> {
+  if (file.size <= MAX_FLOW_FILE_BYTES) return false;
+  if (file.size > MAX_BACKUP_FILE_BYTES) return true;
+  let head = "";
+  try {
+    head = await file.slice(0, 4096).text();
+  } catch {
+    /* unreadable: treated as "not a backup" */
+  }
+  return file.size > importSizeLimit(head);
+}
+
+/**
+ * Start-up warning for stored flows that failed validation (store.init keeps them in IndexedDB but
+ * cannot load them): one sticky toast with "Export", which downloads their raw JSON.
+ */
+export function warnUnreadableFlows(): void {
+  const st = useStore.getState();
+  const bad = st.unreadable;
+  if (!bad.length) return;
+  for (const u of bad) console.error(`AutoFlow: stored flow ${u.id || "(no id)"}${u.name ? ` "${u.name}"` : ""} could not be loaded: ${u.issue}`);
+  st.toast("warning", bad.length === 1 ? t("flows.unreadable.one", { name: bad[0]!.name || bad[0]!.id || "?", issue: bad[0]!.issue }) : t("flows.unreadable.many", { n: bad.length }), { label: t("flows.unreadable.export"), run: exportUnreadableFlows });
+}
+
+/** Downloads the raw stored JSON of the flows that could not be loaded, with the reason for each. */
+export function exportUnreadableFlows(): void {
+  const bad = useStore.getState().unreadable;
+  if (!bad.length) return;
+  const body = { format: "autoflow.unreadable", exportedAt: new Date().toISOString(), flows: bad.map((u) => ({ id: u.id, name: u.name, issue: u.issue, raw: u.raw })) };
+  download(`autoflow-unreadable-flows-${body.exportedAt.slice(0, 10)}.json`, JSON.stringify(body, null, 2));
 }
 
 export interface RestoreResult {
   flows: number;
   profiles: number;
   settings: boolean;
+  /** Flows in the file that could not be saved (first reason in `failedIssue`). */
+  failed?: number;
+  failedIssue?: string;
 }
 
 /** "Replace / Keep both" for imported flows whose id is already in the library. Closing the dialog keeps both (nothing is overwritten). */
@@ -98,27 +144,35 @@ async function askConflict(names: string[]): Promise<"replace" | "copy"> {
  * Flows that already exist ask "Replace / Keep both"; settings are applied only after a confirm.
  */
 export async function restoreBackupFile(file: File): Promise<RestoreResult | null> {
-  if (file.size > 2_000_000) throw new Error(t("import.tooLarge"));
+  if (await importFileTooLarge(file)) throw new Error(t("import.tooLarge"));
   const backup = parseBackup(await file.text());
   if (!backup) return null;
   const st = useStore.getState();
   const have = new Map(st.flows.map((f) => [f.id, f.name]));
   const clashes = backup.flows.filter((f) => have.has(f.id)).map((f) => have.get(f.id)!);
-  const { count, idMap } = await st.importFlows(backup.flows, clashes.length ? await askConflict(clashes) : "copy");
+  const { count, idMap, failed } = await st.importFlows(backup.flows, clashes.length ? await askConflict(clashes) : "copy");
+  // Paused triggers follow their flows right away — not with the optional settings below: a restored
+  // flow must not be armed while that dialog is open, or when the user skips the settings.
+  const { pausedTriggers: pausedInBackup, ...otherSettings } = backup.settings;
+  if (pausedInBackup?.length) {
+    const now = useStore.getState();
+    const merged = mergePausedTriggers(now.settings.pausedTriggers, pausedInBackup, idMap, new Set(now.flows.map((f) => f.id)));
+    if (merged.length !== now.settings.pausedTriggers.length) await now.updateSettings({ pausedTriggers: merged });
+  }
   for (const p of backup.profiles) await st.saveProfile(p);
   let settings = false;
-  if (Object.keys(backup.settings).length && (await confirmDialog({ title: t("import.settings.title"), body: t("import.settings.body"), confirmLabel: t("import.settings.apply"), cancelLabel: t("import.settings.skip") }))) {
-    const now = useStore.getState();
-    await now.updateSettings({ ...backup.settings, pausedTriggers: mergePausedTriggers(now.settings.pausedTriggers, backup.settings.pausedTriggers, idMap, new Set(now.flows.map((f) => f.id))) });
+  if (Object.keys(otherSettings).length && (await confirmDialog({ title: t("import.settings.title"), body: t("import.settings.body"), confirmLabel: t("import.settings.apply"), cancelLabel: t("import.settings.skip") }))) {
+    await useStore.getState().updateSettings(otherSettings);
     settings = true;
   }
-  return { flows: count, profiles: backup.profiles.length, settings };
+  return { flows: count, profiles: backup.profiles.length, settings, ...(failed.length ? { failed: failed.length, failedIssue: `${failed[0]!.name}: ${failed[0]!.issue}` } : {}) };
 }
 
 /** Toast for a finished restore (counts profiles only when the backup had any). */
-export function toastRestored(r: { flows: number; profiles: number; settings?: boolean }): void {
+export function toastRestored(r: { flows: number; profiles: number; settings?: boolean; failed?: number; failedIssue?: string }): void {
   const text = r.profiles ? t("import.restoredProfiles", { n: r.flows, p: r.profiles }) : t("import.restored", { n: r.flows });
   useStore.getState().toast("success", r.settings ? `${text} ${t("import.settings.applied")}` : text);
+  if (r.failed) useStore.getState().toast("error", t("import.someFailed", { n: r.failed, issue: r.failedIssue ?? "" }));
 }
 
 /**
