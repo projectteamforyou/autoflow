@@ -156,7 +156,8 @@ describe("admin billing settings", () => {
     expect(box.open(sealed, "portone.apiSecret")).toBe("hello");
     expect(box.open(sealed, "paypal.clientSecret")).toBeNull();
     expect(new SecretBox("z".repeat(40)).open(sealed, "portone.apiSecret")).toBeNull();
-    expect(box.open(sealed.replace(/\.(.)/, ".A"), "portone.apiSecret")).toBeNull();
+    // Tamper with one character — a different one, whatever the random IV made it (a fixed "A" left the text unchanged once in 64 runs).
+    expect(box.open(sealed.replace(/\.(.)/, (_, c: string) => `.${c === "A" ? "B" : "A"}`), "portone.apiSecret")).toBeNull();
   });
 });
 
