@@ -12,6 +12,15 @@ export function installExternalLinks(): void {
     const a = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
     if (!a || a.target !== "_blank" || !a.href.startsWith("https://")) return;
     e.preventDefault();
-    invoke("open_external", { url: a.href }).catch(() => window.open(a.href, "_blank", "noopener"));
+    openExternal(a.href);
   });
+}
+
+/** Opens an https link outside the app: the system browser in the shells, a new tab in the browser. */
+export function openExternal(url: string): void {
+  if (!hasNativeBridge) {
+    window.open(url, "_blank", "noopener");
+    return;
+  }
+  invoke("open_external", { url }).catch(() => window.open(url, "_blank", "noopener"));
 }

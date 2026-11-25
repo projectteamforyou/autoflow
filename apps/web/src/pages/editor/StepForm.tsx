@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FUNCTION_NAMES, STEP_CAPABILITIES, checkExpr, type Flow, type LintIssue, type OnError, type Step, type Target } from "@autoflow/core";
 import { Icon } from "../../components/Icon";
 import { Field, HotkeyInput, Seg, Switch } from "../../components/ui";
@@ -8,6 +8,7 @@ import { useStore } from "../../lib/store";
 import { useT } from "../../i18n";
 import { hasNativeBridge, invoke, platform } from "../../platform";
 import { ConditionEditor, DisplayPicker, MatchSceneFields, PixelCheckFields, WaitForPixelFields } from "./MultiMonitorFields";
+import { AppInput, ImageRefField, WindowMatchFields } from "./NativePickers";
 
 type Props = {
   step: Step;
@@ -309,7 +310,7 @@ function TypeFields({ step, set, flow }: { step: Step; set: (p: Record<string, u
       return (
         <>
           <Field label={t("editor.message")}><input className="input" value={step.message} onChange={(e) => set({ message: e.target.value })} /></Field>
-          <Seg value={step.level} onChange={(level) => set({ level })} options={[{ value: "info", label: "info" }, { value: "warn", label: "warn" }, { value: "error", label: "error" }]} />
+          <Seg value={step.level} onChange={(level) => set({ level })} label={t("editor.logLevel")} options={[{ value: "info", label: t("editor.logLevel.info") }, { value: "warn", label: t("editor.logLevel.warn") }, { value: "error", label: t("editor.logLevel.error") }]} />
         </>
       );
     case "notify":
@@ -340,7 +341,8 @@ function TypeFields({ step, set, flow }: { step: Step; set: (p: Record<string, u
     case "launchApp":
       return (
         <>
-          <Field label={t("editor.app")} hint={t("editor.appHint")}><input className="input mono" value={step.app} onChange={(e) => set({ app: e.target.value || "app" })} /></Field>
+          {/* Windows: program path or name; Android: the package name (picked by app label, the package is stored). */}
+          <Field label={t("editor.app")} hint={t("editor.appHint")}><AppInput value={step.app} onChange={(v) => set({ app: v || "app" })} label={t("editor.app")} /></Field>
           <Field label={t("editor.args")}><input className="input mono" value={step.args.join(" ")} onChange={(e) => set({ args: e.target.value.split(" ").filter(Boolean).slice(0, 16) })} /></Field>
         </>
       );
@@ -354,8 +356,7 @@ function TypeFields({ step, set, flow }: { step: Step; set: (p: Record<string, u
               {["focus", "minimize", "maximize", "restore", "close", "move", "resize"].map((o) => <option key={o} value={o}>{t(`explain.window.${o}`, { title: "" }).trim()}</option>)}
             </select>
           </Field>
-          <Field label={t("editor.windowTitle")}><input className="input" value={step.match.title ?? ""} onChange={(e) => set({ match: { ...step.match, title: e.target.value || undefined } })} /></Field>
-          <Field label={t("editor.app")}><input className="input mono" value={step.match.app ?? ""} onChange={(e) => set({ match: { ...step.match, app: e.target.value || undefined } })} /></Field>
+          <WindowMatchFields title={step.match.title} app={step.match.app} onChange={(m) => set({ match: { ...step.match, ...m } })} labels={{ title: t("editor.windowTitle"), app: t("editor.app") }} />
           {(step.op === "move" || step.op === "resize") && (
             <div className="grid cols-2">
               {(["x", "y", "w", "h"] as const).map((k) => (
@@ -380,7 +381,7 @@ function TypeFields({ step, set, flow }: { step: Step; set: (p: Record<string, u
             <Seg value={step.method} onChange={(method) => set({ method })} options={(["GET", "POST", "PUT", "PATCH", "DELETE"] as const).map((m) => ({ value: m, label: m }))} />
           </Field>
           <UrlField value={step.url} onChange={(url) => set({ url })} />
-          <Field label={t("editor.headers")} hint="Header: value">
+          <Field label={t("editor.headers")} hint={t("editor.headersHint")}>
             <textarea className="textarea mono" rows={3} value={Object.entries(step.headers).map(([k, v]) => `${k}: ${v}`).join("\n")} onChange={(e) => set({ headers: Object.fromEntries(e.target.value.split("\n").map((l) => l.split(/:\s*/)).filter((p) => p[0] && p.length > 1).map((p) => [p[0]!, p.slice(1).join(":")])) })} />
           </Field>
           {step.method !== "GET" && <Field label={t("editor.body")}><textarea className="textarea mono" rows={4} value={step.body ?? ""} onChange={(e) => set({ body: e.target.value || undefined })} /></Field>}
@@ -422,7 +423,7 @@ function TypeFields({ step, set, flow }: { step: Step; set: (p: Record<string, u
     case "findImage":
       return (
         <>
-          <Field label={t("editor.imageRef")} hint={t("editor.imageRefHint")}><input className="input mono" value={step.target.ref} onChange={(e) => set({ target: { ...step.target, ref: e.target.value } })} /></Field>
+          <ImageRefField value={step.target.ref} onChange={(ref) => set({ target: { ...step.target, ref } })} />
           <Num label={t("editor.confidence")} value={Math.round(step.target.confidence * 100)} min={50} max={100} suffix="%" onChange={(v) => set({ target: { ...step.target, confidence: v / 100 } })} />
           <Num label={t("editor.timeout")} value={step.timeoutMs} step={500} suffix="ms" onChange={(timeoutMs) => set({ timeoutMs })} />
           <DisplayPicker value={step.target.display} onChange={(display) => set({ target: { ...step.target, display } })} label={t("display.scope")} />
@@ -485,20 +486,46 @@ function TypeFields({ step, set, flow }: { step: Step; set: (p: Record<string, u
   }
 }
 
+/**
+ * URL field: keeps what is being typed as a draft (an unfinished address is not written to the flow)
+ * and follows outside changes — undo, redo, a restored version — whenever the field is not focused.
+ */
 function UrlField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const t = useT();
   const [draft, setDraft] = useState(value);
-  let valid = true;
-  try {
-    new URL(draft);
-  } catch {
-    valid = false;
-  }
+  const focused = useRef(false);
+  useEffect(() => {
+    if (!focused.current) setDraft(value);
+  }, [value]);
+  const valid = isUrl(draft);
   return (
     <Field label="URL" error={valid ? null : t("editor.badUrl")}>
-      <input className={`input mono${valid ? "" : " invalid"}`} value={draft} onChange={(e) => { setDraft(e.target.value); try { new URL(e.target.value); onChange(e.target.value); } catch { /* keep draft */ } }} />
+      <input
+        className={`input mono${valid ? "" : " invalid"}`}
+        value={draft}
+        spellCheck={false}
+        onFocus={() => { focused.current = true; }}
+        onBlur={() => {
+          focused.current = false;
+          // An address left unfinished stays visible (with its error); a valid one snaps to the flow's value.
+          if (isUrl(draft)) setDraft(value);
+        }}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          if (isUrl(e.target.value)) onChange(e.target.value);
+        }}
+      />
     </Field>
   );
+}
+
+function isUrl(text: string): boolean {
+  try {
+    new URL(text);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function ModifierPicker({ value, onChange }: { value: string[]; onChange: (v: ("ctrl" | "alt" | "shift" | "meta")[]) => void }) {
@@ -573,7 +600,7 @@ export function TargetEditor({ target, onChange }: { target: Target; onChange: (
         </div>
       )}
       {target.kind === "image" && (
-        <Field label={t("editor.imageRef")} hint={t("editor.imageRefHint")}><input className="input mono" value={target.ref} onChange={(e) => onChange({ ...target, ref: e.target.value })} /></Field>
+        <ImageRefField value={target.ref} onChange={(ref) => onChange({ ...target, ref })} />
       )}
       {target.kind === "current" && <p className="hint">{t("editor.currentHint")}</p>}
     </div>

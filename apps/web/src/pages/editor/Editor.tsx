@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { FlowRun, explainFlow, lintFlow, parseFlow, toEasy, type Flow } from "@autoflow/core";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { FlowRun, countSteps, explainFlow, lintFlow, parseFlow, toEasy, type Flow } from "@autoflow/core";
 import { Shell } from "../../components/Shell";
 import { Icon, FLOW_ICON_CHOICES } from "../../components/Icon";
 import { Modal, SafetyBadge, Seg } from "../../components/ui";
@@ -17,6 +17,9 @@ import { ShortcutsSheet, isTypingTarget } from "./Shortcuts";
 
 export function EditorPage() {
   const { id } = useParams();
+  // /flows/<id>?step=<stepId> (Ledger "failed step", Pulse bar): the Pro editor selects and reveals that step.
+  const [query] = useSearchParams();
+  const stepParam = query.get("step");
   const t = useT();
   const navigate = useNavigate();
   const stored = useStore((s) => s.flows.find((f) => f.id === id));
@@ -24,6 +27,9 @@ export function EditorPage() {
   const save = useStore((s) => s.saveFlow);
   const [flow, setFlow] = useState<Flow | undefined>(stored);
   const [dirty, setDirty] = useState(false);
+  // Why the last save was refused (the schema rejected the flow); the edit stays in memory and the next edit retries.
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const saveFailing = useRef(false);
   const [panel, setPanel] = useState<null | "explain" | "versions" | "json" | "icon" | "shortcuts">(null);
   const sessionSnap = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout>>();
@@ -50,15 +56,33 @@ export function EditorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stored?.id]);
 
+  /**
+   * Saves the flow. Never rejects: a flow the schema refuses stays in memory (still dirty, so the next
+   * edit and leaving the page try again), the bar shows "Not saved: …" and a toast appears once per
+   * failing streak — or every time when the save was asked for explicitly (`loud`: Ctrl+S, Run).
+   */
   const persist = useCallback(
-    async (f: Flow) => {
+    async (f: Flow, loud = false): Promise<Flow | null> => {
       dirtyRef.current = false;
-      const saved = await save(f, { snapshot: !sessionSnap.current });
-      sessionSnap.current = true;
-      setDirty(false);
-      return saved;
+      try {
+        const saved = await save(f, { snapshot: !sessionSnap.current });
+        sessionSnap.current = true;
+        saveFailing.current = false;
+        setSaveError(null);
+        // A newer edit made while this save was running is still waiting for its own save.
+        if (!dirtyRef.current) setDirty(false);
+        return saved;
+      } catch (e) {
+        // Only when no newer edit is already queued: that one will report its own result.
+        if (flowRef.current === f) dirtyRef.current = true;
+        const issue = saveIssue(e);
+        setSaveError(issue);
+        if (loud || !saveFailing.current) useStore.getState().toast("error", t("editor.notSavedToast", { issue }));
+        saveFailing.current = true;
+        return null;
+      }
     },
-    [save],
+    [save, t],
   );
 
   /** Shows `next` and schedules the save — without touching the undo stack (undo, redo and restore use it directly). */
@@ -116,8 +140,8 @@ export function EditorPage() {
   const run = useCallback(async () => {
     if (!flow || hasErrors) return;
     clearTimeout(timer.current);
-    const saved = await persist(flow);
-    await startFlow(saved, navigate);
+    const saved = await persist(flow, true);
+    if (saved) await startFlow(saved, navigate);
   }, [flow, hasErrors, persist, navigate]);
 
   /** "Run from here" / "Run only this step": a temporary flow with the other steps disabled — never saved. */
@@ -153,7 +177,7 @@ export function EditorPage() {
       if (e.key.toLowerCase() === "s") {
         e.preventDefault();
         clearTimeout(timer.current);
-        void persist(flow).then(() => useStore.getState().toast("success", t("editor.saved")));
+        void persist(flow, true).then((saved) => saved && useStore.getState().toast("success", t("editor.saved")));
       } else if (e.key === "Enter") {
         e.preventDefault();
         void run();
@@ -187,7 +211,11 @@ export function EditorPage() {
             <Icon name={flow.icon} size={16} />
           </button>
           <input className="name" value={flow.name} onChange={(e) => update({ ...flow, name: e.target.value.slice(0, 120) || " " })} aria-label={t("editor.name")} />
-          <span className="small subtle">{dirty ? t("editor.saving") : t("editor.savedShort")}</span>
+          {saveError ? (
+            <span className="small truncate" role="status" title={t("editor.notSaved", { issue: saveError })} style={{ color: "var(--af-danger)", maxWidth: 280 }}>{t("editor.notSaved", { issue: saveError })}</span>
+          ) : (
+            <span className="small subtle">{dirty ? t("editor.saving") : t("editor.savedShort")}</span>
+          )}
           <Seg
             value={flow.mode}
             label={t("editor.mode")}
@@ -228,7 +256,7 @@ export function EditorPage() {
         </div>
       }
     >
-      {flow.mode === "easy" && easyOk ? <EasyEditor flow={flow} onChange={update} /> : <ProEditor flow={flow} onChange={update} lint={lint} onRunPartial={(id, mode) => void runPartial(id, mode)} onShortcuts={() => setPanel("shortcuts")} />}
+      {flow.mode === "easy" && easyOk ? <EasyEditor flow={flow} onChange={update} /> : <ProEditor flow={flow} onChange={update} lint={lint} revealStep={stepParam} onRunPartial={(id, mode) => void runPartial(id, mode)} onShortcuts={() => setPanel("shortcuts")} />}
       {panel === "explain" && <ExplainPanel flow={flow} onClose={() => setPanel(null)} />}
       {panel === "versions" && <VersionsPanel flow={flow} onRestore={(v) => { commit({ ...v.flow, id: flow.id, revision: flow.revision }); setHistory(createHistory()); setPanel(null); }} onClose={() => setPanel(null)} />}
       {panel === "json" && <JsonPanel flow={flow} onApply={(f) => { update(f); setPanel(null); }} onClose={() => setPanel(null)} />}
@@ -236,6 +264,13 @@ export function EditorPage() {
       {panel === "shortcuts" && <ShortcutsSheet pro={!(flow.mode === "easy" && easyOk)} onClose={() => setPanel(null)} />}
     </Shell>
   );
+}
+
+/** First problem of a refused save, short enough for the editor bar: "steps.2.url: Invalid url". */
+function saveIssue(e: unknown): string {
+  const first = (e as { issues?: { path?: (string | number)[]; message?: string }[] } | null)?.issues?.[0];
+  if (first?.message) return `${first.path?.length ? `${first.path.join(".")}: ` : ""}${first.message}`.slice(0, 200);
+  return (e instanceof Error ? e.message : String(e)).slice(0, 200);
 }
 
 function ExplainPanel({ flow, onClose }: { flow: Flow; onClose: () => void }) {
@@ -273,7 +308,7 @@ function VersionsPanel({ flow, onRestore, onClose }: { flow: Flow; onRestore: (v
             <div key={v.key} className="row card" style={{ padding: 12 }}>
               <Icon name="History" size={16} />
               <div className="grow">
-                <b>{t("editor.revision", { n: v.revision })}</b> <span className="small muted">· {formatRelative(v.at)} · {t("editor.stepCount", { n: v.flow.steps.length })}</span>
+                <b>{t("editor.revision", { n: v.revision })}</b> <span className="small muted">· {formatRelative(v.at)} · {t("editor.stepCount", { n: countSteps(v.flow.steps) })}</span>
                 {v.note && <span className="badge" style={{ marginLeft: 6 }}>{v.note}</span>}
               </div>
               <button className="btn sm ghost" onClick={() => setDiff(diff?.key === v.key ? null : v)}>{t("editor.diff")}</button>
@@ -289,12 +324,13 @@ function VersionsPanel({ flow, onRestore, onClose }: { flow: Flow; onRestore: (v
 
 /** Minimal line diff (LCS) of pretty JSON — enough to see what changed between versions. */
 function DiffView({ a, b }: { a: Flow; b: Flow }) {
+  const t = useT();
   const strip = (f: Flow) => JSON.stringify({ ...f, updatedAt: undefined, revision: undefined, createdAt: undefined }, null, 2).split("\n");
   const A = strip(a);
   const B = strip(b);
   const n = A.length;
   const m = B.length;
-  if (n * m > 4_000_000) return <p className="muted small">Too large to diff.</p>;
+  if (n * m > 4_000_000) return <p className="muted small">{t("editor.diffTooLarge")}</p>;
   const dp: number[][] = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
   for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) dp[i]![j] = A[i] === B[j] ? dp[i + 1]![j + 1]! + 1 : Math.max(dp[i + 1]![j]!, dp[i]![j + 1]!);
   const out: { k: " " | "-" | "+"; s: string }[] = [];
@@ -319,7 +355,7 @@ function DiffView({ a, b }: { a: Flow; b: Flow }) {
           </div>
         ) : null,
       )}
-      {changed.length === 0 && "No differences."}
+      {changed.length === 0 && t("editor.diffNone")}
     </pre>
   );
 }

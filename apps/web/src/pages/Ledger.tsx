@@ -118,7 +118,7 @@ function RunDetail({ run, flow }: { run: RunRecord; flow?: Flow }) {
     return run.events.filter((e) => !(e.type === "stepEnd" && e.ok) && (!needle || eventLine(e, labels).toLowerCase().includes(needle)));
   }, [run.events, labels, q]);
   const safe = run.flowName.replace(/[^\p{L}\p{N}_-]+/gu, "-").slice(0, 40) || "run";
-  // The editor may ignore ?step= for now; the link is ready for when it scrolls to the step.
+  // ?step= makes the Pro editor select and reveal that step (ProEditor `revealStep`); Easy mode ignores it.
   const openStep = (stepId?: string) => flow && navigate(stepId ? `/flows/${flow.id}?step=${encodeURIComponent(stepId)}` : `/flows/${flow.id}`);
   return (
     <Shell

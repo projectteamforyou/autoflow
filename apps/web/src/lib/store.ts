@@ -17,6 +17,7 @@ import {
   type Platform,
 } from "@autoflow/core";
 import { db, kv } from "./db";
+import { deleteAllSecrets } from "./secrets";
 
 export type Theme = "system" | "dark" | "light";
 
@@ -112,6 +113,8 @@ export interface Toast {
   kind: "info" | "success" | "error" | "warning";
   text: string;
   action?: { label: string; run: () => void };
+  /** Called when the toast is closed by the user (its action or ✕) or times out — not when newer toasts push it out. */
+  onDismiss?: () => void;
 }
 
 export interface Version {
@@ -147,7 +150,7 @@ interface State {
   clearRuns(): Promise<void>;
   setActive(a: ActiveRun | null | ((prev: ActiveRun | null) => ActiveRun | null)): void;
   updateSettings(patch: Partial<Settings>): Promise<void>;
-  toast(kind: Toast["kind"], text: string, action?: Toast["action"]): void;
+  toast(kind: Toast["kind"], text: string, action?: Toast["action"], onDismiss?: () => void): void;
   dismissToast(id: number): void;
   setTriggerFailures(failed: { flowId: string; reason: string }[]): void;
   /** Switches a flow's trigger off (paused) or back on without editing the flow. */
@@ -284,15 +287,17 @@ export const useStore = create<State>((set, get) => ({
     set({ settings });
   },
 
-  toast(kind, text, action) {
+  toast(kind, text, action, onDismiss) {
     const id = ++toastSeq;
-    set({ toasts: [...get().toasts, { id, kind, text, action }].slice(-4) });
+    set({ toasts: [...get().toasts, { id, kind, text, action, onDismiss }].slice(-4) });
     // Toasts with an action (e.g. "update ready → Reload") stay until used or dismissed.
     if (!action) setTimeout(() => get().dismissToast(id), kind === "error" ? 7000 : 4000);
   },
 
   dismissToast(id) {
+    const gone = get().toasts.find((t) => t.id === id);
     set({ toasts: get().toasts.filter((t) => t.id !== id) });
+    gone?.onDismiss?.();
   },
 
   setTriggerFailures(failed) {
@@ -324,6 +329,8 @@ export const useStore = create<State>((set, get) => ({
   },
 
   async wipeLocalData() {
+    // Native keystore secrets live outside IndexedDB: remove them first, while the names are still known.
+    await deleteAllSecrets().catch(() => undefined);
     await db.clearAll();
     set({ flows: [], profiles: [], runs: [], settings: DEFAULT_SETTINGS, triggerFailures: {} });
   },

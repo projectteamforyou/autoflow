@@ -33,7 +33,7 @@ export async function startFlow(flow: Flow, navigate: NavigateFunction, opts: { 
     const inputs = await collectInputs(flow);
     if (inputs === null) return;
     try {
-      await runNative(flow, inputs);
+      await runNative(flow, inputs, { transient: opts.transient });
     } catch (e) {
       useStore.getState().toast("error", (e as Error).message);
     }

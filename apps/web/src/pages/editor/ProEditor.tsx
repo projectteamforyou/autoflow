@@ -14,7 +14,7 @@ import { isTypingTarget } from "./Shortcuts";
 const DND_NEW = "application/x-autoflow-new";
 const DND_MOVE = "application/x-autoflow-move";
 
-export function ProEditor({ flow, onChange, lint, onRunPartial, onShortcuts }: { flow: Flow; onChange: (f: Flow) => void; lint: LintIssue[]; onRunPartial: (stepId: string, mode: PartialMode) => void; onShortcuts: () => void }) {
+export function ProEditor({ flow, onChange, lint, onRunPartial, onShortcuts, revealStep }: { flow: Flow; onChange: (f: Flow) => void; lint: LintIssue[]; onRunPartial: (stepId: string, mode: PartialMode) => void; onShortcuts: () => void; /** Step to select and reveal (deep link `?step=`); unknown ids are ignored. */ revealStep?: string | null }) {
   const t = useT();
   const [selected, setSelected] = useState<string | null>(null);
   const [q, setQ] = useState("");
@@ -41,10 +41,20 @@ export function ProEditor({ flow, onChange, lint, onRunPartial, onShortcuts }: {
   const reveal = (id: string) => {
     const closed = ancestorsOf(flow.steps, id).filter(isCollapsed);
     if (closed.some((a) => a.type !== "group")) setFolded((cur) => new Set([...cur].filter((x) => !closed.some((a) => a.id === x))));
+    setSelected(id);
     const groups = closed.filter((a) => a.type === "group");
     if (groups.length) setSteps(groups.reduce((steps, g) => updateStep(steps, g.id, (x) => ({ ...x, collapsed: undefined }) as Step), flow.steps));
-    setSelected(id);
   };
+
+  // Deep link: once per flow + step, so later edits (or collapsing it again) do not re-select it.
+  const revealedLink = useRef<string | null>(null);
+  useEffect(() => {
+    const key = revealStep ? `${flow.id}:${revealStep}` : null;
+    if (!revealStep || !key || revealedLink.current === key || !findStep(flow.steps, revealStep)) return;
+    revealedLink.current = key;
+    reveal(revealStep);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [revealStep, flow.id]);
 
   const nodeOf = (id: string) => [...(canvasRef.current?.querySelectorAll<HTMLElement>("[data-step-id]") ?? [])].find((el) => el.dataset.stepId === id);
   // Keep the selection (arrow keys, lint click) and the step a run is executing in view.

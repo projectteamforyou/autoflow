@@ -1,16 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { decodeShareCode, explainFlow, type ImportResult } from "@autoflow/core";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
 import { Modal, SafetyBadge } from "../components/ui";
 import { saveImportedFlow } from "../lib/actions";
+import { useStore } from "../lib/store";
 import { tp, useT } from "../i18n";
 
 /** Review sheet shown before any imported/shared flow is saved: validation, Safety Score, permissions, lint and a plain-language explanation. */
 export function ImportReview({ result, onClose }: { result: ImportResult; onClose: () => void }) {
   const t = useT();
   const navigate = useNavigate();
+  const saving = useRef(false);
   if (!result.ok || !result.flow) {
     return (
       <Modal title={t("import.invalid")} icon="ShieldAlert" onClose={onClose} footer={<button className="btn" onClick={onClose}>{t("common.close")}</button>}>
@@ -28,11 +30,17 @@ export function ImportReview({ result, onClose }: { result: ImportResult; onClos
   const errors = result.lint?.filter((l) => l.severity === "error") ?? [];
   const lines = explainFlow(flow);
   const onSave = async () => {
-    // A flow that is already in the library asks "Replace / Keep both" (see saveImportedFlow). The review
-    // closes first: two stacked modals would both react to Esc.
-    onClose();
-    const saved = await saveImportedFlow(flow);
-    navigate(`/flows/${saved.id}`);
+    // A flow that is already in the library asks "Replace / Keep both" (see saveImportedFlow) on top of
+    // this review; only the top-most modal reacts to Esc (lib/modalStack.ts), so the review can stay open.
+    if (saving.current) return;
+    saving.current = true;
+    try {
+      const saved = await saveImportedFlow(flow);
+      navigate(`/flows/${saved.id}`);
+    } catch (e) {
+      saving.current = false;
+      useStore.getState().toast("error", (e as Error).message);
+    }
   };
   return (
     <Modal

@@ -6,6 +6,7 @@ import { Icon } from "../components/Icon";
 import { useT } from "../i18n";
 import { hasNativeBridge, invoke, onBridgeEvent, platform, shell } from "../platform";
 import { useStore } from "../lib/store";
+import { tryInvoke } from "../lib/native";
 
 export function FleetPage() {
   const t = useT();
@@ -25,8 +26,30 @@ export function FleetPage() {
   };
   useEffect(() => {
     void refresh();
-    return onBridgeEvent((e) => e.kind === "permission" && void refresh());
+    // Special-access permissions are granted in Android Settings: re-read them when the app comes back.
+    const onVisible = () => document.visibilityState === "visible" && void refresh();
+    document.addEventListener("visibilitychange", onVisible);
+    const off = onBridgeEvent((e) => e.kind === "permission" && void refresh());
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      off();
+    };
   }, []);
+
+  // Android "Alarms & reminders" (exact alarms). Not in permissions_status; the battery row's detail
+  // reports it ("exactAlarms=granted"), otherwise the answer of the last request is used.
+  const [exactAsked, setExactAsked] = useState<boolean | null>(null);
+  const exactDetail = /exactAlarms=(granted|denied)/.exec(perms.find((p) => p.permission === "batteryOptimization")?.detail ?? "")?.[1];
+  const exactGranted = exactDetail ? exactDetail === "granted" : exactAsked;
+  const showExactAlarm = platform === "android" && !perms.some((p) => p.permission === "exactAlarm");
+  const askExactAlarm = async () => {
+    // Opens the system page when it is not granted yet. App versions that do not know the name
+    // reject it: fall back to the settings pages, without an error.
+    const r = await tryInvoke("permission_request", { permission: "exactAlarm" });
+    if (r.ok) setExactAsked(!!r.value?.granted);
+    else if (!(await tryInvoke("open_settings", { page: "exactAlarm" })).ok) await tryInvoke("open_settings", { page: "app" });
+    void refresh();
+  };
 
   const browserCaps = [
     { k: "fleet.cap.canvas", ok: true },
@@ -87,6 +110,16 @@ export function FleetPage() {
                 )}
               </div>
             ))}
+            {showExactAlarm && (
+              <div className="row">
+                {exactGranted !== null && <span className={`badge ${exactGranted ? "ok" : "warn"}`}>{exactGranted ? t("fleet.granted") : t("fleet.notGranted")}</span>}
+                <div className="grow">
+                  <b>{t("perm.native.exactAlarm")}</b>
+                  <div className="small muted">{t("perm.native.exactAlarm.why")}</div>
+                </div>
+                {exactGranted !== true && <button className="btn sm" onClick={() => void askExactAlarm()}>{exactGranted === false ? t("fleet.grant") : t("fleet.openSettings")}</button>}
+              </div>
+            )}
           </div>
         ) : (
           <div className="card stack">

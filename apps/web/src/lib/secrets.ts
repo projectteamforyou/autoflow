@@ -69,3 +69,19 @@ export async function deleteSecret(name: string): Promise<void> {
   if (hasNativeBridge) await invoke("secret_delete", { name });
   await vault.delete(name);
 }
+
+/**
+ * "Delete everything": removes every flow secret from the OS keystore (native apps) and the web
+ * vault. AI provider keys in the vault go with the local database; the keystore holds none.
+ * Best effort per name, so one refusal does not leave the rest behind.
+ */
+export async function deleteAllSecrets(): Promise<void> {
+  const names = new Set<string>();
+  for (const n of await vault.list().catch(() => [])) names.add(n);
+  if (hasNativeBridge) for (const n of await invoke("secret_list", {}).catch(() => [] as string[])) names.add(n);
+  for (const name of names) {
+    if (!isFlowSecret(name)) continue;
+    if (hasNativeBridge) await invoke("secret_delete", { name }).catch(() => undefined);
+    await vault.delete(name).catch(() => undefined);
+  }
+}

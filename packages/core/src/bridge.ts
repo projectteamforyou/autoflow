@@ -27,7 +27,12 @@ export type BridgeEvent =
   /** Monitors were added, removed, moved or rescaled (Stage panel, display chips). */
   | { kind: "displays"; displays: DisplayInfo[] };
 
-export type NativePermission = "accessibility" | "overlay" | "notifications" | "location" | "notificationListener" | "batteryOptimization" | "inputMonitoring" | "screenCapture";
+/**
+ * `"exactAlarm"` (Android "Alarms & reminders": exact times for schedules under 15 minutes and cron
+ * times) is asked for by name — `permission_request`, `open_settings` — and is not part of the
+ * `permissions_status` list of current apps.
+ */
+export type NativePermission = "accessibility" | "overlay" | "notifications" | "location" | "notificationListener" | "batteryOptimization" | "inputMonitoring" | "screenCapture" | "exactAlarm";
 
 export interface PermissionStatus {
   permission: NativePermission;
@@ -55,7 +60,7 @@ export interface BridgeCommands {
   permissions_status: [Record<string, never>, PermissionStatus[]];
   permission_request: [{ permission: NativePermission }, PermissionStatus];
   /** Starts a run in the native executor; events arrive as BridgeEvent{kind:"run"}. */
-  run_start: [{ flow: Flow; inputs?: Record<string, unknown>; approvedRisk: boolean; approvedScreenChange: boolean; dryRun?: boolean }, { runId: string }];
+  run_start: [{ flow: Flow; inputs?: Record<string, unknown>; approvedRisk: boolean; approvedScreenChange: boolean; dryRun?: boolean; /** A temporary variant of a saved flow ("run from here"): the executor must not keep it for triggers or remember its approval. */ transient?: boolean }, { runId: string }];
   run_pause: [{ runId: string }, void];
   run_resume: [{ runId: string }, void];
   run_stop: [{ runId: string; reason?: string }, void];
@@ -86,7 +91,7 @@ export interface BridgeCommands {
    * Opens OS settings pages (accessibility, battery, overlay…). `"exactAlarm"` is the Android
    * "Alarms & reminders" page for exact schedule triggers (Windows opens the app's settings page).
    */
-  open_settings: [{ page: NativePermission | "app" | "exactAlarm" }, void];
+  open_settings: [{ page: NativePermission | "app" }, void];
   autostart_set: [{ enabled: boolean }, void];
   /** Opens an https link in the system browser (the app WebView never navigates away). */
   open_external: [{ url: string }, void];

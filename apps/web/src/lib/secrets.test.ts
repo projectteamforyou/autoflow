@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Flow } from "@autoflow/core";
-import { SECRET_NAME, deleteSecret, listSecrets, secretNamesInFlow, secretNamesInText, secretUsage, setSecret } from "./secrets";
+import { SECRET_NAME, deleteAllSecrets, deleteSecret, listSecrets, secretNamesInFlow, secretNamesInText, secretUsage, setSecret } from "./secrets";
 import { vault } from "./crypto";
 
 const steps = (list: unknown[]) => ({ steps: list as Flow["steps"] });
@@ -55,5 +55,14 @@ describe("secret storage in the browser (web vault only)", () => {
     expect(await vault.get("ai:openai")).toBe("sk-test");
     await deleteSecret("login");
     expect(await listSecrets()).toEqual([]);
+  });
+
+  it("\"Delete everything\" removes every flow secret and leaves AI keys to the database wipe", async () => {
+    await vault.set("ai:openai", "sk-test");
+    await setSecret("login", "hunter2");
+    await setSecret("recorded_1", "x");
+    await deleteAllSecrets();
+    expect(await listSecrets()).toEqual([]);
+    expect(await vault.list()).toEqual(["ai:openai"]);
   });
 });

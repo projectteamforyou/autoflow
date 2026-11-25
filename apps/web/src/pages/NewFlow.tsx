@@ -1,14 +1,15 @@
 import { SITE_URL } from "../lib/site";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { createFlow, eventsToSteps, newId } from "@autoflow/core";
+import { createFlow, eventsToSteps, hotkeyToString, newId } from "@autoflow/core";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
 import { Switch } from "../components/ui";
 import { createFromKind } from "../lib/actions";
 import { useStore } from "../lib/store";
 import { useT } from "../i18n";
-import { hasNativeBridge, invoke } from "../platform";
+import { hasNativeBridge, invoke, onBridgeEvent } from "../platform";
+import { trimStopHotkey } from "../lib/recording";
 
 /** /new/:kind — creates a flow and opens it. "record" opens the native recorder or the canvas recorder. */
 export function NewFlowPage() {
@@ -63,14 +64,9 @@ function NativeRecorder() {
   const [recording, setRecording] = useState(false);
   const [count, setCount] = useState(0);
 
-  useEffect(() => {
-    if (!recording) return;
-    let unsub: (() => void) | undefined;
-    void import("../platform").then(({ onBridgeEvent }) => {
-      unsub = onBridgeEvent((e) => e.kind === "recording" && setCount((c) => c + 1));
-    });
-    return () => unsub?.();
-  }, [recording]);
+  const haltHotkey = useStore((s) => s.settings.haltHotkey);
+  // One stop at a time: the Stop button and the hotkey can arrive together.
+  const stopping = useRef(false);
 
   const start = async () => {
     try {
@@ -81,22 +77,39 @@ function NativeRecorder() {
       toast("error", (e as Error).message);
     }
   };
-  const stop = async () => {
+  const stop = async (byHotkey = false) => {
+    if (stopping.current) return;
+    stopping.current = true;
     try {
       const r = await invoke("record_stop", {});
+      // Stopped with the emergency-stop hotkey: that key press is not part of the macro.
+      const events = byHotkey ? trimStopHotkey(r.events, haltHotkey) : r.events;
       // With several monitors, points are stored relative to the monitor they were recorded on.
       const displays = await invoke("displays_list", {}).catch(() => []);
       const multi = displays.length > 1;
-      const steps = eventsToSteps(r.events, multi ? { displays } : { screen: { width: r.screen.width, height: r.screen.height } });
+      const steps = eventsToSteps(events, multi ? { displays } : { screen: { width: r.screen.width, height: r.screen.height } });
       if (!steps.length) return toast("info", t("canvas.recordEmpty"));
       const f = await save(createFlow({ name: t("canvas.recordedName", { date: new Date().toLocaleString() }), id: newId("f"), mode: "pro", icon: "sparkles", color: "#EF4444", steps, ...(multi ? { onMissingDisplay: "ask" as const } : { screen: r.screen }) }), { snapshot: false });
       navigate(`/flows/${f.id}`, { replace: true });
     } catch (e) {
       toast("error", (e as Error).message);
     } finally {
+      stopping.current = false;
       setRecording(false);
     }
   };
+  const stopRef = useRef(stop);
+  stopRef.current = stop;
+
+  // While recording: count the events, and let the emergency-stop hotkey (bridge event "hotkey" / "halt",
+  // also sent by the tray's Halt item) end the recording — it used to do nothing here.
+  useEffect(() => {
+    if (!recording) return;
+    return onBridgeEvent((e) => {
+      if (e.kind === "recording") setCount((c) => c + 1);
+      else if (e.kind === "hotkey" && e.action === "halt") void stopRef.current(true);
+    });
+  }, [recording]);
 
   return (
     <Shell title={<h2>{t("home.quick.record")}</h2>}>
@@ -105,10 +118,11 @@ function NativeRecorder() {
           <div className="tile-icon" style={{ background: "#EF4444" }}><Icon name="Radio" /></div>
           <h1>{recording ? t("record.recording") : t("record.title")}</h1>
           <p className="muted">{recording ? t("record.recordingBody", { n: count }) : t("record.body")}</p>
+          {recording && <p className="small muted" role="status"><Icon name="Keyboard" size={14} /> {t("record.stopHotkey", { hotkey: hotkeyToString(haltHotkey) })}</p>}
           <div className="callout warn small"><Icon name="Lock" size={16} /> {t("record.privacy")}</div>
           <div className="row between"><span className="label">{t("record.mask")}</span><Switch checked={mask} onChange={setMask} label={t("record.mask")} /></div>
           {recording ? (
-            <button className="btn danger lg" onClick={stop}><Icon name="Square" size={16} /> {t("canvas.stopRecording")}</button>
+            <button className="btn danger lg" onClick={() => void stop()}><Icon name="Square" size={16} /> {t("canvas.stopRecording")}</button>
           ) : (
             <button className="btn primary lg" onClick={start}><Icon name="Radio" size={16} /> {t("record.start")}</button>
           )}

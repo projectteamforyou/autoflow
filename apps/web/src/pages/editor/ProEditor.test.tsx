@@ -29,13 +29,14 @@ let host: HTMLDivElement;
 let root: Root;
 let flow: Flow;
 const runs: string[] = [];
+let revealStep: string | null = null;
 const lint: LintIssue[] = [{ severity: "warning", key: "lint.empty", stepId: "c" }];
 
 function render() {
   act(() => {
     root.render(
       <MemoryRouter>
-        <ProEditor flow={flow} lint={lint} onChange={(f) => { flow = f; render(); }} onRunPartial={(id, mode) => runs.push(`${mode}:${id}`)} onShortcuts={() => runs.push("shortcuts")} />
+        <ProEditor flow={flow} lint={lint} revealStep={revealStep} onChange={(f) => { flow = f; render(); }} onRunPartial={(id, mode) => runs.push(`${mode}:${id}`)} onShortcuts={() => runs.push("shortcuts")} />
       </MemoryRouter>,
     );
   });
@@ -50,6 +51,7 @@ beforeEach(() => {
   document.body.appendChild(host);
   root = createRoot(host);
   flow = base();
+  revealStep = null;
   runs.length = 0;
   clearCopiedStep();
   render();
@@ -61,6 +63,21 @@ afterEach(() => {
 });
 
 describe("ProEditor", () => {
+  test("deep link (?step=): selects the step and opens its collapsed ancestors, once", () => {
+    revealStep = "nope"; // unknown ids are ignored
+    render();
+    expect(selectedId()).toBeUndefined();
+    revealStep = "c";
+    render();
+    expect((flow.steps[1] as Extract<Step, { type: "group" }>).collapsed).toBeUndefined();
+    expect(node("c")).not.toBeNull();
+    expect(selectedId()).toBe("c");
+    // Selecting something else afterwards is not undone by the link.
+    act(() => node("a")!.click());
+    render();
+    expect(selectedId()).toBe("a");
+  });
+
   test("collapsed group hides its children and a lint click expands the path", () => {
     expect(node("b")).toBeNull();
     expect(node("G")!.textContent).toContain("editor.nSteps");

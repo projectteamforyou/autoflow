@@ -5,6 +5,7 @@ import { Field, HotkeyInput, Switch } from "../../components/ui";
 import { formatDuration, tp, useT } from "../../i18n";
 import { platform } from "../../platform";
 import { isoToLocalInput, localInputToIso } from "../../lib/datetime";
+import { AppInput } from "./NativePickers";
 
 const TRIGGERS: Trigger["type"][] = ["manual", "hotkey", "schedule", "appEvent", "deviceEvent", "location", "notification"];
 const DEVICE_EVENTS = ["charging", "batteryLow", "wifiConnected", "wifiDisconnected", "bluetoothConnected", "headsetPlugged", "bootCompleted", "deviceConnected", "deviceDisconnected"] as const;
@@ -58,7 +59,7 @@ export function FlowSettings({ flow, onChange }: { flow: Flow; onChange: (f: Flo
             <option value="global">{t("editor.scope.global")}</option>
             <option value="app">{t("editor.scope.app")}</option>
           </select>
-          {tr.scope === "app" && <input className="input mono" placeholder="app.exe" value={tr.app ?? ""} onChange={(e) => setTrigger({ ...tr, app: e.target.value || undefined })} />}
+          {tr.scope === "app" && <AppInput placeholder="app.exe" label={t("editor.app")} value={tr.app ?? ""} onChange={(v) => setTrigger({ ...tr, app: v || undefined })} />}
         </div>
       )}
       {tr.type === "schedule" && (
@@ -89,7 +90,7 @@ export function FlowSettings({ flow, onChange }: { flow: Flow; onChange: (f: Flo
           <select className="select" value={tr.event} onChange={(e) => setTrigger({ ...tr, event: e.target.value as "launched" })}>
             {["launched", "closed", "focused"].map((x) => <option key={x} value={x}>{t(`trigger.app.${x}`, { app: "…" })}</option>)}
           </select>
-          <input className="input mono" value={tr.app} onChange={(e) => setTrigger({ ...tr, app: e.target.value })} />
+          <AppInput label={t("editor.app")} value={tr.app} onChange={(app) => setTrigger({ ...tr, app })} />
         </div>
       )}
       {tr.type === "deviceEvent" && (
@@ -115,7 +116,7 @@ export function FlowSettings({ flow, onChange }: { flow: Flow; onChange: (f: Flo
       )}
       {tr.type === "notification" && (
         <div className="grid cols-2">
-          <Field label={t("editor.app")}><input className="input mono" value={tr.app} onChange={(e) => setTrigger({ ...tr, app: e.target.value })} /></Field>
+          <Field label={t("editor.app")}><AppInput label={t("editor.app")} value={tr.app} onChange={(app) => setTrigger({ ...tr, app })} /></Field>
           <Field label={t("editor.contains")}><input className="input" value={tr.contains ?? ""} onChange={(e) => setTrigger({ ...tr, contains: e.target.value || undefined })} /></Field>
         </div>
       )}
@@ -199,8 +200,8 @@ export function FlowSettings({ flow, onChange }: { flow: Flow; onChange: (f: Flo
         <div key={i} className="card stack-sm" style={{ padding: 10, background: "var(--af-bg-2)" }}>
           <div className="row">
             <input className="input mono" value={v.name} onChange={(e) => setVars(flow.variables.map((x, j) => (j === i ? { ...x, name: e.target.value.replace(/[^A-Za-z0-9_]/g, "").slice(0, 48) || "v" } : x)))} aria-label={t("editor.varName")} />
-            <select className="select" style={{ width: 110 }} value={v.type} onChange={(e) => setVars(flow.variables.map((x, j) => (j === i ? { ...x, type: e.target.value as VariableDef["type"] } : x)))} aria-label="type">
-              {["string", "number", "boolean", "list"].map((ty) => <option key={ty}>{ty}</option>)}
+            <select className="select" style={{ width: 110 }} value={v.type} onChange={(e) => setVars(flow.variables.map((x, j) => (j === i ? { ...x, type: e.target.value as VariableDef["type"] } : x)))} aria-label={t("editor.varType")}>
+              {(["string", "number", "boolean", "list"] as const).map((ty) => <option key={ty} value={ty}>{t(`editor.varType.${ty}`)}</option>)}
             </select>
             <button className="btn ghost icon sm" onClick={() => setVars(flow.variables.filter((_, j) => j !== i))} aria-label={t("common.remove")}><Icon name="Trash2" size={14} /></button>
           </div>

@@ -169,10 +169,9 @@ function attachBridge(): void {
 }
 
 /** Runs a flow on this device's native executor (Windows / Android app). */
-export async function runNative(flow: Flow, inputs?: Record<string, unknown>): Promise<string | null> {
+export async function runNative(flow: Flow, inputs?: Record<string, unknown>, opts: { transient?: boolean } = {}): Promise<string | null> {
   attachBridge();
-  const { risk } = FlowRun.preflight(flow, platform);
-  const blocked = FlowRun.preflight(flow, platform).blocked;
+  const { risk, blocked } = FlowRun.preflight(flow, platform);
   if (blocked.length) {
     useStore.getState().toast("error", t("run.unsupported", { n: blocked.length }));
     return null;
@@ -193,7 +192,9 @@ export async function runNative(flow: Flow, inputs?: Record<string, unknown>): P
       /* device_info unavailable — the executor will re-check */
     }
   }
-  const { runId } = await invoke("run_start", { flow, inputs, approvedRisk, approvedScreenChange });
+  // `transient` (run from here / only this step): the temporary flow keeps the real flow's id, so the executor
+  // must not store it as the copy that hotkeys and schedules start, nor remember its approval.
+  const { runId } = await invoke("run_start", { flow, inputs, approvedRisk, approvedScreenChange, ...(opts.transient ? { transient: true } : {}) });
   begin(flow, "native", runId, platform);
   return runId;
 }

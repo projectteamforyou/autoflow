@@ -43,6 +43,8 @@ async function boot() {
       <App />
     </StrictMode>,
   );
+  // Windows app: offer a newer installer once per session (never in the browser; see lib/version.ts).
+  if (shell === "tauri") void import("./lib/version").then((m) => m.checkDesktopUpdate());
   // Offline support for the browser build only (the native shells load from disk).
   if (shell === "browser" && "serviceWorker" in navigator && import.meta.env.PROD) {
     const { registerSW } = await import("virtual:pwa-register");
