@@ -23,6 +23,7 @@ import com.projectteamforyou.autoflow.engine.Value
 import com.projectteamforyou.autoflow.engine.placeRect
 import com.projectteamforyou.autoflow.keyforge.ProfileManager
 import com.projectteamforyou.autoflow.run.RunManager
+import com.projectteamforyou.autoflow.run.TemplateImages
 import com.projectteamforyou.autoflow.secrets.SecretStore
 import com.projectteamforyou.autoflow.system.CaptureService
 import com.projectteamforyou.autoflow.system.DeviceState
@@ -148,7 +149,8 @@ class AutoFlowNativePlugin : Plugin() {
     @PluginMethod
     fun permission_request(call: PluginCall) {
         val permission = args(call).string("permission") ?: return fail(call, "permission is required", "validation")
-        if (permission !in DeviceState.PERMISSIONS) return fail(call, "unknown permission $permission", "validation")
+        // "exactAlarm" is not part of permissions_status (the web's NativePermission list) but can be asked for by name.
+        if (permission !in DeviceState.PERMISSIONS && permission != "exactAlarm") return fail(call, "unknown permission $permission", "validation")
         if (permission == "notifications" && Build.VERSION.SDK_INT >= 33 && getPermissionState("notifications") != PermissionState.GRANTED) {
             requestPermissionForAlias("notifications", call, "onNotificationPermission")
             return
@@ -349,6 +351,33 @@ class AutoFlowNativePlugin : Plugin() {
     fun secret_list(call: PluginCall) = async(call) {
         buildJsonArray { SecretStore.get(context).names().forEach { add(JsonPrimitive(it)) } }
     }
+
+    /** Saves a template image (`data:image/png;base64,…`) as AutoFlow/images/<ref>.png for findImage / image targets. */
+    @PluginMethod
+    fun image_import(call: PluginCall) = async(call) {
+        val a = args(call)
+        TemplateImages.save(
+            context,
+            a.string("ref") ?: throw IllegalArgumentException("ref is required"),
+            a.string("dataUrl") ?: throw IllegalArgumentException("dataUrl is required"),
+        )
+        JsonNull
+    }
+
+    @PluginMethod
+    fun image_list(call: PluginCall) = async(call) {
+        buildJsonArray { TemplateImages.list(context).forEach { add(JsonPrimitive(it)) } }
+    }
+
+    @PluginMethod
+    fun image_delete(call: PluginCall) = async(call) {
+        TemplateImages.delete(context, args(call).string("ref") ?: throw IllegalArgumentException("ref is required"))
+        JsonNull
+    }
+
+    /** Launchable apps (`{ label, package }`) for the launchApp step's app picker. */
+    @PluginMethod
+    fun apps_list(call: PluginCall) = async(call) { DeviceState.launchableApps(context) }
 
     @PluginMethod
     fun open_settings(call: PluginCall) {

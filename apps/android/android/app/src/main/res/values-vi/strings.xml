@@ -15,6 +15,8 @@
     <string name="run_state_countdown" formatted="true">Bắt đầu sau %1$d giây…</string>
     <string name="run_state_paused">Đã tạm dừng</string>
     <string name="run_state_running">Đang chạy — chạm Dừng để kết thúc</string>
+    <string name="run_failed_title" formatted="true">Luồng thất bại: %1$s</string>
+    <string name="run_failed_no_reason">Luồng đã dừng trước khi hoàn tất.</string>
     <string name="action_stop">Dừng</string>
     <string name="action_pause">Tạm dừng</string>
     <string name="action_resume">Tiếp tục</string>

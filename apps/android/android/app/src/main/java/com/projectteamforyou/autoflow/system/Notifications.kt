@@ -19,6 +19,8 @@ object Notifications {
     const val CHANNEL_CONFIRM = "confirm"
     const val ID_RUN_SERVICE = 1001
     const val ID_CAPTURE_SERVICE = 1002
+    const val ID_SCHEDULE_WORKER = 1003
+    private const val ID_RUN_FAILED = 1004
     private val nextId = AtomicInteger(2000)
 
     fun createChannels(context: Context) {
@@ -61,6 +63,30 @@ object Notifications {
             .build()
         try {
             NotificationManagerCompat.from(context).notify(newId(), n)
+        } catch (_: SecurityException) {
+            return false
+        }
+        return true
+    }
+
+    /**
+     * A run started by a trigger failed or could not start (device locked, screen capture off, risk not approved…):
+     * nobody is looking at the app, so say so. One notification per flow — a repeating schedule replaces its own
+     * notice instead of stacking. Returns false when the user has not allowed notifications.
+     */
+    fun postRunFailed(context: Context, flowId: String, flowName: String, reason: String?): Boolean {
+        if (!canPost(context)) return false
+        val body = reason?.takeIf { it.isNotBlank() } ?: context.getString(R.string.run_failed_no_reason)
+        val n = NotificationCompat.Builder(context, CHANNEL_FLOW)
+            .setSmallIcon(R.drawable.ic_stat_autoflow)
+            .setContentTitle(context.getString(R.string.run_failed_title, flowName))
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setAutoCancel(true)
+            .setContentIntent(Intents.openApp(context))
+            .build()
+        try {
+            NotificationManagerCompat.from(context).notify(flowId, ID_RUN_FAILED, n)
         } catch (_: SecurityException) {
             return false
         }

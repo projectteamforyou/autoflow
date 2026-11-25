@@ -12,8 +12,10 @@ import com.projectteamforyou.autoflow.engine.RunError
 import com.projectteamforyou.autoflow.engine.RunEvent
 import com.projectteamforyou.autoflow.engine.RunOptions
 import com.projectteamforyou.autoflow.engine.RunState
+import com.projectteamforyou.autoflow.engine.RunStatus
 import com.projectteamforyou.autoflow.engine.Value
 import com.projectteamforyou.autoflow.secrets.SecretStore
+import com.projectteamforyou.autoflow.system.Notifications
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -93,6 +95,11 @@ object RunManager {
             Log.i(TAG, "run ${run.id} (${req.origin}) ended: ${result.status.json}")
             RunService.update(app)
             AutoFlowAccessibilityService.instance?.onRunsChanged()
+            // Trigger-started runs have nobody watching: every way such a run does not happen (device locked, screen
+            // capture not enabled, risk or a changed screen not approved, a failing step) ends as FAILED with a message.
+            if (req.origin != "manual" && result.status == RunStatus.FAILED) {
+                Notifications.postRunFailed(app, req.flow.id, req.flow.name, result.error?.message ?: result.reason)
+            }
         }
         AutoFlowAccessibilityService.instance?.onRunsChanged()
         return run.id
@@ -128,7 +135,10 @@ object RunManager {
                 a.countdownMs = e.remainingMs
                 RunService.update(context)
             }
-            is RunEvent.StepStart -> a.stepLabel = e.stepType
+            is RunEvent.StepStart -> {
+                a.stepLabel = e.stepType
+                RunService.updateStep(context)
+            }
             else -> Unit
         }
         BridgeEvents.run(a.run.id, e.toJson())

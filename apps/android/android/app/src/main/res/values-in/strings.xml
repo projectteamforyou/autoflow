@@ -15,6 +15,8 @@
     <string name="run_state_countdown" formatted="true">Mulai dalam %1$d dtk…</string>
     <string name="run_state_paused">Dijeda</string>
     <string name="run_state_running">Berjalan — ketuk Berhenti untuk mengakhiri</string>
+    <string name="run_failed_title" formatted="true">Alur gagal: %1$s</string>
+    <string name="run_failed_no_reason">Alur berhenti sebelum selesai.</string>
     <string name="action_stop">Berhenti</string>
     <string name="action_pause">Jeda</string>
     <string name="action_resume">Lanjutkan</string>

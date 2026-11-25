@@ -15,6 +15,8 @@
     <string name="run_state_countdown" formatted="true">%1$d 秒後に開始…</string>
     <string name="run_state_paused">一時停止中</string>
     <string name="run_state_running">実行中 — 終了するには停止をタップ</string>
+    <string name="run_failed_title" formatted="true">フローが失敗しました: %1$s</string>
+    <string name="run_failed_no_reason">完了する前に停止しました。</string>
     <string name="action_stop">停止</string>
     <string name="action_pause">一時停止</string>
     <string name="action_resume">再開</string>

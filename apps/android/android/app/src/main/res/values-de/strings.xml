@@ -15,6 +15,8 @@
     <string name="run_state_countdown" formatted="true">Start in %1$d s …</string>
     <string name="run_state_paused">Pausiert</string>
     <string name="run_state_running">Läuft – zum Beenden auf Stopp tippen</string>
+    <string name="run_failed_title" formatted="true">Ablauf fehlgeschlagen: %1$s</string>
+    <string name="run_failed_no_reason">Er wurde vor dem Abschluss beendet.</string>
     <string name="action_stop">Stopp</string>
     <string name="action_pause">Pause</string>
     <string name="action_resume">Fortsetzen</string>
