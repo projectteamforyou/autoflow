@@ -20,12 +20,20 @@ pub trait AppHooks: Send + Sync {
     fn start_flow(&self, flow_id: &str);
 }
 
-/// Allowed characters of a template image reference (no paths).
+/// `CON`, `NUL`, `COM1`, `LPT9`, … (with or without an extension) name devices on Windows, not files.
+fn is_windows_device_name(reference: &str) -> bool {
+    let stem = reference.split('.').next().unwrap_or(reference).to_ascii_uppercase();
+    matches!(stem.as_str(), "CON" | "PRN" | "AUX" | "NUL")
+        || (stem.len() == 4 && (stem.starts_with("COM") || stem.starts_with("LPT")) && stem.ends_with(|c: char| c.is_ascii_digit()))
+}
+
+/// Allowed characters of a template image reference (no paths, no Windows device names).
 pub fn safe_ref(reference: &str) -> Option<&str> {
     let ok = !reference.is_empty()
         && reference.len() <= 200
         && reference.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.'))
-        && !reference.starts_with('.');
+        && !reference.starts_with('.')
+        && !is_windows_device_name(reference);
     ok.then_some(reference)
 }
 

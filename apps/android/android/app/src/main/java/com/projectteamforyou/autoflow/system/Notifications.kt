@@ -83,6 +83,8 @@ object Notifications {
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setAutoCancel(true)
+            // A schedule that keeps failing replaces its own notice; it should not sound every time.
+            .setOnlyAlertOnce(true)
             .setContentIntent(Intents.openApp(context))
             .build()
         try {

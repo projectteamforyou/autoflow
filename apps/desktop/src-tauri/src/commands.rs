@@ -80,13 +80,14 @@ pub fn run_start(
     approved_risk: bool,
     approved_screen_change: bool,
     dry_run: Option<bool>,
+    transient: Option<bool>,
 ) -> Result<RunStarted, String> {
     let flow = parse_flow(&flow).map_err(|issues| {
         let list: Vec<String> = issues.iter().take(5).map(ToString::to_string).collect();
         format!("invalid flow: {}", list.join("; "))
     })?;
     let inputs: IndexMap<String, Value> = inputs.unwrap_or_default().iter().map(|(k, v)| (k.clone(), Value::from_json(v))).collect();
-    let origin = Origin::Ui { approved_risk, approved_screen: approved_screen_change };
+    let origin = Origin::Ui { approved_risk, approved_screen: approved_screen_change, transient: transient.unwrap_or(false) };
     runs::start(&app, flow, inputs, origin, dry_run.unwrap_or(false)).map(|run_id| RunStarted { run_id })
 }
 

@@ -55,6 +55,9 @@ pub struct AppState {
     pub approved_path: PathBuf,
     /// The tray's Halt item, whose label shows the effective emergency stop.
     pub halt_item: Mutex<Option<tauri::menu::MenuItem<tauri::Wry>>>,
+    /// Last failure notice per flow (message, when), so a schedule that fails on every firing
+    /// does not raise the same toast every time.
+    pub failure_notices: Mutex<HashMap<String, (String, Instant)>>,
 }
 
 impl AppState {
@@ -75,6 +78,7 @@ impl AppState {
             approved: Mutex::new(approvals::load(&approved_path)),
             approved_path,
             halt_item: Mutex::new(None),
+            failure_notices: Mutex::new(HashMap::new()),
         }
     }
 }
@@ -95,6 +99,24 @@ pub fn notify_problem(app: &AppHandle, title: &str, body: &str) {
     if let Err(e) = notify(app, title, body) {
         eprintln!("autoflow: {title}: {body} ({e})");
     }
+}
+
+/// How long an identical failure notice for the same flow stays quiet.
+const FAILURE_NOTICE_QUIET: std::time::Duration = std::time::Duration::from_secs(600);
+
+/// [`notify_problem`] for one flow, at most once per [`FAILURE_NOTICE_QUIET`] for the same message:
+/// a flow that fails the same way on every firing (not approved yet, screen changed) tells the
+/// user once, not once per tick. A different message, or the same one later, is shown again.
+pub fn notify_flow_problem(app: &AppHandle, flow_id: &str, title: &str, body: &str) {
+    {
+        let state = app.state::<AppState>();
+        let mut notices = lock(&state.failure_notices);
+        if notices.get(flow_id).is_some_and(|(last, at)| last == body && at.elapsed() < FAILURE_NOTICE_QUIET) {
+            return;
+        }
+        notices.insert(flow_id.to_owned(), (body.to_owned(), Instant::now()));
+    }
+    notify_problem(app, title, body);
 }
 
 /// [`AppHooks`] backed by the Tauri app.

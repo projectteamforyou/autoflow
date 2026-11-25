@@ -12,7 +12,9 @@ import java.io.IOException
  */
 object TemplateImages {
     private const val MAX_BYTES = 4 * 1024 * 1024
-    private const val MAX_SIDE = 4096
+    // A template is matched as ARGB + int + float copies (12 bytes per pixel): 2048×2048 is ~50 MB, 4096×4096 would
+    // be ~200 MB and can exhaust the heap in the middle of a run.
+    private const val MAX_SIDE = 2048
     private const val DATA_URL_PREFIX = "data:image/png;base64,"
     private val PNG_SIGNATURE = intArrayOf(0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
 

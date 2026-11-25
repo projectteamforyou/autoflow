@@ -11,7 +11,7 @@
 
 use crate::approvals;
 use crate::platform;
-use crate::state::{emit, lock, notify_problem, AppState, Hooks, RunEntry};
+use crate::state::{emit, lock, notify_flow_problem, AppState, Hooks, RunEntry};
 use autoflow_engine::bridge::BridgeEvent;
 use autoflow_engine::risk::RiskReport;
 use autoflow_engine::schema::{Flow, Platform};
@@ -33,6 +33,9 @@ pub enum Origin {
         approved_risk: bool,
         /// Screen change approved.
         approved_screen: bool,
+        /// A temporary variant of a saved flow ("run from here", "run only this step"): it must
+        /// not replace the copy triggers start, nor the approval stored for the full flow.
+        transient: bool,
     },
     /// A person pressed a hotkey or a Keyforge mapping: approvals use a native dialog, unless
     /// exactly these steps were already approved in the app.
@@ -107,8 +110,19 @@ fn try_start(app: &AppHandle, flow: Flow, inputs: IndexMap<String, Value>, origi
         }
         last.insert(flow.id.clone(), Instant::now());
     }
-    lock(&state.library).insert(flow.id.clone(), flow.clone());
-    let library: HashMap<String, Flow> = lock(&state.library).clone();
+    let transient = matches!(origin, Origin::Ui { transient: true, .. });
+    let library: HashMap<String, Flow> = {
+        let mut known = lock(&state.library);
+        if transient {
+            // Visible to this run only (a flow may call itself through runFlow).
+            let mut local = known.clone();
+            local.insert(flow.id.clone(), flow.clone());
+            local
+        } else {
+            known.insert(flow.id.clone(), flow.clone());
+            known.clone()
+        }
+    };
 
     let run_id: Arc<OnceLock<String>> = Arc::new(OnceLock::new());
     // The run's own control, so Halt / Stop also dismisses an approval dialog that is still open.
@@ -116,18 +130,20 @@ fn try_start(app: &AppHandle, flow: Flow, inputs: IndexMap<String, Value>, origi
     let (sink_id, sink_app) = (Arc::clone(&run_id), app.clone());
     let name = flow.name.clone();
     // The approval covers exactly these steps: any edit changes the hash and asks again.
-    let steps_hash = approvals::steps_hash(&flow.steps);
-    let remembered = approvals::is_approved(&lock(&state.approved), &flow.id, &steps_hash);
+    let steps_hash = approvals::steps_hash(&flow);
+    let remembered = steps_hash.as_deref().is_some_and(|h| approvals::is_approved(&lock(&state.approved), &flow.id, h));
     let (confirm_risk, confirm_screen): (autoflow_engine::engine::RiskApproval, autoflow_engine::engine::ScreenApproval) = match origin {
-        Origin::Ui { approved_risk, approved_screen } => {
+        Origin::Ui { approved_risk, approved_screen, transient } => {
             let (approval_app, approval_flow) = (app.clone(), flow.id.clone());
             (
                 Box::new(move |_| {
                     // The engine only asks when the flow has steps that need approval. A real run
                     // approved in the pre-run sheet is remembered for trigger-started runs; a dry
                     // run performs nothing, so its approval does not count.
-                    if approved_risk && !dry_run {
-                        remember_approval(&approval_app, &approval_flow, &steps_hash);
+                    if approved_risk && !dry_run && !transient {
+                        if let Some(hash) = &steps_hash {
+                            remember_approval(&approval_app, &approval_flow, hash);
+                        }
                     }
                     approved_risk
                 }),
@@ -181,7 +197,7 @@ fn try_start(app: &AppHandle, flow: Flow, inputs: IndexMap<String, Value>, origi
     let id = run.id().to_owned();
     let _set = run_id.set(id.clone());
     let _set_handle = run_handle.set(run.handle());
-    lock(&state.runs).insert(id.clone(), RunEntry { handle: run.handle(), flow_id });
+    lock(&state.runs).insert(id.clone(), RunEntry { handle: run.handle(), flow_id: flow_id.clone() });
     let (app2, id2) = (app.clone(), id.clone());
     let spawned = std::thread::Builder::new().name(format!("autoflow-{id}")).stack_size(8 * 1024 * 1024).spawn(move || {
         // A panic inside the engine must not leave a zombie entry in the run map: the web app would
@@ -192,9 +208,12 @@ fn try_start(app: &AppHandle, flow: Flow, inputs: IndexMap<String, Value>, origi
         };
         lock(&app2.state::<AppState>().runs).remove(&id2);
         // Nobody may be looking at the app when a trigger started the run: say that it failed.
-        if !matches!(origin, Origin::Ui { .. }) && result.status == RunStatus::Failed {
+        // Not for an answer the person at the keyboard just gave ("No" in the approval dialog), and not
+        // again for the same failure of the same flow on every firing.
+        let declined = origin == Origin::Attended && result.error.as_ref().is_some_and(|e| e.category == ErrorCategory::User);
+        if !matches!(origin, Origin::Ui { .. }) && result.status == RunStatus::Failed && !declined {
             let message = result.error.as_ref().map_or_else(|| result.reason.clone().unwrap_or_default(), |e| e.message.clone());
-            notify_problem(&app2, &format!("\u{201c}{flow_name}\u{201d} failed"), &message);
+            notify_flow_problem(&app2, &flow_id, &format!("\u{201c}{flow_name}\u{201d} failed"), &message);
         }
         emit(&app2, &BridgeEvent::RunEnded { run_id: id2, result });
     });
@@ -240,7 +259,7 @@ pub fn start_known(app: &AppHandle, flow_id: &str, origin: Origin) -> Option<Str
         Ok(run_id) => Some(run_id),
         Err(StartError::Skipped(_)) => None,
         Err(StartError::Failed(reason)) => {
-            notify_problem(app, &format!("\u{201c}{name}\u{201d} could not start"), &reason);
+            notify_flow_problem(app, flow_id, &format!("\u{201c}{name}\u{201d} could not start"), &reason);
             None
         }
     }

@@ -138,6 +138,9 @@ object Scheduler {
     class ScheduleWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
         override suspend fun doWork(): Result {
             val id = inputData.getString(KEY_FLOW) ?: return Result.success()
+            // The system may stop this worker while it waits for the run (expedited jobs have a small quota) and
+            // WorkManager then runs it again: the flow already started, so a retry must not start it a second time.
+            if (runAttemptCount > 0) return Result.success()
             fireScheduled(applicationContext, id, rescheduleAfter = inputData.getBoolean("oneShot", false))
             return Result.success()
         }
