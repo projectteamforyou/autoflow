@@ -189,8 +189,11 @@ jobs:
             Write-Host "Runner is LocalSystem: ICE validation runs as usual."
             exit 0
           }
-          $wix = Join-Path $env:LOCALAPPDATA 'tauri\WixTools-3.14.1'
-          if (-not (Test-Path (Join-Path $wix 'light.exe'))) {
+          # The folder name follows the bundled WiX version (WixTools314, WixTools-3.14.1, ...).
+          $light = Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA 'tauri') -Filter 'light.exe' -Recurse -Depth 1 -ErrorAction SilentlyContinue | Select-Object -First 1
+          Write-Host "LOCALAPPDATA: $env:LOCALAPPDATA; light.exe: $($light.FullName)"
+          $wix = if ($light) { $light.DirectoryName } else { '' }
+          if (-not $light) {
             Write-Host "::warning::WiX tools are not downloaded yet on this runner; the MSI step may fail once on ICE validation. Run the workflow again."
             exit 0
           }
