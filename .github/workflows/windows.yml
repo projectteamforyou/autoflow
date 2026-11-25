@@ -46,7 +46,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
+          # No 'cache: pnpm': the pnpm store stays on the self-hosted runner's disk, and the cache post step
+          # fails the whole job when the store path it was told about does not exist on that PC.
 
       - name: Install JS dependencies
         run: pnpm install --frozen-lockfile
