@@ -14,6 +14,23 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.2.0",
+    date: "2026-11-25",
+    platforms: ["windows", "android", "web"],
+    items: [
+      "Editor: undo and redo for everything you do in a session, run a flow from any step or run just one step, collapse groups and loops, wrap a step in a group / loop / try, and a shortcuts sheet (press ?).",
+      "Every step can have its own time limit and a full retry policy (fixed, linear or exponential back-off with a cap and jitter); “jump to step” now offers a list of steps instead of an id box.",
+      "Library: folders, multi-select with bulk move / tag / export / delete, sort by last run, search inside steps, and drop a .json file to import.",
+      "Triggers: switch a schedule or hotkey off without losing its setup, see hotkeys that two flows share, and see why a trigger could not be registered.",
+      "Run history: each run is folded into its steps with durations and the slowest steps, with search, run again, export, and a link to the step that failed.",
+      "Secrets manager in Settings for {{secret:name}} values (stored in the system keystore on Windows and Android), showing which flows use each secret and which are missing on this device.",
+      "Reference images for Find image and image targets can be imported inside the Windows and Android apps; window and app fields offer a list to pick from.",
+      "Windows: a step’s time limit now interrupts long waits (window, image search, OCR, HTTP, questions); scheduled and hotkey flows with steps that need approval run once you have approved them in the app; a trigger-started run that fails shows a notification.",
+      "Android: scheduled flows start more reliably while the phone is idle, failed trigger runs notify you, and the run notification shows the current step.",
+      "Backups use one format everywhere and restoring keeps folders, favourites and breakpoints. The app starts faster: each screen loads on demand.",
+    ],
+  },
+  {
     version: "1.1.3",
     date: "2026-11-03",
     platforms: ["android"],
