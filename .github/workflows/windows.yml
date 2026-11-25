@@ -46,7 +46,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
+          # No 'cache: pnpm': the pnpm store stays on the self-hosted runner's disk, and the cache post step
+          # fails the whole job when the store path it was told about does not exist on that PC.
 
       - name: Install JS dependencies
         run: pnpm install --frozen-lockfile
@@ -176,6 +177,73 @@ jobs:
             }
             Write-Host "NSIS tools: $real (also visible as $wow)"
           }
+
+      - name: MSI validation without the Windows Installer service (runner is not LocalSystem)
+        # light.exe runs the ICE validation suite through the Windows Installer service. A runner service
+        # under an ordinary account cannot reach that service ("LGHT0217 ... The Windows Installer Service
+        # could not be accessed"), so the MSI never links. Tauri has no switch for light's -sval, so on
+        # such a runner light.exe in Tauri's WiX folder is replaced by a small forwarder that adds -sval.
+        # Under LocalSystem nothing changes and the full ICE suite runs.
+        shell: powershell
+        run: |
+          if ([Security.Principal.WindowsIdentity]::GetCurrent().IsSystem) {
+            Write-Host "Runner is LocalSystem: ICE validation runs as usual."
+            exit 0
+          }
+          # The folder name follows the bundled WiX version (WixTools314, WixTools-3.14.1, ...).
+          $light = Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA 'tauri') -Filter 'light.exe' -Recurse -Depth 1 -ErrorAction SilentlyContinue | Select-Object -First 1
+          Write-Host "LOCALAPPDATA: $env:LOCALAPPDATA; light.exe: $($light.FullName)"
+          $wix = if ($light) { $light.DirectoryName } else { '' }
+          if (-not $light) {
+            Write-Host "::warning::WiX tools are not downloaded yet on this runner; the MSI step may fail once on ICE validation. Run the workflow again."
+            exit 0
+          }
+          $real = Join-Path $wix 'light-real.exe'
+          if (Test-Path $real) {
+            Write-Host "light.exe forwarder already in place."
+            exit 0
+          }
+          $src = Join-Path $env:RUNNER_TEMP 'light-forwarder.cs'
+          $code = @'
+          using System;
+          using System.Diagnostics;
+          using System.IO;
+          using System.Reflection;
+          using System.Text;
+          static class LightForwarder {
+            static string Quote(string a) {
+              if (a.Length > 0 && a.IndexOfAny(new[] { ' ', '\t', '"' }) < 0) return a;
+              var sb = new StringBuilder("\"");
+              int slashes = 0;
+              foreach (char c in a) {
+                if (c == '\\') { slashes++; continue; }
+                if (c == '"') { sb.Append('\\', slashes * 2 + 1); sb.Append('"'); }
+                else { sb.Append('\\', slashes); sb.Append(c); }
+                slashes = 0;
+              }
+              sb.Append('\\', slashes * 2);
+              sb.Append('"');
+              return sb.ToString();
+            }
+            static int Main(string[] args) {
+              string dir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+              var sb = new StringBuilder("-sval");
+              foreach (string a in args) { sb.Append(' '); sb.Append(Quote(a)); }
+              var psi = new ProcessStartInfo(Path.Combine(dir, "light-real.exe"), sb.ToString());
+              psi.UseShellExecute = false;
+              using (var p = Process.Start(psi)) { p.WaitForExit(); return p.ExitCode; }
+            }
+          }
+          '@
+          [IO.File]::WriteAllText($src, $code)
+          $csc = Join-Path $env:windir 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+          $out = Join-Path $env:RUNNER_TEMP 'light.exe'
+          & $csc /nologo /target:exe /platform:anycpu "/out:$out" $src
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Move-Item (Join-Path $wix 'light.exe') $real
+          Copy-Item (Join-Path $wix 'light.exe.config') (Join-Path $wix 'light-real.exe.config')
+          Copy-Item $out (Join-Path $wix 'light.exe')
+          Write-Host "::notice::MSI is linked with -sval (ICE validation skipped): this runner is not LocalSystem."
 
       - name: Build installers (tauri build)
         working-directory: apps/desktop
