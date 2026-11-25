@@ -1,0 +1,99 @@
+import { useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { explainFlow, type ImportResult } from "@autoflow/core";
+import { Icon } from "./Icon";
+import { Modal, SafetyBadge } from "./ui";
+import { saveImportedFlow } from "../lib/actions";
+import { useStore } from "../lib/store";
+import { tp, useT } from "../i18n";
+
+// Lives here (not in pages/ImportFlow) because the Library — part of the start-up bundle — shows it
+// too: importing it from the page module pulled the whole lazy ImportFlow chunk into start-up.
+/** Review sheet shown before any imported/shared flow is saved: validation, Safety Score, permissions, lint and a plain-language explanation. */
+export function ImportReview({ result, onClose }: { result: ImportResult; onClose: () => void }) {
+  const t = useT();
+  const navigate = useNavigate();
+  const saving = useRef(false);
+  if (!result.ok || !result.flow) {
+    return (
+      <Modal title={t("import.invalid")} icon="ShieldAlert" onClose={onClose} footer={<button className="btn" onClick={onClose}>{t("common.close")}</button>}>
+        <ul className="bullets small">
+          {result.issues.slice(0, 8).map((i, n) => (
+            <li key={n}>
+              <code>{i.path || "/"}</code> {i.message}
+            </li>
+          ))}
+        </ul>
+      </Modal>
+    );
+  }
+  const flow = result.flow;
+  const errors = result.lint?.filter((l) => l.severity === "error") ?? [];
+  const lines = explainFlow(flow);
+  const onSave = async () => {
+    // A flow that is already in the library asks "Replace / Keep both" (see saveImportedFlow) on top of
+    // this review; only the top-most modal reacts to Esc (lib/modalStack.ts), so the review can stay open.
+    if (saving.current) return;
+    saving.current = true;
+    try {
+      const saved = await saveImportedFlow(flow);
+      navigate(`/flows/${saved.id}`);
+    } catch (e) {
+      saving.current = false;
+      useStore.getState().toast("error", (e as Error).message);
+    }
+  };
+  return (
+    <Modal
+      wide
+      title={t("import.review")}
+      icon="ShieldCheck"
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn" onClick={onClose}>{t("common.cancel")}</button>
+          <button className="btn primary" onClick={onSave}><Icon name="Save" size={15} /> {t("import.save")}</button>
+        </>
+      }
+    >
+      <div className="stack">
+        <div className="row wrap">
+          <h3 className="grow">{flow.name}</h3>
+          <SafetyBadge flow={flow} />
+          {result.hashMatches === true && <span className="badge ok"><Icon name="BadgeCheck" size={13} /> {t("import.hashOk")}</span>}
+          {result.hashMatches === false && <span className="badge err"><Icon name="ShieldAlert" size={13} /> {t("import.hashBad")}</span>}
+        </div>
+        {flow.description && <p className="muted">{flow.description}</p>}
+        {result.risk && result.risk.permissions.length > 0 && (
+          <div className="stack-sm">
+            <span className="label">{t("import.permissions")}</span>
+            <div className="row wrap">
+              {result.risk.permissions.map((p) => (
+                <span key={p} className="badge">{t(p)}</span>
+              ))}
+            </div>
+          </div>
+        )}
+        {result.risk && result.risk.findings.length > 0 && (
+          <div className={`callout ${result.risk.level === "high" ? "err" : result.risk.level === "medium" ? "warn" : "info"}`}>
+            <Icon name="ShieldAlert" />
+            <ul className="bullets small">
+              {result.risk.findings.map((f, i) => (
+                <li key={i}>{t(f.key)}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {errors.length > 0 && <div className="callout err small"><Icon name="Bug" /> {t("import.lintErrors", { n: errors.length })}</div>}
+        <div className="card" style={{ background: "var(--af-bg-2)" }}>
+          <span className="label">{t("editor.explain")}</span>
+          <div className="stack-xs small" style={{ marginTop: 8 }}>
+            {lines.slice(0, 40).map((l, i) => (
+              <div key={i} style={{ paddingLeft: l.depth * 16 }}>{tp(l.phrase)}</div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}

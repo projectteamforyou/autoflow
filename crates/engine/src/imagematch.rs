@@ -26,13 +26,21 @@ impl Gray {
     }
 }
 
-/// Loads a PNG file as grayscale (alpha ignored).
-pub fn load_png(path: &Path) -> Result<Gray, BackendError> {
-    let file = std::fs::File::open(path)
-        .map_err(|e| BackendError::new(ErrorCategory::Target, format!("template image {} not found: {e}", path.display())))?;
-    let mut decoder = png::Decoder::new(std::io::BufReader::new(file));
+/// Decodes a PNG stream as grayscale (alpha ignored). With `max_side`, larger images are refused
+/// from the header alone, before any pixel buffer is allocated.
+fn decode_png<R: std::io::Read>(source: R, max_side: Option<u32>) -> Result<Gray, BackendError> {
+    let mut decoder = png::Decoder::new(source);
     decoder.set_transformations(png::Transformations::EXPAND | png::Transformations::STRIP_16);
     let mut reader = decoder.read_info().map_err(|e| BackendError::action(format!("invalid PNG: {e}")))?;
+    if let Some(max) = max_side {
+        let info = reader.info();
+        if info.width > max || info.height > max {
+            return Err(BackendError::new(
+                ErrorCategory::Validation,
+                format!("the image is {}x{} px; the largest allowed is {max}x{max}", info.width, info.height),
+            ));
+        }
+    }
     let mut buf = vec![0u8; reader.output_buffer_size()];
     let frame = reader.next_frame(&mut buf).map_err(|e| BackendError::action(format!("invalid PNG: {e}")))?;
     let (w, h) = (usize::try_from(frame.width).unwrap_or(0), usize::try_from(frame.height).unwrap_or(0));
@@ -46,6 +54,21 @@ pub fn load_png(path: &Path) -> Result<Gray, BackendError> {
         return Err(BackendError::action("template image is empty"));
     }
     Ok(Gray { w, h, px })
+}
+
+/// Loads a PNG file as grayscale (alpha ignored).
+pub fn load_png(path: &Path) -> Result<Gray, BackendError> {
+    let file = std::fs::File::open(path)
+        .map_err(|e| BackendError::new(ErrorCategory::Target, format!("template image {} not found: {e}", path.display())))?;
+    decode_png(std::io::BufReader::new(file), None)
+}
+
+/// Checks that `bytes` are a PNG the template search can use, at most `max_side` px wide and
+/// high, and returns its size. Imported template images go through this, so a broken or
+/// oversized file is refused when it is added instead of failing a run later.
+pub fn check_png(bytes: &[u8], max_side: u32) -> Result<(u32, u32), BackendError> {
+    let g = decode_png(bytes, Some(max_side))?;
+    Ok((u32::try_from(g.w).unwrap_or(u32::MAX), u32::try_from(g.h).unwrap_or(u32::MAX)))
 }
 
 fn downscale(g: &Gray, s: usize) -> Gray {
@@ -103,8 +126,8 @@ fn ncc_at(img: &Gray, tw: usize, th: usize, tz: &[f32], tn: f32, x: usize, y: us
 
 /// Best match of `tpl` inside `img`: top-left position and score.
 ///
-/// A full-screen search can take a while, so the run's stop flag is checked once per row and
-/// [`BackendError::aborted`] is returned as soon as the run is stopped.
+/// A full-screen search can take a while, so the run is checked once per row and
+/// [`BackendError::aborted`] is returned as soon as it is stopped or the step's deadline passes.
 pub fn find_template(img: &Gray, tpl: &Gray, control: &RunControl) -> Result<Option<(usize, usize, f32)>, BackendError> {
     if tpl.w > img.w || tpl.h > img.h || tpl.w == 0 || tpl.h == 0 {
         return Ok(None);
@@ -114,7 +137,7 @@ pub fn find_template(img: &Gray, tpl: &Gray, control: &RunControl) -> Result<Opt
     let (cz, cn) = zero_mean(&ct);
     let mut candidates: Vec<(f32, usize, usize)> = Vec::new();
     for y in 0..=(ci.h.saturating_sub(ct.h)) {
-        if control.is_stopped() {
+        if control.interrupted() {
             return Err(BackendError::aborted());
         }
         for x in 0..=(ci.w.saturating_sub(ct.w)) {
@@ -132,7 +155,7 @@ pub fn find_template(img: &Gray, tpl: &Gray, control: &RunControl) -> Result<Opt
     for (_, cx, cy) in candidates {
         let (fx, fy) = (cx * s, cy * s);
         for y in fy.saturating_sub(r)..=(fy + r).min(img.h - tpl.h) {
-            if control.is_stopped() {
+            if control.interrupted() {
                 return Err(BackendError::aborted());
             }
             for x in fx.saturating_sub(r)..=(fx + r).min(img.w - tpl.w) {
@@ -185,6 +208,28 @@ mod tests {
         assert!(find_template(&tpl, &img, &c).expect("not stopped").is_none());
     }
 
+    fn png_bytes(w: u32, h: u32) -> Vec<u8> {
+        let mut out = Vec::new();
+        let mut enc = png::Encoder::new(&mut out, w, h);
+        enc.set_color(png::ColorType::Grayscale);
+        enc.set_depth(png::BitDepth::Eight);
+        let mut writer = enc.write_header().expect("header");
+        writer.write_image_data(&vec![128u8; (w * h) as usize]).expect("pixels");
+        writer.finish().expect("finish");
+        out
+    }
+
+    #[test]
+    fn check_png_accepts_usable_images_only() {
+        let png = png_bytes(12, 7);
+        assert_eq!(check_png(&png, 4096).expect("valid"), (12, 7));
+        let e = check_png(&png, 8).expect_err("too wide");
+        assert_eq!(e.category, Some(ErrorCategory::Validation));
+        assert!(check_png(b"not a png", 4096).is_err());
+        // A truncated file has a valid header but no complete image.
+        assert!(check_png(&png[..png.len() - 20], 4096).is_err());
+    }
+
     #[test]
     fn stops_when_the_run_is_stopped() {
         let img = pattern(320, 200, 7);
@@ -202,5 +247,25 @@ mod tests {
         handle.stop("test");
         let e = find_template(&img, &tpl, handle.control()).expect_err("aborted");
         assert!(e.aborted);
+    }
+
+    #[test]
+    fn stops_when_the_step_deadline_passed() {
+        let img = pattern(320, 200, 7);
+        let tpl = pattern(40, 24, 99);
+        let control = RunControl::new();
+        // Far in the future: the search runs to its end.
+        control.arm_deadline(Some(std::time::Instant::now() + std::time::Duration::from_secs(3600)));
+        assert!(!control.interrupted());
+        assert!(find_template(&img, &tpl, &control).is_ok());
+        // Already passed: the first row gives up, and it is a timeout rather than a stop.
+        control.arm_deadline(Some(std::time::Instant::now()));
+        let e = find_template(&img, &tpl, &control).expect_err("pre-empted");
+        assert!(e.aborted);
+        assert!(control.timed_out() && !control.is_stopped());
+        // Disarmed again: nothing interrupts.
+        control.arm_deadline(None);
+        assert!(!control.interrupted());
+        assert!(find_template(&img, &tpl, &control).is_ok());
     }
 }

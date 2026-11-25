@@ -20,12 +20,20 @@ pub trait AppHooks: Send + Sync {
     fn start_flow(&self, flow_id: &str);
 }
 
-/// Allowed characters of a template image reference (no paths).
+/// `CON`, `NUL`, `COM1`, `LPT9`, … (with or without an extension) name devices on Windows, not files.
+fn is_windows_device_name(reference: &str) -> bool {
+    let stem = reference.split('.').next().unwrap_or(reference).to_ascii_uppercase();
+    matches!(stem.as_str(), "CON" | "PRN" | "AUX" | "NUL")
+        || (stem.len() == 4 && (stem.starts_with("COM") || stem.starts_with("LPT")) && stem.ends_with(|c: char| c.is_ascii_digit()))
+}
+
+/// Allowed characters of a template image reference (no paths, no Windows device names).
 pub fn safe_ref(reference: &str) -> Option<&str> {
     let ok = !reference.is_empty()
         && reference.len() <= 200
         && reference.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.'))
-        && !reference.starts_with('.');
+        && !reference.starts_with('.')
+        && !is_windows_device_name(reference);
     ok.then_some(reference)
 }
 
@@ -43,7 +51,7 @@ pub fn scene_rect(displays: &[DisplayInfo], display_id: &str, region: &Rect) -> 
 #[cfg(windows)]
 mod imp {
     use super::{safe_ref, AppHooks};
-    use autoflow_engine::bridge::{DeviceInfo, SceneCaptured};
+    use autoflow_engine::bridge::{DeviceInfo, SceneCaptured, WindowEntry};
     use autoflow_engine::display::DisplayInfo;
     use autoflow_engine::engine::{BackendError, ErrorCategory};
     use autoflow_engine::input_profile::InputProfile;
@@ -163,6 +171,11 @@ mod imp {
         win::backend::message_box_confirm(message, control).unwrap_or(false)
     }
 
+    /// Visible titled windows, topmost first, de-duplicated (at most `max`).
+    pub fn windows_list(max: usize) -> Vec<WindowEntry> {
+        win::window::titles(max).into_iter().map(|(title, app)| WindowEntry { title, app }).collect()
+    }
+
     /// Foreground `(app, title)`.
     pub fn foreground() -> Option<(String, String)> {
         win::process::foreground()
@@ -240,7 +253,7 @@ mod imp {
 #[cfg(not(windows))]
 mod imp {
     use super::AppHooks;
-    use autoflow_engine::bridge::{DeviceInfo, SceneCaptured};
+    use autoflow_engine::bridge::{DeviceInfo, SceneCaptured, WindowEntry};
     use autoflow_engine::display::DisplayInfo;
     use autoflow_engine::input_profile::InputProfile;
     use autoflow_engine::record::RecordedEvent;
@@ -329,6 +342,10 @@ mod imp {
     /// No native dialog: never approves.
     pub fn ask(_message: &str, _control: &RunControl) -> bool {
         false
+    }
+    /// No windows outside the Windows build.
+    pub fn windows_list(_max: usize) -> Vec<WindowEntry> {
+        Vec::new()
     }
     /// Unknown.
     pub fn foreground() -> Option<(String, String)> {

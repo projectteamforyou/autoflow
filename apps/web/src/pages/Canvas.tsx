@@ -5,11 +5,12 @@ import { Shell } from "../components/Shell";
 import { TrialAfterRun } from "../components/TrialBanner";
 import { Icon } from "../components/Icon";
 import { Seg, Switch } from "../components/ui";
+import { EventRow } from "../components/EventRow";
 import { useStore } from "../lib/store";
 import { liveEvents, runInCanvas, stepRun, stopRun } from "../lib/runner";
 import { practiceWorld, renderPractice, usePracticeCount } from "../lib/displays";
 import { collectInputs } from "../lib/actions";
-import { useT } from "../i18n";
+import { formatDuration, useT } from "../i18n";
 
 /** Classic single practice screen; with 2–4 simulated monitors each one is 1280×720 (see lib/displays). */
 const SINGLE = { w: 1600, h: 1000 };
@@ -354,37 +355,4 @@ function TrailLine({ f, W, H }: { f: Fx; W: number; H: number }) {
   const len = Math.hypot(dx * W, dy * H) / W;
   const ang = (Math.atan2(dy * H, dx * W) * 180) / Math.PI;
   return <div className="trail" style={{ left: `${(f.x / W) * 100}%`, top: `${(f.y / H) * 100}%`, width: `${len}%`, transform: `rotate(${ang}deg)` }} />;
-}
-
-export function EventRow({ e, t0, flow }: { e: RunEvent; t0: number; flow?: Flow }) {
-  const t = useT();
-  const time = `+${((e.at - t0) / 1000).toFixed(2)}s`;
-  let text = "";
-  let cls = "";
-  switch (e.type) {
-    case "state": text = t(`pulse.state.${e.state}`); break;
-    case "countdown": text = t("pulse.countdown", { s: Math.ceil(e.remainingMs / 1000) }); break;
-    case "stepStart": text = `▶ ${t(`step.${e.stepType}`)} ${labelOf(flow, e.stepId)}`; break;
-    case "stepEnd": if (e.ok) return null; text = `✕ ${e.stepId}`; cls = "err"; break;
-    case "breakpoint": text = `● ${t("editor.breakpoint")} ${e.stepId}`; cls = "warn"; break;
-    case "log": text = e.message; cls = e.level === "error" ? "err" : e.level === "warn" ? "warn" : ""; break;
-    case "var": text = `${e.name} = ${JSON.stringify(e.value).slice(0, 80)}`; break;
-    case "retry": text = `↻ ${t("onError.retry")} #${e.attempt}`; cls = "warn"; break;
-    case "error": text = `${t(`errcat.${e.error.category}`)}: ${e.error.message}`; cls = "err"; break;
-  }
-  return (
-    <div className={`event ${cls}`}>
-      <time>{time}</time>
-      <span style={{ overflowWrap: "anywhere" }}>{text}</span>
-    </div>
-  );
-}
-
-function labelOf(flow: Flow | undefined, id: string): string {
-  if (!flow) return "";
-  let label = "";
-  walkSteps(flow.steps, (s) => {
-    if (s.id === id && s.label) label = `· ${s.label}`;
-  });
-  return label;
 }

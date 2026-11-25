@@ -52,6 +52,13 @@ pub fn windows() -> Vec<WindowInfo> {
         .collect()
 }
 
+/// Distinct `(title, app)` pairs of the visible titled windows in Z order, at most `max` — what a
+/// window picker offers (several windows of one app often share a title).
+pub fn titles(max: usize) -> Vec<(String, String)> {
+    let mut seen = std::collections::HashSet::new();
+    windows().into_iter().map(|w| (w.title, w.app)).filter(|pair| seen.insert(pair.clone())).take(max).collect()
+}
+
 /// First window matching a title substring (case-insensitive) and/or executable name.
 pub fn find(m: &WindowMatch) -> Option<WindowInfo> {
     let title = m.title.as_deref().map(str::to_lowercase).filter(|t| !t.is_empty());

@@ -15,6 +15,8 @@
     <string name="run_state_countdown" formatted="true">Старт через %1$d с…</string>
     <string name="run_state_paused">Пауза</string>
     <string name="run_state_running">Выполняется — нажмите «Стоп», чтобы завершить</string>
+    <string name="run_failed_title" formatted="true">Сбой сценария: %1$s</string>
+    <string name="run_failed_no_reason">Сценарий остановился, не завершившись.</string>
     <string name="action_stop">Стоп</string>
     <string name="action_pause">Пауза</string>
     <string name="action_resume">Продолжить</string>

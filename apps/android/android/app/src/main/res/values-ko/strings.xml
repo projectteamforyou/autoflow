@@ -15,6 +15,8 @@
     <string name="run_state_countdown" formatted="true">%1$d초 후 시작…</string>
     <string name="run_state_paused">일시정지됨</string>
     <string name="run_state_running">실행 중 — 끝내려면 정지를 누르세요</string>
+    <string name="run_failed_title" formatted="true">플로우 실패: %1$s</string>
+    <string name="run_failed_no_reason">끝까지 실행되지 못하고 멈췄습니다.</string>
     <string name="action_stop">정지</string>
     <string name="action_pause">일시정지</string>
     <string name="action_resume">계속</string>

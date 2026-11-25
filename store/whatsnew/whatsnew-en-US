@@ -1,5 +1,9 @@
-AutoFlow 1.1.3
-• Android can now read the screen: pixel checks, waiting for a colour, scene matching, finding a reference image and on-screen text (OCR), after you grant screen-capture consent
-• Stop also cancels a long press or drag in progress
-• OCR runs on-device via Google Play services (Latin, Korean, Japanese, Chinese)
-• The Accessibility service is explained in the app, in 12 languages, before Settings opens
+AutoFlow 1.2.0
+• Undo/redo in the editor, run from any step or just one step
+• Folders, multi-select and bulk actions in the library
+• Switch a schedule or hotkey off without losing its setup
+• Secrets manager for {{secret:name}}
+• Import reference images for Find image in the app
+• Run history shows each step's time and lets you run again
+• A scheduled flow that fails now tells you with a notification
+• Scheduled flows start more reliably while the phone is idle

@@ -4,7 +4,8 @@
 mod common;
 
 use autoflow_engine::{
-    BackendError, ErrorCategory, FlowRun, InputAction, MockBackend, Platform, RealClock, RunEvent, RunOptions, RunState, RunStatus, Value,
+    BackendError, ErrorCategory, FlowRun, InputAction, InputBackend, MockBackend, Platform, RealClock, RunControl, RunEvent, RunOptions,
+    RunState, RunStatus, Value,
 };
 use common::{approve_risk, mk, mk_with, run, run_with};
 use serde_json::json;
@@ -439,4 +440,108 @@ fn variable_initialisation_follows_types_and_inputs() {
     assert_eq!(v["b"], Value::Bool(true));
     assert_eq!(v["c"], Value::List(vec![]));
     assert_eq!(v["d"], Value::Str("Kim".into()));
+}
+
+/// A backend whose every action blocks until the run is interrupted (stop or step deadline),
+/// like a window wait or an HTTP call that never answers.
+struct BlockingBackend;
+
+impl InputBackend for BlockingBackend {
+    fn platform(&self) -> Platform {
+        Platform::Windows
+    }
+    fn perform(&mut self, _action: &InputAction, control: &RunControl) -> Result<Value, BackendError> {
+        while !control.wait_for_interrupt(Duration::from_millis(10)) {}
+        Err(BackendError::aborted())
+    }
+    fn confirm(&mut self, _message: &str, control: &RunControl) -> Result<bool, BackendError> {
+        while !control.wait_for_interrupt(Duration::from_millis(10)) {}
+        Err(BackendError::aborted())
+    }
+}
+
+fn blocking_run(steps: serde_json::Value) -> (FlowRun, Arc<std::sync::Mutex<Vec<RunEvent>>>) {
+    let events = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let sink = Arc::clone(&events);
+    let opts = RunOptions {
+        skip_countdown: true,
+        clock: Some(Arc::new(RealClock)),
+        on_event: Some(Arc::new(move |e: &RunEvent| sink.lock().unwrap().push(e.clone()))),
+        ..RunOptions::default()
+    };
+    (FlowRun::new(mk(steps), Box::new(BlockingBackend), opts), events)
+}
+
+fn notify(id: &str, extra: serde_json::Value) -> serde_json::Value {
+    let mut step = json!({ "id": id, "type": "notify", "title": "t", "body": "b" });
+    step.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
+    step
+}
+
+#[test]
+fn step_timeout_preempts_a_blocking_backend_action() {
+    let (run, events) = blocking_run(json!([notify("n", json!({ "stepTimeoutMs": 50 }))]));
+    let t0 = Instant::now();
+    let r = run.start();
+    assert!(t0.elapsed() < Duration::from_secs(1), "pre-emption took {:?}", t0.elapsed());
+    assert_eq!(r.status, RunStatus::Failed);
+    let err = r.error.expect("error");
+    assert_eq!(err.category, ErrorCategory::Timeout);
+    assert_eq!(err.message, "step timed out after 50 ms");
+    assert_eq!(err.step_id.as_deref(), Some("n"));
+    let events = events.lock().unwrap();
+    assert!(events.iter().any(|e| matches!(e, RunEvent::Timeout { step_id, timeout_ms: 50, .. } if step_id == "n")));
+}
+
+#[test]
+fn a_preempted_step_follows_its_error_policy() {
+    let (run, _events) = blocking_run(json!([
+        notify("n", json!({ "stepTimeoutMs": 50, "onError": { "strategy": "continue" } })),
+        { "id": "v", "type": "setVar", "name": "after", "value": "1" }
+    ]));
+    let t0 = Instant::now();
+    let r = run.start();
+    assert!(t0.elapsed() < Duration::from_secs(1), "pre-emption took {:?}", t0.elapsed());
+    assert_eq!(r.status, RunStatus::Completed);
+    assert_eq!(r.vars["after"], Value::Num(1.0));
+
+    // The confirm step goes through the same wrapper.
+    let (run, _events) = blocking_run(json!([{ "id": "q", "type": "confirm", "message": "ok?", "stepTimeoutMs": 50 }]));
+    let r = run.start();
+    assert_eq!(r.status, RunStatus::Failed);
+    assert_eq!(r.error.expect("error").message, "step timed out after 50 ms");
+}
+
+#[test]
+fn stop_during_a_blocking_action_is_a_stop_not_a_timeout() {
+    let (run, events) = blocking_run(json!([notify("n", json!({ "stepTimeoutMs": 5000 }))]));
+    let (handle, join) = run.spawn().expect("thread");
+    std::thread::sleep(Duration::from_millis(50));
+    let t0 = Instant::now();
+    handle.stop("halt");
+    let r = join.join().expect("run thread");
+    assert!(t0.elapsed() < Duration::from_millis(500), "stop took {:?}", t0.elapsed());
+    assert_eq!(r.status, RunStatus::Stopped);
+    assert_eq!(r.reason.as_deref(), Some("halt"));
+    assert!(r.error.is_none());
+    assert!(!events.lock().unwrap().iter().any(|e| matches!(e, RunEvent::Timeout { .. })));
+}
+
+#[test]
+fn an_enclosing_steps_shorter_deadline_preempts_the_action() {
+    let (run, events) = blocking_run(json!([
+        { "id": "g", "type": "group", "name": "outer", "stepTimeoutMs": 50, "body": [notify("n", json!({ "stepTimeoutMs": 5000 }))] }
+    ]));
+    let t0 = Instant::now();
+    let r = run.start();
+    assert!(t0.elapsed() < Duration::from_secs(1), "pre-emption took {:?}", t0.elapsed());
+    assert_eq!(r.status, RunStatus::Failed);
+    let err = r.error.expect("error");
+    assert_eq!(err.category, ErrorCategory::Timeout);
+    assert_eq!(err.message, "step timed out after 50 ms");
+    assert_eq!(err.step_id.as_deref(), Some("g"));
+    let events = events.lock().unwrap();
+    let timeouts: Vec<&str> =
+        events.iter().filter_map(|e| if let RunEvent::Timeout { step_id, .. } = e { Some(step_id.as_str()) } else { None }).collect();
+    assert_eq!(timeouts, ["g"]);
 }

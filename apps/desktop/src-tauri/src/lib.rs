@@ -8,7 +8,9 @@
 //!   slice; the secure desktop is never automated.
 //! - Single instance, start-up registration (autostart), window position memory (window-state).
 
+pub mod approvals;
 pub mod commands;
+pub mod images;
 pub mod platform;
 pub mod runs;
 pub mod state;
@@ -30,9 +32,10 @@ pub fn show_main(app: &tauri::AppHandle) {
 
 fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     platform::init();
-    let images_dir = app.path().app_data_dir().map(|d| d.join("images")).unwrap_or_else(|_| std::env::temp_dir().join("autoflow-images"));
+    let data_dir = app.path().app_data_dir().unwrap_or_else(|_| std::env::temp_dir().join("autoflow"));
+    let images_dir = data_dir.join("images");
     let _created = std::fs::create_dir_all(&images_dir);
-    app.manage(AppState::new(images_dir));
+    app.manage(AppState::new(images_dir, data_dir.join("approved.json")));
     let handle = app.handle().clone();
 
     let hk_app = handle.clone();
@@ -118,6 +121,10 @@ pub fn run() {
             commands::displays_identify,
             commands::deck_pin,
             commands::scene_capture,
+            commands::image_import,
+            commands::image_list,
+            commands::image_delete,
+            commands::windows_list,
         ]);
     match builder.build(tauri::generate_context!()) {
         Ok(app) => app.run(|handle, event| {

@@ -1,5 +1,9 @@
-AutoFlow 1.1.3
-• Android liest jetzt den Bildschirm: Pixelprüfung, Warten auf eine Farbe, Szenenabgleich, Suche nach einem Referenzbild und Bildschirmtext (OCR), nach Ihrer Zustimmung zur Bildschirmaufnahme
-• Stopp bricht auch ein laufendes langes Drücken oder Ziehen ab
-• OCR läuft auf dem Gerät über Google Play-Dienste (Latein, Koreanisch, Japanisch, Chinesisch)
-• Der Bedienungshilfen-Dienst wird in der App in 12 Sprachen erklärt, bevor die Einstellungen geöffnet werden
+AutoFlow 1.2.0
+• Rückgängig/Wiederholen im Editor; ab einem Schritt oder nur einen Schritt ausführen
+• Ordner, Mehrfachauswahl und Sammelaktionen
+• Zeitplan oder Hotkey abschalten, ohne die Einstellung zu verlieren
+• Geheimnis-Verwaltung für {{secret:name}}
+• Referenzbilder in der App importieren
+• Verlauf zeigt die Dauer jedes Schritts
+• Hinweis, wenn ein geplanter Flow fehlschlägt
+• Zuverlässigerer Start im Ruhezustand

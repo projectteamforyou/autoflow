@@ -6,19 +6,24 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
+import androidx.work.ForegroundInfo
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.OutOfQuotaPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import com.projectteamforyou.autoflow.R
 import com.projectteamforyou.autoflow.engine.Cron
 import com.projectteamforyou.autoflow.engine.Flow
 import com.projectteamforyou.autoflow.engine.Trigger
 import com.projectteamforyou.autoflow.run.RunManager
 import com.projectteamforyou.autoflow.system.DeviceState
+import com.projectteamforyou.autoflow.system.Notifications
 import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.ZonedDateTime
@@ -133,16 +138,36 @@ object Scheduler {
     class ScheduleWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
         override suspend fun doWork(): Result {
             val id = inputData.getString(KEY_FLOW) ?: return Result.success()
+            // The system may stop this worker while it waits for the run (expedited jobs have a small quota) and
+            // WorkManager then runs it again: the flow already started, so a retry must not start it a second time.
+            if (runAttemptCount > 0) return Result.success()
             fireScheduled(applicationContext, id, rescheduleAfter = inputData.getBoolean("oneShot", false))
             return Result.success()
         }
+
+        /**
+         * Only asked for expedited work (the hand-off from [AlarmReceiver]) on Android 11 and older, where WorkManager
+         * runs it in its own foreground service; Android 12+ uses expedited jobs and never shows this.
+         */
+        override suspend fun getForegroundInfo(): ForegroundInfo = ForegroundInfo(
+            Notifications.ID_SCHEDULE_WORKER,
+            NotificationCompat.Builder(applicationContext, Notifications.CHANNEL_RUNS)
+                .setSmallIcon(R.drawable.ic_stat_autoflow)
+                .setContentTitle(applicationContext.getString(R.string.app_name))
+                .setContentText(applicationContext.getString(R.string.channel_runs))
+                .setOngoing(true)
+                .build(),
+        )
     }
 
     class AlarmReceiver : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             val id = intent.getStringExtra(KEY_FLOW) ?: return
             // Hand over to a one-shot worker at once (a receiver only gets ~10 s; the run may last minutes).
+            // Expedited: ordinary work is deferred in Doze, which would undo setExactAndAllowWhileIdle. No initial
+            // delay and no constraints (expedited work allows neither); out of quota it runs as ordinary work.
             val req = OneTimeWorkRequestBuilder<ScheduleWorker>()
+                .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
                 .setInputData(workDataOf(KEY_FLOW to id, "oneShot" to true))
                 .build()
             WorkManager.getInstance(context).enqueueUniqueWork("${workName(id)}-now", ExistingWorkPolicy.REPLACE, req)

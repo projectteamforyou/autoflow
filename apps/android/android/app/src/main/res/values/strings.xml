@@ -19,6 +19,8 @@
     <string name="run_state_countdown" formatted="true">Starting in %1$d s…</string>
     <string name="run_state_paused">Paused</string>
     <string name="run_state_running">Running — tap Stop to end</string>
+    <string name="run_failed_title" formatted="true">Flow failed: %1$s</string>
+    <string name="run_failed_no_reason">It stopped before it could finish.</string>
     <string name="action_stop">Stop</string>
     <string name="action_pause">Pause</string>
     <string name="action_resume">Resume</string>

@@ -15,6 +15,8 @@
     <string name="run_state_countdown" formatted="true">%1$d 秒后开始…</string>
     <string name="run_state_paused">已暂停</string>
     <string name="run_state_running">运行中 — 点按停止即可结束</string>
+    <string name="run_failed_title" formatted="true">流程失败：%1$s</string>
+    <string name="run_failed_no_reason">流程在完成前已停止。</string>
     <string name="action_stop">停止</string>
     <string name="action_pause">暂停</string>
     <string name="action_resume">继续</string>

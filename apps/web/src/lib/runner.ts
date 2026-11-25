@@ -66,8 +66,8 @@ export async function askScreenChange(rec: ScreenInfo, now: ScreenInfo): Promise
   });
 }
 
-function begin(flow: Flow, where: "canvas" | "native", runId: string, plat: Platform): Live {
-  const record: RunRecord = { id: runId, flowId: flow.id, flowName: flow.name, platform: plat, where, status: "running", actions: 0, iterations: 0, durationMs: 0, startedAt: Date.now(), events: [] };
+function begin(flow: Flow, where: "canvas" | "native", runId: string, plat: Platform, partial = false): Live {
+  const record: RunRecord = { id: runId, flowId: flow.id, flowName: flow.name, platform: plat, where, status: "running", actions: 0, iterations: 0, durationMs: 0, startedAt: Date.now(), events: [], ...(partial ? { partial: true } : {}) };
   const l: Live = { runId, record };
   live.set(runId, l);
   useStore.getState().setActive({ runId, flowId: flow.id, flowName: flow.name, where, state: "preflight", startedAt: Date.now(), actions: 0 });
@@ -76,16 +76,19 @@ function begin(flow: Flow, where: "canvas" | "native", runId: string, plat: Plat
 
 function onEvent(l: Live, e: RunEvent): void {
   l.record.events.push(e);
-  if (l.record.events.length > 2500) l.record.events.splice(0, 500);
+  if (l.record.events.length > 2500) {
+    l.record.events.splice(0, 500);
+    l.record.dropped = (l.record.dropped ?? 0) + 500; // the Ledger says how much of the log is missing
+  }
   const set = useStore.getState().setActive;
   if (e.type === "state") set((a) => (a && a.runId === l.runId ? { ...a, state: e.state, countdownMs: e.state === "countdown" ? a.countdownMs : undefined } : a));
   else if (e.type === "countdown") set((a) => (a && a.runId === l.runId ? { ...a, countdownMs: e.remainingMs } : a));
-  else if (e.type === "stepStart") set((a) => (a && a.runId === l.runId ? { ...a, stepId: e.stepId, actions: a.actions + (["click", "move", "drag", "scroll", "key", "type"].includes(e.stepType) ? 1 : 0) } : a));
+  else if (e.type === "stepStart") set((a) => (a && a.runId === l.runId ? { ...a, stepId: e.stepId, stepType: e.stepType, actions: a.actions + (["click", "move", "drag", "scroll", "key", "type"].includes(e.stepType) ? 1 : 0) } : a));
 }
 
 async function end(l: Live, result: RunResult): Promise<void> {
   live.delete(l.runId);
-  Object.assign(l.record, { status: result.status, reason: result.reason, error: result.error, actions: result.actions, iterations: result.iterations, durationMs: result.durationMs, endedAt: Date.now() });
+  Object.assign(l.record, { status: result.status, reason: result.reason, error: result.error, actions: result.actions, iterations: result.iterations, steps: result.steps, durationMs: result.durationMs, endedAt: Date.now() });
   const st = useStore.getState();
   await st.recordRun(l.record);
   st.setActive((a) => (a && a.runId === l.runId ? null : a));
@@ -105,6 +108,8 @@ export interface CanvasRunOptions {
   /** Simulated monitors, pixels and scenes (Stage / multi-monitor practice). */
   world?: PracticeWorld;
   displays?: DisplayInfo[];
+  /** "Run from here" / "Run only this step": the Ledger marks the record as a partial run. */
+  partial?: boolean;
 }
 
 /** onMissingDisplay "ask" on the canvas: the same question native runs ask in a system dialog. */
@@ -116,7 +121,7 @@ export async function askMissingDisplay(label: string): Promise<boolean> {
 export async function runInCanvas(flow: Flow, opts: CanvasRunOptions = {}): Promise<{ run: FlowRun; done: Promise<RunResult>; backend: SandboxBackend }> {
   const plat = simulatedPlatform(flow);
   const runId = `canvas_${Date.now().toString(36)}`;
-  const l = begin(flow, "canvas", runId, plat);
+  const l = begin(flow, "canvas", runId, plat, opts.partial);
   const flows = useStore.getState().flows;
   const secrets = await vault.snapshot();
   const backend = new SandboxBackend({
@@ -166,10 +171,9 @@ function attachBridge(): void {
 }
 
 /** Runs a flow on this device's native executor (Windows / Android app). */
-export async function runNative(flow: Flow, inputs?: Record<string, unknown>): Promise<string | null> {
+export async function runNative(flow: Flow, inputs?: Record<string, unknown>, opts: { transient?: boolean } = {}): Promise<string | null> {
   attachBridge();
-  const { risk } = FlowRun.preflight(flow, platform);
-  const blocked = FlowRun.preflight(flow, platform).blocked;
+  const { risk, blocked } = FlowRun.preflight(flow, platform);
   if (blocked.length) {
     useStore.getState().toast("error", t("run.unsupported", { n: blocked.length }));
     return null;
@@ -190,8 +194,10 @@ export async function runNative(flow: Flow, inputs?: Record<string, unknown>): P
       /* device_info unavailable — the executor will re-check */
     }
   }
-  const { runId } = await invoke("run_start", { flow, inputs, approvedRisk, approvedScreenChange });
-  begin(flow, "native", runId, platform);
+  // `transient` (run from here / only this step): the temporary flow keeps the real flow's id, so the executor
+  // must not store it as the copy that hotkeys and schedules start, nor remember its approval.
+  const { runId } = await invoke("run_start", { flow, inputs, approvedRisk, approvedScreenChange, ...(opts.transient ? { transient: true } : {}) });
+  begin(flow, "native", runId, platform, opts.transient);
   return runId;
 }
 

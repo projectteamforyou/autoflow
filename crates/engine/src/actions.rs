@@ -156,7 +156,8 @@ pub fn check_launch_target(app: &str) -> Result<(), BackendError> {
 }
 
 /// Runs `work` on a helper thread, returning [`BackendError::aborted`] as soon as the run is
-/// stopped (the helper finishes in the background and its result is dropped).
+/// stopped or the step's deadline passes (the helper finishes in the background and its result
+/// is dropped).
 pub fn run_interruptible<T: Send + 'static>(
     control: &RunControl,
     work: impl FnOnce() -> Result<T, BackendError> + Send + 'static,
@@ -169,7 +170,7 @@ pub fn run_interruptible<T: Send + 'static>(
         })
         .map_err(|e| BackendError::new(ErrorCategory::Internal, format!("cannot start worker: {e}")))?;
     loop {
-        if control.is_stopped() {
+        if control.interrupted() {
             return Err(BackendError::aborted());
         }
         match rx.recv_timeout(Duration::from_millis(SLICE_MS / 2)) {

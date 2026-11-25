@@ -35,8 +35,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::{Arc, Condvar, Mutex, MutexGuard};
-use std::time::Duration;
+use std::sync::{Arc, Condvar, Mutex, MutexGuard, OnceLock};
+use std::time::{Duration, Instant};
 
 /// Long waits are sliced so pause, stop and limits are observed within this many ms.
 pub const SLICE_MS: u64 = 100;
@@ -240,8 +240,9 @@ impl std::error::Error for BackendError {}
 
 /// Platform abstraction used by the interpreter (`Backend` in engine.ts).
 ///
-/// Implementations must honour [`RunControl::is_stopped`] promptly in long actions (return
-/// [`BackendError::aborted`]).
+/// Implementations must honour [`RunControl::interrupted`] promptly in long actions (return
+/// [`BackendError::aborted`]): it covers both a stop request and the deadline of a step with
+/// `stepTimeoutMs`, which the interpreter arms around every backend call.
 pub trait InputBackend: Send {
     /// Platform used for capability checks.
     fn platform(&self) -> Platform;
@@ -279,6 +280,14 @@ pub trait Clock: Send + Sync {
     fn now(&self) -> u64;
     /// Sleeps `ms`, returning early with [`Aborted`] when the run is stopped.
     fn sleep(&self, ms: u64, control: &RunControl) -> Result<(), Aborted>;
+    /// The monotonic instant at which this clock will read strictly past `at_ms`, used to
+    /// pre-empt a blocking backend action when a step deadline passes.
+    ///
+    /// `None` (the default) arms nothing: virtual clocks only move when the interpreter sleeps,
+    /// so a wall-clock deadline would make their deterministic results depend on real time.
+    fn instant_after(&self, _at_ms: u64) -> Option<Instant> {
+        None
+    }
 }
 
 /// Wall clock; sleeps wake immediately when the run is stopped.
@@ -305,6 +314,10 @@ impl Clock for RealClock {
                 return Err(Aborted);
             }
         }
+    }
+    fn instant_after(&self, at_ms: u64) -> Option<Instant> {
+        // A deadline fires once the clock is strictly past it, hence the extra millisecond.
+        Some(Instant::now() + Duration::from_millis(at_ms.saturating_add(1).saturating_sub(self.now())))
     }
 }
 
@@ -543,10 +556,23 @@ struct ControlState {
     step_once: bool,
 }
 
+/// Process-wide origin of the armed-deadline timestamps, so a deadline fits in one atomic.
+fn deadline_epoch() -> Instant {
+    static EPOCH: OnceLock<Instant> = OnceLock::new();
+    *EPOCH.get_or_init(Instant::now)
+}
+
+fn nanos_since_epoch(at: Instant) -> u64 {
+    u64::try_from(at.saturating_duration_since(deadline_epoch()).as_nanos()).unwrap_or(u64::MAX)
+}
+
 /// Shared stop / pause flags of one run.
 #[derive(Debug)]
 pub struct RunControl {
     stopped: AtomicBool,
+    /// Deadline of the step timeout armed around the current backend call, in nanoseconds since
+    /// [`deadline_epoch`]; 0 = none.
+    deadline: AtomicU64,
     inner: Mutex<ControlState>,
     cv: Condvar,
 }
@@ -562,6 +588,7 @@ impl RunControl {
     pub fn new() -> Self {
         Self {
             stopped: AtomicBool::new(false),
+            deadline: AtomicU64::new(0),
             inner: Mutex::new(ControlState { state: RunState::Idle, paused: false, stop_reason: None, step_once: false }),
             cv: Condvar::new(),
         }
@@ -590,6 +617,48 @@ impl RunControl {
         }
         let _unused = self.cv.wait_timeout(guard, timeout).unwrap_or_else(std::sync::PoisonError::into_inner);
         self.is_stopped()
+    }
+
+    /// Time left until the armed deadline (`None` when nothing is armed, zero once it passed).
+    fn deadline_left(&self) -> Option<Duration> {
+        match self.deadline.load(Ordering::SeqCst) {
+            0 => None,
+            at => Some(Duration::from_nanos(at.saturating_sub(nanos_since_epoch(Instant::now())))),
+        }
+    }
+
+    fn deadline_passed(&self) -> bool {
+        self.deadline_left().is_some_and(|left| left.is_zero())
+    }
+
+    /// True once the current action must give up: a stop was requested, or the step deadline
+    /// armed around this backend call has passed. Backends poll this in blocking work and return
+    /// [`BackendError::aborted`]; the interpreter then tells a stop from a step timeout.
+    pub fn interrupted(&self) -> bool {
+        self.is_stopped() || self.deadline_passed()
+    }
+
+    /// True when the armed step deadline has passed and the run was not stopped.
+    pub fn timed_out(&self) -> bool {
+        !self.is_stopped() && self.deadline_passed()
+    }
+
+    /// Like [`RunControl::wait_for_stop`], but never sleeps past the armed step deadline.
+    /// Returns [`RunControl::interrupted`].
+    pub fn wait_for_interrupt(&self, timeout: Duration) -> bool {
+        let guard = self.lock();
+        if self.interrupted() {
+            return true;
+        }
+        let timeout = self.deadline_left().map_or(timeout, |left| left.min(timeout));
+        let _unused = self.cv.wait_timeout(guard, timeout).unwrap_or_else(std::sync::PoisonError::into_inner);
+        self.interrupted()
+    }
+
+    /// Arms (or with `None` disarms) the step deadline observed by [`RunControl::interrupted`].
+    pub(crate) fn arm_deadline(&self, at: Option<Instant>) {
+        // 0 means "none", so a deadline at or before the epoch is stored as 1 (already passed).
+        self.deadline.store(at.map_or(0, |t| nanos_since_epoch(t).max(1)), Ordering::SeqCst);
     }
 
     /// Blocks while paused; returns [`Aborted`] when stopped.
@@ -1017,11 +1086,7 @@ impl FlowRun {
                         f(&label)
                     } else {
                         let msg = format!("Display {label} is not connected. Use the primary display instead?");
-                        match self.backend.confirm(&msg, &self.shared.control) {
-                            Ok(ok) => ok,
-                            Err(e) if e.aborted => return Err(Signal::Abort),
-                            Err(e) => return Err(Signal::Fail(RunError::new(e.category.unwrap_or(ErrorCategory::Action), e.message))),
-                        }
+                        self.backend_call(|backend, control| backend.confirm(&msg, control))?
                     };
                     self.display_answers.insert(key.clone(), ok);
                     ok
@@ -1543,12 +1608,34 @@ impl FlowRun {
         self.emit(RunEvent::Var { name: name.to_owned(), value, at: self.now() });
     }
 
-    fn perform(&mut self, action: &InputAction) -> Flowing<Value> {
-        match self.backend.perform(action, &self.shared.control) {
-            Ok(v) => Ok(v),
-            Err(e) if e.aborted => Err(Signal::Abort),
-            Err(e) => Err(Signal::Fail(RunError::new(e.category.unwrap_or(ErrorCategory::Action), e.message))),
+    /// Runs one backend call with the nearest step deadline armed on the run's control block, so
+    /// a blocking action (window wait, image search, HTTP, OCR, question box) is pre-empted when
+    /// the deadline passes instead of running to its end.
+    ///
+    /// Any error from a pre-empted action is the timeout of the deadline's owner, exactly as in
+    /// engine.ts where the action rejects with the abort reason of the timed-out scope. An action
+    /// that still succeeds late is caught by the after-the-fact check in [`FlowRun::attempt`].
+    fn backend_call<T>(&mut self, call: impl FnOnce(&mut dyn InputBackend, &RunControl) -> Result<T, BackendError>) -> Flowing<T> {
+        // Nearest deadline; on a tie the outermost (first pushed) one, like `check_deadlines`.
+        let nearest = self.deadlines.iter().min_by_key(|d| d.at).map(|d| (d.id, d.at));
+        let control = &self.shared.control;
+        // Virtual clocks give no instant: nothing is armed and only the checks in `gate` apply.
+        let armed = nearest.and_then(|(id, at)| self.shared.clock.instant_after(at).map(|instant| (id, instant)));
+        control.arm_deadline(armed.map(|(_, instant)| instant));
+        let result = call(self.backend.as_mut(), control);
+        // Read before disarming: afterwards the control block no longer knows about the deadline.
+        let fired = control.timed_out();
+        control.arm_deadline(None);
+        match (result, armed) {
+            (Ok(v), _) => Ok(v),
+            (Err(_), Some((id, _))) if fired => Err(Signal::Timeout(id)),
+            (Err(e), _) if e.aborted => Err(Signal::Abort),
+            (Err(e), _) => Err(Signal::Fail(RunError::new(e.category.unwrap_or(ErrorCategory::Action), e.message))),
         }
+    }
+
+    fn perform(&mut self, action: &InputAction) -> Flowing<Value> {
+        self.backend_call(|backend, control| backend.perform(action, control))
     }
 
     #[allow(clippy::too_many_lines)]
@@ -1656,11 +1743,7 @@ impl FlowRun {
             }
             StepKind::Confirm { message, result_var } => {
                 let message = self.text(message)?;
-                let ok = match self.backend.confirm(&message, &self.shared.control) {
-                    Ok(ok) => ok,
-                    Err(e) if e.aborted => return Err(Signal::Abort),
-                    Err(e) => return Err(Signal::Fail(RunError::new(e.category.unwrap_or(ErrorCategory::Action), e.message))),
-                };
+                let ok = self.backend_call(|backend, control| backend.confirm(&message, control))?;
                 if let Some(var) = result_var {
                     self.set_var(var, Value::Bool(ok));
                 } else if !ok {

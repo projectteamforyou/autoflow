@@ -232,10 +232,12 @@ name = "autoflow-desktop"
 version = "1.0.0"
 dependencies = [
  "autoflow_engine",
+ "base64 0.23.1",
  "chrono",
  "indexmap 2.14.2",
  "serde",
  "serde_json",
+ "sha2",
  "tauri",
  "tauri-build",
  "tauri-plugin-autostart",

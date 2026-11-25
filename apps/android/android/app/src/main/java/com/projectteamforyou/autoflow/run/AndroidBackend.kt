@@ -186,10 +186,8 @@ class AndroidBackend(private val context: Context) : Backend {
      * `<ref>.png` rule as the desktop's images folder (`safe_ref` in apps/desktop: letters, digits, `_ - .`).
      */
     private fun templateFile(ref: String): File {
-        val ok = ref.isNotEmpty() && ref.length <= 200 && !ref.startsWith('.') &&
-            ref.all { (it.isLetterOrDigit() && it.code < 128) || it == '_' || it == '-' || it == '.' }
-        if (!ok) throw BackendException("invalid image reference \"$ref\"", ErrorCategory.VALIDATION)
-        val f = File(File(sandboxRoot(), "images"), "$ref.png")
+        if (!TemplateImages.isValidRef(ref)) throw BackendException("invalid image reference \"$ref\"", ErrorCategory.VALIDATION)
+        val f = File(TemplateImages.dir(context), "$ref.png")
         if (!f.isFile) {
             throw BackendException(
                 "template image \"$ref\" is not on this phone (copy it to Android/data/${context.packageName}/files/AutoFlow/images/$ref.png)",

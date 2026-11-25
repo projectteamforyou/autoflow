@@ -163,3 +163,81 @@ export function moveStep(root: Step[], id: string, to: Location): Step[] {
   const adj = from.parentId === to.parentId && from.slot === to.slot && from.index < to.index ? { ...to, index: to.index - 1 } : to;
   return insertStep(steps, adj, removed);
 }
+
+/* ------------------------------------------------- editor helpers (wrap, collapse, navigation) */
+
+/** Child lists of a container in display order (empty for leaf steps). */
+export function childLists(s: Step): Step[][] {
+  if (s.type === "if") return [s.then, s.else];
+  if (s.type === "try") return [s.body, s.catch];
+  if (s.type === "loop" || s.type === "forEach" || s.type === "group") return [s.body];
+  return [];
+}
+
+export function isContainer(s: Step): boolean {
+  return s.type === "if" || s.type === "try" || s.type === "loop" || s.type === "forEach" || s.type === "group";
+}
+
+/** Number of steps nested anywhere inside a container (the "N steps" badge of a collapsed node). */
+export function countNested(s: Step): number {
+  return childLists(s).reduce((n, l) => n + l.reduce((m, c) => m + 1 + countNested(c), 0), 0);
+}
+
+/** Containers around a step, outermost first; [] for top-level or unknown ids. */
+export function ancestorsOf(root: Step[], id: string): Step[] {
+  const search = (list: Step[], trail: Step[]): Step[] | null => {
+    for (const s of list) {
+      if (s.id === id) return trail;
+      for (const l of childLists(s)) {
+        const r = search(l, [...trail, s]);
+        if (r) return r;
+      }
+    }
+    return null;
+  };
+  return search(root, []) ?? [];
+}
+
+/** Step ids in the order they are drawn, skipping the children of collapsed containers. */
+export function visibleStepIds(root: Step[], isCollapsed: (s: Step) => boolean): string[] {
+  const out: string[] = [];
+  const walk = (list: Step[]) => {
+    for (const s of list) {
+      out.push(s.id);
+      if (!isCollapsed(s)) childLists(s).forEach(walk);
+    }
+  };
+  walk(root);
+  return out;
+}
+
+/** The list a location points into (the siblings of a located step); [] when the parent is gone. */
+export function siblingsAt(root: Step[], loc: Pick<Location, "parentId" | "slot">): Step[] {
+  if (loc.parentId === null) return root;
+  let found: Step[] | undefined;
+  const search = (list: Step[]) => {
+    for (const s of list) {
+      if (found) return;
+      if (s.id === loc.parentId) found = listOf(s, loc.slot) ?? [];
+      else childLists(s).forEach(search);
+    }
+  };
+  search(root);
+  return found ?? [];
+}
+
+export type WrapKind = "group" | "loop" | "try";
+
+/**
+ * Puts a step inside a new container at the same place. Only the wrapper gets a new id: the step
+ * keeps its own (and its children's) ids, so "jump to step" targets and breakpoints stay valid.
+ */
+export function wrapStep(root: Step[], id: string, kind: WrapKind): { steps: Step[]; wrapperId?: string } {
+  const loc = locate(root, id);
+  if (!loc) return { steps: root };
+  const { steps, removed } = removeStep(root, id);
+  if (!removed) return { steps: root };
+  const wrapper = STEP_BY_TYPE[kind].create() as Extract<Step, { type: WrapKind }>;
+  wrapper.body = [removed];
+  return { steps: insertStep(steps, loc, wrapper), wrapperId: wrapper.id };
+}

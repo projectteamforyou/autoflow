@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { App } from "./app/App";
 import { initialLocale, setLocale, t } from "./i18n";
 import { useStore } from "./lib/store";
+import { warnUnreadableFlows } from "./lib/actions";
 import { shell } from "./platform";
 import { installExternalLinks } from "./lib/site";
 import { IdentifyOverlay, identifyParams } from "./pages/IdentifyOverlay";
@@ -43,6 +44,10 @@ async function boot() {
       <App />
     </StrictMode>,
   );
+  // Stored flows that failed validation are kept but not loaded: say so once, with a way to export them.
+  warnUnreadableFlows();
+  // Windows app: offer a newer installer once per session (never in the browser; see lib/version.ts).
+  if (shell === "tauri") void import("./lib/version").then((m) => m.checkDesktopUpdate());
   // Offline support for the browser build only (the native shells load from disk).
   if (shell === "browser" && "serviceWorker" in navigator && import.meta.env.PROD) {
     const { registerSW } = await import("virtual:pwa-register");

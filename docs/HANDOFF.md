@@ -1,6 +1,6 @@
 # AutoFlow — 인수인계 (새 채팅에서 이어서 작업용)
 
-갱신: 2026-11-24 16:35 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#43 (7-9)
+갱신: 2026-11-25 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#45 (7-10, 1.2.0)
 
 ## 1. 현재 배포 상태 (Windows 1.1.2 · Android 1.1.3)
 | 항목 | 값 |
@@ -148,6 +148,21 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
 - **웹 앱**: 동기화가 데이터를 잃지 않음(Keyforge 프로필도 충돌 사본, 원격 삭제 vs 로컬 수정은 로컬 유지 후 재업로드, 끌어온 삭제가 원격 DELETE를 쏘지 않음; `sync.test.ts` 3건), 로그아웃·계정 삭제 시 `sync:state` 초기화(다른 계정이 리비전을 상속하던 문제), 401은 토큰을 실제로 보냈을 때만 세션 삭제, 결제 상태 새로고침이 결제 완료를 덮어쓰는 경쟁 제거, 복귀 URL `message` 비표시(코드→i18n), 건너뛰기 링크·모달 포커스·표 머리글·listbox 접근성, 하드코딩 영어 제거, 사이트의 `af-lang` 언어 선택 승계, 사이트 `md()` 링크 href 이스케이프·스킴 제한
 - **보류/주의**: 단계별 `stepTimeoutMs`가 Windows의 블로킹 액션(window 대기·findImage·http·confirm)을 중단시키지 못함(TS는 AbortSignal) — 백엔드에 deadline 전달 설계 필요. 데스크톱 크레이트는 이 컨테이너에서 Windows 타깃 `cargo check`가 ring 때문에 끝까지 가지 않으므로 PR의 rust.yml Windows 잡으로 확인. 웹 PWA 메인 번들 755 kB(페이지 lazy 분할 후보)
 
+## 7-10. 1.2.0 — 기능·인터페이스 보강 릴리스 (PR #45, 2026-11-25)
+- 방식: 웹·네이티브 두 갈래 공백 분석("프로그램 본질인데 없던 것") → 영역별 구현 → 통합 → 독립 재검토 2회(네이티브 5건, 웹 차단 1건+8건 모두 수정) → 실제 브라우저 E2E 22구간(`node apps/web/scripts/smoke.mjs`, `SMOKE_SHOTS=<dir>`로 스크린샷). 기준선: core 147·API 114·Rust 90·웹 123 테스트(20파일), i18n 1553키×11, PWA precache 54
+- **편집기**: 세션 전체 실행 취소/다시 실행(`lib/history.ts`), 아무 단계에서나 실행·한 단계만 실행(`lib/partialRun.ts`; 네이티브엔 `run_start {transient:true}` → 트리거용 라이브러리 사본·승인 기록을 건드리지 않음), 단계 복사/붙여넣기, group/loop/try로 감싸기, 접기, 단축키 표(`?`), 단계별 시간 제한·재시도 정책 UI, "단계로 이동"은 목록 선택, 실패 단계로 가는 딥링크(`#/flows/<id>?step=`)
+- **라이브러리**: 폴더, 다중 선택 일괄 이동/태그/내보내기/삭제, 마지막 실행순 정렬, 단계 내용 검색, .json 끌어다 놓기 가져오기(검토 화면 `ImportReview`, 같은 id는 "교체/둘 다 유지")
+- **트리거**: 설정을 지우지 않고 끄기(`settings.pausedTriggers`), 두 플로우가 같은 단축키를 쓰면 표시, 등록 실패 사유 표시(`TriggerBadge`)
+- **실행 기록**: 단계별로 접힌 트레이스·소요 시간·가장 느린 단계(`lib/runTrace.ts`), 검색, 다시 실행, 내보내기
+- **비밀값 관리자**(설정): `{{secret:name}}` 값 저장(Windows/Android는 시스템 키 저장소), 어느 플로우가 쓰는지·이 기기에 없는 값 표시
+- **백업**: `autoflow.backup` 한 형식(플로우·Keyforge·설정), 복원 시 폴더·즐겨찾기·중단점·꺼 둔 트리거 유지. 저장 검증(`saveFlow`가 `parseFlow` 통과분만 저장), 읽을 수 없는 저장분은 지우지 않고 `unreadable`로 보관 + "내보내기" 토스트
+- **네이티브 브리지 추가**(`packages/core/src/bridge.ts`): `image_import/list/delete`, `windows_list`, `apps_list`, `open_settings: exactAlarm`, `run_start.transient`
+- **Windows**: 단계 시간 제한이 블로킹 대기(창·이미지·OCR·HTTP·질문)를 실제로 끊음(`RunControl::arm_deadline`; `uia::find_element`만 미포함), 위험 단계 승인을 기억(`approvals.rs` — 단계+변수 해시)해 예약·단축키 실행 허용, 트리거 실행 실패 알림(10분 제한, 사용자가 거절한 경우 제외), 참조 이미지 가져오기(4096px 한도, Windows 장치명 거부), 창 목록
+- **Android**: 참조 이미지 가져오기(2048px 한도·OOM 방어), 앱 목록, 트리거 실행 실패 알림, 예약 실행을 expedited work로(재시도 시 중복 실행 방지), 실행 알림에 현재 단계. **새 `<uses-permission>` 없음**(Play 선언 추가 불필요)
+- **웹 기타**: 화면별 lazy 로딩(시작 번들 755→535 kB) + 화면 단위 ErrorBoundary, 새 버전 안내(PWA), 상단 바가 1280–1536px에서 겹치고 휴대폰에서 Run이 화면 밖으로 나가던 문제 수정
+- **검증 한계(정직하게)**: Windows 트레이·알림·이미지 가져오기와 Android 런타임 동작은 컴파일·단위 테스트까지만(실기기 미실행). Android WebView에서 백업 파일 내려받기(blob)는 기존 방식 그대로라 미확인
+- **릴리스**: PR #45 병합 → `windows.yml`(version 1.2.0) · `android.yml`(version 1.2.0, track production) 디스패치 예정 — 결과는 이 줄에 갱신
+
 ## 8. 러너 메모
 - 회사 PC 러너(FELIXLEE*)는 **LocalSystem** 계정(WiX MSI ICE 검사에 필요). Rust는 `CARGO_HOME=C:\Rust\cargo`
 - 집 PC 러너는 C 드라이브가 가득 참 → 정리 전까지 Windows 릴리스는 `runner_label: OFFICE`
@@ -158,4 +173,5 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
 - 실결제 1건(₩9,900) 후 PortOne 콘솔에서 취소로 끝까지 검증
 - ~~Play 선언 심사 완료 후 `play-upload.yml submit`~~ → 2026-11-24 16:28 KST 제출 완료(7-5). Play 심사 결과(출시됨/거부)만 Console에서 확인
 - 집 PC 러너 디스크 정리, Google 서비스 계정 키 교체, Cloudflare API 토큰 교체(2026-11-19 채팅에 노출 → 새 토큰으로 GitHub 시크릿 `CLOUDFLARE_API_TOKEN` 갱신)
-- 7-9 보류 항목: Windows 단계 타임아웃 선점, 웹 페이지 lazy 분할, 메이저 의존성(React 19·vite 8·vitest 5·zod 4) 이행
+- 7-9 보류 항목 중 남은 것: 메이저 의존성(React 19·vite 8·vitest 5·zod 4) 이행 (단계 타임아웃 선점·lazy 분할은 1.2.0에서 완료)
+- 1.2.0 실기기 확인: Windows 트레이/알림/이미지 가져오기, Android 예약·알림·이미지 가져오기·백업 내려받기; `uia::find_element`에 단계 시간 제한 적용

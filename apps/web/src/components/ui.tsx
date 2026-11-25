@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { analyzeRisk, hotkeyToString, type Flow, type Hotkey, type RiskLevel } from "@autoflow/core";
 import { Icon } from "./Icon";
 import { useT } from "../i18n";
+import { isTopModal, popModal, pushModal } from "../lib/modalStack";
 
 export function Modal({ title, icon, onClose, children, footer, wide }: { title: ReactNode; icon?: string; onClose: () => void; children: ReactNode; footer?: ReactNode; wide?: boolean }) {
   const t = useT();
@@ -13,7 +14,10 @@ export function Modal({ title, icon, onClose, children, footer, wide }: { title:
     const prev = document.activeElement as HTMLElement | null;
     const el = ref.current;
     el?.querySelector<HTMLElement>("input, textarea, select, button.primary, button")?.focus();
+    // Every open modal listens on window; only the top-most one reacts (lib/modalStack.ts).
+    const id = pushModal();
     const onKey = (e: KeyboardEvent) => {
+      if (!isTopModal(id)) return;
       if (e.key === "Escape") {
         e.stopPropagation();
         onCloseRef.current();
@@ -35,6 +39,7 @@ export function Modal({ title, icon, onClose, children, footer, wide }: { title:
     window.addEventListener("keydown", onKey, true);
     return () => {
       window.removeEventListener("keydown", onKey, true);
+      popModal(id);
       prev?.focus?.();
     };
   }, []);

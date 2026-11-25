@@ -3,6 +3,7 @@ package com.projectteamforyou.autoflow.system
 import android.app.AlarmManager
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.hardware.input.InputManager
 import android.os.Build
 import android.os.PowerManager
@@ -14,6 +15,7 @@ import androidx.core.app.NotificationManagerCompat
 import com.projectteamforyou.autoflow.BuildConfig
 import com.projectteamforyou.autoflow.a11y.AutoFlowAccessibilityService
 import com.projectteamforyou.autoflow.engine.ScreenInfo
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
@@ -92,6 +94,8 @@ object DeviceState {
                 "exactAlarms=${if (canScheduleExactAlarms(context)) "granted" else "denied"}",
                 oemHint(),
             ).joinToString(" · ")
+            // Not listed in PERMISSIONS (the web's permission list has no such entry); answered when asked by name.
+            "exactAlarm" -> canScheduleExactAlarms(context) to "exact times for schedules under 15 minutes and cron times"
             "inputMonitoring" -> accessibilityEnabled(context) to "hardware keyboard keys only, through the accessibility service"
             "screenCapture" -> ScreenCapture.isActive to
                 "for pixel, scene, image and text (OCR) steps; Android asks for consent each time AutoFlow starts"
@@ -107,6 +111,26 @@ object DeviceState {
     val PERMISSIONS = listOf(
         "accessibility", "overlay", "notifications", "location", "notificationListener", "batteryOptimization", "inputMonitoring", "screenCapture",
     )
+
+    /**
+     * `apps_list`: apps with a launcher screen, as the manifest's MAIN/LAUNCHER `<queries>` entry lets us see them (the
+     * same apps `launchApp` can start). Sorted by label, one entry per package, at most 500.
+     */
+    fun launchableApps(context: Context): JsonArray {
+        val pm = context.packageManager
+        @Suppress("DEPRECATION")
+        val found = pm.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0)
+        val byPackage = LinkedHashMap<String, String>()
+        for (info in found) {
+            val pkg = info.activityInfo?.packageName ?: continue
+            if (byPackage.containsKey(pkg)) continue
+            byPackage[pkg] = info.loadLabel(pm).toString().trim().ifEmpty { pkg }
+        }
+        val sorted = byPackage.map { it.key to it.value }
+            .sortedWith(compareBy<Pair<String, String>>({ it.second.lowercase() }, { it.first }))
+            .take(500)
+        return buildJsonArray { sorted.forEach { (pkg, label) -> add(buildJsonObject { put("label", label); put("package", pkg) }) } }
+    }
 
     fun deviceInfo(context: Context): JsonObject {
         val s = screen(context)

@@ -7,7 +7,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -35,6 +37,31 @@ class RunService : Service() {
 
         @Volatile private var running = false
         @Volatile private var lastUpdate = 0L
+        @Volatile private var lastStepUpdate = 0L
+        @Volatile private var stepUpdatePending = false
+        private val handler = Handler(Looper.getMainLooper())
+
+        /**
+         * A run moved to another step: refreshes the notification's text, at most once per second (fast loops change
+         * step many times a second). A change inside that second is shown when the second is over.
+         */
+        fun updateStep(context: Context) {
+            if (!running) return
+            val app = context.applicationContext
+            val wait = 1000 - (SystemClock.elapsedRealtime() - lastStepUpdate)
+            if (wait <= 0) {
+                lastStepUpdate = SystemClock.elapsedRealtime()
+                update(app)
+                return
+            }
+            if (stepUpdatePending) return
+            stepUpdatePending = true
+            handler.postDelayed({
+                stepUpdatePending = false
+                lastStepUpdate = SystemClock.elapsedRealtime()
+                update(app)
+            }, wait)
+        }
 
         /** Starts, refreshes or stops the service to match RunManager. Throttled to ~4 updates/s. */
         fun update(context: Context) {
@@ -80,7 +107,8 @@ class RunService : Service() {
             val text = when (first?.state) {
                 RunState.COUNTDOWN -> context.getString(R.string.run_state_countdown, ((first.countdownMs + 999) / 1000).toInt())
                 RunState.PAUSED -> context.getString(R.string.run_state_paused)
-                else -> context.getString(R.string.run_state_running)
+                // The step in progress (its type, e.g. "tap" or "waitFor"); the Stop action is right below.
+                else -> first?.stepLabel?.takeIf { it.isNotBlank() } ?: context.getString(R.string.run_state_running)
             }
             val paused = runs.isNotEmpty() && runs.all { it.state == RunState.PAUSED }
             return NotificationCompat.Builder(context, Notifications.CHANNEL_RUNS)

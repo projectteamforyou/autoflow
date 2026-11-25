@@ -37,6 +37,16 @@ object ImageMatch {
     fun loadTemplate(file: File): Gray {
         if (!file.isFile) throw BackendException("template image ${file.path} not found", ErrorCategory.TARGET)
         val opts = BitmapFactory.Options().apply { inPreferredConfig = android.graphics.Bitmap.Config.ARGB_8888 }
+        // Files copied in by hand are not size-checked like imports: a huge image must fail this step, not kill the app
+        // (OutOfMemoryError is not an Exception, so nothing further up would catch it).
+        try {
+            return decodeTemplate(file, opts)
+        } catch (_: OutOfMemoryError) {
+            throw BackendException("template image ${file.name} is too large for this device", ErrorCategory.ACTION)
+        }
+    }
+
+    private fun decodeTemplate(file: File, opts: BitmapFactory.Options): Gray {
         val bmp = BitmapFactory.decodeFile(file.path, opts) ?: throw BackendException("invalid PNG: ${file.name}", ErrorCategory.ACTION)
         val w = bmp.width
         val h = bmp.height

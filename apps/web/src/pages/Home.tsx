@@ -7,6 +7,7 @@ import { Icon } from "../components/Icon";
 import { StudioPromoCard } from "../components/StudioPromo";
 import { TrialHero } from "../components/TrialBanner";
 import { FlowIcon, SafetyBadge } from "../components/ui";
+import { TriggerBadge } from "../components/TriggerBadge";
 import { useStore } from "../lib/store";
 import { formatDuration, formatRelative, tp, useT } from "../i18n";
 import { startFlow } from "../lib/actions";
@@ -175,16 +176,20 @@ export function RunStatus({ status }: { status: string }) {
   return <span className={`badge ${cls}`}>{t(`run.status.${status}`)}</span>;
 }
 
-/** Flow tile. Only the title is a link (buttons inside a link would be nested interactive content). `actions` renders extra icon buttons in the footer. */
-export function FlowCard({ id, actions }: { id: string; actions?: ReactNode }) {
+/**
+ * Flow tile. Only the title is a link (buttons inside a link would be nested interactive content). `actions` renders extra icon buttons in the footer.
+ * `select` (Library selection mode) puts a checkbox in place of the favorite star.
+ */
+export function FlowCard({ id, actions, select }: { id: string; actions?: ReactNode; select?: { checked: boolean; onToggle: () => void } }) {
   const t = useT();
   const flow = useStore((s) => s.flows.find((f) => f.id === id));
   const save = useStore((s) => s.saveFlow);
   const navigate = useNavigate();
   if (!flow) return null;
   return (
-    <div className="card hover flow-card">
+    <div className={`card hover flow-card${select?.checked ? " selected" : ""}`}>
       <div className="row">
+        {select && <input type="checkbox" className="check" checked={select.checked} onChange={select.onToggle} aria-label={t("flows.select.one", { name: flow.name })} />}
         <FlowIcon flow={flow} />
         <div className="grow" style={{ minWidth: 0 }}>
           <Link to={`/flows/${flow.id}`} className="truncate" style={{ display: "block", fontWeight: 700, color: "inherit", textDecoration: "none" }}>{flow.name}</Link>
@@ -205,6 +210,7 @@ export function FlowCard({ id, actions }: { id: string; actions?: ReactNode }) {
           <span key={tag} className="badge">#{tag}</span>
         ))}
       </div>
+      <TriggerBadge flow={flow} />
       <div className="row between">
         <span className="small subtle">{formatRelative(Date.parse(flow.updatedAt))}</span>
         <div className="row" style={{ gap: 4 }}>

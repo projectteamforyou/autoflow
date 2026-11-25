@@ -1,5 +1,9 @@
-AutoFlow 1.1.3
-• Android ya lee la pantalla: comprobación de píxeles, espera de color, coincidencia de escena, búsqueda de imagen de referencia y texto en pantalla (OCR), tras dar el consentimiento de captura
-• Detener también cancela una pulsación larga o un arrastre en curso
-• El OCR se ejecuta en el dispositivo con los servicios de Google Play (latín, coreano, japonés, chino)
-• El servicio de accesibilidad se explica en la app, en 12 idiomas, antes de abrir Ajustes
+AutoFlow 1.2.0
+• Deshacer/rehacer en el editor; ejecuta desde un paso o solo ese paso
+• Carpetas, selección múltiple y acciones en lote
+• Desactiva una programación o atajo sin perder su ajuste
+• Gestor de secretos para {{secret:name}}
+• Importa imágenes de referencia desde la app
+• El historial muestra el tiempo de cada paso
+• Aviso cuando falla un flujo programado
+• Inicio más fiable con el teléfono en reposo
