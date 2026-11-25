@@ -476,3 +476,6 @@ html.identify, html.identify body, html.identify #root { background: transparent
 .business-steps li.current { color: var(--af-text); font-weight: 600; }
 .business-steps li.current > span { background: var(--af-primary); border-color: transparent; color: #fff; }
 .business-steps li.done > span { background: color-mix(in oklab, var(--af-success, #22C55E) 20%, transparent); border-color: transparent; color: var(--af-success, #22C55E); }
+
+/* Route chunk still loading (lazy pages): keep the background, no layout jump. */
+.page-loading { min-height: 100vh; }

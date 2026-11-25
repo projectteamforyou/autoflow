@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { Suspense, lazy, useEffect, type ComponentType } from "react";
 import { HashRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { hotkeyToString } from "@autoflow/core";
 import { useStore } from "../lib/store";
@@ -8,22 +8,27 @@ import { haltAll } from "../lib/runner";
 import { invoke, hasNativeBridge } from "../platform";
 import { Home } from "../pages/Home";
 import { Library } from "../pages/Library";
-import { EditorPage } from "../pages/editor/Editor";
-import { CanvasPage } from "../pages/Canvas";
-import { LedgerPage } from "../pages/Ledger";
-import { AtlasPage } from "../pages/Atlas";
-import { KeyforgePage } from "../pages/Keyforge";
-import { CopilotPage } from "../pages/Copilot";
-import { StudioPage } from "../pages/Studio";
-import { FleetPage } from "../pages/Fleet";
-import { SettingsPage } from "../pages/Settings";
 import { Onboarding } from "../pages/Onboarding";
-import { NewFlowPage } from "../pages/NewFlow";
-import { ImportFlowPage } from "../pages/ImportFlow";
-import { BillingReturnPage } from "../pages/Billing";
-import { BusinessPage } from "../pages/Business";
-import { AdminPage } from "../pages/Admin";
-import { StagePage } from "../pages/Stage";
+
+// Home and the library open instantly; every other screen is its own chunk, fetched the first time it is
+// opened (from disk in the desktop / Android shells, from the precache in the PWA). The start-up bundle was
+// one 755 kB file that also carried the operator page, billing and the editors.
+const page = <K extends string>(load: () => Promise<Record<K, ComponentType>>, name: K) => lazy(() => load().then((m) => ({ default: m[name] })));
+const EditorPage = page(() => import("../pages/editor/Editor"), "EditorPage");
+const CanvasPage = page(() => import("../pages/Canvas"), "CanvasPage");
+const LedgerPage = page(() => import("../pages/Ledger"), "LedgerPage");
+const AtlasPage = page(() => import("../pages/Atlas"), "AtlasPage");
+const KeyforgePage = page(() => import("../pages/Keyforge"), "KeyforgePage");
+const CopilotPage = page(() => import("../pages/Copilot"), "CopilotPage");
+const StudioPage = page(() => import("../pages/Studio"), "StudioPage");
+const FleetPage = page(() => import("../pages/Fleet"), "FleetPage");
+const SettingsPage = page(() => import("../pages/Settings"), "SettingsPage");
+const NewFlowPage = page(() => import("../pages/NewFlow"), "NewFlowPage");
+const ImportFlowPage = page(() => import("../pages/ImportFlow"), "ImportFlowPage");
+const BillingReturnPage = page(() => import("../pages/Billing"), "BillingReturnPage");
+const BusinessPage = page(() => import("../pages/Business"), "BusinessPage");
+const AdminPage = page(() => import("../pages/Admin"), "AdminPage");
+const StagePage = page(() => import("../pages/Stage"), "StagePage");
 
 function Guard({ children }: { children: JSX.Element }) {
   const onboarded = useStore((s) => s.settings.onboarded);
@@ -72,6 +77,7 @@ export function App() {
   return (
     <HashRouter>
       <Effects />
+      <Suspense fallback={<div className="page-loading" role="status" aria-busy="true" />}>
       <Routes>
         <Route path="/welcome" element={<Onboarding />} />
         <Route path="/import" element={<ImportFlowPage />} />
@@ -96,6 +102,7 @@ export function App() {
         <Route path="/admin" element={<Guard><AdminPage /></Guard>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </Suspense>
       <PulseBar />
       <Toasts />
       <DialogHost />
