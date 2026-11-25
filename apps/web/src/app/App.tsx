@@ -6,6 +6,7 @@ import { applyTheme, DialogHost, PulseBar, Toasts } from "../components/Shell";
 import { keyFromEvent } from "../components/ui";
 import { haltAll } from "../lib/runner";
 import { invoke, hasNativeBridge } from "../platform";
+import { armedFlows } from "../lib/triggers";
 import { Home } from "../pages/Home";
 import { Library } from "../pages/Library";
 import { Onboarding } from "../pages/Onboarding";
@@ -60,16 +61,23 @@ function Effects() {
     return () => window.removeEventListener("keydown", onKey, true);
   }, [settings.haltHotkey]);
   // Keep native trigger registrations (hotkeys, schedules, device events) in sync with the library.
+  // Paused triggers are simply left out, so the native side unregisters them; the flows stay unchanged.
+  const paused = settings.pausedTriggers;
   useEffect(() => {
     if (!hasNativeBridge) return;
     const id = setTimeout(() => {
-      const triggered = flows.filter((f) => f.trigger.type !== "manual" || f.hotkeys.start);
-      void invoke("triggers_sync", { flows: triggered, emergencyStop: settings.haltHotkey })
-        .then((r) => r.failed.forEach((f) => useStore.getState().toast("warning", `${flows.find((x) => x.id === f.flowId)?.name ?? f.flowId}: ${f.reason}`)))
+      void invoke("triggers_sync", { flows: armedFlows(flows, paused), emergencyStop: settings.haltHotkey })
+        .then((r) => {
+          const st = useStore.getState();
+          // Toast only what is newly failing (this runs after every library edit); the Library badge shows the reason for as long as it lasts.
+          const before = st.triggerFailures;
+          for (const f of r.failed) if (before[f.flowId] !== f.reason) st.toast("warning", `${flows.find((x) => x.id === f.flowId)?.name ?? f.flowId}: ${f.reason}`);
+          st.setTriggerFailures(r.failed);
+        })
         .catch(() => undefined);
     }, 800);
     return () => clearTimeout(id);
-  }, [flows, settings.haltHotkey]);
+  }, [flows, paused, settings.haltHotkey]);
   return null;
 }
 

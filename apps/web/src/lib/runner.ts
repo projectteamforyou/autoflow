@@ -76,16 +76,19 @@ function begin(flow: Flow, where: "canvas" | "native", runId: string, plat: Plat
 
 function onEvent(l: Live, e: RunEvent): void {
   l.record.events.push(e);
-  if (l.record.events.length > 2500) l.record.events.splice(0, 500);
+  if (l.record.events.length > 2500) {
+    l.record.events.splice(0, 500);
+    l.record.dropped = (l.record.dropped ?? 0) + 500; // the Ledger says how much of the log is missing
+  }
   const set = useStore.getState().setActive;
   if (e.type === "state") set((a) => (a && a.runId === l.runId ? { ...a, state: e.state, countdownMs: e.state === "countdown" ? a.countdownMs : undefined } : a));
   else if (e.type === "countdown") set((a) => (a && a.runId === l.runId ? { ...a, countdownMs: e.remainingMs } : a));
-  else if (e.type === "stepStart") set((a) => (a && a.runId === l.runId ? { ...a, stepId: e.stepId, actions: a.actions + (["click", "move", "drag", "scroll", "key", "type"].includes(e.stepType) ? 1 : 0) } : a));
+  else if (e.type === "stepStart") set((a) => (a && a.runId === l.runId ? { ...a, stepId: e.stepId, stepType: e.stepType, actions: a.actions + (["click", "move", "drag", "scroll", "key", "type"].includes(e.stepType) ? 1 : 0) } : a));
 }
 
 async function end(l: Live, result: RunResult): Promise<void> {
   live.delete(l.runId);
-  Object.assign(l.record, { status: result.status, reason: result.reason, error: result.error, actions: result.actions, iterations: result.iterations, durationMs: result.durationMs, endedAt: Date.now() });
+  Object.assign(l.record, { status: result.status, reason: result.reason, error: result.error, actions: result.actions, iterations: result.iterations, steps: result.steps, durationMs: result.durationMs, endedAt: Date.now() });
   const st = useStore.getState();
   await st.recordRun(l.record);
   st.setActive((a) => (a && a.runId === l.runId ? null : a));

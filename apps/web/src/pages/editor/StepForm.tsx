@@ -1,16 +1,32 @@
-import { useState, type ReactNode } from "react";
-import { FUNCTION_NAMES, STEP_CAPABILITIES, checkExpr, type Flow, type LintIssue, type Step, type Target } from "@autoflow/core";
+import { useEffect, useState, type ReactNode } from "react";
+import { FUNCTION_NAMES, STEP_CAPABILITIES, checkExpr, type Flow, type LintIssue, type OnError, type Step, type Target } from "@autoflow/core";
 import { Icon } from "../../components/Icon";
 import { Field, HotkeyInput, Seg, Switch } from "../../components/ui";
-import { STEP_BY_TYPE } from "../../lib/steps";
+import { STEP_BY_TYPE, type WrapKind } from "../../lib/steps";
+import type { PartialMode } from "../../lib/partialRun";
 import { useStore } from "../../lib/store";
 import { useT } from "../../i18n";
 import { hasNativeBridge, invoke, platform } from "../../platform";
 import { ConditionEditor, DisplayPicker, MatchSceneFields, PixelCheckFields, WaitForPixelFields } from "./MultiMonitorFields";
 
-type Props = { step: Step; flow: Flow; issues: LintIssue[]; onChange: (s: Step) => void; onDelete: () => void; onDuplicate: () => void; onClose: () => void };
+type Props = {
+  step: Step;
+  flow: Flow;
+  issues: LintIssue[];
+  onChange: (s: Step) => void;
+  onDelete: () => void;
+  onDuplicate: () => void;
+  onClose: () => void;
+  /** Reorder among siblings — the only way to move a step on a phone (no drag & drop, no Alt+arrows). */
+  onMove: (dir: -1 | 1) => void;
+  position: { first: boolean; last: boolean };
+  onWrap: (kind: WrapKind) => void;
+  /** Starts a temporary, unsaved partial run (see lib/partialRun.ts). */
+  onRun: (mode: PartialMode) => void;
+  onShortcuts: () => void;
+};
 
-export function StepForm({ step, flow, issues, onChange, onDelete, onDuplicate, onClose }: Props) {
+export function StepForm({ step, flow, issues, onChange, onDelete, onDuplicate, onClose, onMove, position, onWrap, onRun, onShortcuts }: Props) {
   const t = useT();
   const meta = STEP_BY_TYPE[step.type];
   const cap = STEP_CAPABILITIES[step.type][platform];
@@ -46,7 +62,14 @@ export function StepForm({ step, flow, issues, onChange, onDelete, onDuplicate, 
       <Field label={t("editor.label")} hint={t("editor.labelHint")}>
         <input className="input" value={step.label ?? ""} maxLength={120} onChange={(e) => set({ label: e.target.value || undefined })} />
       </Field>
-      <OnErrorEditor step={step} set={set} />
+      <Field label={t("editor.stepTimeout")} hint={t("editor.stepTimeoutHint")}>
+        <div className="input-group">
+          {/* Seconds in the form, whole milliseconds (1 ms … 24 h) in the flow; empty = no limit. */}
+          <OptionalNumber value={step.stepTimeoutMs} scale={1000} min={1} max={86_400_000} step={0.5} onChange={(stepTimeoutMs) => set({ stepTimeoutMs })} label={t("editor.stepTimeout")} />
+          <span className="small muted">s</span>
+        </div>
+      </Field>
+      <OnErrorEditor step={step} set={set} flow={flow} />
       <div className="row between">
         <span className="label">{t("editor.disabledStep")}</span>
         <Switch checked={!!step.disabled} onChange={(v) => set({ disabled: v || undefined })} label={t("editor.disabledStep")} />
@@ -55,35 +78,110 @@ export function StepForm({ step, flow, issues, onChange, onDelete, onDuplicate, 
         <span className="label">{t("editor.breakpoint")}</span>
         <Switch checked={!!step.breakpoint} onChange={(v) => set({ breakpoint: v || undefined })} label={t("editor.breakpoint")} />
       </div>
-      <div className="row">
+      <div className="divider" />
+      <div className="row wrap">
+        <button className="btn sm" onClick={() => onRun("from")}><Icon name="SkipForward" size={14} /> {t("editor.runFromHere")}</button>
+        <button className="btn sm" onClick={() => onRun("only")}><Icon name="PlayCircle" size={14} /> {t("editor.runOnlyThis")}</button>
+      </div>
+      <p className="hint">{t("editor.partialRunHint")}</p>
+      <div className="divider" />
+      <div className="row wrap">
+        <button className="btn sm" disabled={position.first} onClick={() => onMove(-1)}><Icon name="ArrowUp" size={14} /> {t("editor.moveUp")}</button>
+        <button className="btn sm" disabled={position.last} onClick={() => onMove(1)}><Icon name="ArrowDown" size={14} /> {t("editor.moveDown")}</button>
         <button className="btn sm" onClick={onDuplicate}><Icon name="Copy" size={14} /> {t("flows.duplicate")}</button>
         <button className="btn sm danger" onClick={onDelete}><Icon name="Trash2" size={14} /> {t("common.delete")}</button>
       </div>
-      <p className="hint">{t("editor.shortcuts")}</p>
+      <div className="row wrap" role="group" aria-label={t("editor.wrapIn")}>
+        <span className="label">{t("editor.wrapIn")}</span>
+        {(["group", "loop", "try"] as const).map((kind) => (
+          <button key={kind} className="btn sm" onClick={() => onWrap(kind)}><Icon name={STEP_BY_TYPE[kind].icon} size={14} /> {t(`step.${kind}`)}</button>
+        ))}
+      </div>
+      <button type="button" className="btn sm ghost" style={{ justifySelf: "start" }} onClick={onShortcuts}><Icon name="Keyboard" size={14} /> {t("shortcuts.title")}</button>
     </div>
   );
 }
 
-function OnErrorEditor({ step, set }: { step: Step; set: (p: Record<string, unknown>) => void }) {
+/**
+ * Number field for an optional value: empty means "not set" (undefined). Keeps the typed text as a
+ * draft so "0." or a cleared field is not rewritten mid-typing, and follows outside changes (undo).
+ * `scale` converts the shown unit to the stored one (1000: seconds shown, milliseconds stored).
+ */
+function OptionalNumber({ value, onChange, scale = 1, min, max, step = 1, label, placeholder = "—" }: { value: number | undefined; onChange: (n: number | undefined) => void; scale?: number; min: number; max: number; step?: number; label: string; placeholder?: string }) {
+  const show = (v: number | undefined) => (v === undefined ? "" : String(+(v / scale).toFixed(3)));
+  const parse = (text: string) => {
+    const n = Number(text);
+    return text.trim() === "" || !Number.isFinite(n) || n <= 0 ? undefined : Math.max(min, Math.min(max, Math.round(n * scale)));
+  };
+  const [draft, setDraft] = useState(() => show(value));
+  useEffect(() => {
+    setDraft((d) => (parse(d) === value ? d : show(value)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+  return <input className="input" type="number" min={0} max={max / scale} step={step} placeholder={placeholder} value={draft} aria-label={label} onChange={(e) => { setDraft(e.target.value); onChange(parse(e.target.value)); }} onBlur={() => setDraft(show(value))} />;
+}
+
+function OnErrorEditor({ step, set, flow }: { step: Step; set: (p: Record<string, unknown>) => void; flow: Flow }) {
   const t = useT();
-  const oe = step.onError ?? { strategy: "stop" as const, retries: 0, backoffMs: 500 };
+  const oe: OnError = step.onError ?? { strategy: "stop", retries: 0, backoffMs: 500 };
+  const patch = (p: Partial<OnError>) => set({ onError: { ...oe, ...p } });
+  // "Jump to step" can only land on a top-level step (schema + engine), so that is all the list offers.
+  const targets = flow.steps.map((s, i) => ({ id: s.id, text: `${i + 1}. ${s.label ?? t(`step.${s.type}`)}` }));
+  const others = targets.filter((x) => x.id !== step.id);
+  const gotoOk = !!oe.gotoStepId && targets.some((x) => x.id === oe.gotoStepId);
+  const pick = (strategy: OnError["strategy"]) => {
+    if (strategy === "stop") return set({ onError: undefined });
+    // The schema rejects "goto" without a target (the save would fail), so one is chosen right away.
+    patch({ strategy, retries: strategy === "retry" ? Math.max(1, oe.retries) : oe.retries, gotoStepId: strategy === "goto" && !gotoOk ? others[0]?.id : oe.gotoStepId });
+  };
   return (
-    <Field label={t("editor.onError")}>
-      <select className="select" value={oe.strategy} onChange={(e) => set({ onError: e.target.value === "stop" ? undefined : { ...oe, strategy: e.target.value, retries: e.target.value === "retry" ? Math.max(1, oe.retries) : oe.retries } })}>
-        {(["stop", "continue", "retry", "goto"] as const).map((s) => (
-          <option key={s} value={s}>{t(`onError.${s}`)}</option>
-        ))}
-      </select>
+    <>
+      <Field label={t("editor.onError")}>
+        <select className="select" value={oe.strategy} onChange={(e) => pick(e.target.value as OnError["strategy"])}>
+          {(["stop", "continue", "retry", "goto"] as const).map((s) => (
+            // No other top-level step to jump to: the option cannot produce a valid flow.
+            <option key={s} value={s} disabled={s === "goto" && oe.strategy !== "goto" && others.length === 0}>{t(`onError.${s}`)}</option>
+          ))}
+        </select>
+        {oe.strategy === "retry" && (
+          <div className="row">
+            <input className="input" type="number" min={1} max={10} value={oe.retries} onChange={(e) => patch({ retries: Math.max(1, Math.min(10, Number(e.target.value) || 1)) })} aria-label={t("editor.retries")} />
+            <span className="small muted">{t("editor.retries")}</span>
+            <input className="input" type="number" min={0} max={60000} step={100} value={oe.backoffMs} onChange={(e) => patch({ backoffMs: Math.max(0, Number(e.target.value) || 0) })} aria-label={t("editor.backoff")} />
+            <span className="small muted">ms</span>
+          </div>
+        )}
+        {oe.strategy === "goto" && (
+          <select className="select" value={gotoOk ? oe.gotoStepId : ""} onChange={(e) => e.target.value && patch({ gotoStepId: e.target.value })} aria-label={t("onError.goto")} aria-invalid={!gotoOk}>
+            <option value="" disabled>—</option>
+            {targets.map((x) => <option key={x.id} value={x.id}>{x.text}</option>)}
+          </select>
+        )}
+        {oe.strategy === "goto" && !gotoOk && <small className="hint" style={{ color: "var(--af-danger)" }}>{t("lint.badGoto")}</small>}
+      </Field>
       {oe.strategy === "retry" && (
-        <div className="row">
-          <input className="input" type="number" min={1} max={10} value={oe.retries} onChange={(e) => set({ onError: { ...oe, retries: Math.max(1, Math.min(10, Number(e.target.value) || 1)) } })} aria-label={t("editor.retries")} />
-          <span className="small muted">{t("editor.retries")}</span>
-          <input className="input" type="number" min={0} max={60000} step={100} value={oe.backoffMs} onChange={(e) => set({ onError: { ...oe, backoffMs: Math.max(0, Number(e.target.value) || 0) } })} aria-label={t("editor.backoff")} />
-          <span className="small muted">ms</span>
+        <div className="grid cols-2">
+          <Field label={t("editor.backoffCurve")}>
+            {/* Unset means linear in every executor, so "linear" is stored as no value. */}
+            <select className="select" value={oe.backoff ?? "linear"} onChange={(e) => patch({ backoff: e.target.value === "linear" ? undefined : (e.target.value as OnError["backoff"]) })}>
+              {(["fixed", "linear", "exponential"] as const).map((b) => <option key={b} value={b}>{t(`backoff.${b}`)}</option>)}
+            </select>
+          </Field>
+          <Field label={t("editor.maxBackoff")}>
+            <div className="input-group">
+              <OptionalNumber value={oe.maxBackoffMs} min={0} max={86_400_000} step={100} onChange={(maxBackoffMs) => patch({ maxBackoffMs })} label={t("editor.maxBackoff")} />
+              <span className="small muted">ms</span>
+            </div>
+          </Field>
+          <Field label={t("editor.retryJitter")} hint={t("editor.retryJitterHint")}>
+            <div className="input-group">
+              <input className="input" type="number" min={0} max={100} step={5} value={Math.round((oe.jitter ?? 0) * 100)} onChange={(e) => patch({ jitter: Math.max(0, Math.min(100, Number(e.target.value) || 0)) / 100 || undefined })} />
+              <span className="small muted">%</span>
+            </div>
+          </Field>
         </div>
       )}
-      {oe.strategy === "goto" && <input className="input mono" placeholder="step id" value={oe.gotoStepId ?? ""} onChange={(e) => set({ onError: { ...oe, gotoStepId: e.target.value || undefined } })} />}
-    </Field>
+    </>
   );
 }
 

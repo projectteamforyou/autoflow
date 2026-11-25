@@ -9,7 +9,8 @@ import { ApiError, auth, type User } from "../lib/api";
 import { deriveSyncKey, keyCheck } from "../lib/crypto";
 import { hasSyncKey, resetSyncState, setSyncKey, syncNow } from "../lib/sync";
 import { confirmDialog, promptDialog } from "../lib/dialog";
-import { restoreBackupFile, toastRestored } from "../lib/actions";
+import { downloadBackup, restoreBackupFile, toastRestored } from "../lib/actions";
+import { SecretsCard } from "./SecretsCard";
 import { formatNumber, formatRelative, getLocale, setLocale, useLocale, useT } from "../i18n";
 import { usePublicStats } from "../lib/stats";
 import { hasNativeBridge, invoke } from "../platform";
@@ -71,13 +72,16 @@ export function SettingsPage() {
           {hasNativeBridge && <AutostartRow />}
         </section>
 
+        <SecretsCard />
+
         <AccountSection />
 
         <section className="card stack">
           <h3><Icon name="FileJson" size={16} /> {t("settings.data")}</h3>
           <p className="hint">{t("settings.dataHint")}</p>
           <div className="row wrap">
-            <button className="btn" onClick={() => { const st = useStore.getState(); download(`autoflow-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ format: "autoflow.backup", version: 1, exportedAt: new Date().toISOString(), flows: st.flows, profiles: st.profiles, settings: { ...st.settings, sync: undefined } }, null, 2)); }}><Icon name="Download" size={15} /> {t("settings.exportAll")}</button>
+            {/* Same file as the Library "Backup" button: flows, Keyforge profiles and settings (never secrets, sync or account state). */}
+            <button className="btn" onClick={() => downloadBackup()}><Icon name="Download" size={15} /> {t("settings.exportAll")}</button>
             <button className="btn" onClick={async () => {
               const file = await pickFile(".json,application/json");
               if (!file) return;

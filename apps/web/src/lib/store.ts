@@ -49,6 +49,8 @@ export interface Settings {
   sync: { enabled: boolean; accountId?: string; email?: string; keyCheck?: string; cursor?: string; lastSyncAt?: number };
   ai: AiSettings;
   ledgerRetentionDays: number;
+  /** Flow ids whose trigger / start hotkey is switched off: the flow is unchanged, it is just not registered natively. */
+  pausedTriggers: string[];
 }
 
 export const DEFAULT_API_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? "https://api.autoflowmacro.com";
@@ -67,6 +69,7 @@ export const DEFAULT_SETTINGS: Settings = {
   sync: { enabled: false },
   ai: { provider: "none", presetId: "openai", baseUrl: "https://api.openai.com/v1", model: "gpt-4.1-mini", imageModel: "gpt-image-1", localOnly: false, useRelay: false },
   ledgerRetentionDays: 30,
+  pausedTriggers: [],
 };
 
 export interface RunRecord {
@@ -80,10 +83,14 @@ export interface RunRecord {
   error?: RunResult["error"];
   actions: number;
   iterations: number;
+  /** Executed steps (attempts included); absent on runs recorded before it was stored. */
+  steps?: number;
   durationMs: number;
   startedAt: number;
   endedAt?: number;
   events: RunEvent[];
+  /** Oldest events that were cut because the log is capped (live buffer and storage). */
+  dropped?: number;
 }
 
 export interface ActiveRun {
@@ -93,6 +100,8 @@ export interface ActiveRun {
   where: "canvas" | "native";
   state: string;
   stepId?: string;
+  /** Type of the step that is running (Pulse bar label when the step has no name). */
+  stepType?: string;
   countdownMs?: number;
   startedAt: number;
   actions: number;
@@ -122,6 +131,8 @@ interface State {
   settings: Settings;
   active: ActiveRun | null;
   toasts: Toast[];
+  /** flow id → reason from the last `triggers_sync` (native apps): why that trigger could not be registered. */
+  triggerFailures: Record<string, string>;
   init(): Promise<void>;
   saveFlow(flow: Flow, opts?: { snapshot?: boolean; note?: string }): Promise<Flow>;
   /** `remote: false` skips the server tombstone (used when applying a deletion that came from the server). */
@@ -138,12 +149,21 @@ interface State {
   updateSettings(patch: Partial<Settings>): Promise<void>;
   toast(kind: Toast["kind"], text: string, action?: Toast["action"]): void;
   dismissToast(id: number): void;
-  importFlows(flows: Flow[]): Promise<number>;
+  setTriggerFailures(failed: { flowId: string; reason: string }[]): void;
+  /** Switches a flow's trigger off (paused) or back on without editing the flow. */
+  setTriggerPaused(flowIds: string[], paused: boolean): Promise<void>;
+  /**
+   * Saves validated flows. A flow whose id already exists is saved as a copy with a new id ("copy",
+   * the default) or replaces the local one ("replace", the old steps stay in the version history).
+   * `idMap` holds old → new id for the copies.
+   */
+  importFlows(flows: Flow[], onConflict?: "copy" | "replace"): Promise<{ count: number; idMap: Map<string, string> }>;
   wipeLocalData(): Promise<void>;
 }
 
 const MAX_VERSIONS = 30;
 const MAX_RUNS = 300;
+const MAX_RUN_EVENTS = 2000;
 let toastSeq = 0;
 
 export const useStore = create<State>((set, get) => ({
@@ -154,6 +174,7 @@ export const useStore = create<State>((set, get) => ({
   settings: DEFAULT_SETTINGS,
   active: null,
   toasts: [],
+  triggerFailures: {},
 
   async init() {
     const [rawFlows, rawProfiles, runs, storedSettings] = await Promise.all([db.all<unknown>("flows"), db.all<unknown>("profiles"), db.all<RunRecord>("runs"), kv.get<Partial<Settings>>("settings")]);
@@ -170,6 +191,9 @@ export const useStore = create<State>((set, get) => ({
     // Move devices that saved the launch-era API address to the custom domain.
     if (storedSettings?.apiUrl === "https://api-production-1dc3.up.railway.app") storedSettings.apiUrl = DEFAULT_API_URL;
     const settings: Settings = { ...DEFAULT_SETTINGS, ...storedSettings, sync: { ...DEFAULT_SETTINGS.sync, ...storedSettings?.sync }, ai: { ...DEFAULT_SETTINGS.ai, ...storedSettings?.ai } };
+    // Paused ids of flows that no longer exist (deleted, wiped) are dropped here rather than on delete, so "Undo" keeps the switch off.
+    const known = new Set(flows.map((f) => f.id));
+    settings.pausedTriggers = (Array.isArray(settings.pausedTriggers) ? settings.pausedTriggers : []).filter((id) => known.has(id));
     const cutoff = Date.now() - settings.ledgerRetentionDays * 86_400_000;
     const kept = runs.filter((r) => r.startedAt >= cutoff).sort((a, b) => b.startedAt - a.startedAt);
     for (const r of runs) if (r.startedAt < cutoff) void db.delete("runs", r.id);
@@ -233,7 +257,8 @@ export const useStore = create<State>((set, get) => ({
   },
 
   async recordRun(r) {
-    const trimmed = { ...r, events: r.events.slice(-2000) };
+    const cut = Math.max(0, r.events.length - MAX_RUN_EVENTS);
+    const trimmed: RunRecord = cut ? { ...r, events: r.events.slice(-MAX_RUN_EVENTS), dropped: (r.dropped ?? 0) + cut } : r;
     await db.put("runs", trimmed);
     const runs = [trimmed, ...get().runs.filter((x) => x.id !== r.id)].slice(0, MAX_RUNS);
     set({ runs });
@@ -270,19 +295,37 @@ export const useStore = create<State>((set, get) => ({
     set({ toasts: get().toasts.filter((t) => t.id !== id) });
   },
 
-  async importFlows(flows) {
-    let n = 0;
+  setTriggerFailures(failed) {
+    set({ triggerFailures: Object.fromEntries(failed.map((f) => [f.flowId, f.reason])) });
+  },
+
+  async setTriggerPaused(flowIds, paused) {
+    const cur = new Set(get().settings.pausedTriggers);
+    for (const id of flowIds) {
+      if (paused) cur.add(id);
+      else cur.delete(id);
+    }
+    await get().updateSettings({ pausedTriggers: [...cur] });
+  },
+
+  async importFlows(flows, onConflict = "copy") {
+    let count = 0;
+    const idMap = new Map<string, string>();
     for (const f of flows) {
       const exists = get().flows.some((x) => x.id === f.id);
-      await get().saveFlow(exists ? { ...f, id: newId("f") } : f, { snapshot: false });
-      n++;
+      if (exists && onConflict === "copy") {
+        const id = newId("f");
+        idMap.set(f.id, id);
+        await get().saveFlow({ ...f, id }, { snapshot: false });
+      } else await get().saveFlow(f, exists ? { note: "import" } : { snapshot: false });
+      count++;
     }
-    return n;
+    return { count, idMap };
   },
 
   async wipeLocalData() {
     await db.clearAll();
-    set({ flows: [], profiles: [], runs: [], settings: DEFAULT_SETTINGS });
+    set({ flows: [], profiles: [], runs: [], settings: DEFAULT_SETTINGS, triggerFailures: {} });
   },
 }));
 

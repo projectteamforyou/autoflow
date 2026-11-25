@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { LOCALES, hotkeyToString, type LocaleCode } from "@autoflow/core";
+import { LOCALES, hotkeyToString, walkSteps, type LocaleCode } from "@autoflow/core";
 import { Icon } from "./Icon";
 import { Modal } from "./ui";
 import { StudioPromoLink } from "./StudioPromo";
@@ -8,9 +8,9 @@ import { TrialChip } from "./TrialBanner";
 import { EditionNote } from "./Edition";
 import { useStore } from "../lib/store";
 import { useDialogs } from "../lib/dialog";
-import { haltAll, pauseRun, resumeRun, stopRun } from "../lib/runner";
+import { haltAll, liveCounters, pauseRun, resumeRun, stopRun } from "../lib/runner";
 import { setLocale, useLocale, useT } from "../i18n";
-import { startFlow } from "../lib/actions";
+import { downloadBackup, startFlow } from "../lib/actions";
 import { platform, shell } from "../platform";
 
 const NAV = [
@@ -193,35 +193,76 @@ function ThemeToggle() {
   );
 }
 
-/** Always-visible run state with Halt. */
+/** mm:ss (h:mm:ss past an hour) for the Pulse bar clock. */
+function clock(ms: number): string {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const mm = String(Math.floor(s / 60) % 60).padStart(2, "0");
+  const ss = String(s % 60).padStart(2, "0");
+  return s >= 3600 ? `${Math.floor(s / 3600)}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
+/** Always-visible run state with Halt: what is running, where it is in the flow, for how long, and how to stop it. */
 export function PulseBar() {
   const t = useT();
   const active = useStore((s) => s.active);
   const halt = useStore((s) => s.settings.haltHotkey);
+  const flow = useStore((s) => (s.active ? s.flows.find((f) => f.id === s.active!.flowId) : undefined));
   const navigate = useNavigate();
+  // Re-render twice a second while a run is active: the clock and the loop counter are not in the store.
+  const [, tick] = useState(0);
+  const runId = active?.runId;
+  useEffect(() => {
+    if (!runId) return;
+    const id = setInterval(() => tick((n) => n + 1), 500);
+    return () => clearInterval(id);
+  }, [runId]);
+  const steps = useMemo(() => {
+    const m = new Map<string, string>();
+    if (flow) walkSteps(flow.steps, (s) => void (s.label && m.set(s.id, s.label)));
+    return m;
+  }, [flow]);
   if (!active) return null;
   const paused = active.state === "paused";
   const counting = active.state === "countdown";
+  // Step line: "Click · Submit button"; the type alone when the step has no label.
+  const stepName = active.stepId ? [active.stepType ? t(`step.${active.stepType}`) : "", steps.get(active.stepId) ?? ""].filter(Boolean).join(" · ") : "";
+  // Loop rounds come from the engine in this page (canvas runs); native runs do not report them.
+  const round = liveCounters(active.runId)?.iterations ?? 0;
+  const pauseKey = flow?.hotkeys.pause ? hotkeyToString(flow.hotkeys.pause) : undefined;
+  const stopKey = flow ? hotkeyToString(flow.hotkeys.stop) : undefined;
   return (
-    <div className="pulse" role="status" aria-live="polite">
+    // aria-live off: the clock and step line change constantly and would be read out non-stop; run start/end is announced by toasts.
+    <div className="pulse" role="status" aria-live="off">
       <span className={`beat${paused ? " paused" : counting ? " countdown" : ""}`} />
       <div className="grow" style={{ minWidth: 0 }}>
-        <div className="truncate" style={{ fontWeight: 650 }}>{active.flowName}</div>
+        <div className="row" style={{ gap: 8 }}>
+          <span className="truncate" style={{ fontWeight: 650 }}>{active.flowName}</span>
+          <time className="small mono muted" title={t("stage.hud.elapsed")}>{clock(Date.now() - active.startedAt)}</time>
+        </div>
         <div className="small muted truncate">
-          {counting ? t("pulse.countdown", { s: Math.ceil((active.countdownMs ?? 0) / 1000) }) : t(`pulse.state.${active.state}`)} · {active.where === "canvas" ? t("pulse.canvas") : t("pulse.native")} · {t("pulse.actions", { n: active.actions })}
+          {counting ? t("pulse.countdown", { s: Math.ceil((active.countdownMs ?? 0) / 1000) }) : t(`pulse.state.${active.state}`)}
+          {stepName && !counting ? ` · ${stepName}` : ""}
+          {round > 0 ? ` · ${t("pulse.round", { n: round })}` : ""} · {active.where === "canvas" ? t("pulse.canvas") : t("pulse.native")} · {t("pulse.actions", { n: active.actions })}
         </div>
       </div>
       {active.where === "canvas" && (
-        <button className="btn ghost icon sm" onClick={() => navigate("/canvas")} title={t("nav.canvas")}>
+        <button className="btn ghost icon sm" onClick={() => navigate("/canvas")} title={t("nav.canvas")} aria-label={t("nav.canvas")}>
           <Icon name="Eye" size={16} />
         </button>
       )}
-      <button className="btn sm" onClick={() => (paused ? resumeRun(active.runId) : pauseRun(active.runId))} disabled={counting}>
+      {flow && (
+        <button className="btn ghost icon sm" onClick={() => navigate(`/flows/${flow.id}${active.stepId ? `?step=${encodeURIComponent(active.stepId)}` : ""}`)} title={t("ledger.fix")} aria-label={t("ledger.fix")}>
+          <Icon name="Pen" size={16} />
+        </button>
+      )}
+      <button className="btn sm" onClick={() => (paused ? resumeRun(active.runId) : pauseRun(active.runId))} disabled={counting} title={pauseKey}>
         <Icon name={paused ? "Play" : "Pause"} size={15} />
         {paused ? t("pulse.resume") : t("pulse.pause")}
+        {pauseKey && <kbd className="pulse-key">{pauseKey}</kbd>}
       </button>
-      <button className="btn sm" onClick={() => stopRun(active.runId)}>
+      <button className="btn sm" onClick={() => stopRun(active.runId)} title={stopKey}>
         <Icon name="Square" size={14} /> {t("pulse.stop")}
+        {stopKey && <kbd className="pulse-key">{stopKey}</kbd>}
       </button>
       <button className="btn sm halt" onClick={haltAll} title={hotkeyToString(halt)}>
         <Icon name="OctagonX" size={15} /> {t("pulse.halt")}
@@ -309,6 +350,11 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
       { icon: "Radio", label: t("home.quick.record"), go: "/new/record" },
       { icon: "Workflow", label: t("home.quick.pro"), go: "/new/pro" },
       ...[...NAV, ...NAV2].map((n) => ({ icon: n.icon, label: t(n.key), go: n.to })),
+      { icon: "OctagonX", label: t("palette.halt"), go: () => haltAll() },
+      { icon: "Download", label: t("palette.backup"), go: () => downloadBackup() },
+      // Same cycle as the top-bar button: dark → light → system.
+      { icon: "Moon", label: t("palette.theme"), go: () => { const st = useStore.getState(); const cur = st.settings.theme; void st.updateSettings({ theme: cur === "dark" ? "light" : cur === "light" ? "system" : "dark" }); } },
+      ...[...new Set(flows.map((f) => f.folder).filter((x): x is string => !!x))].sort().map((x) => ({ icon: "Folder", label: t("palette.folder", { name: x }), go: `/flows?folder=${encodeURIComponent(x)}` })),
       ...flows.map((f) => ({ icon: f.icon, label: f.name, go: `/flows/${f.id}` })),
       ...flows.map((f) => ({ icon: "Play", label: t("palette.run", { name: f.name }), go: () => void startFlow(f, navigate) })),
     ];

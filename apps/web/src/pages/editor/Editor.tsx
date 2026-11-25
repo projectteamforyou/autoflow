@@ -9,8 +9,11 @@ import { confirmDialog } from "../../lib/dialog";
 import { exportToFile, shareLink, startFlow } from "../../lib/actions";
 import { formatRelative, tp, useT } from "../../i18n";
 import { platform } from "../../platform";
+import { canRedo, canUndo, createHistory, editKind, record, redo as redoHistory, undo as undoHistory, type History } from "../../lib/history";
+import { partialFlow, type PartialMode } from "../../lib/partialRun";
 import { EasyEditor } from "./EasyEditor";
 import { ProEditor } from "./ProEditor";
+import { ShortcutsSheet, isTypingTarget } from "./Shortcuts";
 
 export function EditorPage() {
   const { id } = useParams();
@@ -21,15 +24,29 @@ export function EditorPage() {
   const save = useStore((s) => s.saveFlow);
   const [flow, setFlow] = useState<Flow | undefined>(stored);
   const [dirty, setDirty] = useState(false);
-  const [panel, setPanel] = useState<null | "explain" | "versions" | "json" | "icon">(null);
+  const [panel, setPanel] = useState<null | "explain" | "versions" | "json" | "icon" | "shortcuts">(null);
   const sessionSnap = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout>>();
   // Latest edit + dirty flag, so leaving the page inside the debounce window still saves it.
   const flowRef = useRef<Flow | undefined>(flow);
   const dirtyRef = useRef(false);
+  // The undo stack needs the state an edit replaces, also when the flow arrived after mount.
+  flowRef.current = flow;
+  // Undo / redo for this editor session (lib/history.ts). Kept in a ref so `update` stays stable;
+  // `hist` mirrors what the two top-bar buttons need.
+  const history = useRef<History<Flow>>(createHistory());
+  const [hist, setHist] = useState({ undo: false, redo: false });
+  const setHistory = useCallback((h: History<Flow>) => {
+    history.current = h;
+    setHist((cur) => (cur.undo === canUndo(h) && cur.redo === canRedo(h) ? cur : { undo: canUndo(h), redo: canRedo(h) }));
+  }, []);
 
   useEffect(() => {
-    if (stored && (!flow || stored.id !== flow.id)) setFlow(stored);
+    if (stored && (!flow || stored.id !== flow.id)) {
+      setFlow(stored);
+      // Another flow: its history must not be undone into this one.
+      setHistory(createHistory());
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stored?.id]);
 
@@ -44,7 +61,8 @@ export function EditorPage() {
     [save],
   );
 
-  const update = useCallback(
+  /** Shows `next` and schedules the save — without touching the undo stack (undo, redo and restore use it directly). */
+  const commit = useCallback(
     (next: Flow) => {
       setFlow(next);
       setDirty(true);
@@ -55,6 +73,32 @@ export function EditorPage() {
     },
     [persist],
   );
+
+  /** Every edit goes through here: remembers the state it replaces, then commits. */
+  const update = useCallback(
+    (next: Flow) => {
+      const prev = flowRef.current;
+      if (prev && prev !== next) setHistory(record(history.current, prev, editKind(prev, next), Date.now()));
+      commit(next);
+    },
+    [commit, setHistory],
+  );
+
+  const undo = useCallback(() => {
+    const cur = flowRef.current;
+    const r = cur && undoHistory(history.current, cur);
+    if (!r) return;
+    setHistory(r.history);
+    commit(r.value);
+  }, [commit, setHistory]);
+
+  const redo = useCallback(() => {
+    const cur = flowRef.current;
+    const r = cur && redoHistory(history.current, cur);
+    if (!r) return;
+    setHistory(r.history);
+    commit(r.value);
+  }, [commit, setHistory]);
 
   useEffect(
     () => () => {
@@ -76,9 +120,36 @@ export function EditorPage() {
     await startFlow(saved, navigate);
   }, [flow, hasErrors, persist, navigate]);
 
+  /** "Run from here" / "Run only this step": a temporary flow with the other steps disabled — never saved. */
+  const runPartial = useCallback(
+    async (stepId: string, mode: PartialMode) => {
+      if (!flow) return;
+      if (hasErrors) return useStore.getState().toast("error", t("editor.fixErrors"));
+      const temp = partialFlow(flow, stepId, mode);
+      if (temp) await startFlow(temp, navigate, { transient: true });
+    },
+    [flow, hasErrors, navigate, t],
+  );
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey) || !flow) return;
+      if (!flow) return;
+      const typing = isTypingTarget(e.target);
+      if (e.key === "?" && !typing && !e.ctrlKey && !e.metaKey && !e.altKey && panel === null) {
+        e.preventDefault();
+        setPanel("shortcuts");
+        return;
+      }
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const k = e.key.toLowerCase();
+      // Undo / redo: in a text field the browser's own text undo wins; behind an open dialog nothing happens.
+      if ((k === "z" || k === "y") && !e.altKey) {
+        if (typing || panel !== null) return;
+        e.preventDefault();
+        if (k === "y" || e.shiftKey) redo();
+        else undo();
+        return;
+      }
       if (e.key.toLowerCase() === "s") {
         e.preventDefault();
         clearTimeout(timer.current);
@@ -90,7 +161,7 @@ export function EditorPage() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [flow, persist, run, t]);
+  }, [flow, persist, run, t, panel, undo, redo]);
 
   if (!ready) return null;
   if (!flow) {
@@ -135,6 +206,8 @@ export function EditorPage() {
       }
       actions={
         <div className="row">
+          <button className="btn sm ghost" disabled={!hist.undo} onClick={undo} title={`${t("common.undo")} (Ctrl+Z)`} aria-label={t("common.undo")}><Icon name="Undo2" size={15} /></button>
+          <button className="btn sm ghost" disabled={!hist.redo} onClick={redo} title={`${t("common.redo")} (Ctrl+Shift+Z)`} aria-label={t("common.redo")}><Icon name="Redo2" size={15} /></button>
           <SafetyBadge flow={flow} />
           {(errors > 0 || warnings > 0) && <span className={`badge ${errors ? "err" : "warn"}`}><Icon name="Bug" size={13} /> {errors + warnings}</span>}
           <button className="btn sm ghost" onClick={() => setPanel("explain")} title={t("editor.explain")}><Icon name="BookOpen" size={15} /></button>
@@ -142,6 +215,7 @@ export function EditorPage() {
           <button className="btn sm ghost" onClick={() => setPanel("json")} title="JSON"><Icon name="FileJson" size={15} /></button>
           <button className="btn sm ghost" onClick={() => void shareLink(flow)} title={t("flows.share")}><Icon name="Share2" size={15} /></button>
           <button className="btn sm ghost" onClick={() => void exportToFile(flow)} title={t("flows.export")}><Icon name="Download" size={15} /></button>
+          <button className="btn sm ghost" onClick={() => setPanel("shortcuts")} title={`${t("shortcuts.title")} (?)`} aria-label={t("shortcuts.title")}><Icon name="Keyboard" size={15} /></button>
           <button className="btn sm" onClick={() => { void persist(flow); navigate(`/canvas?flow=${flow.id}`); }}><Icon name="Target" size={15} /> {t("editor.practice")}</button>
           <button
             className="btn sm primary"
@@ -154,11 +228,12 @@ export function EditorPage() {
         </div>
       }
     >
-      {flow.mode === "easy" && easyOk ? <EasyEditor flow={flow} onChange={update} /> : <ProEditor flow={flow} onChange={update} lint={lint} />}
+      {flow.mode === "easy" && easyOk ? <EasyEditor flow={flow} onChange={update} /> : <ProEditor flow={flow} onChange={update} lint={lint} onRunPartial={(id, mode) => void runPartial(id, mode)} onShortcuts={() => setPanel("shortcuts")} />}
       {panel === "explain" && <ExplainPanel flow={flow} onClose={() => setPanel(null)} />}
-      {panel === "versions" && <VersionsPanel flow={flow} onRestore={(v) => { update({ ...v.flow, id: flow.id, revision: flow.revision }); setPanel(null); }} onClose={() => setPanel(null)} />}
+      {panel === "versions" && <VersionsPanel flow={flow} onRestore={(v) => { commit({ ...v.flow, id: flow.id, revision: flow.revision }); setHistory(createHistory()); setPanel(null); }} onClose={() => setPanel(null)} />}
       {panel === "json" && <JsonPanel flow={flow} onApply={(f) => { update(f); setPanel(null); }} onClose={() => setPanel(null)} />}
       {panel === "icon" && <IconPanel flow={flow} onChange={update} onClose={() => setPanel(null)} />}
+      {panel === "shortcuts" && <ShortcutsSheet pro={!(flow.mode === "easy" && easyOk)} onClose={() => setPanel(null)} />}
     </Shell>
   );
 }

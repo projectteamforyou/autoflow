@@ -4,6 +4,7 @@ import { Icon } from "../../components/Icon";
 import { Field, HotkeyInput, Switch } from "../../components/ui";
 import { formatDuration, tp, useT } from "../../i18n";
 import { platform } from "../../platform";
+import { isoToLocalInput, localInputToIso } from "../../lib/datetime";
 
 const TRIGGERS: Trigger["type"][] = ["manual", "hotkey", "schedule", "appEvent", "deviceEvent", "location", "notification"];
 const DEVICE_EVENTS = ["charging", "batteryLow", "wifiConnected", "wifiDisconnected", "bluetoothConnected", "headsetPlugged", "bootCompleted", "deviceConnected", "deviceDisconnected"] as const;
@@ -71,6 +72,16 @@ export function FlowSettings({ flow, onChange }: { flow: Flow; onChange: (f: Flo
           <Field label="cron" hint={t("editor.cronHint")}>
             <input className="input mono" value={tr.cron ?? ""} placeholder="0 9 * * 1-5" onChange={(e) => setTrigger({ ...tr, cron: e.target.value || undefined, everyMs: e.target.value ? undefined : tr.everyMs })} />
           </Field>
+          {/* Optional active window. The picker works in local time; the flow stores UTC instants. */}
+          <div className="grid cols-2">
+            <Field label={t("editor.startAt")}>
+              <input className="input" type="datetime-local" value={isoToLocalInput(tr.startAt)} max={isoToLocalInput(tr.endAt) || undefined} onChange={(e) => setTrigger({ ...tr, startAt: localInputToIso(e.target.value) })} />
+            </Field>
+            <Field label={t("editor.endAt")}>
+              <input className="input" type="datetime-local" value={isoToLocalInput(tr.endAt)} min={isoToLocalInput(tr.startAt) || undefined} onChange={(e) => setTrigger({ ...tr, endAt: localInputToIso(e.target.value) })} />
+            </Field>
+          </div>
+          <p className="hint">{t("editor.scheduleWindowHint")}</p>
         </>
       )}
       {tr.type === "appEvent" && (
@@ -117,6 +128,9 @@ export function FlowSettings({ flow, onChange }: { flow: Flow; onChange: (f: Flo
       <Field label={t("easy.startHotkey")}>
         <HotkeyInput value={flow.hotkeys.start} allowClear onChange={(h) => onChange({ ...flow, hotkeys: { ...flow.hotkeys, start: h } })} />
       </Field>
+      <Field label={t("editor.pauseHotkey")}>
+        <HotkeyInput value={flow.hotkeys.pause} allowClear onChange={(h) => onChange({ ...flow, hotkeys: { ...flow.hotkeys, pause: h } })} />
+      </Field>
       <Field label={t("editor.maxDuration")} hint={formatDuration(flow.limits.maxDurationMs)}>
         <div className="input-group">
           <input className="input" type="number" min={1} max={10080} value={Math.round(flow.limits.maxDurationMs / 60_000) || 1} onChange={(e) => setLimits({ maxDurationMs: Math.max(1, Math.min(10080, Number(e.target.value) || 1)) * 60_000 })} />
@@ -132,11 +146,33 @@ export function FlowSettings({ flow, onChange }: { flow: Flow; onChange: (f: Flo
         <Field label={t("editor.cooldown")}>
           <div className="input-group"><input className="input" type="number" min={0} value={flow.limits.cooldownMs / 1000} onChange={(e) => setLimits({ cooldownMs: Math.max(0, Number(e.target.value) || 0) * 1000 })} /><span className="small muted">s</span></div>
         </Field>
+        {/* Optional watchdog on executed steps of any type; empty = no limit (the field stays unset). */}
+        <Field label={t("editor.maxSteps")}>
+          <input className="input" type="number" min={1} max={1_000_000_000} placeholder="—" value={flow.limits.maxSteps ?? ""} onChange={(e) => setLimits({ maxSteps: e.target.value === "" ? undefined : Math.max(1, Math.min(1_000_000_000, Math.round(Number(e.target.value)) || 1)) })} />
+        </Field>
       </div>
       <div className="row between">
         <span className="label">{t("editor.preventOverlap")}</span>
         <Switch checked={flow.limits.preventOverlap} onChange={(v) => setLimits({ preventOverlap: v })} label={t("editor.preventOverlap")} />
       </div>
+      <div className="row between">
+        <span className="label">{t("editor.humanize")}</span>
+        {/* Off removes the block. On starts with small visible values (all-zero would do nothing). The seed stays unset. */}
+        <Switch checked={!!flow.humanize} onChange={(v) => onChange({ ...flow, humanize: v ? { offsetPx: 2, delayMs: 40 } : undefined })} label={t("editor.humanize")} />
+      </div>
+      {flow.humanize && (
+        <>
+          <div className="grid cols-2">
+            <Field label={t("editor.humanizeOffset")}>
+              <div className="input-group"><input className="input" type="number" min={0} max={50} value={flow.humanize.offsetPx} onChange={(e) => onChange({ ...flow, humanize: { ...flow.humanize!, offsetPx: Math.max(0, Math.min(50, Math.round(Number(e.target.value)) || 0)) } })} /><span className="small muted">px</span></div>
+            </Field>
+            <Field label={t("editor.humanizeDelay")}>
+              <div className="input-group"><input className="input" type="number" min={0} max={5000} step={10} value={flow.humanize.delayMs} onChange={(e) => onChange({ ...flow, humanize: { ...flow.humanize!, delayMs: Math.max(0, Math.min(5000, Math.round(Number(e.target.value)) || 0)) } })} /><span className="small muted">ms</span></div>
+            </Field>
+          </div>
+          <p className="hint">{t("editor.humanizeHint")}</p>
+        </>
+      )}
       <div className={`callout ${risk.level === "high" ? "err" : risk.level === "medium" ? "warn" : "info"} small`}>
         <Icon name="ShieldCheck" size={16} />
         <div>

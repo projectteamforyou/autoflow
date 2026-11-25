@@ -1,18 +1,16 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { decodeShareCode, explainFlow, newId, type ImportResult } from "@autoflow/core";
+import { decodeShareCode, explainFlow, type ImportResult } from "@autoflow/core";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
 import { Modal, SafetyBadge } from "../components/ui";
-import { useStore } from "../lib/store";
+import { saveImportedFlow } from "../lib/actions";
 import { tp, useT } from "../i18n";
 
 /** Review sheet shown before any imported/shared flow is saved: validation, Safety Score, permissions, lint and a plain-language explanation. */
 export function ImportReview({ result, onClose }: { result: ImportResult; onClose: () => void }) {
   const t = useT();
   const navigate = useNavigate();
-  const save = useStore((s) => s.saveFlow);
-  const flows = useStore((s) => s.flows);
   if (!result.ok || !result.flow) {
     return (
       <Modal title={t("import.invalid")} icon="ShieldAlert" onClose={onClose} footer={<button className="btn" onClick={onClose}>{t("common.close")}</button>}>
@@ -30,9 +28,10 @@ export function ImportReview({ result, onClose }: { result: ImportResult; onClos
   const errors = result.lint?.filter((l) => l.severity === "error") ?? [];
   const lines = explainFlow(flow);
   const onSave = async () => {
-    const now = new Date().toISOString();
-    const saved = await save({ ...flow, id: flows.some((f) => f.id === flow.id) ? newId("f") : flow.id, createdAt: now, updatedAt: now, revision: 0 }, { snapshot: false });
+    // A flow that is already in the library asks "Replace / Keep both" (see saveImportedFlow). The review
+    // closes first: two stacked modals would both react to Esc.
     onClose();
+    const saved = await saveImportedFlow(flow);
     navigate(`/flows/${saved.id}`);
   };
   return (
