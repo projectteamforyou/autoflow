@@ -584,7 +584,7 @@ function StepNode({ step, ...p }: ListProps & { step: Step }) {
         <div className="grow" style={{ minWidth: 0 }}>
           <div className="title row" style={{ gap: 6 }}>
             {title}
-            {collapsed && <span className="badge" style={{ height: 18 }}>{t("editor.nSteps", { n: countNested(step) })}</span>}
+            {collapsed && <span className="badge" style={{ height: 18 }}>{countNested(step) === 1 ? t("editor.oneStep") : t("editor.nSteps", { n: countNested(step) })}</span>}
             {step.breakpoint && <span className="badge err" style={{ height: 18 }}>●</span>}
             {step.onError && step.onError.strategy !== "stop" && <span className="badge" style={{ height: 18 }}>{t(`onError.${step.onError.strategy}`)}</span>}
             {cap.support !== "supported" && cap.noteKey !== "cap.sandbox" && <span className={`badge ${cap.support === "unsupported" ? "err" : "warn"}`} style={{ height: 18 }} title={cap.noteKey ? t(cap.noteKey) : undefined}>{t(`cap.${cap.support}`)}</span>}

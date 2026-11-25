@@ -535,3 +535,20 @@ button.badge { cursor: pointer; font-family: inherit; max-width: 100%; }
 @media (max-width: 900px) { .pulse-key { display: none; } .pulse { flex-wrap: wrap; border-radius: 18px; } }
 .secret-row { padding: 6px 0; border-bottom: 1px solid var(--af-border); }
 .secret-row:last-child { border-bottom: 0; }
+
+/* Top bar layout (1.2.0). The title used to be `flex: 1; min-width: 0`: with more action buttons it
+   collapsed to nothing and its content (flow name, Easy/Pro switch, page heading) was painted under
+   the buttons at laptop widths, while on phones the action row ran off screen with no way to reach
+   Run. The title now keeps its content width, so the actions wrap to their own line when both do not
+   fit, and the actions wrap among themselves instead of being clipped. */
+.topbar-title { flex: 1 0 auto; max-width: 100%; min-width: 0; }
+.topbar-title > * { min-width: 0; }
+.topbar-title h2 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topbar-actions { display: flex; flex: 0 1 auto; max-width: 100%; min-width: 0; margin-left: auto; }
+.topbar-actions > .row { flex-wrap: wrap; justify-content: flex-end; row-gap: 6px; max-width: 100%; }
+@media (max-width: 900px) {
+  .topbar { padding: 8px 12px; }
+  .topbar-title { flex: 1 1 100%; }
+  .topbar-actions { flex: 1 1 100%; margin-left: 0; }
+  .topbar-actions > .row { justify-content: flex-start; }
+}

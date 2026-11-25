@@ -1549,5 +1549,7 @@
   "editor.leaveUnsaved.leave": "離開",
   "editor.leaveUnsaved.stay": "留下",
   "ledger.partial": "部分執行",
-  "ledger.partialHint": "只執行了流程一部分的測試執行。"
+  "ledger.partialHint": "只執行了流程一部分的測試執行。",
+  "import.missingCode": "此連結沒有分享代碼。",
+  "editor.oneStep": "1 個步驟"
 }

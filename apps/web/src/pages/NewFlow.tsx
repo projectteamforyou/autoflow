@@ -16,10 +16,11 @@ export function NewFlowPage() {
   const { kind = "click" } = useParams();
   const t = useT();
   const navigate = useNavigate();
-  const once = useRef(false);
+  // Keyed by kind: the same page instance is reused when only :kind changes (command palette).
+  const once = useRef<string | null>(null);
   useEffect(() => {
-    if (once.current || kind === "record") return;
-    once.current = true;
+    if (once.current === kind || kind === "record") return;
+    once.current = kind;
     createFromKind(kind)
       .then((f) => navigate(`/flows/${f.id}`, { replace: true }))
       .catch((e: Error) => {

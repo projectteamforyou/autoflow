@@ -1549,5 +1549,7 @@
   "editor.leaveUnsaved.leave": "Verlassen",
   "editor.leaveUnsaved.stay": "Bleiben",
   "ledger.partial": "Teilausführung",
-  "ledger.partialHint": "Ein Testlauf, bei dem nur ein Teil des Flows ausgeführt wurde."
+  "ledger.partialHint": "Ein Testlauf, bei dem nur ein Teil des Flows ausgeführt wurde.",
+  "import.missingCode": "Dieser Link enthält keinen Freigabecode.",
+  "editor.oneStep": "1 Schritt"
 }

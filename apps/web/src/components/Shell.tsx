@@ -80,8 +80,8 @@ export function Shell({ children, flush, title, actions }: { children: ReactNode
       </aside>
       <div className="main">
         <header className="topbar">
-          <div className="grow row" style={{ minWidth: 0 }}>{title}</div>
-          {actions}
+          <div className="topbar-title row">{title}</div>
+          {actions && <div className="topbar-actions">{actions}</div>}
           <TrialChip />
           <LangMenu />
           <ThemeToggle />

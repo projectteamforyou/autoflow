@@ -1549,5 +1549,7 @@
   "editor.leaveUnsaved.leave": "나가기",
   "editor.leaveUnsaved.stay": "계속 편집",
   "ledger.partial": "부분 실행",
-  "ledger.partialHint": "플로우의 일부만 실행한 테스트 실행입니다."
+  "ledger.partialHint": "플로우의 일부만 실행한 테스트 실행입니다.",
+  "import.missingCode": "이 링크에 공유 코드가 없습니다.",
+  "editor.oneStep": "1단계"
 }

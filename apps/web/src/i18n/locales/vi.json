@@ -1549,5 +1549,7 @@
   "editor.leaveUnsaved.leave": "Rời đi",
   "editor.leaveUnsaved.stay": "Ở lại",
   "ledger.partial": "Chạy một phần",
-  "ledger.partialHint": "Lần chạy thử chỉ thực hiện một phần của luồng."
+  "ledger.partialHint": "Lần chạy thử chỉ thực hiện một phần của luồng.",
+  "import.missingCode": "Liên kết này không có mã chia sẻ.",
+  "editor.oneStep": "1 bước"
 }

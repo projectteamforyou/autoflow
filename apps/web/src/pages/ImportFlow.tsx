@@ -13,7 +13,7 @@ export function ImportFlowPage() {
   useEffect(() => {
     const code = params.get("code");
     if (code) void decodeShareCode(code).then(setResult);
-    else setResult({ ok: false, issues: [{ path: "", message: "missing share code" }] });
+    else setResult({ ok: false, issues: [{ path: "", message: t("import.missingCode") }] });
   }, [params]);
   return (
     <Shell title={<h2>{t("import.review")}</h2>}>

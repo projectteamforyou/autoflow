@@ -1486,4 +1486,6 @@ export const en = {
   "editor.leaveUnsaved.stay": "Stay",
   "ledger.partial": "Partial run",
   "ledger.partialHint": "A test run of only part of the flow.",
+  "import.missingCode": "This link has no share code.",
+  "editor.oneStep": "1 step",
 } as const;

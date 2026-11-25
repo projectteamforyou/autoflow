@@ -1549,5 +1549,7 @@
   "editor.leaveUnsaved.leave": "Выйти",
   "editor.leaveUnsaved.stay": "Остаться",
   "ledger.partial": "Частичный запуск",
-  "ledger.partialHint": "Тестовый запуск только части сценария."
+  "ledger.partialHint": "Тестовый запуск только части сценария.",
+  "import.missingCode": "В этой ссылке нет кода для обмена.",
+  "editor.oneStep": "1 шаг"
 }

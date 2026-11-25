@@ -1549,5 +1549,7 @@
   "editor.leaveUnsaved.leave": "移動する",
   "editor.leaveUnsaved.stay": "このまま編集",
   "ledger.partial": "部分実行",
-  "ledger.partialHint": "フローの一部だけを実行したテスト実行です。"
+  "ledger.partialHint": "フローの一部だけを実行したテスト実行です。",
+  "import.missingCode": "このリンクには共有コードがありません。",
+  "editor.oneStep": "1ステップ"
 }

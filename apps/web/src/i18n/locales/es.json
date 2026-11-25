@@ -1549,5 +1549,7 @@
   "editor.leaveUnsaved.leave": "Salir",
   "editor.leaveUnsaved.stay": "Quedarme",
   "ledger.partial": "Ejecución parcial",
-  "ledger.partialHint": "Una ejecución de prueba de solo una parte del flujo."
+  "ledger.partialHint": "Una ejecución de prueba de solo una parte del flujo.",
+  "import.missingCode": "Este enlace no tiene código para compartir.",
+  "editor.oneStep": "1 paso"
 }

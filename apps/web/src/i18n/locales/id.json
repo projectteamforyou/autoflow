@@ -1549,5 +1549,7 @@
   "editor.leaveUnsaved.leave": "Keluar",
   "editor.leaveUnsaved.stay": "Tetap di sini",
   "ledger.partial": "Dijalankan sebagian",
-  "ledger.partialHint": "Uji coba yang hanya menjalankan sebagian alur."
+  "ledger.partialHint": "Uji coba yang hanya menjalankan sebagian alur.",
+  "import.missingCode": "Tautan ini tidak memiliki kode berbagi.",
+  "editor.oneStep": "1 langkah"
 }
