@@ -4,13 +4,14 @@
 //! argument keys arrive in camelCase and results serialize to the bridge's JSON shapes.
 //! Errors reject the `invoke` promise with a human-readable string.
 
+use crate::images;
 use crate::platform;
 use crate::runs::{self, Origin};
 use crate::state::{emit, lock, AppState};
 use crate::triggers;
 use autoflow_engine::bridge::{
     BridgeEvent, DeviceInfo, NativePermission, PermissionStatus, PickedPoint, ProfilesApplied, RecordingResult, RunStarted, SceneCaptured,
-    TriggersSynced,
+    TriggersSynced, WindowEntry,
 };
 use autoflow_engine::display::{on_display, DisplayInfo};
 use autoflow_engine::input_profile::{parse_profile, InputProfile};
@@ -244,6 +245,37 @@ pub async fn scene_capture(display_id: String, region: Rect) -> Result<SceneCapt
     tauri::async_runtime::spawn_blocking(move || platform::scene_capture(&display_id, &region))
         .await
         .map_err(|e| format!("capture failed: {e}"))?
+}
+
+/// `image_import` — stores a template image (`data:image/png;base64,…`) as `<images>/<ref>.png`.
+/// Decoding and checking a large PNG takes a moment, so it runs off the main thread.
+#[tauri::command]
+pub async fn image_import(app: AppHandle, r#ref: String, data_url: String) -> Result<(), String> {
+    let dir = app.state::<AppState>().images_dir.clone();
+    tauri::async_runtime::spawn_blocking(move || images::import(&dir, &r#ref, &data_url))
+        .await
+        .map_err(|e| format!("import failed: {e}"))?
+}
+
+/// `image_list` — references of the stored template images, sorted.
+#[tauri::command]
+pub fn image_list(state: State<'_, AppState>) -> Vec<String> {
+    images::list(&state.images_dir)
+}
+
+/// `image_delete`
+#[tauri::command]
+pub fn image_delete(state: State<'_, AppState>, r#ref: String) -> Result<(), String> {
+    images::delete(&state.images_dir, &r#ref)
+}
+
+/// Most windows `windows_list` returns: plenty for a picker, and bounded however many are open.
+const MAX_LISTED_WINDOWS: usize = 200;
+
+/// `windows_list` — visible titled windows (topmost first, de-duplicated) for window pickers.
+#[tauri::command]
+pub fn windows_list() -> Vec<WindowEntry> {
+    platform::windows_list(MAX_LISTED_WINDOWS)
 }
 
 /// Emits `BridgeEvent::Displays` whenever monitors are added, removed, moved or rescaled.

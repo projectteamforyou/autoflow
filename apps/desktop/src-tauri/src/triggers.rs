@@ -2,8 +2,9 @@
 //! app/device events. The emergency stop (Halt) is always registered.
 //!
 //! Hotkey and Keyforge starts are attended (a person pressed a key), so risky flows ask for
-//! approval in a native dialog. Schedules and app/device events are unattended and never
-//! approve risky steps; such runs fail visibly with "risky steps were not approved — …".
+//! approval in a native dialog. Schedules and app/device events are unattended: risky steps only
+//! pass when exactly those steps were approved in the app before (`crate::approvals`); otherwise
+//! the run fails visibly — a notification — with "risky steps were not approved — …".
 
 use crate::platform;
 use crate::runs::{self, Origin};
@@ -355,6 +356,7 @@ pub fn sync(app: &AppHandle, flows: &[serde_json::Value], emergency: Hotkey) -> 
         *t = table;
     }
     *lock(&state.flow_hotkeys) = flow_hotkeys;
+    crate::tray::refresh_halt_label(app);
     let failed_ids: HashSet<&str> = failed.iter().map(|f| f.flow_id.as_str()).collect();
     let mut registered: Vec<String> = watched.into_iter().filter(|id| !failed_ids.contains(id.as_str())).collect();
     registered.sort();

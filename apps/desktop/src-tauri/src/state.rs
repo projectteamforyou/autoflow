@@ -1,5 +1,6 @@
 //! Shared application state managed by Tauri.
 
+use crate::approvals::{self, Approved};
 use crate::platform::{self, AppHooks};
 use crate::triggers::TriggerTable;
 use autoflow_engine::bridge::{BridgeEvent, BRIDGE_EVENT};
@@ -47,11 +48,19 @@ pub struct AppState {
     pub flow_hotkeys: Mutex<Vec<(String, Hotkey)>>,
     /// Template images folder.
     pub images_dir: PathBuf,
+    /// Flows whose risky steps were approved in the app (flow id → steps hash), so unattended
+    /// runs of exactly those steps may start. Mirrors `approved_path` on disk.
+    pub approved: Mutex<Approved>,
+    /// `<app data>/approved.json`.
+    pub approved_path: PathBuf,
+    /// The tray's Halt item, whose label shows the effective emergency stop.
+    pub halt_item: Mutex<Option<tauri::menu::MenuItem<tauri::Wry>>>,
 }
 
 impl AppState {
-    /// Empty state.
-    pub fn new(images_dir: PathBuf) -> Self {
+    /// Empty state, plus the approvals remembered in `approved_path` (a missing or corrupt file
+    /// means none).
+    pub fn new(images_dir: PathBuf, approved_path: PathBuf) -> Self {
         Self {
             runs: Mutex::new(HashMap::new()),
             library: Mutex::new(HashMap::new()),
@@ -63,6 +72,9 @@ impl AppState {
             emergency: Mutex::new(default_stop_hotkey()),
             flow_hotkeys: Mutex::new(Vec::new()),
             images_dir,
+            approved: Mutex::new(approvals::load(&approved_path)),
+            approved_path,
+            halt_item: Mutex::new(None),
         }
     }
 }
@@ -70,6 +82,19 @@ impl AppState {
 /// Sends a bridge event to the web app (best effort).
 pub fn emit(app: &AppHandle, event: &BridgeEvent) {
     let _ignored = app.emit(BRIDGE_EVENT, event);
+}
+
+/// Shows a desktop notification.
+pub fn notify(app: &AppHandle, title: &str, body: &str) -> Result<(), String> {
+    app.notification().builder().title(title).body(body).show().map_err(|e| format!("cannot show the notification: {e}"))
+}
+
+/// Tells the user about a problem nobody is looking at the app for (a trigger-started run that
+/// failed or could not start). Best effort: with notifications off it is only logged.
+pub fn notify_problem(app: &AppHandle, title: &str, body: &str) {
+    if let Err(e) = notify(app, title, body) {
+        eprintln!("autoflow: {title}: {body} ({e})");
+    }
 }
 
 /// [`AppHooks`] backed by the Tauri app.
@@ -80,7 +105,7 @@ pub struct Hooks {
 
 impl AppHooks for Hooks {
     fn notify(&self, title: &str, body: &str) -> Result<(), String> {
-        self.app.notification().builder().title(title).body(body).show().map_err(|e| format!("cannot show the notification: {e}"))
+        notify(&self.app, title, body)
     }
 
     fn switch_profile(&self, profile_id: &str) -> Result<(), String> {

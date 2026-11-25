@@ -162,7 +162,7 @@ pub fn type_text(text: &str, per_char_delay_ms: u64, control: &RunControl) -> Re
     };
     let mut prev_cr = false;
     for c in text.chars() {
-        if control.is_stopped() {
+        if control.interrupted() {
             return Err(BackendError::aborted());
         }
         match c {
@@ -207,7 +207,7 @@ pub fn move_to(x: i32, y: i32) -> Result<(), BackendError> {
 pub fn glide_to(from: (i32, i32), to: (i32, i32), duration_ms: u64, control: &RunControl) -> Result<(), BackendError> {
     let steps = (duration_ms / 10).clamp(1, 2000);
     for i in 1..=steps {
-        if control.is_stopped() {
+        if control.interrupted() {
             return Err(BackendError::aborted());
         }
         #[allow(clippy::cast_precision_loss)]
@@ -283,7 +283,7 @@ pub fn click(btn: MouseButton, clicks: u32, hold_ms: u64, modifiers: &[Modifier]
     modifiers_transition(modifiers, false)?;
     let mod_guard = HeldGuard::new(None, modifiers);
     for i in 0..clicks.max(1) {
-        if control.is_stopped() {
+        if control.interrupted() {
             return Err(BackendError::aborted());
         }
         button(btn, false)?;
@@ -313,7 +313,8 @@ pub fn wheel(dx: i64, dy: i64) -> Result<(), BackendError> {
     send(&batch)
 }
 
-/// Waits `ms`, returning [`BackendError::aborted`] as soon as the run is stopped.
+/// Waits `ms`, returning [`BackendError::aborted`] as soon as the run is stopped or the step's
+/// deadline passes.
 pub fn pause(ms: u64, control: &RunControl) -> Result<(), BackendError> {
     let deadline = std::time::Instant::now() + Duration::from_millis(ms);
     loop {
@@ -321,7 +322,7 @@ pub fn pause(ms: u64, control: &RunControl) -> Result<(), BackendError> {
         if now >= deadline {
             return Ok(());
         }
-        if control.wait_for_stop((deadline - now).min(Duration::from_millis(crate::engine::SLICE_MS))) {
+        if control.wait_for_interrupt((deadline - now).min(Duration::from_millis(crate::engine::SLICE_MS))) {
             return Err(BackendError::aborted());
         }
     }

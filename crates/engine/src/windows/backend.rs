@@ -42,7 +42,8 @@ unsafe extern "system" fn close_window(hwnd: HWND, _: LPARAM) -> BOOL {
     BOOL(1)
 }
 
-/// Topmost Yes/No message box that closes itself when the run is stopped.
+/// Topmost Yes/No message box that closes itself when the run is stopped or the step's deadline
+/// passes.
 pub fn message_box_confirm(message: &str, control: &RunControl) -> Result<bool, BackendError> {
     let (tx, rx) = mpsc::channel();
     let tid = Arc::new(AtomicU32::new(0));
@@ -66,7 +67,7 @@ pub fn message_box_confirm(message: &str, control: &RunControl) -> Result<bool, 
         })
         .map_err(|e| BackendError::new(ErrorCategory::Internal, format!("cannot show the question: {e}")))?;
     loop {
-        if control.is_stopped() {
+        if control.interrupted() {
             let id = tid.load(Ordering::SeqCst);
             if id != 0 {
                 // SAFETY: enumerates the helper thread's windows to dismiss the message box.
@@ -183,7 +184,10 @@ impl InputBackend for WindowsBackend {
             return Err(BackendError::aborted());
         }
         let r = self.perform_inner(action, control);
-        if control.is_stopped() || r.as_ref().is_err_and(|e| e.aborted) {
+        // Only a stop releases held keys: an action pre-empted by a step timeout also reports
+        // `aborted`, but `onError` continue / retry may carry on and still rely on a key held by
+        // an earlier key-down step (whatever is left is released when the backend is dropped).
+        if control.is_stopped() {
             self.release_all();
         }
         r

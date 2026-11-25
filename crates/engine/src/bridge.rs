@@ -228,6 +228,15 @@ pub struct SceneCaptured {
     pub height: u32,
 }
 
+/// One entry of the `windows_list` result.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WindowEntry {
+    /// Window title.
+    pub title: String,
+    /// Executable name (empty when Windows does not reveal it).
+    pub app: String,
+}
+
 /// `profiles_apply` result.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct ProfilesApplied {

@@ -82,11 +82,28 @@ export interface BridgeCommands {
   secret_set: [{ name: string; value: string }, void];
   secret_delete: [{ name: string }, void];
   secret_list: [Record<string, never>, string[]];
-  /** Opens OS settings pages (accessibility, battery, overlay…). */
-  open_settings: [{ page: NativePermission | "app" }, void];
+  /**
+   * Opens OS settings pages (accessibility, battery, overlay…). `"exactAlarm"` is the Android
+   * "Alarms & reminders" page for exact schedule triggers (Windows opens the app's settings page).
+   */
+  open_settings: [{ page: NativePermission | "app" | "exactAlarm" }, void];
   autostart_set: [{ enabled: boolean }, void];
   /** Opens an https link in the system browser (the app WebView never navigates away). */
   open_external: [{ url: string }, void];
+  /**
+   * Stores a template image for `findImage` steps and image targets under `ref` (Windows + Android).
+   * `ref` uses letters, digits, `_`, `-` and `.` only (≤ 200 chars, no leading dot); `dataUrl` is
+   * `data:image/png;base64,…` — a PNG of at most 4 MB and 4096×4096 px. An existing image is replaced.
+   */
+  image_import: [{ ref: string; dataUrl: string }, void];
+  /** Refs of the stored template images, sorted (Windows + Android). */
+  image_list: [Record<string, never>, string[]];
+  /** Deletes a stored template image; a ref that is not stored is not an error (Windows + Android). */
+  image_delete: [{ ref: string }, void];
+  /** Windows only: visible titled top-level windows, topmost first, de-duplicated (≤ 200), for window pickers. */
+  windows_list: [Record<string, never>, { title: string; app: string }[]];
+  /** Android only: launchable apps, for app pickers. */
+  apps_list: [Record<string, never>, { label: string; package: string }[]];
 }
 
 export type BridgeCommand = keyof BridgeCommands;
