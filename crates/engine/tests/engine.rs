@@ -545,3 +545,127 @@ fn an_enclosing_steps_shorter_deadline_preempts_the_action() {
         events.iter().filter_map(|e| if let RunEvent::Timeout { step_id, .. } = e { Some(step_id.as_str()) } else { None }).collect();
     assert_eq!(timeouts, ["g"]);
 }
+
+/* ------------------------------------------------------------ runFlow: risk and variables */
+
+/// A resolver over a fixed set of flows.
+fn library(flows: Vec<autoflow_engine::Flow>) -> autoflow_engine::engine::FlowResolver {
+    Arc::new(move |id: &str| flows.iter().find(|f| f.id == id).cloned())
+}
+
+fn risky_callee() -> autoflow_engine::Flow {
+    mk_with(
+        json!([
+            { "id": "h", "type": "http", "method": "POST", "url": "https://example.com/x", "body": "{{secret:k}}" },
+            { "id": "w", "type": "file", "op": "write", "path": "C:\\x.txt", "content": "x" }
+        ]),
+        json!({ "id": "f_b" }),
+    )
+}
+
+#[test]
+fn run_flow_targets_are_part_of_the_risk_approval() {
+    let caller = mk_with(json!([{ "id": "r", "type": "runFlow", "flowId": "f_b" }]), json!({ "id": "f_a" }));
+    assert!(!autoflow_engine::risk::analyze_risk(&caller).needs_confirm, "the caller alone looks harmless");
+
+    // No approval given: the run fails before any callee step, exactly like a risky flow run directly.
+    let opts = RunOptions { resolve_flow: Some(library(vec![risky_callee()])), ..RunOptions::default() };
+    let r = run_with(caller.clone(), MockBackend::new(Platform::Windows), opts);
+    assert_eq!(r.result.status, RunStatus::Failed);
+    assert_eq!(r.result.error.unwrap().category, ErrorCategory::User);
+    assert_eq!(r.mock.count("http") + r.mock.count("file"), 0);
+
+    // Declined: asked once, with the callee's findings in the report.
+    let asked = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let seen = Arc::clone(&asked);
+    let opts = RunOptions {
+        resolve_flow: Some(library(vec![risky_callee()])),
+        confirm_risk: Some(Box::new(move |report| {
+            seen.lock().unwrap().push(report.findings.iter().map(|f| f.key.clone()).collect::<Vec<_>>());
+            false
+        })),
+        ..RunOptions::default()
+    };
+    let r = run_with(caller.clone(), MockBackend::new(Platform::Windows), opts);
+    assert_eq!(r.result.error.unwrap().category, ErrorCategory::User);
+    assert_eq!(r.mock.count("http") + r.mock.count("file"), 0);
+    let asked = asked.lock().unwrap();
+    assert_eq!(asked.len(), 1);
+    assert!(asked[0].iter().any(|k| k == "risk.secretExposed"), "{:?}", asked[0]);
+
+    // Approved: the callee runs.
+    let opts =
+        RunOptions { resolve_flow: Some(library(vec![risky_callee()])), secret: Some(Arc::new(|_| Some("s".into()))), ..approve_risk() };
+    let r = run_with(caller, MockBackend::new(Platform::Windows), opts);
+    assert_eq!(r.result.status, RunStatus::Completed, "{:?}", r.result.error);
+    assert_eq!(r.mock.count("http"), 1);
+}
+
+#[test]
+fn risk_with_calls_handles_cycles_unknown_ids_and_plain_flows() {
+    use autoflow_engine::risk::{analyze_risk, analyze_risk_with_calls};
+    // a → b → a (cycle) and b → risky; a also calls an unknown flow.
+    let a = mk_with(
+        json!([{ "id": "r1", "type": "runFlow", "flowId": "f_mid" }, { "id": "r2", "type": "runFlow", "flowId": "nope" }]),
+        json!({ "id": "f_a" }),
+    );
+    let mid = mk_with(
+        json!([{ "id": "back", "type": "runFlow", "flowId": "f_a" }, { "id": "r", "type": "runFlow", "flowId": "f_b" }]),
+        json!({ "id": "f_mid" }),
+    );
+    let resolve = library(vec![a.clone(), mid, risky_callee()]);
+    let report = analyze_risk_with_calls(&a, &*resolve);
+    assert!(report.needs_confirm);
+    assert_eq!(report.findings.iter().filter(|f| f.key == "risk.secretExposed").count(), 1, "each flow is counted once");
+
+    // A flow that calls itself terminates.
+    let me = mk_with(json!([{ "id": "self", "type": "runFlow", "flowId": "f_a" }]), json!({ "id": "f_a" }));
+    let own = me.clone();
+    assert_eq!(analyze_risk_with_calls(&me, &move |_: &str| Some(own.clone())), analyze_risk(&me));
+
+    // A disabled call does not count; a flow without runFlow is unchanged.
+    let off = mk_with(json!([{ "id": "r", "type": "runFlow", "flowId": "f_b", "disabled": true }]), json!({ "id": "f_a" }));
+    assert!(!analyze_risk_with_calls(&off, &*resolve).needs_confirm);
+    let plain = mk(json!([{ "id": "s", "type": "setVar", "name": "a", "value": "1" }, { "id": "w", "type": "wait", "ms": 5 }]));
+    assert_eq!(analyze_risk_with_calls(&plain, &*resolve), analyze_risk(&plain));
+    let r = run_with(plain, MockBackend::new(Platform::Windows), RunOptions { resolve_flow: Some(resolve), ..RunOptions::default() });
+    assert_eq!(r.result.status, RunStatus::Completed);
+}
+
+#[test]
+fn run_flow_initialises_the_callees_declared_variables() {
+    let callee = mk_with(
+        json!([
+            { "id": "t", "type": "setVar", "name": "out", "value": "greeting + '!'" },
+            { "id": "n", "type": "setVar", "name": "sum", "value": "count + 1" }
+        ]),
+        json!({ "id": "child", "variables": [
+            { "name": "greeting", "type": "string", "initial": "hi" },
+            { "name": "count", "type": "number", "initial": "5" }
+        ] }),
+    );
+    let call = json!([{ "id": "call", "type": "runFlow", "flowId": "child" }]);
+
+    // Declared callee variables exist when its steps run; run inputs do not apply to them.
+    let mut opts = RunOptions { resolve_flow: Some(library(vec![callee.clone()])), ..RunOptions::default() };
+    opts.inputs.insert("greeting".into(), Value::Str("from input".into()));
+    let r = run_with(mk(call.clone()), MockBackend::new(Platform::Web), opts);
+    assert_eq!(r.result.status, RunStatus::Completed, "{:?}", r.result.error);
+    assert_eq!(r.result.vars["out"], Value::Str("hi!".into()));
+    assert_eq!(r.result.vars["sum"], Value::Num(6.0));
+
+    // A caller variable of the same name keeps its value.
+    let caller = mk_with(call.clone(), json!({ "variables": [{ "name": "greeting", "type": "string", "initial": "caller" }] }));
+    let opts = RunOptions { resolve_flow: Some(library(vec![callee])), ..RunOptions::default() };
+    let r = run_with(caller, MockBackend::new(Platform::Web), opts);
+    assert_eq!(r.result.vars["out"], Value::Str("caller!".into()));
+    assert_eq!(r.result.vars["greeting"], Value::Str("caller".into()));
+
+    // The same conversion failure as at run start.
+    let bad = mk_with(json!([]), json!({ "id": "child", "variables": [{ "name": "n", "type": "number", "initial": "abc" }] }));
+    let opts = RunOptions { resolve_flow: Some(library(vec![bad])), ..RunOptions::default() };
+    let r = run_with(mk(call), MockBackend::new(Platform::Web), opts);
+    let err = r.result.error.unwrap();
+    assert_eq!(err.message, "variable \"n\": \"abc\" is not a number");
+    assert_eq!(err.category, ErrorCategory::Expression);
+}

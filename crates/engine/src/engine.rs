@@ -24,7 +24,7 @@ use crate::display::{
     place_rect, rect_on_display, sort_displays, to_hex_color, DisplayInfo,
 };
 use crate::expr::{default_random, interpolate_with, ExprEnv, ExprError, Vars};
-use crate::risk::{analyze_risk, RiskReport};
+use crate::risk::{analyze_risk, analyze_risk_with_calls, RiskReport};
 use crate::schema::{
     retry_delay_ms, Condition, DisplayRef, ErrorStrategy, FileOp, Flow, HttpMethod, Humanize, KeyAction, LogLevel, LoopMode, Modifier,
     MouseButton, Mulberry32, OnMissingDisplay, Platform, Rect, Scene, Space, Step, StepKind, Target, VarType, WindowMatch, WindowOp,
@@ -838,6 +838,12 @@ pub fn preflight(flow: &Flow, platform: Platform) -> Preflight {
     Preflight { compat, blocked, risk: analyze_risk(flow) }
 }
 
+/// [`preflight`] whose risk report also covers the flows reached through `runFlow` steps
+/// (`FlowRun.preflight(flow, platform, resolveFlow)`).
+pub fn preflight_with_calls(flow: &Flow, platform: Platform, resolve: &dyn Fn(&str) -> Option<Flow>) -> Preflight {
+    Preflight { risk: analyze_risk_with_calls(flow, resolve), ..preflight(flow, platform) }
+}
+
 fn new_run_id() -> String {
     const ALPHABET: &[u8] = b"0123456789abcdefghijklmnopqrstuvwxyz";
     let mut s = String::from("run_");
@@ -966,7 +972,7 @@ impl FlowRun {
 
     fn run_all(&mut self, flow: &Flow) -> Flowing {
         self.preflight_checks(flow)?;
-        self.init_vars(flow)?;
+        self.init_vars(flow, false)?;
         let countdown = flow.limits.countdown_ms;
         if !self.opts.skip_countdown && countdown > 0 {
             self.shared.set_state(RunState::Countdown);
@@ -1009,7 +1015,11 @@ impl FlowRun {
 
     fn preflight_checks(&mut self, flow: &Flow) -> Flowing {
         let platform = self.backend.platform();
-        let pf = preflight(flow, platform);
+        // A called flow runs under the caller's approval, so its steps are part of the risk report.
+        let pf = match self.opts.resolve_flow.clone() {
+            Some(resolve) => preflight_with_calls(flow, platform, &*resolve),
+            None => preflight(flow, platform),
+        };
         if let Some(first) = pf.blocked.first() {
             let types: Vec<&str> = pf.blocked.iter().map(|b| b.step_type.as_str()).collect();
             return Err(Signal::Fail(RunError {
@@ -1289,9 +1299,15 @@ impl FlowRun {
         Ok(self.eval(&c.expr)?.truthy())
     }
 
-    fn init_vars(&mut self, flow: &Flow) -> Flowing {
+    /// Declares the flow's variables. At run start (`callee == false`) run `inputs` override the initial
+    /// value. For a flow entered through `runFlow` (`callee == true`) only variables the run does not
+    /// define yet are initialised — existing ones keep their value — and `inputs` do not apply.
+    fn init_vars(&mut self, flow: &Flow, callee: bool) -> Flowing {
         for v in &flow.variables {
-            let input = self.opts.inputs.get(&v.name).filter(|x| !matches!(x, Value::Null));
+            if callee && self.vars.contains_key(&v.name) {
+                continue;
+            }
+            let input = if callee { None } else { self.opts.inputs.get(&v.name).filter(|x| !matches!(x, Value::Null)) };
             let mut val = input.cloned().or_else(|| v.initial.clone()).unwrap_or_else(|| default_for(v.var_type));
             match v.var_type {
                 VarType::Number => {
@@ -1901,6 +1917,12 @@ impl FlowRun {
                         message: "runFlow nesting too deep".into(),
                         category: ErrorCategory::Limit,
                     }));
+                }
+                // The callee's own declared variables exist before its steps run (engine.ts "runFlow").
+                if let Err(Signal::Fail(mut e)) = self.init_vars(&target, true) {
+                    e.step_id = Some(s.id.clone());
+                    e.path = Some(path.to_owned());
+                    return Err(Signal::Fail(e));
                 }
                 self.call_depth += 1;
                 let r = self.run_list(&target.steps, &format!("{path}>{flow_id}"));

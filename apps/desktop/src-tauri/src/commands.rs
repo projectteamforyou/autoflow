@@ -174,8 +174,13 @@ fn px(v: f64) -> i32 {
 
 /// `displays_identify` — a transparent, click-through-free overlay window per monitor showing its
 /// number (the same numbering as the Stage panel), closed again after `durationMs` (default 2.5 s).
+///
+/// `async` on purpose: a synchronous command runs on the main thread, and creating a window there
+/// deadlocks on Windows (WebView2 needs the event loop the command is blocking) — see the note on
+/// `WebviewWindowBuilder`. An async command runs on the runtime's pool and the builder hands the
+/// creation to the main thread.
 #[tauri::command]
-pub fn displays_identify(app: AppHandle, duration_ms: Option<u64>) -> Result<(), String> {
+pub async fn displays_identify(app: AppHandle, duration_ms: Option<u64>) -> Result<(), String> {
     let displays = platform::displays();
     if displays.is_empty() {
         return Err("monitor identification is only available in the Windows build".into());

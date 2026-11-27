@@ -582,7 +582,7 @@ export class FlowRun {
    * exist yet are set — the caller's values win and run inputs do not apply — so a sub-flow that uses
    * its own declared variables works the same whether it is run directly or called.
    */
-  private initVars(callee?: Flow): void {
+  private initVars(callee?: Flow, at?: { stepId: string; path: string }): void {
     for (const v of (callee ?? this.flow).variables) {
       if (callee && Object.prototype.hasOwnProperty.call(this.vars, v.name)) continue;
       const inputs = callee ? undefined : this.opts.inputs;
@@ -591,7 +591,7 @@ export class FlowRun {
       if (v.type === "number") {
         // "abc" would become NaN and surface much later as a misleading "number out of range".
         const n = typeof val === "boolean" ? Number(val) : Array.isArray(val) ? NaN : numberOrNaN(val);
-        if (!Number.isFinite(n)) throw new RunFailure({ message: `variable "${v.name}": ${JSON.stringify(val)} is not a number`, category: "expression" });
+        if (!Number.isFinite(n)) throw new RunFailure({ ...at, message: `variable "${v.name}": ${JSON.stringify(val)} is not a number`, category: "expression" });
         val = n;
       }
       if (v.type === "boolean") val = val === true || val === "true";
@@ -961,7 +961,7 @@ export class FlowRun {
         if (this.callDepth >= max) throw new RunFailure({ stepId: s.id, path, message: "runFlow nesting too deep", category: "limit" });
         this.callDepth++;
         try {
-          this.initVars(target);
+          this.initVars(target, { stepId: s.id, path });
           await this.runList(target.steps, `${path}>${s.flowId}`);
         } finally {
           this.callDepth--;
