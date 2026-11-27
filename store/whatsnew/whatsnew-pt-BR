@@ -1,9 +1,7 @@
-AutoFlow 1.2.0
-• Desfazer/refazer no editor; execute a partir de um passo ou só ele
-• Pastas, seleção múltipla e ações em lote
-• Desligue um agendamento ou atalho sem perder a configuração
-• Gerenciador de segredos para {{secret:name}}
-• Importe imagens de referência no app
-• O histórico mostra o tempo de cada passo
-• Aviso quando um fluxo agendado falha
-• Início mais confiável com o telefone ocioso
+AutoFlow 1.2.1
+• Fluxos que executam outros fluxos: etapas de risco do fluxo chamado agora pedem aprovação
+• Fluxos agendados podem executar fluxos sem gatilho próprio
+• O limite de tempo de uma etapa interrompe um toque longo em andamento
+• A notificação mostra a primeira etapa e a pausa
+• A sincronização mantém fluxos restaurados, pastas e favoritos
+• Cabeçalhos HTTP, tags e números negativos podem ser digitados
