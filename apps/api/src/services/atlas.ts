@@ -10,6 +10,7 @@ import type { AppDeps, AuthContext } from "../deps.js";
 import * as atlas from "../db/atlas.js";
 import type { AtlasTemplate, AtlasTemplateWithFlow, ReportReason, SearchQuery } from "../db/atlas.js";
 import { base62Id } from "../lib/crypto.js";
+import { isModerator } from "./auth.js";
 
 export { TEMPLATE_CATEGORIES };
 
@@ -122,11 +123,11 @@ export async function search(deps: AppDeps, q: SearchQuery) {
   return atlas.searchTemplates(deps.sql, q);
 }
 
-/** Published templates are public; others are visible only to their author and admins. */
+/** Published templates are public; others are visible only to their author and to whoever may moderate them. */
 export async function get(deps: AppDeps, id: string, viewer: AuthContext | undefined): Promise<AtlasTemplateWithFlow> {
   const t = await atlas.getTemplate(deps.sql, id);
   if (!t) throw errors.notFound("Template");
-  if (t.status !== "published" && viewer?.user.id !== t.authorId && viewer?.user.role !== "admin") throw errors.notFound("Template");
+  if (t.status !== "published" && viewer?.user.id !== t.authorId && !(viewer && isModerator(viewer.user, deps.config.adminEmails))) throw errors.notFound("Template");
   return t;
 }
 
@@ -174,7 +175,10 @@ export async function report(deps: AppDeps, auth: AuthContext, id: string, reaso
 }
 
 export async function unpublish(deps: AppDeps, auth: AuthContext, id: string): Promise<void> {
-  if (!(await atlas.deleteTemplate(deps.sql, id, auth.user.id))) throw errors.notFound("Template");
+  const outcome = await atlas.deleteTemplate(deps.sql, id, auth.user.id);
+  if (outcome === "not_found") throw errors.notFound("Template");
+  // The row (and its content hash) must outlive a takedown, or delete + republish would undo it.
+  if (outcome === "removed") throw errors.forbidden("This template was removed by a moderator and cannot be deleted");
   deps.logger.info("atlas.unpublished", { templateId: id, userId: auth.user.id });
 }
 

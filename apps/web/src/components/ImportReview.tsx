@@ -91,6 +91,8 @@ export function ImportReview({ result, onClose }: { result: ImportResult; onClos
             {lines.slice(0, 40).map((l, i) => (
               <div key={i} style={{ paddingLeft: l.depth * 16 }}>{tp(l.phrase)}</div>
             ))}
+            {/* Never look complete when it is not: the rest of a long flow is counted, not hidden. */}
+            {lines.length > 40 && <div className="muted">… +{lines.length - 40}</div>}
           </div>
         </div>
       </div>

@@ -97,14 +97,23 @@ async function applyRemote(item: RemoteItem, state: SyncState, report: SyncRepor
     // Both sides changed: keep the remote copy as a "(conflict)" duplicate and the local version as is;
     // it will be uploaded on top of the server revision.
     const name = `${remote.name} (conflict)`;
-    if (kind === "flow") await st.saveFlow({ ...(remote as Flow), id: newId("f"), name: name.slice(0, 120) }, { snapshot: false });
-    else await st.saveProfile({ ...(remote as InputProfile), id: newId("p"), name: name.slice(0, 80) });
+    if (kind === "flow") {
+      const copy = await st.saveFlow({ ...(remote as Flow), id: newId("f"), name: name.slice(0, 120) }, { snapshot: false });
+      // The copy of a flow whose trigger is switched off here must not start firing on its own.
+      const s = useStore.getState().settings;
+      if (s.pausedTriggers.includes(item.id)) await useStore.getState().updateSettings({ pausedTriggers: [...s.pausedTriggers, copy.id] });
+    } else await st.saveProfile({ ...(remote as InputProfile), id: newId("p"), name: name.slice(0, 80) });
     report.conflicts++;
     state[key] = { rev: item.revision, hash: known?.hash ?? null };
     return;
   }
-  if (kind === "flow") await st.saveFlow(remote as Flow, { snapshot: true, note: "sync" });
-  else await st.saveProfile(remote as InputProfile);
+  if (kind === "flow") {
+    // Folder and favourite are per-device (they are not part of the content hash): another device's
+    // edit of the steps must not move the flow out of its folder here or drop its star.
+    const mine = local as Flow | undefined;
+    const merged: Flow = mine ? { ...(remote as Flow), folder: mine.folder, favorite: mine.favorite } : (remote as Flow);
+    await st.saveFlow(merged, { snapshot: true, note: "sync" });
+  } else await st.saveProfile(remote as InputProfile);
   state[key] = { rev: item.revision, hash: item.contentHash };
   report.downloaded++;
 }
@@ -160,6 +169,33 @@ export async function syncNow(): Promise<SyncReport> {
     paused = e;
   }
 
+  // 3. Deletes that never reached the server: made while sync was locked (the key lives in memory only,
+  // so that is every fresh start) or when the DELETE itself failed. A recorded hash with no local item
+  // means "synced once, gone here". Flows that are stored but could not be loaded are not deletes.
+  if (!paused) {
+    const s = useStore.getState();
+    const present = new Set<string>([...s.flows.map((f) => `flow:${f.id}`), ...s.unreadable.map((u) => `flow:${u.id}`), ...s.profiles.map((p) => `profile:${p.id}`)]);
+    for (const [key, known] of Object.entries(state)) {
+      if (!known || known.hash === null || present.has(key)) continue;
+      const cut = key.indexOf(":");
+      const kind = key.slice(0, cut);
+      if (kind !== "flow" && kind !== "profile") continue;
+      try {
+        const r = await api<{ item: RemoteItem }>(`/v1/sync/items/${kind}/${encodeURIComponent(key.slice(cut + 1))}`, { method: "DELETE", headers: { "If-Match": String(known.rev) } });
+        state[key] = { rev: r.item.revision, hash: null };
+        report.deleted++;
+      } catch (e) {
+        // 409: another device changed it meanwhile — the next pull brings that version back. 404: never uploaded.
+        if (e instanceof ApiError && e.status === 404) state[key] = { rev: known.rev, hash: null };
+        else if (!(e instanceof ApiError)) throw e;
+      }
+    }
+  }
+
+  // Deletes made while this sync ran wrote their tombstones straight to the stored state: keep them.
+  await deleteQueue;
+  const stored: SyncState = (await kv.get<SyncState>(STATE)) ?? {};
+  for (const [key, v] of Object.entries(stored)) if (v && v.hash === null && state[key] && v.rev > state[key]!.rev) state[key] = v;
   await kv.set(STATE, state);
   await useStore.getState().updateSettings({ sync: { ...useStore.getState().settings.sync, cursor, lastSyncAt: Date.now() } });
   if (paused) throw paused;
@@ -172,17 +208,31 @@ export async function resetSyncState(): Promise<void> {
   await kv.del(STATE);
 }
 
-/** Tombstones an item on the server after a local delete. */
-export async function deleteRemote(kind: Kind, id: string): Promise<void> {
-  if (!syncKey) return;
-  const state: SyncState = (await kv.get<SyncState>(STATE)) ?? {};
-  const known = state[`${kind}:${id}`];
-  if (!known) return;
-  try {
-    const r = await api<{ item: RemoteItem }>(`/v1/sync/items/${kind}/${encodeURIComponent(id)}`, { method: "DELETE", headers: { "If-Match": String(known.rev) } });
-    state[`${kind}:${id}`] = { rev: r.item.revision, hash: null };
-    await kv.set(STATE, state);
-  } catch {
-    /* next sync reconciles */
-  }
+/** One delete at a time: each one reads the stored state, calls the server and writes the state back. */
+let deleteQueue: Promise<void> = Promise.resolve();
+
+/**
+ * Tombstones an item on the server after a local delete. Deletes are queued: a bulk delete used to start
+ * them all at once, each wrote back its own stale copy of the state and only the last tombstone survived —
+ * after "Undo" the next sync then deleted the restored flows again.
+ * While sync is locked nothing is sent; `syncNow` step 3 sends it later.
+ */
+export function deleteRemote(kind: Kind, id: string): Promise<void> {
+  const job = deleteQueue.then(async () => {
+    if (!syncKey) return;
+    const key = `${kind}:${id}`;
+    const known = ((await kv.get<SyncState>(STATE)) ?? {})[key];
+    if (!known || known.hash === null) return;
+    try {
+      const r = await api<{ item: RemoteItem }>(`/v1/sync/items/${kind}/${encodeURIComponent(id)}`, { method: "DELETE", headers: { "If-Match": String(known.rev) } });
+      // Read again: another delete or a sync may have written while the request was in flight.
+      const state: SyncState = (await kv.get<SyncState>(STATE)) ?? {};
+      state[key] = { rev: r.item.revision, hash: null };
+      await kv.set(STATE, state);
+    } catch {
+      /* syncNow step 3 sends it again */
+    }
+  });
+  deleteQueue = job.catch(() => undefined);
+  return job;
 }

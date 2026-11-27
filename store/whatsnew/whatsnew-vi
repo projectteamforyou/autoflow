@@ -1,9 +1,7 @@
-AutoFlow 1.2.0
-• Hoàn tác/làm lại trong trình soạn; chạy từ một bước hoặc chỉ bước đó
-• Thư mục, chọn nhiều và thao tác hàng loạt
-• Tắt lịch hoặc phím tắt mà không mất thiết lập
-• Quản lý bí mật cho {{secret:name}}
-• Nhập ảnh tham chiếu ngay trong ứng dụng
-• Lịch sử hiển thị thời gian từng bước
-• Thông báo khi luồng theo lịch bị lỗi
-• Khởi chạy ổn định hơn khi máy đang nghỉ
+AutoFlow 1.2.1
+• Luồng chạy luồng khác: bước rủi ro trong luồng được gọi giờ cũng yêu cầu phê duyệt
+• Luồng theo lịch có thể chạy luồng không có trình kích hoạt
+• Giới hạn thời gian của bước dừng thao tác nhấn giữ hoặc vuốt
+• Thông báo hiển thị bước đầu tiên và trạng thái tạm dừng
+• Đồng bộ giữ lại luồng đã khôi phục, thư mục và mục yêu thích
+• Có thể nhập tiêu đề HTTP, thẻ và số âm

@@ -108,8 +108,10 @@ export async function deleteItem(deps: AppDeps, auth: AuthContext, kind: ItemKin
     if (!(await lockUser(tx, userId))) throw new ApiError(401, "unauthorized", "Account no longer exists");
     const current = await items.getItem(tx, userId, kind, itemId);
     if (!current) throw new ApiError(404, "not_found", "Item not found");
-    if (current.revision !== baseRevision) throw conflict(current);
+    // Idempotent: a retry or another device deleting an already-deleted item gets the tombstone,
+    // whatever revision it last saw.
     if (current.deleted) return current;
+    if (current.revision !== baseRevision) throw conflict(current);
     const saved = await items.updateItem(
       tx,
       { userId, kind, itemId, revision: current.revision + 1, ciphertext: null, iv: null, contentHash: null, sizeBytes: 0, deleted: true, deviceId: auth.session.deviceId },

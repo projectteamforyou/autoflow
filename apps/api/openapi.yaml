@@ -9,6 +9,9 @@ info:
 
     Errors always have the shape `{ "error": { "code": string, "message": string, "details"?: any } }`.
     Rate-limited responses are `429` with a `Retry-After` header.
+
+    Text that PostgreSQL cannot store — the NUL character (U+0000) or an unpaired UTF-16 surrogate, in any
+    string or object key of a JSON body or in a query parameter — is rejected with `400 validation_failed`.
   license:
     name: UNLICENSED
 servers:
@@ -115,6 +118,9 @@ paths:
     post:
       tags: [auth]
       summary: Sign in with email and password
+      description: |
+        Besides the per-IP limit, wrong passwords are limited per account (`429` once the budget is spent,
+        also under parallel requests). Successful logins do not use up that budget.
       security: []
       requestBody:
         required: true
@@ -246,6 +252,7 @@ paths:
     post:
       tags: [auth]
       summary: Change the password (signs out other sessions)
+      description: Also invalidates any password reset link requested earlier.
       requestBody:
         required: true
         content:
@@ -548,6 +555,10 @@ paths:
     delete:
       tags: [sync]
       summary: Delete an item (leaves a tombstone)
+      description: |
+        Idempotent: deleting an item that is already a tombstone answers `200` with that tombstone whatever
+        `If-Match` says. A live item whose revision differs from `If-Match` answers `409` with the current item;
+        an item that was never uploaded answers `404`.
       parameters:
         - name: If-Match
           in: header
@@ -700,6 +711,7 @@ paths:
       tags: [atlas]
       security: []
       summary: Browse and search published community templates
+      description: "`total` counts every match, also when `page` is past the last page (`templates` is then empty)."
       parameters:
         - { name: q, in: query, schema: { type: string, maxLength: 100 } }
         - { name: category, in: query, schema: { type: string } }
@@ -774,6 +786,9 @@ paths:
       tags: [atlas]
       security: [{}, { bearer: [] }]
       summary: Template detail with flow and risk findings
+      description: |
+        Published templates are public. Templates in any other status (`pending_review`, `hidden`, `removed`)
+        are visible to their author and to moderators (admin role or deployment operator); everyone else gets `404`.
       responses:
         "200":
           description: Template
@@ -787,8 +802,17 @@ paths:
     delete:
       tags: [atlas]
       summary: Unpublish (author only)
+      description: |
+        Deletes the author's own template. A template a moderator removed (`status: removed`) cannot be deleted:
+        it stays in the author's list so the same content cannot be published again, and the request answers `403`.
+        Templates of other authors answer `404`.
       responses:
         "204": { description: Unpublished }
+        "403":
+          description: The template was removed by a moderator and cannot be deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
         "404": { $ref: "#/components/responses/Error" }
 
   /v1/atlas/templates/{id}/install:
@@ -873,7 +897,7 @@ paths:
   /v1/admin/atlas/queue:
     get:
       tags: [admin]
-      summary: Moderation queue (admin role)
+      summary: Moderation queue (admin role or deployment operator)
       parameters:
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
       responses:

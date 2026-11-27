@@ -40,8 +40,8 @@ pub mod value;
 pub mod windows;
 
 pub use engine::{
-    preflight, run_flow, BackendError, Clock, ErrorCategory, FlowRun, InputAction, InputBackend, RealClock, RunControl, RunError, RunEvent,
-    RunHandle, RunOptions, RunResult, RunState, RunStatus, ScreenInfo, VirtualClock,
+    preflight, preflight_with_calls, run_flow, BackendError, Clock, ErrorCategory, FlowRun, InputAction, InputBackend, RealClock,
+    RunControl, RunError, RunEvent, RunHandle, RunOptions, RunResult, RunState, RunStatus, ScreenInfo, VirtualClock,
 };
 pub use expr::{check_expr, eval_expr, interpolate, ExprEnv, ExprError, Vars};
 pub use mock::{MockBackend, MockHandle};

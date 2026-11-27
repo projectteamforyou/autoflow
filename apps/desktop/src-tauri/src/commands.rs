@@ -71,7 +71,23 @@ pub fn permission_request(app: AppHandle, permission: NativePermission) -> Permi
     s
 }
 
+/// Flows that the flow being started (or the registered triggers) call through `runFlow` but that the
+/// app has not been given any other way: manual flows are never part of `triggers_sync`. Without them
+/// the call fails with "flow not found" and the risk check cannot see what the call would do.
+/// Invalid entries are skipped; the call itself then reports the missing flow.
+fn remember_called_flows(app: &AppHandle, library: Option<Vec<serde_json::Value>>) {
+    let Some(library) = library else { return };
+    let flows: Vec<_> = library.iter().filter_map(|v| parse_flow(v).ok()).collect();
+    let state = app.state::<AppState>();
+    let mut known = lock(&state.library);
+    for flow in flows {
+        known.insert(flow.id.clone(), flow);
+    }
+}
+
 /// `run_start`
+// One parameter per field of the bridge call: the list is the wire contract, not a design choice.
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub fn run_start(
     app: AppHandle,
@@ -81,7 +97,9 @@ pub fn run_start(
     approved_screen_change: bool,
     dry_run: Option<bool>,
     transient: Option<bool>,
+    library: Option<Vec<serde_json::Value>>,
 ) -> Result<RunStarted, String> {
+    remember_called_flows(&app, library);
     let flow = parse_flow(&flow).map_err(|issues| {
         let list: Vec<String> = issues.iter().take(5).map(ToString::to_string).collect();
         format!("invalid flow: {}", list.join("; "))
@@ -117,7 +135,13 @@ pub fn halt_all(app: AppHandle) {
 
 /// `triggers_sync`
 #[tauri::command]
-pub fn triggers_sync(app: AppHandle, flows: Vec<serde_json::Value>, emergency_stop: Hotkey) -> TriggersSynced {
+pub fn triggers_sync(
+    app: AppHandle,
+    flows: Vec<serde_json::Value>,
+    emergency_stop: Hotkey,
+    library: Option<Vec<serde_json::Value>>,
+) -> TriggersSynced {
+    remember_called_flows(&app, library);
     triggers::sync(&app, &flows, emergency_stop)
 }
 
@@ -174,8 +198,13 @@ fn px(v: f64) -> i32 {
 
 /// `displays_identify` — a transparent, click-through-free overlay window per monitor showing its
 /// number (the same numbering as the Stage panel), closed again after `durationMs` (default 2.5 s).
+///
+/// `async` on purpose: a synchronous command runs on the main thread, and creating a window there
+/// deadlocks on Windows (WebView2 needs the event loop the command is blocking) — see the note on
+/// `WebviewWindowBuilder`. An async command runs on the runtime's pool and the builder hands the
+/// creation to the main thread.
 #[tauri::command]
-pub fn displays_identify(app: AppHandle, duration_ms: Option<u64>) -> Result<(), String> {
+pub async fn displays_identify(app: AppHandle, duration_ms: Option<u64>) -> Result<(), String> {
     let displays = platform::displays();
     if displays.is_empty() {
         return Err("monitor identification is only available in the Windows build".into());

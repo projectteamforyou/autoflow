@@ -253,7 +253,7 @@ class AutoFlowNativePlugin : Plugin() {
     @PluginMethod
     fun triggers_sync(call: PluginCall) = async(call) {
         val a = args(call)
-        TriggerEngine.sync(context, a["flows"] as? JsonArray ?: JsonArray(emptyList()), a["emergencyStop"]).toJson()
+        TriggerEngine.sync(context, a["flows"] as? JsonArray ?: JsonArray(emptyList()), a["emergencyStop"], a["library"] as? JsonArray).toJson()
     }
 
     @PluginMethod

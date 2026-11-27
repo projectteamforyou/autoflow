@@ -136,7 +136,10 @@ export function keyFromEvent(e: KeyboardEvent | React.KeyboardEvent): Hotkey | n
   const modifiers: Hotkey["modifiers"] = [];
   if (e.ctrlKey) modifiers.push("ctrl");
   if (e.altKey) modifiers.push("alt");
-  if (e.shiftKey && e.key.length !== 1) modifiers.push("shift");
+  // Shift counts for named keys, for letters and digits (Ctrl+Shift+K is not Ctrl+K), and whenever
+  // another modifier is held. A bare shifted symbol ("?", "!") is just that character.
+  const plain = e.code.startsWith("Key") || e.code.startsWith("Digit");
+  if (e.shiftKey && (e.key.length !== 1 || plain || e.ctrlKey || e.altKey || e.metaKey)) modifiers.push("shift");
   if (e.metaKey) modifiers.push("meta");
   let key = e.key === " " ? "Space" : e.key;
   if (key.length === 1) key = e.code.startsWith("Key") ? e.code.slice(3) : e.code.startsWith("Digit") ? e.code.slice(5) : key.toUpperCase();

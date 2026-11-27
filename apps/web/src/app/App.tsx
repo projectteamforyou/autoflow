@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, type ComponentType } from "react";
 import { HashRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { hotkeyToString } from "@autoflow/core";
+import { calledFlows, hotkeyToString } from "@autoflow/core";
 import { useStore } from "../lib/store";
 import { applyTheme, DialogHost, PulseBar, Toasts } from "../components/Shell";
 import { keyFromEvent } from "../components/ui";
@@ -67,10 +67,30 @@ function Effects() {
   // Keep native trigger registrations (hotkeys, schedules, device events) in sync with the library.
   // Paused triggers are simply left out, so the native side unregisters them; the flows stay unchanged.
   const paused = settings.pausedTriggers;
+  // A file dropped outside a drop zone (Library, editor) must not make the window open it: in the
+  // desktop app that replaces the whole UI with the file and there is no way back.
   useEffect(() => {
-    if (!hasNativeBridge) return;
+    const guard = (e: DragEvent) => {
+      if (e.defaultPrevented || !e.dataTransfer || !Array.from(e.dataTransfer.types).includes("Files")) return;
+      e.preventDefault();
+      if (e.type === "dragover") e.dataTransfer.dropEffect = "none";
+    };
+    window.addEventListener("dragover", guard);
+    window.addEventListener("drop", guard);
+    return () => {
+      window.removeEventListener("dragover", guard);
+      window.removeEventListener("drop", guard);
+    };
+  }, []);
+  const ready = useStore((s) => s.ready);
+  useEffect(() => {
+    // Not before the library has loaded: an empty list would unregister every trigger for a moment.
+    if (!hasNativeBridge || !ready) return;
     const id = setTimeout(() => {
-      void invoke("triggers_sync", { flows: armedFlows(flows, paused), emergencyStop: settings.haltHotkey })
+      // Flows the armed ones call ("run flow") go along: a schedule that fires must be able to resolve them.
+      const armed = armedFlows(flows, paused);
+      const called = calledFlows(armed, (id) => flows.find((f) => f.id === id));
+      void invoke("triggers_sync", { flows: armed, emergencyStop: settings.haltHotkey, ...(called.length ? { library: called } : {}) })
         .then((r) => {
           const st = useStore.getState();
           // Toast only what is newly failing (this runs after every library edit); the Library badge shows the reason for as long as it lasts.
@@ -81,7 +101,7 @@ function Effects() {
         .catch(() => undefined);
     }, 800);
     return () => clearTimeout(id);
-  }, [flows, paused, settings.haltHotkey]);
+  }, [flows, paused, settings.haltHotkey, ready]);
   return null;
 }
 

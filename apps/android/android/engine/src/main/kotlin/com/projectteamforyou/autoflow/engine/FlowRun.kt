@@ -72,10 +72,14 @@ class FlowRun(
 
         data class Preflight(val compat: List<CompatIssue>, val blocked: List<CompatIssue>, val risk: RiskReport)
 
-        /** Static pre-run checks shared by every surface. */
-        fun preflight(flow: Flow, platform: Platform): Preflight {
+        /**
+         * Static pre-run checks shared by every surface. With [resolveFlow] the risk report also covers the flows
+         * reached through "run flow" steps (engine.ts `FlowRun.preflight`).
+         */
+        fun preflight(flow: Flow, platform: Platform, resolveFlow: ((String) -> Flow?)? = null): Preflight {
             val compat = compatibility(flow.steps, platform)
-            return Preflight(compat, compat.filter { it.support == Support.UNSUPPORTED }, analyzeRisk(flow))
+            val risk = if (resolveFlow != null) analyzeRiskWithCalls(flow, resolveFlow) else analyzeRisk(flow)
+            return Preflight(compat, compat.filter { it.support == Support.UNSUPPORTED }, risk)
         }
 
         fun newRunId(): String {
@@ -171,7 +175,7 @@ class FlowRun(
     /* ------------------------------------------------------------ internals */
 
     private suspend fun preflightChecks() {
-        val (_, blocked, risk) = preflight(flow, backend.platform)
+        val (_, blocked, risk) = preflight(flow, backend.platform, opts.resolveFlow)
         if (blocked.isNotEmpty()) {
             throw RunFailure(
                 RunError(
@@ -342,10 +346,16 @@ class FlowRun(
         return truthy(evalExpr(c.expr, env))
     }
 
-    private fun initVars() {
-        for (v in flow.variables) {
+    /**
+     * Run start ([callee] false): every declared variable, run inputs first. A called flow ([callee] true, `runFlow`):
+     * only the variables it declares that the run does not have yet, converted and checked the same way; variables
+     * that already exist keep their value and run inputs never apply.
+     */
+    private fun initVars(defs: List<VariableDef> = flow.variables, callee: Boolean = false) {
+        for (v in defs) {
+            if (callee && vars.containsKey(v.name)) continue
             // An explicit null input is "not provided" (engine.ts `inputs[name] ?? initial`).
-            var value: Value = opts.inputs[v.name]?.takeIf { it != Value.Null } ?: v.initial ?: defaultFor(v.type)
+            var value: Value = (if (callee) null else opts.inputs[v.name]?.takeIf { it != Value.Null }) ?: v.initial ?: defaultFor(v.type)
             if (v.type == "number") {
                 // "abc" would become NaN and surface much later as a misleading "number out of range" (engine.ts initVars):
                 // booleans coerce, lists never do, strings follow `Number(string)`.
@@ -680,6 +690,7 @@ class FlowRun(
                 if (callDepth >= opts.maxCallDepth) throw RunFailure(RunError(s.id, path, "runFlow nesting too deep", ErrorCategory.LIMIT))
                 callDepth++
                 try {
+                    initVars(target.variables, callee = true)
                     runList(target.steps, "$path>${s.flowId}")
                 } finally {
                     callDepth--

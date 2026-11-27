@@ -39,7 +39,11 @@ class RunService : Service() {
         @Volatile private var lastUpdate = 0L
         @Volatile private var lastStepUpdate = 0L
         @Volatile private var stepUpdatePending = false
+        @Volatile private var refreshPending = false
         private val handler = Handler(Looper.getMainLooper())
+        /** Token of every delayed refresh posted to [handler], so onDestroy can cancel them all. */
+        private val REFRESH_TOKEN = Any()
+        private const val MIN_UPDATE_MS = 250L
 
         /**
          * A run moved to another step: refreshes the notification's text, at most once per second (fast loops change
@@ -56,14 +60,18 @@ class RunService : Service() {
             }
             if (stepUpdatePending) return
             stepUpdatePending = true
-            handler.postDelayed({
+            handler.postAtTime({
                 stepUpdatePending = false
                 lastStepUpdate = SystemClock.elapsedRealtime()
                 update(app)
-            }, wait)
+            }, REFRESH_TOKEN, SystemClock.uptimeMillis() + wait)
         }
 
-        /** Starts, refreshes or stops the service to match RunManager. Throttled to ~4 updates/s. */
+        /**
+         * Starts, refreshes or stops the service to match RunManager. Throttled to ~4 updates/s; an update that
+         * arrives inside the 250 ms window is not lost: one refresh with the then-current state follows when the
+         * window ends (the first step's label, or Paused right after a step change).
+         */
         fun update(context: Context) {
             val app = context.applicationContext
             if (!RunManager.hasActiveRuns()) {
@@ -71,7 +79,17 @@ class RunService : Service() {
                 return
             }
             val now = SystemClock.elapsedRealtime()
-            if (running && now - lastUpdate < 250) return
+            if (running && now - lastUpdate < MIN_UPDATE_MS) {
+                if (!refreshPending) {
+                    refreshPending = true
+                    val wait = (MIN_UPDATE_MS - (now - lastUpdate)).coerceIn(1L, MIN_UPDATE_MS)
+                    handler.postAtTime({
+                        refreshPending = false
+                        update(app)
+                    }, REFRESH_TOKEN, SystemClock.uptimeMillis() + wait)
+                }
+                return
+            }
             lastUpdate = now
             if (running) {
                 // Already foreground: just refresh the notification.
@@ -157,6 +175,11 @@ class RunService : Service() {
 
     override fun onDestroy() {
         running = false
+        // Pending delayed refreshes belong to this service instance; the flags are cleared with them, or the next run
+        // would wait for a refresh that never comes.
+        handler.removeCallbacksAndMessages(REFRESH_TOKEN)
+        refreshPending = false
+        stepUpdatePending = false
         super.onDestroy()
     }
 

@@ -16,9 +16,9 @@ use ::windows::Win32::UI::WindowsAndMessaging::{
     WM_COMMAND,
 };
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{mpsc, Arc};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 /// Services the desktop shell provides to runs.
 pub trait Host: Send + Sync {
@@ -42,20 +42,29 @@ unsafe extern "system" fn close_window(hwnd: HWND, _: LPARAM) -> BOOL {
     BOOL(1)
 }
 
+/// How long an aborted question keeps looking for its message box (see [`dismiss_message_box`]).
+const DISMISS_WINDOW: Duration = Duration::from_secs(1);
+
 /// Topmost Yes/No message box that closes itself when the run is stopped or the step's deadline
 /// passes.
 pub fn message_box_confirm(message: &str, control: &RunControl) -> Result<bool, BackendError> {
     let (tx, rx) = mpsc::channel();
     let tid = Arc::new(AtomicU32::new(0));
-    let tid2 = Arc::clone(&tid);
+    let cancelled = Arc::new(AtomicBool::new(false));
+    let (tid2, cancelled2) = (Arc::clone(&tid), Arc::clone(&cancelled));
     let text = wide(message);
     let caption = wide("AutoFlow");
     std::thread::Builder::new()
         .name("autoflow-confirm".into())
         .spawn(move || {
+            // SAFETY: no preconditions.
+            tid2.store(unsafe { GetCurrentThreadId() }, Ordering::SeqCst);
+            // Stopped before the box exists: do not show it at all (dropping `tx` tells the waiter).
+            if cancelled2.load(Ordering::SeqCst) {
+                return;
+            }
             // SAFETY: strings are NUL-terminated and outlive the modal call.
             let answer = unsafe {
-                tid2.store(GetCurrentThreadId(), Ordering::SeqCst);
                 MessageBoxW(
                     None,
                     PCWSTR(text.as_ptr()),
@@ -68,11 +77,8 @@ pub fn message_box_confirm(message: &str, control: &RunControl) -> Result<bool, 
         .map_err(|e| BackendError::new(ErrorCategory::Internal, format!("cannot show the question: {e}")))?;
     loop {
         if control.interrupted() {
-            let id = tid.load(Ordering::SeqCst);
-            if id != 0 {
-                // SAFETY: enumerates the helper thread's windows to dismiss the message box.
-                let _ignored = unsafe { EnumThreadWindows(id, Some(close_window), LPARAM(0)) };
-            }
+            cancelled.store(true, Ordering::SeqCst);
+            dismiss_message_box(&tid, &rx);
             return Err(BackendError::aborted());
         }
         match rx.recv_timeout(Duration::from_millis(50)) {
@@ -81,6 +87,29 @@ pub fn message_box_confirm(message: &str, control: &RunControl) -> Result<bool, 
             Err(mpsc::RecvTimeoutError::Disconnected) => {
                 return Err(BackendError::new(ErrorCategory::Internal, "the question closed unexpectedly"))
             }
+        }
+    }
+}
+
+/// Closes the helper thread's message box after a stop or a passed deadline, and waits until that
+/// thread is done with it.
+///
+/// A stop can land before the helper thread has created the box: a single look would find no window
+/// and the box would then appear and stay, with nobody waiting for the answer. The helper thread
+/// checks the cancelled flag right before showing, and this keeps pressing "No" on whatever that
+/// thread shows until it reports back (an answer, or its end without one) — normally a few
+/// milliseconds, at most [`DISMISS_WINDOW`].
+fn dismiss_message_box(tid: &AtomicU32, done: &mpsc::Receiver<bool>) {
+    let until = Instant::now() + DISMISS_WINDOW;
+    loop {
+        let id = tid.load(Ordering::SeqCst);
+        if id != 0 {
+            // SAFETY: enumerates the helper thread's windows to dismiss the message box.
+            let _ignored = unsafe { EnumThreadWindows(id, Some(close_window), LPARAM(0)) };
+        }
+        // An answer or a disconnect both mean the helper thread no longer shows (or will show) a box.
+        if !matches!(done.recv_timeout(Duration::from_millis(15)), Err(mpsc::RecvTimeoutError::Timeout)) || Instant::now() >= until {
+            return;
         }
     }
 }

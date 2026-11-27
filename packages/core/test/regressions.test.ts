@@ -4,6 +4,10 @@ import {
   FlowRun,
   SandboxBackend,
   analyzeRisk,
+  analyzeRiskWithCalls,
+  calledFlows,
+  applyEasy,
+  toEasy,
   createFlow,
   createVirtualClock,
   evalExpr,
@@ -234,5 +238,88 @@ describe("sharing: literal credentials never pass as secret-only", () => {
     expect(out.headers["Api-Key"]).toBe(" {{secret:a}} {{secret:b}} ");
     expect(out.headers.Cookie).toBe("Bearer {{secret:http_cookie}}");
     expect(out.headers["Proxy-Authorization"]).toBe("Basic {{secret:http_proxy_authorization}}");
+  });
+});
+
+describe("2026-11-27 audit", () => {
+  const click = (id: string, extra: Record<string, unknown> = {}): Step => ({ id, type: "click", target: { kind: "point", x: 0.5, y: 0.5, space: "normalized" }, button: "left", clicks: 1, holdMs: 0, modifiers: [], ...extra }) as Step;
+  const wait = (id: string): Step => ({ id, type: "wait", ms: 250, jitterMs: 0 }) as Step;
+  const easyShaped = (loopExtra: Record<string, unknown> = {}, clickExtra: Record<string, unknown> = {}, before: Step[] = []): Flow => {
+    const r = parseFlow({
+      ...createFlow({ name: "x" }),
+      mode: "pro",
+      steps: [...before, { id: "L", type: "loop", mode: "count", count: 3, body: [click("c", clickExtra), wait("w")], ...loopExtra }],
+      hotkeys: { start: { key: "F6", modifiers: ["ctrl"] }, stop: { key: "Escape", modifiers: ["ctrl", "alt"] } },
+    });
+    if (!r.ok) throw new Error(JSON.stringify(r.issues));
+    return r.flow;
+  };
+
+  it("Easy mode is offered only when its model can hold everything in the flow", () => {
+    expect(toEasy(easyShaped())).not.toBeNull();
+    expect(toEasy(easyShaped({ label: "Farm loop" }))).toBeNull();
+    expect(toEasy(easyShaped({ stepTimeoutMs: 60_000 }))).toBeNull();
+    expect(toEasy(easyShaped({ onError: { strategy: "retry", retries: 3, backoffMs: 500 } }))).toBeNull();
+    expect(toEasy(easyShaped({}, { stepTimeoutMs: 2000 }))).toBeNull();
+    expect(toEasy(easyShaped({}, { breakpoint: true }))).toBeNull();
+    expect(toEasy(easyShaped({}, {}, [{ id: "note", type: "log", level: "info", message: "later", disabled: true } as Step]))).toBeNull();
+  });
+
+  it("clearing the start hotkey in Easy mode clears it on the flow", () => {
+    const flow = easyShaped();
+    const m = toEasy(flow)!;
+    expect(applyEasy(flow, m).hotkeys.start).toEqual({ key: "F6", modifiers: ["ctrl"] });
+    expect(applyEasy(flow, { ...m, startHotkey: undefined }).hotkeys.start).toBeUndefined();
+  });
+
+  it("the risk report of a caller covers the flows it runs", () => {
+    const callee = { ...createFlow({ name: "callee", id: "f_callee" }), steps: [{ id: "h", type: "http", method: "POST", url: "https://example.com/x", headers: {}, body: "{{secret:k}}", timeoutMs: 5000 } as Step] };
+    const caller = { ...createFlow({ name: "caller", id: "f_caller" }), steps: [{ id: "r", type: "runFlow", flowId: "f_callee" } as Step] };
+    const resolve = (id: string) => (id === "f_callee" ? callee : id === "f_caller" ? caller : undefined);
+    expect(analyzeRisk(callee).needsConfirm).toBe(true);
+    expect(analyzeRisk(caller).needsConfirm).toBe(false);
+    expect(analyzeRiskWithCalls(caller, resolve).needsConfirm).toBe(true);
+    expect(FlowRun.preflight(caller as Flow, "web", resolve as (id: string) => Flow | undefined).risk.needsConfirm).toBe(true);
+    // A cycle or an unknown id does not loop or throw.
+    const loopy = { ...caller, steps: [...caller.steps, { id: "r2", type: "runFlow", flowId: "f_caller" } as Step, { id: "r3", type: "runFlow", flowId: "f_missing" } as Step] };
+    expect(analyzeRiskWithCalls(loopy, resolve).needsConfirm).toBe(true);
+  });
+
+  it("Halt ends an open sandbox question instead of waiting for an answer", async () => {
+    const backend = new SandboxBackend({ platform: "web", confirm: () => new Promise<boolean>(() => undefined) });
+    const ctrl = new AbortController();
+    const asked = backend.confirm("Continue?", ctrl.signal);
+    ctrl.abort(new Error("halt"));
+    await expect(asked).rejects.toThrow("halt");
+  });
+
+  it("a called flow gets its own declared variables; the caller's values win", async () => {
+    const callee = mk([{ id: "s", type: "setVar", name: "out", value: 'greeting + "!"' }], {
+      id: "f_callee",
+      variables: [
+        { name: "greeting", type: "string", initial: "hi" },
+        { name: "out", type: "string", initial: "" },
+      ] as Flow["variables"],
+    });
+    const run = async (callerVars: Flow["variables"]) => {
+      const caller = mk([{ id: "r", type: "runFlow", flowId: "f_callee" }], { variables: callerVars });
+      const fr = new FlowRun(caller, new SandboxBackend({ platform: "web" }), { skipCountdown: true, clock: createVirtualClock(), resolveFlow: (id) => (id === "f_callee" ? callee : undefined), inputs: { greeting: "from input" } });
+      const r = await fr.start();
+      return { status: r.status, out: r.vars.out };
+    };
+    // Not declared by the caller: the callee's own initial value is used (run inputs are for the caller only).
+    expect(await run([])).toEqual({ status: "completed", out: "hi!" });
+    // Declared by the caller: its value is kept.
+    expect(await run([{ name: "greeting", type: "string", initial: "yo" }] as Flow["variables"])).toEqual({ status: "completed", out: "from input!" });
+  });
+
+  it("calledFlows lists what a native executor needs besides the flow itself", () => {
+    const f = (id: string, calls: string[], disabled = false) => ({ ...createFlow({ name: id, id }), steps: calls.map((c, i) => ({ id: `${id}_${i}`, type: "runFlow", flowId: c, ...(disabled ? { disabled: true } : {}) }) as Step) });
+    const all = [f("f_a", ["f_b", "f_missing"]), f("f_b", ["f_c", "f_a"]), f("f_c", []), f("f_d", ["f_c"], true), f("f_e", [])];
+    const resolve = (id: string) => all.find((x) => x.id === id);
+    expect(calledFlows([all[0]!], resolve).map((x) => x.id)).toEqual(["f_b", "f_c"]); // transitive, cycle-safe, unknown skipped
+    expect(calledFlows([all[3]!], resolve)).toEqual([]); // a disabled call is not followed
+    expect(calledFlows([all[0]!, all[1]!], resolve).map((x) => x.id)).toEqual(["f_c"]); // roots are not repeated
+    expect(calledFlows([all[4]!], resolve)).toEqual([]);
   });
 });

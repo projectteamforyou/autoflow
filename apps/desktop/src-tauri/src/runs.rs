@@ -129,8 +129,9 @@ fn try_start(app: &AppHandle, flow: Flow, inputs: IndexMap<String, Value>, origi
     let run_handle: Arc<OnceLock<RunHandle>> = Arc::new(OnceLock::new());
     let (sink_id, sink_app) = (Arc::clone(&run_id), app.clone());
     let name = flow.name.clone();
-    // The approval covers exactly these steps: any edit changes the hash and asks again.
-    let steps_hash = approvals::steps_hash(&flow);
+    // The approval covers exactly these steps and those of the flows they call (the same snapshot
+    // of the library this run resolves `runFlow` against): any edit changes the hash and asks again.
+    let steps_hash = approvals::steps_hash(&flow, &library);
     let remembered = steps_hash.as_deref().is_some_and(|h| approvals::is_approved(&lock(&state.approved), &flow.id, h));
     let (confirm_risk, confirm_screen): (autoflow_engine::engine::RiskApproval, autoflow_engine::engine::ScreenApproval) = match origin {
         Origin::Ui { approved_risk, approved_screen, transient } => {
@@ -274,6 +275,24 @@ pub fn halt_all(app: &AppHandle, reason: &str) {
     if let Some(kf) = lock(&state.keyforge).as_ref() {
         kf.stop_repeats();
     };
+}
+
+/// Waits until no run is active any more, at most `limit`; returns whether all of them ended.
+///
+/// A run leaves the table when its thread is done with the engine — after the run's backend was
+/// dropped, which is what releases keys and mouse buttons it still held.
+pub fn wait_idle(app: &AppHandle, limit: std::time::Duration) -> bool {
+    let state = app.state::<AppState>();
+    let until = Instant::now() + limit;
+    loop {
+        if lock(&state.runs).is_empty() {
+            return true;
+        }
+        if Instant::now() >= until {
+            return false;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
 }
 
 /// Stops the runs of one flow.

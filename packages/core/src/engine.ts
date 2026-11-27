@@ -35,7 +35,7 @@ import {
   type Rect,
 } from "./displays.js";
 import { compatibility, type CompatIssue } from "./capabilities.js";
-import { analyzeRisk, type RiskReport } from "./risk.js";
+import { analyzeRisk, analyzeRiskWithCalls, type RiskReport } from "./risk.js";
 
 /* ----------------------------------------------------------------- backend */
 
@@ -344,9 +344,10 @@ export class FlowRun {
   }
 
   /** Static pre-run checks shared by every surface. */
-  static preflight(flow: Flow, platform: Platform): { compat: CompatIssue[]; blocked: CompatIssue[]; risk: RiskReport } {
+  /** `resolveFlow`: when given, the risk report also covers the flows reached through "run flow" steps. */
+  static preflight(flow: Flow, platform: Platform, resolveFlow?: (id: string) => Flow | undefined): { compat: CompatIssue[]; blocked: CompatIssue[]; risk: RiskReport } {
     const compat = compatibility(flow.steps, platform);
-    return { compat, blocked: compat.filter((c) => c.support === "unsupported"), risk: analyzeRisk(flow) };
+    return { compat, blocked: compat.filter((c) => c.support === "unsupported"), risk: resolveFlow ? analyzeRiskWithCalls(flow, resolveFlow) : analyzeRisk(flow) };
   }
 
   pause(): void {
@@ -410,7 +411,7 @@ export class FlowRun {
   /* ------------------------------------------------------------ internals */
 
   private async preflightChecks(): Promise<void> {
-    const { blocked, risk } = FlowRun.preflight(this.flow, this.backend.platform);
+    const { blocked, risk } = FlowRun.preflight(this.flow, this.backend.platform, this.opts.resolveFlow);
     if (blocked.length) {
       throw new RunFailure({
         stepId: blocked[0]!.stepId,
@@ -575,15 +576,22 @@ export class FlowRun {
     return truthy(evalExpr(c.expr ?? "true", this.env));
   }
 
-  private initVars(): void {
-    for (const v of this.flow.variables) {
-      const inputs = this.opts.inputs;
+  /**
+   * Sets declared variables to their starting values. For the flow being run, inputs override the
+   * declared initial value. For a flow called through "run flow" (`callee`), only variables that do not
+   * exist yet are set — the caller's values win and run inputs do not apply — so a sub-flow that uses
+   * its own declared variables works the same whether it is run directly or called.
+   */
+  private initVars(callee?: Flow, at?: { stepId: string; path: string }): void {
+    for (const v of (callee ?? this.flow).variables) {
+      if (callee && Object.prototype.hasOwnProperty.call(this.vars, v.name)) continue;
+      const inputs = callee ? undefined : this.opts.inputs;
       const input = inputs && Object.prototype.hasOwnProperty.call(inputs, v.name) ? inputs[v.name] : undefined;
       let val: Value = input ?? (v.initial as Value | undefined) ?? defaultFor(v.type);
       if (v.type === "number") {
         // "abc" would become NaN and surface much later as a misleading "number out of range".
         const n = typeof val === "boolean" ? Number(val) : Array.isArray(val) ? NaN : numberOrNaN(val);
-        if (!Number.isFinite(n)) throw new RunFailure({ message: `variable "${v.name}": ${JSON.stringify(val)} is not a number`, category: "expression" });
+        if (!Number.isFinite(n)) throw new RunFailure({ ...at, message: `variable "${v.name}": ${JSON.stringify(val)} is not a number`, category: "expression" });
         val = n;
       }
       if (v.type === "boolean") val = val === true || val === "true";
@@ -953,6 +961,7 @@ export class FlowRun {
         if (this.callDepth >= max) throw new RunFailure({ stepId: s.id, path, message: "runFlow nesting too deep", category: "limit" });
         this.callDepth++;
         try {
+          this.initVars(target, { stepId: s.id, path });
           await this.runList(target.steps, `${path}>${s.flowId}`);
         } finally {
           this.callDepth--;

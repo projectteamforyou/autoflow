@@ -240,6 +240,46 @@ pub fn analyze_risk(flow: &Flow) -> RiskReport {
     RiskReport { score, level, findings, needs_confirm, permissions: perms.into_iter().collect() }
 }
 
+/// Like [`analyze_risk`], but also counts the steps of every flow reached through `runFlow`
+/// (`analyzeRiskWithCalls`): a called flow runs with the caller's approval, so its risky steps must be
+/// part of what the caller is approved for. Each flow is visited once (cycle-safe), unknown ids are
+/// skipped and the walk stops at depth 8, like the engine's call limit.
+pub fn analyze_risk_with_calls(flow: &Flow, resolve: &dyn Fn(&str) -> Option<Flow>) -> RiskReport {
+    let called = called_steps(flow, resolve, 8);
+    if called.is_empty() {
+        return analyze_risk(flow);
+    }
+    let mut merged = flow.clone();
+    merged.steps.extend(called);
+    analyze_risk(&merged)
+}
+
+/// Steps of every flow reachable from `flow` through non-disabled `runFlow` steps, in visiting order.
+fn called_steps(flow: &Flow, resolve: &dyn Fn(&str) -> Option<Flow>, max_depth: u32) -> Vec<Step> {
+    fn collect(
+        steps: &[Step],
+        depth: u32,
+        max_depth: u32,
+        resolve: &dyn Fn(&str) -> Option<Flow>,
+        seen: &mut BTreeSet<String>,
+        called: &mut Vec<Step>,
+    ) {
+        walk_steps(steps, &mut |s, _, _| {
+            let StepKind::RunFlow { flow_id } = &s.kind else { return };
+            if s.is_disabled() || depth >= max_depth || !seen.insert(flow_id.clone()) {
+                return;
+            }
+            let Some(target) = resolve(flow_id) else { return };
+            called.extend(target.steps.iter().cloned());
+            collect(&target.steps, depth + 1, max_depth, resolve, seen, called);
+        });
+    }
+    let mut seen = BTreeSet::from([flow.id.clone()]);
+    let mut called = Vec::new();
+    collect(&flow.steps, 0, max_depth, resolve, &mut seen, &mut called);
+    called
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

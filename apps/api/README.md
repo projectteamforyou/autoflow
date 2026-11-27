@@ -39,7 +39,7 @@ Migrations in `migrations/*.sql` are applied automatically at startup inside one
 | `PORT` | `8080` | Railway injects it |
 | `NODE_ENV` | `development` | `production` hides error details and disables console email |
 | `APP_ORIGINS` | `https://autoflowmacro.com,http://localhost:5173,tauri://localhost,http://tauri.localhost,https://localhost` | Strict CORS allowlist (comma list, `*` rejected) |
-| `PUBLIC_APP_URL` | `https://autoflowmacro.com` | Base for email and share links |
+| `PUBLIC_APP_URL` | `https://autoflowmacro.com/app` | Base for email and share links (`<base>/verify-email`, `<base>/reset-password`, `<base>/s/<id>`). Must include the `/app` path the web app is served under |
 | `RESEND_API_KEY` | — | Enables email via Resend; otherwise console (dev) / disabled (prod) |
 | `MAIL_FROM` | `AutoFlow <no-reply@autoflowmacro.com>` | Sender (its domain must be verified in Resend) |
 | `TRUST_PROXY_HOPS` | `1` | Trusted proxies for `X-Forwarded-For` (Railway edge = 1) |

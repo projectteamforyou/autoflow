@@ -1,9 +1,7 @@
-AutoFlow 1.2.0
-• Rückgängig/Wiederholen im Editor; ab einem Schritt oder nur einen Schritt ausführen
-• Ordner, Mehrfachauswahl und Sammelaktionen
-• Zeitplan oder Hotkey abschalten, ohne die Einstellung zu verlieren
-• Geheimnis-Verwaltung für {{secret:name}}
-• Referenzbilder in der App importieren
-• Verlauf zeigt die Dauer jedes Schritts
-• Hinweis, wenn ein geplanter Flow fehlschlägt
-• Zuverlässigerer Start im Ruhezustand
+AutoFlow 1.2.1
+• Flows, die andere Flows starten: riskante Schritte im aufgerufenen Flow fragen nach Freigabe
+• Geplante Flows können Flows ohne eigenen Auslöser starten
+• Das Zeitlimit eines Schritts stoppt langes Drücken oder Wischen
+• Die Benachrichtigung zeigt den ersten Schritt und die Pause
+• Sync behält wiederhergestellte Flows, Ordner und Favoriten
+• HTTP-Header, Tags und negative Zahlen lassen sich eingeben

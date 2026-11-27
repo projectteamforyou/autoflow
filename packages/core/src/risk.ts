@@ -193,3 +193,51 @@ export function analyzeRisk(flow: Pick<Flow, "steps" | "trigger" | "limits"> & P
   const level: RiskLevel = score >= 40 ? "high" : score >= 15 ? "medium" : "low";
   return { score, level, findings, needsConfirm: findings.some((f) => f.needsConfirm), permissions: [...perms].sort() };
 }
+
+/**
+ * Risk of a flow together with every flow it reaches through "run flow" steps. A caller whose only
+ * step runs another flow is exactly as risky as that flow, so the pre-run confirmation has to see
+ * the called steps too. Unknown ids and cycles are skipped (the engine reports those at run time).
+ */
+export function analyzeRiskWithCalls(
+  flow: Pick<Flow, "steps" | "trigger" | "limits"> & Partial<Pick<Flow, "stage" | "id">>,
+  resolveFlow: (id: string) => Pick<Flow, "steps"> | undefined,
+  maxDepth = 8,
+): RiskReport {
+  const seen = new Set<string>(flow.id ? [flow.id] : []);
+  const called: Flow["steps"] = [];
+  const collect = (steps: Flow["steps"], depth: number): void => {
+    walkSteps(steps, (s) => {
+      if (s.disabled || s.type !== "runFlow" || seen.has(s.flowId) || depth >= maxDepth) return;
+      seen.add(s.flowId);
+      const target = resolveFlow(s.flowId);
+      if (!target) return;
+      called.push(...target.steps);
+      collect(target.steps, depth + 1);
+    });
+  };
+  collect(flow.steps, 0);
+  return called.length ? analyzeRisk({ ...flow, steps: [...flow.steps, ...called] }) : analyzeRisk(flow);
+}
+
+/**
+ * The flows that `roots` reach through enabled "run flow" steps, directly or through other flows,
+ * without the roots themselves. This is what a native executor has to be given along with a flow so
+ * that it can resolve the calls (and include them in its own risk check).
+ */
+export function calledFlows<F extends Pick<Flow, "id" | "steps">>(roots: readonly F[], resolveFlow: (id: string) => F | undefined, maxDepth = 8): F[] {
+  const rootIds = new Set(roots.map((f) => f.id));
+  const found = new Map<string, F>();
+  const collect = (steps: Flow["steps"], depth: number): void => {
+    walkSteps(steps, (s) => {
+      if (s.disabled || s.type !== "runFlow" || found.has(s.flowId) || depth >= maxDepth) return;
+      const target = resolveFlow(s.flowId);
+      if (!target) return;
+      if (!rootIds.has(target.id)) found.set(target.id, target);
+      else if (depth > 0) return; // a root is walked from the top anyway
+      collect(target.steps, depth + 1);
+    });
+  };
+  for (const f of roots) collect(f.steps, 0);
+  return [...found.values()];
+}

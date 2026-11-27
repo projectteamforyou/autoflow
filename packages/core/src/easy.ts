@@ -88,7 +88,11 @@ export function applyEasy(flow: Flow, m: EasyModel): Flow {
     mode: "easy",
     steps,
     limits,
-    hotkeys: { ...flow.hotkeys, stop: m.stopHotkey, ...(m.startHotkey ? { start: m.startHotkey } : {}) },
+    // Clearing the start hotkey in Easy mode clears it on the flow (it used to keep the old one registered).
+    hotkeys: (() => {
+      const { start: _old, ...rest } = flow.hotkeys;
+      return { ...rest, stop: m.stopHotkey, ...(m.startHotkey ? { start: m.startHotkey } : {}) };
+    })(),
     updatedAt: new Date().toISOString(),
     revision: flow.revision + 1,
   };
@@ -96,6 +100,11 @@ export function applyEasy(flow: Flow, m: EasyModel): Flow {
 
 /** Reads an Easy model back from Pro steps. Returns null when the flow has advanced structure. */
 export function toEasy(flow: Flow): EasyModel | null {
+  // Easy mode rebuilds the steps from its model on every edit, so anything the model cannot hold would be
+  // dropped without a word: a disabled step, a label, a time limit, an error policy or a breakpoint keeps
+  // the flow in Pro mode instead.
+  const extra = (s: Step): boolean => !!s.disabled || s.label !== undefined || s.stepTimeoutMs !== undefined || s.onError !== undefined || !!s.breakpoint;
+  if (flow.steps.some((s) => extra(s) || (s.type === "loop" && s.body.some(extra)))) return null;
   let steps = flow.steps.filter((s) => !s.disabled);
   let durationMs: number | undefined;
   if (steps.length === 2 && steps[0]!.type === "setVar" && steps[0]!.name === START_VAR && steps[0]!.value === "now()") {

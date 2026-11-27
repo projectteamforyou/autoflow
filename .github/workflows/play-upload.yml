@@ -85,5 +85,7 @@ jobs:
         env:
           PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           RELEASE_NAME: ${{ inputs.release_name }}
-        # --version-code stays last: an empty value (= highest version code on Play) is simply absent to the script
-        run: node scripts/play/publish.mjs --package com.projectteamforyou.autoflow --submit --track ${{ inputs.track }} --status ${{ inputs.status }} --version-code ${{ inputs.version_code }}
+          # Free-text input: read by the script from the environment (never pasted into the command line;
+          # the same line runs under bash and PowerShell 5). Empty = highest version code on Play.
+          PLAY_VERSION_CODE: ${{ inputs.version_code }}
+        run: node scripts/play/publish.mjs --package com.projectteamforyou.autoflow --submit --track ${{ inputs.track }} --status ${{ inputs.status }}

@@ -34,6 +34,11 @@ export function isOperator(u: User, adminEmails: readonly string[]): boolean {
   return u.emailVerifiedAt !== null && adminEmails.includes(u.emailNormalized);
 }
 
+/** Who may moderate Atlas: role=admin accounts and deployment operators. */
+export function isModerator(u: User, adminEmails: readonly string[]): boolean {
+  return u.role === "admin" || isOperator(u, adminEmails);
+}
+
 export function toPublicUser(u: User, adminEmails: readonly string[] = []): PublicUser {
   return {
     id: u.id,
@@ -181,6 +186,8 @@ export async function changePassword(deps: AppDeps, auth: AuthContext, currentPa
   assertPasswordPolicy(newPassword, auth.user.emailNormalized);
   await deps.sql.begin(async (tx) => {
     await users.updatePasswordHash(tx, auth.user.id, await hashPassword(newPassword), true);
+    // A reset link requested before the change must not be able to undo it.
+    await users.invalidateEmailTokens(tx, auth.user.id, "password_reset");
     await users.revokeUserSessions(tx, auth.user.id, auth.session.id);
   });
   await deps.mailer.send(passwordChangedMessage(auth.user.email));

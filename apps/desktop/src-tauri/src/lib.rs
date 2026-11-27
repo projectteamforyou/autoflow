@@ -65,9 +65,16 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+/// Longest wait at quit for stopped runs to let go of keys and buttons.
+const QUIT_GRACE: std::time::Duration = std::time::Duration::from_millis(1000);
+
 fn shutdown(app: &tauri::AppHandle) {
     if let Some(state) = app.try_state::<AppState>() {
         runs::halt_all(app, "quit");
+        // The process exits right after this returns, which would kill the run threads before the
+        // engine's stop path releases what a run still holds (keys, mouse buttons) and before the
+        // input backend is dropped. A stopped run ends within one sleep slice; give them a moment.
+        runs::wait_idle(app, QUIT_GRACE);
         // Dropping Keyforge restores pointer settings and removes hooks.
         lock(&state.keyforge).take();
         lock(&state.recorder).take();

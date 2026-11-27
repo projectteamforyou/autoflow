@@ -10,6 +10,7 @@ import {
   SandboxBackend,
   type DisplayInfo,
   type PracticeWorld,
+  calledFlows,
   type Flow,
   type Platform,
   type RiskReport,
@@ -129,7 +130,7 @@ export async function runInCanvas(flow: Flow, opts: CanvasRunOptions = {}): Prom
     screen: opts.screen,
     onEffect: opts.onEffect,
     notify: opts.notify,
-    confirm: (msg) => confirmDialog({ title: t("run.confirmStep"), body: msg, confirmLabel: t("common.yes"), cancelLabel: t("common.no") }),
+    confirm: (msg, signal) => confirmDialog({ title: t("run.confirmStep"), body: msg, confirmLabel: t("common.yes"), cancelLabel: t("common.no") }, signal),
     actionDelayMs: Math.round(60 / (opts.speed ?? 1)),
     world: opts.world,
     displays: opts.displays,
@@ -173,7 +174,9 @@ function attachBridge(): void {
 /** Runs a flow on this device's native executor (Windows / Android app). */
 export async function runNative(flow: Flow, inputs?: Record<string, unknown>, opts: { transient?: boolean } = {}): Promise<string | null> {
   attachBridge();
-  const { risk, blocked } = FlowRun.preflight(flow, platform);
+  // The approval passed to the executor has to cover the flows this one calls ("run flow"), too.
+  const library = useStore.getState().flows;
+  const { risk, blocked } = FlowRun.preflight(flow, platform, (id) => library.find((f) => f.id === id));
   if (blocked.length) {
     useStore.getState().toast("error", t("run.unsupported", { n: blocked.length }));
     return null;
@@ -196,7 +199,9 @@ export async function runNative(flow: Flow, inputs?: Record<string, unknown>, op
   }
   // `transient` (run from here / only this step): the temporary flow keeps the real flow's id, so the executor
   // must not store it as the copy that hotkeys and schedules start, nor remember its approval.
-  const { runId } = await invoke("run_start", { flow, inputs, approvedRisk, approvedScreenChange, ...(opts.transient ? { transient: true } : {}) });
+  // The executor only knows flows with triggers: the flows this one calls travel with it.
+  const called = calledFlows([flow], (id) => library.find((f) => f.id === id));
+  const { runId } = await invoke("run_start", { flow, inputs, approvedRisk, approvedScreenChange, ...(opts.transient ? { transient: true } : {}), ...(called.length ? { library: called } : {}) });
   begin(flow, "native", runId, platform, opts.transient);
   return runId;
 }

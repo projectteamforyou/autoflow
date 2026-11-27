@@ -14,6 +14,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.2.1",
+    date: "2026-11-27",
+    platforms: ["windows", "android", "web"],
+    items: [
+      "Safety: a flow that runs another flow now asks for approval when the called flow has risky steps (sending a secret, writing files). Before, a scheduled or hotkey run of the caller ran them without asking; on Windows, editing the called flow asks again.",
+      "Scheduled and hotkey flows can run flows that have no trigger of their own (they failed with “flow not found”), and a called flow gets its own variables.",
+      "Sync no longer deletes flows you restored with Undo after a bulk delete, sends deletes made while sync was locked, and keeps each device’s folders and favourites.",
+      "Email verification, password reset and share links open the app again (they pointed at a page that did not exist).",
+      "Editor: Ctrl+Enter and Ctrl+S no longer act behind an open dialog, hotkeys keep Shift (Ctrl+Shift+K), and HTTP headers, tags, launch arguments and negative numbers can be typed. Easy mode is only offered when it can keep everything in the flow.",
+      "A copy of a flow whose trigger is switched off starts switched off too. Shared and exported flows no longer include scene preview images.",
+      "Windows: quitting releases held keys and mouse buttons, “Identify monitors” no longer risks freezing the app, and a stopped run cannot leave a question box behind.",
+      "Android: a step’s time limit stops a long press or swipe in progress, the run notification shows the first step and the paused state, and reference image import rejects damaged files.",
+    ],
+  },
+  {
     version: "1.2.0",
     date: "2026-11-25",
     platforms: ["windows", "android", "web"],

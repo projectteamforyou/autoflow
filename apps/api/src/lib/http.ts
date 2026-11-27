@@ -5,10 +5,49 @@ import { z, type ZodTypeAny } from "zod";
 import { ApiError, errors } from "../errors.js";
 import type { AppEnv, AuthContext } from "../deps.js";
 import type { RateLimiter } from "./rate-limit.js";
-import { isOperator } from "../services/auth.js";
+import { isModerator, isOperator } from "../services/auth.js";
 
 export function zodDetails(err: z.ZodError) {
   return err.issues.map((i) => ({ path: i.path.join("."), message: i.message }));
+}
+
+/** NUL or an unpaired surrogate (with the `u` flag a well-formed pair is one code point, not two `Cs`). */
+const UNSTORABLE_TEXT = /[\0\p{Cs}]/u;
+const UNSTORABLE_MESSAGE = "Text must not contain NUL characters or unpaired surrogates";
+
+/**
+ * PostgreSQL cannot store U+0000 or unpaired surrogates in text/jsonb and fails the statement,
+ * which would surface as a 500. Reject them up front: one pass over every string (object keys
+ * included, any depth) of a parsed body or query. Iterative, so deep nesting cannot overflow the stack.
+ */
+export function assertStorableText(input: unknown): void {
+  const values: unknown[] = [input];
+  const paths: string[] = [""];
+  while (values.length) {
+    const v = values.pop();
+    const path = paths.pop()!;
+    if (typeof v === "string") {
+      if (UNSTORABLE_TEXT.test(v)) throw errors.validation([{ path, message: UNSTORABLE_MESSAGE }]);
+    } else if (Array.isArray(v)) {
+      for (let i = v.length - 1; i >= 0; i--) {
+        const item = v[i];
+        if (typeof item === "string" ? UNSTORABLE_TEXT.test(item) : item !== null && typeof item === "object") {
+          values.push(item);
+          paths.push(path ? `${path}.${i}` : String(i));
+        }
+      }
+    } else if (v !== null && typeof v === "object") {
+      for (const k of Object.keys(v)) {
+        // The offending key itself is not echoed back; the path names the object that holds it.
+        if (UNSTORABLE_TEXT.test(k)) throw errors.validation([{ path, message: UNSTORABLE_MESSAGE }]);
+        const item = (v as Record<string, unknown>)[k];
+        if (typeof item === "string" ? UNSTORABLE_TEXT.test(item) : item !== null && typeof item === "object") {
+          values.push(item);
+          paths.push(path ? `${path}.${k}` : k);
+        }
+      }
+    }
+  }
 }
 
 export async function parseJson<S extends ZodTypeAny>(c: Context<AppEnv>, schema: S): Promise<z.output<S>> {
@@ -21,13 +60,16 @@ export async function parseJson<S extends ZodTypeAny>(c: Context<AppEnv>, schema
     if (err instanceof ApiError) throw err;
     throw new ApiError(400, "invalid_json", "Request body is not valid JSON");
   }
+  assertStorableText(data);
   const r = schema.safeParse(data);
   if (!r.success) throw errors.validation(zodDetails(r.error));
   return r.data;
 }
 
 export function parseQuery<S extends ZodTypeAny>(c: Context<AppEnv>, schema: S): z.output<S> {
-  const r = schema.safeParse(c.req.query());
+  const query = c.req.query();
+  assertStorableText(query);
+  const r = schema.safeParse(query);
   if (!r.success) throw errors.validation(zodDetails(r.error));
   return r.data;
 }
@@ -74,7 +116,7 @@ export function requireAuth(c: Context<AppEnv>): AuthContext {
 /** Atlas moderators (role=admin) and deployment operators. */
 export function requireAdmin(c: Context<AppEnv>): AuthContext {
   const auth = requireAuth(c);
-  if (auth.user.role !== "admin" && !isOperator(auth.user, c.get("deps").config.adminEmails)) throw errors.forbidden("Administrator role required");
+  if (!isModerator(auth.user, c.get("deps").config.adminEmails)) throw errors.forbidden("Administrator role required");
   return auth;
 }
 
