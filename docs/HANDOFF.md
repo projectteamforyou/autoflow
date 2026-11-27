@@ -1,18 +1,18 @@
 # AutoFlow — 인수인계 (새 채팅에서 이어서 작업용)
 
-갱신: 2026-11-27 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#48 (7-11, 1.2.0 출시 후 감사)
+갱신: 2026-11-27 13:25 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#48 (7-11, 감사 수정 + 1.2.1 릴리스)
 
-## 1. 현재 배포 상태 (Windows 1.2.0 · Android 1.2.0 · 웹 1.2.0)
+## 1. 현재 배포 상태 (Windows 1.2.1 · Android 1.2.1 · 웹 1.2.1)
 | 항목 | 값 |
 |---|---|
 | 사이트 (12개 언어, 710페이지 — 가이드 24·대체 프로그램 21 × 12개 언어 포함) | https://autoflowmacro.com |
 | 웹 앱 (PWA) | https://autoflowmacro.com/app/ |
 | 관리자 | https://autoflowmacro.com/app/#/admin (projectteamforyou@gmail.com + 설정 코드) |
 | API | https://api.autoflowmacro.com (Railway `autoflow`/`api`, PostgreSQL) |
-| Windows 1.2.0 (Azure 서명: PROJECTTEAMFORYOU, 회사 PC 러너 `runner_label: OFFICE`, 2026-11-25) | https://dl.autoflowmacro.com/windows/AutoFlow-Setup-x64.exe · `AutoFlow-x64.msi`(ko-KR) · `AutoFlow-portable-x64.exe` |
-| Android 1.2.0 (versionCode 20, 업로드 키 SHA-256 1fe265ee…; Play 프로덕션에 2026-11-25 14:15 KST 제출 → Google 심사 대기) | https://dl.autoflowmacro.com/android/AutoFlow.apk |
+| Windows 1.2.1 (Azure 서명: PROJECTTEAMFORYOU, 회사 PC 러너 `runner_label: OFFICE`, 2026-11-27) | https://dl.autoflowmacro.com/windows/AutoFlow-Setup-x64.exe · `AutoFlow-x64.msi`(ko-KR) · `AutoFlow-x64-en-US.msi` · `AutoFlow-portable-x64.exe` |
+| Android 1.2.1 (업로드 키 SHA-256 1fe265ee…; Play 프로덕션에 2026-11-27 13:12 KST 제출 → Google 심사 대기. 1.2.0은 versionCode 20) | https://dl.autoflowmacro.com/android/AutoFlow.apk |
 | 버전 정보 | https://dl.autoflowmacro.com/latest.json |
-| GitHub 릴리스 (보관용) | https://github.com/projectteamforyou/autoflow/releases/tag/v1.2.0 |
+| GitHub 릴리스 (보관용) | https://github.com/projectteamforyou/autoflow/releases/tag/v1.2.1 |
 | Google Play 계정 (2026-11-09 이전됨) | 구 조직 계정 4800355049082027013(projectteamforyou@gmail.com) → **개인 계정 PROJECTTEAM FOR YOU, ID 5661763859416322517, 소유자 projectteamforyoudevelop@gmail.com**. 결제 프로필: 판매자 ID 442894745571811440 / 4307-3816-1623(이유상). 패키지명·App Signing·업로드 키 동일, 코드 변경 없음(7-7 참고) |
 | Google Play | `com.projectteamforyou.autoflow` — 1.1.0이 **접근성 명시적 공개 누락으로 거부**(2026-10-20) → 1.1.2(versionCode 12)에 네이티브 공개 대화상자 추가, 프로덕션 트랙에 **저장만 됨**(거부 이후엔 API 자동 제출 불가). Console에서 접근성 API 선언 영상 링크 교체 + "검토를 위해 변경사항 보내기" 필요 |
 | 접근성 시연 영상 (네이티브 공개 포함) | https://dl.autoflowmacro.com/play/autoflow-accessibility-demo-en.mp4 · `-ko.mp4` |
@@ -178,6 +178,10 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
 - **데스크톱**: 모니터 식별이 동기 명령에서 창 생성(Windows 교착 가능) → async, 종료 시 실행 스레드를 최대 1초 기다려 눌린 키·버튼 해제, 중지 직후 질문 창이 남는 경쟁
 - **Android**: 단계 시간 제한이 진행 중 제스처를 취소, 실행 알림이 첫 단계·일시정지를 놓치던 스로틀, 재시작된 예약 워커가 다음 회차를 보장, triggers.json 원자적 쓰기, 참조 이미지 Windows 장치명 거부·잘린 PNG 거부, 긴 연산자 사슬 StackOverflow(Kotlin 평가기 반복화). 새 권한·의존성 없음
 - **릴리스 자동화**: `publish-r2.mjs --from-public`(GitHub 토큰·API 없이 릴리스의 SHA256SUMS로 목록·체크섬 검증; 이 컨테이너에선 `NODE_USE_ENV_PROXY=1` 필요), `--dry-run`, 별칭당 파일 1개(en-US MSI는 `windows/AutoFlow-x64-en-US.msi`, 겹치면 오류), 기본 저장소명 projectteamforyou/autoflow. `windows.yml` light.exe 전달 프로그램: 모든 WiX 폴더 처리·자기 식별(제품명)·재귀 방지·원본 누락 시 폴더 제거(다음 Windows 빌드에서 실검증 필요). PowerShell `throw \"…\"` 오타, Play 버전 코드는 환경 변수(`PLAY_VERSION_CODE`)
+- **1.2.1 릴리스(2026-11-27 완료)**: PR #48 병합(main d92d953, 12:55 KST) → CI·rust·API·Site 통과. 실서버 확인: `/verify-email`·`/reset-password`·`/s/*` 302 → `/app/…`, changelog·`/app/` 1.2.1, API `/health` 200, `?q=%00` 400
+  - Windows: `windows.yml` run 45936978866(version 1.2.1, OFFICE) 성공 — 강화한 light.exe 전달 단계가 실제 러너에서 통과
+  - Android: `android.yml` run 45936982272(version 1.2.1, production) 성공 — `track production: completed` → `committed`(13:12 KST). 심사 결과는 Console에서 확인
+  - R2: `NODE_USE_ENV_PROXY=1 node scripts/release/publish-r2.mjs v1.2.1 --from-public --published-at 2026-11-27T04:13:06Z`(먼저 `--dry-run`) → `latest.json` 1.2.1, 고정 주소 5개(en-US MSI 별칭 추가)를 실제로 내려받아 SHA-256 일치 확인(setup c1e7164f…, msi-ko 84d1a869…, msi-en a42b583a…, portable 1fafcbab…, apk 3ea43ab4…)
 - **검증 한계**: Windows 전용 코드(질문 창 경쟁·종료 대기·async 명령)와 Android 앱 모듈은 컴파일·정적 검사까지만. 워크플로 변경은 다음 실행에서 확인
 - **남긴 것(결정 필요/후속)**: ① Android는 트리거 실행에 항상 `approvedRisk = true`(`RunManager.startFromTrigger`; "트리거를 켠 것이 승인"이라는 기존 설계) — 데스크톱처럼 플로우별 저장 승인을 둘지 결정 필요 ② 일시정지 시간이 단계 시간 제한·최대 실행 시간에 포함됨(세 엔진 동일 동작) ③ 데스크톱 라이브러리는 삭제된 플로우를 재시작 전까지 기억 ④ Atlas: 검수 대기·숨김 상태 템플릿도 작성자 삭제 후 재게시 가능 ⑤ 가입 409 `email_taken`(주소 존재 노출) ⑥ Rust 정규식·서러게이트 등 표현식 방언 차이 몇 건 ⑦ Cloudflare 이메일 난독화가 약관·방침의 mailto를 가림(대시보드에서 끄기) ⑧ Site PR의 OG 렌더 비용(verify-seo가 이미지를 요구해 그대로 둠)
 
