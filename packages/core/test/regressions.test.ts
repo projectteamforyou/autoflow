@@ -291,4 +291,24 @@ describe("2026-11-27 audit", () => {
     ctrl.abort(new Error("halt"));
     await expect(asked).rejects.toThrow("halt");
   });
+
+  it("a called flow gets its own declared variables; the caller's values win", async () => {
+    const callee = mk([{ id: "s", type: "setVar", name: "out", value: 'greeting + "!"' }], {
+      id: "f_callee",
+      variables: [
+        { name: "greeting", type: "string", initial: "hi" },
+        { name: "out", type: "string", initial: "" },
+      ] as Flow["variables"],
+    });
+    const run = async (callerVars: Flow["variables"]) => {
+      const caller = mk([{ id: "r", type: "runFlow", flowId: "f_callee" }], { variables: callerVars });
+      const fr = new FlowRun(caller, new SandboxBackend({ platform: "web" }), { skipCountdown: true, clock: createVirtualClock(), resolveFlow: (id) => (id === "f_callee" ? callee : undefined), inputs: { greeting: "from input" } });
+      const r = await fr.start();
+      return { status: r.status, out: r.vars.out };
+    };
+    // Not declared by the caller: the callee's own initial value is used (run inputs are for the caller only).
+    expect(await run([])).toEqual({ status: "completed", out: "hi!" });
+    // Declared by the caller: its value is kept.
+    expect(await run([{ name: "greeting", type: "string", initial: "yo" }] as Flow["variables"])).toEqual({ status: "completed", out: "from input!" });
+  });
 });

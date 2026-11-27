@@ -199,9 +199,14 @@ export async function purgeDeadSessions(db: Db, now: Date): Promise<number> {
 
 export type TokenPurpose = "verify_email" | "password_reset";
 
+/** Mark every open token of a purpose as used (a newer link was issued, or the password changed). */
+export async function invalidateEmailTokens(db: Db, userId: string, purpose: TokenPurpose): Promise<void> {
+  await db`UPDATE email_tokens SET used_at = now() WHERE user_id = ${userId} AND purpose = ${purpose} AND used_at IS NULL`;
+}
+
 export async function insertEmailToken(db: Db, t: { userId: string; purpose: TokenPurpose; tokenHash: Buffer; expiresAt: Date }): Promise<void> {
   // Only the most recent token of a purpose stays valid.
-  await db`UPDATE email_tokens SET used_at = now() WHERE user_id = ${t.userId} AND purpose = ${t.purpose} AND used_at IS NULL`;
+  await invalidateEmailTokens(db, t.userId, t.purpose);
   await db`INSERT INTO email_tokens (user_id, purpose, token_hash, expires_at) VALUES (${t.userId}, ${t.purpose}, ${t.tokenHash}, ${t.expiresAt})`;
 }
 

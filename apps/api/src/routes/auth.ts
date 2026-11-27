@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { LOCALE_CODES, type LocaleCode } from "@autoflow/core";
 import type { AppEnv } from "../deps.js";
-import { ApiError, errors } from "../errors.js";
+import { ApiError } from "../errors.js";
 import { enforce, parseJson, requireAuth } from "../lib/http.js";
 import * as auth from "../services/auth.js";
 import { listSessions } from "../db/users.js";
@@ -45,19 +45,20 @@ export function authRoutes() {
     const deps = c.get("deps");
     await enforce(deps.limiters.authIp, `ip:${c.get("clientIp")}`);
     const body = await parseJson(c, LoginBody);
-    // Per-account bucket stops distributed guessing against one account. Only a wrong password
-    // spends a token: otherwise anyone who knows the email could lock its owner out by hammering
-    // the endpoint, and the owner's own successful logins would count against them.
+    // Per-account bucket stops distributed guessing against one account. The token is taken
+    // before the password check (so parallel guesses cannot all slip past a not-yet-spent budget)
+    // and given back unless the password was wrong: the owner's own successful logins do not
+    // count against them.
     const accountKey = `login:${auth.normalizeEmail(body.email)}`;
-    const capacity = await deps.limiters.authAccount.peek(accountKey);
-    if (!capacity.allowed) throw errors.rateLimited(capacity.retryAfterMs);
+    await enforce(deps.limiters.authAccount, accountKey);
     let result: Awaited<ReturnType<typeof auth.login>>;
     try {
       result = await auth.login(deps, body, c.req.header("user-agent") ?? null);
     } catch (err) {
-      if (err instanceof ApiError && err.code === "invalid_credentials") await deps.limiters.authAccount.consume(accountKey);
+      if (!(err instanceof ApiError && err.code === "invalid_credentials")) await deps.limiters.authAccount.refund(accountKey);
       throw err;
     }
+    await deps.limiters.authAccount.refund(accountKey);
     return c.json({ user: auth.toPublicUser(result.user, deps.config.adminEmails), session: sessionDto(result.session) });
   });
 

@@ -112,7 +112,8 @@ const EnvSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(8080),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   APP_ORIGINS: z.string().optional(),
-  PUBLIC_APP_URL: z.string().url().default("https://autoflowmacro.com"),
+  // Must include the /app path: the web app (verify-email, reset-password, /s/<id>) lives under it.
+  PUBLIC_APP_URL: z.string().url().default("https://autoflowmacro.com/app"),
   MAIL_FROM: z.string().min(3).default("AutoFlow <no-reply@autoflowmacro.com>"),
   RESEND_API_KEY: z.string().min(1).optional(),
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),

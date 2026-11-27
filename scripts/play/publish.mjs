@@ -76,7 +76,8 @@ const STATUS = arg('status', 'completed');
 const CHECK = has('check');
 const DRY = has('dry-run');
 const IMAGES = !has('no-images');
-const VERSION_CODE = arg('version-code');
+// PLAY_VERSION_CODE: the same value from the environment, so a workflow never pastes a free-text input into a command line.
+const VERSION_CODE = arg('version-code') ?? (process.env.PLAY_VERSION_CODE || undefined);
 
 /** The one .aab inside a folder (a downloaded build artifact): none or several is a mistake worth stopping on. */
 function findBundle(dir) {

@@ -15,6 +15,8 @@ export interface RateLimiter {
   consume(key: string, cost?: number): Promise<RateLimitResult> | RateLimitResult;
   /** Like `consume`, but takes nothing: `allowed` says whether a `consume(key, cost)` would pass right now. */
   peek(key: string, cost?: number): Promise<RateLimitResult> | RateLimitResult;
+  /** Give back tokens taken by an earlier `consume` (never above capacity). */
+  refund(key: string, cost?: number): Promise<void> | void;
 }
 
 interface Bucket {
@@ -51,6 +53,12 @@ export class MemoryTokenBucket implements RateLimiter {
     const tokens = b ? Math.min(this.rule.capacity, b.tokens + (t - b.updatedAt) * this.perMs) : this.rule.capacity;
     if (tokens >= cost) return { allowed: true, remaining: Math.floor(tokens), retryAfterMs: 0 };
     return this.denied({ tokens, updatedAt: t }, cost);
+  }
+
+  refund(key: string, cost = 1): void {
+    // An untracked key is already full.
+    const b = this.buckets.get(key);
+    if (b) b.tokens = Math.min(this.rule.capacity, b.tokens + cost);
   }
 
   /** The bucket for `key`, topped up for the time passed, created full when unseen. */

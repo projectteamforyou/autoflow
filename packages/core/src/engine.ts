@@ -576,9 +576,16 @@ export class FlowRun {
     return truthy(evalExpr(c.expr ?? "true", this.env));
   }
 
-  private initVars(): void {
-    for (const v of this.flow.variables) {
-      const inputs = this.opts.inputs;
+  /**
+   * Sets declared variables to their starting values. For the flow being run, inputs override the
+   * declared initial value. For a flow called through "run flow" (`callee`), only variables that do not
+   * exist yet are set — the caller's values win and run inputs do not apply — so a sub-flow that uses
+   * its own declared variables works the same whether it is run directly or called.
+   */
+  private initVars(callee?: Flow): void {
+    for (const v of (callee ?? this.flow).variables) {
+      if (callee && Object.prototype.hasOwnProperty.call(this.vars, v.name)) continue;
+      const inputs = callee ? undefined : this.opts.inputs;
       const input = inputs && Object.prototype.hasOwnProperty.call(inputs, v.name) ? inputs[v.name] : undefined;
       let val: Value = input ?? (v.initial as Value | undefined) ?? defaultFor(v.type);
       if (v.type === "number") {
@@ -954,6 +961,7 @@ export class FlowRun {
         if (this.callDepth >= max) throw new RunFailure({ stepId: s.id, path, message: "runFlow nesting too deep", category: "limit" });
         this.callDepth++;
         try {
+          this.initVars(target);
           await this.runList(target.steps, `${path}>${s.flowId}`);
         } finally {
           this.callDepth--;

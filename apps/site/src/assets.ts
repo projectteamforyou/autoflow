@@ -243,6 +243,11 @@ export async function buildCloudflare(opts: { scriptHashes: string[]; styleHashe
     // PortOne (mobile redirect) and PayPal send buyers back here; the app verifies with the API.
     "/app/billing/return /app/ 200",
     "/app/s/* /app/ 200",
+    // Links mailed or shared without the /app prefix (the API's PUBLIC_APP_URL once defaulted to the bare
+    // domain) land on the app instead of a 404. Browsers carry the #token fragment across the redirect.
+    "/verify-email /app/verify-email 302",
+    "/reset-password /app/reset-password 302",
+    "/s/* /app/s/:splat 302",
   ].join("\n");
   await writeFile(out("_redirects"), `${redirects}\n`);
 }

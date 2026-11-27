@@ -126,24 +126,30 @@ export async function searchTemplates(db: Db, s: SearchQuery): Promise<{ items: 
   const q = s.q?.trim() || null;
   const like = q ? `%${escapeLike(q)}%` : null;
   // Bayesian average (prior: 5 votes of 3.5 stars) so one 5-star vote does not top the chart.
-  const order =
+  const order = () =>
     s.sort === "new"
       ? db`t.created_at DESC, t.id`
       : s.sort === "rating"
         ? db`(t.rating_sum + 17.5) / (t.rating_count + 5) DESC, t.rating_count DESC, t.id`
         : db`t.installs DESC, t.created_at DESC, t.id`;
+  // One round trip: the count is taken over every match, not over the page, so it stays right
+  // when the page is empty (past the end). The LEFT JOIN then yields a single row of NULLs + total.
   const rows = await db<(TemplateRow & { total: number })[]>`
-    SELECT t.id, t.author_id, u.display_name AS author_name, t.name, t.description, t.category, t.locale, t.platforms,
-           t.content_hash, t.risk_level, t.risk_score, t.permissions, t.status, t.installs, t.rating_sum, t.rating_count,
-           t.created_at, t.updated_at, count(*) OVER ()::int AS total
-    FROM atlas_templates t JOIN users u ON u.id = t.author_id
-    WHERE t.status = 'published'
-      AND (${s.category ?? null}::text IS NULL OR t.category = ${s.category ?? null})
-      AND (${s.platform ?? null}::text IS NULL OR ${s.platform ?? null} = ANY (t.platforms))
-      AND (${q}::text IS NULL OR t.search @@ websearch_to_tsquery('simple', ${q}) OR t.name ILIKE ${like} OR t.description ILIKE ${like})
-    ORDER BY ${order}
-    LIMIT ${s.limit} OFFSET ${s.offset}`;
-  return { items: rows.map(mapTemplate), total: rows[0]?.total ?? 0 };
+    WITH matched AS (
+      SELECT t.id, t.author_id, u.display_name AS author_name, t.name, t.description, t.category, t.locale, t.platforms,
+             t.content_hash, t.risk_level, t.risk_score, t.permissions, t.status, t.installs, t.rating_sum, t.rating_count,
+             t.created_at, t.updated_at
+      FROM atlas_templates t JOIN users u ON u.id = t.author_id
+      WHERE t.status = 'published'
+        AND (${s.category ?? null}::text IS NULL OR t.category = ${s.category ?? null})
+        AND (${s.platform ?? null}::text IS NULL OR ${s.platform ?? null} = ANY (t.platforms))
+        AND (${q}::text IS NULL OR t.search @@ websearch_to_tsquery('simple', ${q}) OR t.name ILIKE ${like} OR t.description ILIKE ${like})
+    )
+    SELECT t.*, c.total
+    FROM (SELECT count(*)::int AS total FROM matched) c
+    LEFT JOIN (SELECT * FROM matched t ORDER BY ${order()} LIMIT ${s.limit} OFFSET ${s.offset}) t ON true
+    ORDER BY ${order()}`;
+  return { items: rows.filter((r) => r.id !== null).map(mapTemplate), total: rows[0]?.total ?? 0 };
 }
 
 export async function getTemplate(db: Db, id: string): Promise<AtlasTemplateWithFlow | null> {
@@ -167,9 +173,17 @@ export async function listAuthorTemplatesWithFlow(db: Db, authorId: string): Pro
   return rows.map((r) => ({ ...mapTemplate(r), flow: r.flow as Flow }));
 }
 
-export async function deleteTemplate(db: Db, id: string, authorId: string): Promise<boolean> {
-  const rows = await db`DELETE FROM atlas_templates WHERE id = ${id} AND author_id = ${authorId} RETURNING id`;
-  return rows.length === 1;
+/**
+ * Author's delete. A template removed by a moderator keeps its row ("removed"): its
+ * UNIQUE (author_id, content_hash) entry is what stops the author republishing the same content.
+ */
+export async function deleteTemplate(db: Db, id: string, authorId: string): Promise<"deleted" | "removed" | "not_found"> {
+  const rows = await db<{ deleted: boolean }[]>`
+    WITH own AS (SELECT id, status FROM atlas_templates WHERE id = ${id} AND author_id = ${authorId} FOR UPDATE),
+         del AS (DELETE FROM atlas_templates t USING own WHERE t.id = own.id AND own.status <> 'removed' RETURNING t.id)
+    SELECT EXISTS (SELECT 1 FROM del) AS deleted FROM own`;
+  if (!rows[0]) return "not_found";
+  return rows[0].deleted ? "deleted" : "removed";
 }
 
 export async function setTemplateStatus(db: Db, id: string, status: TemplateStatus): Promise<boolean> {

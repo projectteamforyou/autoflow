@@ -49,6 +49,9 @@ export function sanitizeForSharing(flow: Flow): Flow {
   const copy: Flow = JSON.parse(JSON.stringify(flow));
   copy.favorite = false;
   delete copy.folder;
+  // Scene previews are crops of the author's own screen: they are not needed to match a scene (the
+  // hash is) and 32 of them alone exceed the share and Atlas size limits.
+  for (const sc of copy.scenes ?? []) delete sc.thumb;
   walkSteps(copy.steps, (s) => {
     s.breakpoint = undefined;
     // Never publish literal credentials typed into http headers: turn them into secret references
