@@ -93,7 +93,10 @@ export function ProEditor({ flow, onChange, lint, onRunPartial, onShortcuts, rev
         // may be back already (Ctrl+Z). Inserting it a second time would give the flow duplicate step
         // ids, which the store refuses to load.
         if (!mounted.current || cur.id !== flowId || !canReinsert(cur.steps, removed)) return;
-        onChange({ ...cur, steps: insertStep(cur.steps, loc, removed) });
+        // The container it came from may be gone by now (deleted, undone): put it back at the end of the
+        // flow rather than nowhere.
+        const parentThere = loc.parentId === null || locate(cur.steps, loc.parentId) !== null;
+        onChange({ ...cur, steps: insertStep(cur.steps, parentThere ? loc : { parentId: null, slot: loc.slot, index: cur.steps.length }, removed) });
         setSelected(removed.id);
       },
     });

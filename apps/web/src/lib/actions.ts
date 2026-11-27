@@ -85,6 +85,9 @@ export function downloadBackup(flows?: Flow[]): void {
   const st = useStore.getState();
   const backup = flows ? buildBackup({ flows, pausedTriggers: st.settings.pausedTriggers }) : buildBackup({ flows: st.flows, profiles: st.profiles, settings: st.settings });
   download(backupFileName(new Date(), flows ? `-${flows.length}-flows` : ""), JSON.stringify(backup));
+  // A full backup holds only the flows that loaded. Stored flows that could not be read are not in it:
+  // say so (with their own export) instead of letting "I have a backup" be wrong.
+  if (!flows && st.unreadable.length) warnUnreadableFlows();
 }
 
 /**

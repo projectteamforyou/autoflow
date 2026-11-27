@@ -218,6 +218,12 @@ function EditorInner() {
         else undo();
         return;
       }
+      // Save / run act on the editor itself: not behind a dialog or side panel (Ctrl+Enter in the JSON
+      // panel or a prompt would otherwise start the flow — in the desktop app, a real macro).
+      if (modal && (k === "s" || e.key === "Enter")) {
+        if (k === "s") e.preventDefault();
+        return;
+      }
       if (e.key.toLowerCase() === "s") {
         e.preventDefault();
         clearTimeout(timer.current);
@@ -254,7 +260,7 @@ function EditorInner() {
           <button className="tile-icon" style={{ width: 32, height: 32, border: 0, cursor: "pointer", background: `linear-gradient(135deg, ${flow.color}, ${flow.color}99)` }} onClick={() => setPanel("icon")} aria-label={t("editor.icon")}>
             <Icon name={flow.icon} size={16} />
           </button>
-          <input className="name" value={flow.name} onChange={(e) => update({ ...flow, name: e.target.value.slice(0, 120) || " " })} aria-label={t("editor.name")} />
+          <input className="name" value={flow.name === " " ? "" : flow.name} onChange={(e) => update({ ...flow, name: e.target.value.slice(0, 120) || " " })} aria-label={t("editor.name")} />
           {saveError ? (
             <span className="small truncate save-error" role="status" title={t("editor.notSaved", { issue: saveError })}>{t("editor.notSaved", { issue: saveError })}</span>
           ) : (

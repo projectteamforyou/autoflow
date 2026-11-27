@@ -70,7 +70,7 @@ export function EasyEditor({ flow, onChange }: { flow: Flow; onChange: (f: Flow)
             ]}
           />
           <div className="input-group" style={{ width: 200 }}>
-            <input className="input" type="number" min={10} max={3_600_000} value={model.intervalMs} onChange={(e) => set({ intervalMs: Math.max(10, Math.min(3_600_000, Number(e.target.value) || 10)) })} aria-label={t("easy.intervalMs")} />
+            <input className="input" type="number" min={10} max={3_600_000} value={model.intervalMs} onChange={(e) => set({ intervalMs: Math.max(10, Math.min(3_600_000, Math.round(Number(e.target.value)) || 10)) })} aria-label={t("easy.intervalMs")} />
             <span className="muted small">ms</span>
           </div>
         </div>
@@ -90,12 +90,12 @@ export function EasyEditor({ flow, onChange }: { flow: Flow; onChange: (f: Flow)
         />
         {model.repeat.mode === "count" && (
           <Field label={t("easy.times")}>
-            <input className="input" type="number" min={1} max={10_000_000} value={model.repeat.count} onChange={(e) => set({ repeat: { mode: "count", count: Math.max(1, Math.min(10_000_000, Number(e.target.value) || 1)) } })} style={{ maxWidth: 220 }} />
+            <input className="input" type="number" min={1} max={10_000_000} value={model.repeat.count} onChange={(e) => set({ repeat: { mode: "count", count: Math.max(1, Math.min(10_000_000, Math.round(Number(e.target.value)) || 1)) } })} style={{ maxWidth: 220 }} />
           </Field>
         )}
         {model.repeat.mode === "duration" && (
           <Field label={t("easy.minutes")}>
-            <input className="input" type="number" min={0.1} max={1440} step={0.5} value={+(model.repeat.ms / 60_000).toFixed(2)} onChange={(e) => set({ repeat: { mode: "duration", ms: Math.round(Math.max(0.1, Number(e.target.value) || 1) * 60_000) } })} style={{ maxWidth: 220 }} />
+            <input className="input" type="number" min={0.1} max={1440} step={0.5} value={+(model.repeat.ms / 60_000).toFixed(2)} onChange={(e) => set({ repeat: { mode: "duration", ms: Math.round(Math.max(0.1, Math.min(1440, Number(e.target.value) || 1)) * 60_000) } })} style={{ maxWidth: 220 }} />
           </Field>
         )}
         {model.repeat.mode === "untilStopped" && <p className="small muted">{t("easy.untilHint", { s: formatDuration(flow.limits.maxDurationMs) })}</p>}
@@ -224,7 +224,7 @@ function PointsSection({ model, set }: { model: EasyModel; set: (p: Partial<Easy
           <Seg value={String(sel.clicks) as "1" | "2"} onChange={(c) => setPoint(selected, { clicks: Number(c) as 1 | 2 })} options={[{ value: "1", label: t("easy.single") }, { value: "2", label: t("easy.double") }]} />
           <label className="row small">
             {t("easy.hold")}
-            <input className="input" type="number" min={0} max={60_000} step={100} value={sel.holdMs} onChange={(e) => setPoint(selected, { holdMs: Math.max(0, Math.min(60_000, Number(e.target.value) || 0)) })} style={{ width: 100 }} />
+            <input className="input" type="number" min={0} max={60_000} step={100} value={sel.holdMs} onChange={(e) => setPoint(selected, { holdMs: Math.max(0, Math.min(60_000, Math.round(Number(e.target.value)) || 0)) })} style={{ width: 100 }} />
             ms
           </label>
           <span className="small subtle mono">x {Math.round(sel.x * 100)}% · y {Math.round(sel.y * 100)}%</span>

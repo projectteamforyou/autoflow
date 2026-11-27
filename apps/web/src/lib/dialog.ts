@@ -42,8 +42,21 @@ export const useDialogs = create<DialogState>((set, get) => ({
   },
 }));
 
-export async function confirmDialog(spec: DialogSpec): Promise<boolean> {
-  return (await useDialogs.getState().open(spec)).ok;
+/** `signal`: closes the dialog as "No" when it aborts (a run that is halted while its question is open). */
+export async function confirmDialog(spec: DialogSpec, signal?: AbortSignal): Promise<boolean> {
+  if (signal?.aborted) return false;
+  const before = seq;
+  const pending = useDialogs.getState().open(spec);
+  const id = seq;
+  const onAbort = (): void => {
+    if (id !== before) useDialogs.getState().close(id, { ok: false });
+  };
+  signal?.addEventListener("abort", onAbort, { once: true });
+  try {
+    return (await pending).ok;
+  } finally {
+    signal?.removeEventListener("abort", onAbort);
+  }
 }
 
 export async function promptDialog(spec: DialogSpec & { input: NonNullable<DialogSpec["input"]> }): Promise<string | null> {

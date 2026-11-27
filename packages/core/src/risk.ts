@@ -193,3 +193,29 @@ export function analyzeRisk(flow: Pick<Flow, "steps" | "trigger" | "limits"> & P
   const level: RiskLevel = score >= 40 ? "high" : score >= 15 ? "medium" : "low";
   return { score, level, findings, needsConfirm: findings.some((f) => f.needsConfirm), permissions: [...perms].sort() };
 }
+
+/**
+ * Risk of a flow together with every flow it reaches through "run flow" steps. A caller whose only
+ * step runs another flow is exactly as risky as that flow, so the pre-run confirmation has to see
+ * the called steps too. Unknown ids and cycles are skipped (the engine reports those at run time).
+ */
+export function analyzeRiskWithCalls(
+  flow: Pick<Flow, "steps" | "trigger" | "limits"> & Partial<Pick<Flow, "stage" | "id">>,
+  resolveFlow: (id: string) => Pick<Flow, "steps"> | undefined,
+  maxDepth = 8,
+): RiskReport {
+  const seen = new Set<string>(flow.id ? [flow.id] : []);
+  const called: Flow["steps"] = [];
+  const collect = (steps: Flow["steps"], depth: number): void => {
+    walkSteps(steps, (s) => {
+      if (s.disabled || s.type !== "runFlow" || seen.has(s.flowId) || depth >= maxDepth) return;
+      seen.add(s.flowId);
+      const target = resolveFlow(s.flowId);
+      if (!target) return;
+      called.push(...target.steps);
+      collect(target.steps, depth + 1);
+    });
+  };
+  collect(flow.steps, 0);
+  return called.length ? analyzeRisk({ ...flow, steps: [...flow.steps, ...called] }) : analyzeRisk(flow);
+}

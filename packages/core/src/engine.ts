@@ -35,7 +35,7 @@ import {
   type Rect,
 } from "./displays.js";
 import { compatibility, type CompatIssue } from "./capabilities.js";
-import { analyzeRisk, type RiskReport } from "./risk.js";
+import { analyzeRisk, analyzeRiskWithCalls, type RiskReport } from "./risk.js";
 
 /* ----------------------------------------------------------------- backend */
 
@@ -344,9 +344,10 @@ export class FlowRun {
   }
 
   /** Static pre-run checks shared by every surface. */
-  static preflight(flow: Flow, platform: Platform): { compat: CompatIssue[]; blocked: CompatIssue[]; risk: RiskReport } {
+  /** `resolveFlow`: when given, the risk report also covers the flows reached through "run flow" steps. */
+  static preflight(flow: Flow, platform: Platform, resolveFlow?: (id: string) => Flow | undefined): { compat: CompatIssue[]; blocked: CompatIssue[]; risk: RiskReport } {
     const compat = compatibility(flow.steps, platform);
-    return { compat, blocked: compat.filter((c) => c.support === "unsupported"), risk: analyzeRisk(flow) };
+    return { compat, blocked: compat.filter((c) => c.support === "unsupported"), risk: resolveFlow ? analyzeRiskWithCalls(flow, resolveFlow) : analyzeRisk(flow) };
   }
 
   pause(): void {
@@ -410,7 +411,7 @@ export class FlowRun {
   /* ------------------------------------------------------------ internals */
 
   private async preflightChecks(): Promise<void> {
-    const { blocked, risk } = FlowRun.preflight(this.flow, this.backend.platform);
+    const { blocked, risk } = FlowRun.preflight(this.flow, this.backend.platform, this.opts.resolveFlow);
     if (blocked.length) {
       throw new RunFailure({
         stepId: blocked[0]!.stepId,

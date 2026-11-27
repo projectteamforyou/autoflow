@@ -230,7 +230,8 @@ export type WrapKind = "group" | "loop" | "try";
 
 /**
  * Puts a step inside a new container at the same place. Only the wrapper gets a new id: the step
- * keeps its own (and its children's) ids, so "jump to step" targets and breakpoints stay valid.
+ * keeps its own (and its children's) ids, so breakpoints stay valid. "Jump to step" can only land on
+ * a top-level step, so jumps that pointed at a wrapped top-level step now point at its wrapper.
  */
 export function wrapStep(root: Step[], id: string, kind: WrapKind): { steps: Step[]; wrapperId?: string } {
   const loc = locate(root, id);
@@ -239,5 +240,25 @@ export function wrapStep(root: Step[], id: string, kind: WrapKind): { steps: Ste
   if (!removed) return { steps: root };
   const wrapper = STEP_BY_TYPE[kind].create() as Extract<Step, { type: WrapKind }>;
   wrapper.body = [removed];
-  return { steps: insertStep(steps, loc, wrapper), wrapperId: wrapper.id };
+  const wrapped = insertStep(steps, loc, wrapper);
+  return { steps: loc.parentId === null ? retargetGoto(wrapped, id, wrapper.id) : wrapped, wrapperId: wrapper.id };
+}
+
+/** Rewrites every `onError.gotoStepId` that points at `from`. Returns the same array when nothing pointed there. */
+export function retargetGoto(root: Step[], from: string, to: string): Step[] {
+  let hit = false;
+  const walk = (v: unknown): void => {
+    if (Array.isArray(v)) return v.forEach(walk);
+    if (!v || typeof v !== "object") return;
+    const o = v as Record<string, unknown>;
+    const oe = o.onError as { gotoStepId?: string } | undefined;
+    if (oe && typeof oe === "object" && oe.gotoStepId === from) {
+      oe.gotoStepId = to;
+      hit = true;
+    }
+    for (const child of Object.values(o)) if (child && typeof child === "object") walk(child);
+  };
+  const copy = structuredClone(root);
+  walk(copy);
+  return hit ? copy : root;
 }

@@ -23,7 +23,7 @@ export interface SandboxOptions {
   /** Called for every action (UI animation hook). */
   onEffect?: (e: SandboxEffect) => void;
   /** Answer for confirm steps (default: yes). */
-  confirm?: (message: string) => Promise<boolean> | boolean;
+  confirm?: (message: string, signal?: AbortSignal) => Promise<boolean> | boolean;
   /** Notification sink. */
   notify?: (title: string, body: string) => void;
   /** Optional real HTTP for GET requests (browser fetch). Non-GET is always simulated. */
@@ -162,7 +162,25 @@ export class SandboxBackend implements Backend {
     return result;
   }
 
-  async confirm(message: string): Promise<boolean> {
-    return this.opts.confirm ? await this.opts.confirm(message) : true;
+  /** Halt, Stop and a step's time limit end an open question at once instead of waiting for an answer. */
+  async confirm(message: string, signal?: AbortSignal): Promise<boolean> {
+    const ask = this.opts.confirm;
+    if (!ask) return true;
+    if (!signal) return await ask(message);
+    if (signal.aborted) throw signal.reason;
+    return await new Promise<boolean>((resolve, reject) => {
+      const onAbort = (): void => reject(signal.reason);
+      signal.addEventListener("abort", onAbort, { once: true });
+      Promise.resolve(ask(message, signal)).then(
+        (v) => {
+          signal.removeEventListener("abort", onAbort);
+          resolve(v);
+        },
+        (e) => {
+          signal.removeEventListener("abort", onAbort);
+          reject(e);
+        },
+      );
+    });
   }
 }

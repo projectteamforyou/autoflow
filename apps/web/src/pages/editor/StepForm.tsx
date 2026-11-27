@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FUNCTION_NAMES, STEP_CAPABILITIES, checkExpr, type Flow, type LintIssue, type OnError, type Step, type Target } from "@autoflow/core";
 import { Icon } from "../../components/Icon";
 import { Field, HotkeyInput, Seg, Switch } from "../../components/ui";
+import { DraftInput, DraftTextarea, parseHeaderLines, parseNumberDraft } from "../../components/DraftInput";
 import { STEP_BY_TYPE, type WrapKind } from "../../lib/steps";
 import type { PartialMode } from "../../lib/partialRun";
 import { useStore } from "../../lib/store";
@@ -146,9 +147,9 @@ function OnErrorEditor({ step, set, flow }: { step: Step; set: (p: Record<string
         </select>
         {oe.strategy === "retry" && (
           <div className="row">
-            <input className="input" type="number" min={1} max={10} value={oe.retries} onChange={(e) => patch({ retries: Math.max(1, Math.min(10, Number(e.target.value) || 1)) })} aria-label={t("editor.retries")} />
+            <input className="input" type="number" min={1} max={10} value={oe.retries} onChange={(e) => patch({ retries: Math.max(1, Math.min(10, Math.round(Number(e.target.value)) || 1)) })} aria-label={t("editor.retries")} />
             <span className="small muted">{t("editor.retries")}</span>
-            <input className="input" type="number" min={0} max={60000} step={100} value={oe.backoffMs} onChange={(e) => patch({ backoffMs: Math.max(0, Number(e.target.value) || 0) })} aria-label={t("editor.backoff")} />
+            <input className="input" type="number" min={0} max={60000} step={100} value={oe.backoffMs} onChange={(e) => patch({ backoffMs: Math.max(0, Math.min(86_400_000, Math.round(Number(e.target.value)) || 0)) })} aria-label={t("editor.backoff")} />
             <span className="small muted">ms</span>
           </div>
         )}
@@ -200,7 +201,7 @@ function Num({ label, value, onChange, min = 0, max = 86_400_000, step = 1, suff
   return (
     <Field label={label}>
       <div className="input-group">
-        <input className="input" type="number" value={value} min={min} max={max} step={step} onChange={(e) => onChange(Math.max(min, Math.min(max, Number(e.target.value) || 0)))} />
+        <DraftInput className="input" type="number" value={value} min={min} max={max} step={step} show={String} parse={(text) => parseNumberDraft(text, min, max, Number.isInteger(step))} onChange={onChange} />
         {suffix && <span className="small muted">{suffix}</span>}
       </div>
     </Field>
@@ -343,7 +344,7 @@ function TypeFields({ step, set, flow }: { step: Step; set: (p: Record<string, u
         <>
           {/* Windows: program path or name; Android: the package name (picked by app label, the package is stored). */}
           <Field label={t("editor.app")} hint={t("editor.appHint")}><AppInput value={step.app} onChange={(v) => set({ app: v || "app" })} label={t("editor.app")} /></Field>
-          <Field label={t("editor.args")}><input className="input mono" value={step.args.join(" ")} onChange={(e) => set({ args: e.target.value.split(" ").filter(Boolean).slice(0, 16) })} /></Field>
+          <Field label={t("editor.args")}><DraftInput className="input mono" value={step.args} show={(a) => a.join(" ")} parse={(text) => text.split(/\s+/).filter(Boolean).slice(0, 16)} onChange={(args) => set({ args })} /></Field>
         </>
       );
     case "openUrl":
@@ -382,7 +383,7 @@ function TypeFields({ step, set, flow }: { step: Step; set: (p: Record<string, u
           </Field>
           <UrlField value={step.url} onChange={(url) => set({ url })} />
           <Field label={t("editor.headers")} hint={t("editor.headersHint")}>
-            <textarea className="textarea mono" rows={3} value={Object.entries(step.headers).map(([k, v]) => `${k}: ${v}`).join("\n")} onChange={(e) => set({ headers: Object.fromEntries(e.target.value.split("\n").map((l) => l.split(/:\s*/)).filter((p) => p[0] && p.length > 1).map((p) => [p[0]!, p.slice(1).join(":")])) })} />
+            <DraftTextarea className="textarea mono" rows={3} value={step.headers} show={(h) => Object.entries(h).map(([k, v]) => `${k}: ${v}`).join("\n")} parse={parseHeaderLines} onChange={(headers) => set({ headers })} />
           </Field>
           {step.method !== "GET" && <Field label={t("editor.body")}><textarea className="textarea mono" rows={4} value={step.body ?? ""} onChange={(e) => set({ body: e.target.value || undefined })} /></Field>}
           <Field label={t("editor.resultVar")}><input className="input mono" value={step.resultVar ?? ""} onChange={(e) => set({ resultVar: e.target.value.replace(/[^A-Za-z0-9_]/g, "") || undefined })} /></Field>

@@ -4,6 +4,9 @@ import {
   FlowRun,
   SandboxBackend,
   analyzeRisk,
+  analyzeRiskWithCalls,
+  applyEasy,
+  toEasy,
   createFlow,
   createVirtualClock,
   evalExpr,
@@ -234,5 +237,58 @@ describe("sharing: literal credentials never pass as secret-only", () => {
     expect(out.headers["Api-Key"]).toBe(" {{secret:a}} {{secret:b}} ");
     expect(out.headers.Cookie).toBe("Bearer {{secret:http_cookie}}");
     expect(out.headers["Proxy-Authorization"]).toBe("Basic {{secret:http_proxy_authorization}}");
+  });
+});
+
+describe("2026-11-27 audit", () => {
+  const click = (id: string, extra: Record<string, unknown> = {}): Step => ({ id, type: "click", target: { kind: "point", x: 0.5, y: 0.5, space: "normalized" }, button: "left", clicks: 1, holdMs: 0, modifiers: [], ...extra }) as Step;
+  const wait = (id: string): Step => ({ id, type: "wait", ms: 250, jitterMs: 0 }) as Step;
+  const easyShaped = (loopExtra: Record<string, unknown> = {}, clickExtra: Record<string, unknown> = {}, before: Step[] = []): Flow => {
+    const r = parseFlow({
+      ...createFlow({ name: "x" }),
+      mode: "pro",
+      steps: [...before, { id: "L", type: "loop", mode: "count", count: 3, body: [click("c", clickExtra), wait("w")], ...loopExtra }],
+      hotkeys: { start: { key: "F6", modifiers: ["ctrl"] }, stop: { key: "Escape", modifiers: ["ctrl", "alt"] } },
+    });
+    if (!r.ok) throw new Error(JSON.stringify(r.issues));
+    return r.flow;
+  };
+
+  it("Easy mode is offered only when its model can hold everything in the flow", () => {
+    expect(toEasy(easyShaped())).not.toBeNull();
+    expect(toEasy(easyShaped({ label: "Farm loop" }))).toBeNull();
+    expect(toEasy(easyShaped({ stepTimeoutMs: 60_000 }))).toBeNull();
+    expect(toEasy(easyShaped({ onError: { strategy: "retry", retries: 3, backoffMs: 500 } }))).toBeNull();
+    expect(toEasy(easyShaped({}, { stepTimeoutMs: 2000 }))).toBeNull();
+    expect(toEasy(easyShaped({}, { breakpoint: true }))).toBeNull();
+    expect(toEasy(easyShaped({}, {}, [{ id: "note", type: "log", level: "info", message: "later", disabled: true } as Step]))).toBeNull();
+  });
+
+  it("clearing the start hotkey in Easy mode clears it on the flow", () => {
+    const flow = easyShaped();
+    const m = toEasy(flow)!;
+    expect(applyEasy(flow, m).hotkeys.start).toEqual({ key: "F6", modifiers: ["ctrl"] });
+    expect(applyEasy(flow, { ...m, startHotkey: undefined }).hotkeys.start).toBeUndefined();
+  });
+
+  it("the risk report of a caller covers the flows it runs", () => {
+    const callee = { ...createFlow({ name: "callee", id: "f_callee" }), steps: [{ id: "h", type: "http", method: "POST", url: "https://example.com/x", headers: {}, body: "{{secret:k}}", timeoutMs: 5000 } as Step] };
+    const caller = { ...createFlow({ name: "caller", id: "f_caller" }), steps: [{ id: "r", type: "runFlow", flowId: "f_callee" } as Step] };
+    const resolve = (id: string) => (id === "f_callee" ? callee : id === "f_caller" ? caller : undefined);
+    expect(analyzeRisk(callee).needsConfirm).toBe(true);
+    expect(analyzeRisk(caller).needsConfirm).toBe(false);
+    expect(analyzeRiskWithCalls(caller, resolve).needsConfirm).toBe(true);
+    expect(FlowRun.preflight(caller as Flow, "web", resolve as (id: string) => Flow | undefined).risk.needsConfirm).toBe(true);
+    // A cycle or an unknown id does not loop or throw.
+    const loopy = { ...caller, steps: [...caller.steps, { id: "r2", type: "runFlow", flowId: "f_caller" } as Step, { id: "r3", type: "runFlow", flowId: "f_missing" } as Step] };
+    expect(analyzeRiskWithCalls(loopy, resolve).needsConfirm).toBe(true);
+  });
+
+  it("Halt ends an open sandbox question instead of waiting for an answer", async () => {
+    const backend = new SandboxBackend({ platform: "web", confirm: () => new Promise<boolean>(() => undefined) });
+    const ctrl = new AbortController();
+    const asked = backend.confirm("Continue?", ctrl.signal);
+    ctrl.abort(new Error("halt"));
+    await expect(asked).rejects.toThrow("halt");
   });
 });

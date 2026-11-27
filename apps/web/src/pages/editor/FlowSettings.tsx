@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { PLATFORMS, TRIGGER_CAPABILITIES, analyzeRisk, describeDisplay, type Flow, type OnMissingDisplay, type Trigger, type VariableDef } from "@autoflow/core";
 import { Icon } from "../../components/Icon";
 import { Field, HotkeyInput, Switch } from "../../components/ui";
+import { DraftInput, parseNumberDraft } from "../../components/DraftInput";
 import { formatDuration, tp, useT } from "../../i18n";
 import { platform } from "../../platform";
 import { isoToLocalInput, localInputToIso } from "../../lib/datetime";
@@ -38,7 +39,7 @@ export function FlowSettings({ flow, onChange }: { flow: Flow; onChange: (f: Flo
         <textarea className="textarea" rows={3} value={flow.description} maxLength={4000} onChange={(e) => onChange({ ...flow, description: e.target.value })} />
       </Field>
       <Field label={t("editor.tags")} hint={t("editor.tagsHint")}>
-        <input className="input" value={flow.tags.join(", ")} onChange={(e) => onChange({ ...flow, tags: e.target.value.split(",").map((x) => x.trim().slice(0, 32)).filter(Boolean).slice(0, 20) })} />
+        <DraftInput className="input" value={flow.tags} show={(tags) => tags.join(", ")} parse={(text) => text.split(",").map((x) => x.trim().slice(0, 32)).filter(Boolean).slice(0, 20)} onChange={(tags) => onChange({ ...flow, tags })} />
       </Field>
 
       <div className="divider" />
@@ -66,7 +67,7 @@ export function FlowSettings({ flow, onChange }: { flow: Flow; onChange: (f: Flo
         <>
           <Field label={t("editor.every")} hint={t("editor.everyHint")}>
             <div className="input-group">
-              <input className="input" type="number" min={1} max={10080} value={tr.everyMs ? Math.round(tr.everyMs / 60_000) : ""} placeholder="60" onChange={(e) => setTrigger({ ...tr, everyMs: e.target.value ? Math.max(1, Number(e.target.value)) * 60_000 : undefined, cron: e.target.value ? undefined : tr.cron })} />
+              <input className="input" type="number" min={1} max={10080} value={tr.everyMs ? Math.round(tr.everyMs / 60_000) : ""} placeholder="60" onChange={(e) => setTrigger({ ...tr, everyMs: e.target.value ? Math.max(1, Math.min(10080, Math.round(Number(e.target.value)) || 1)) * 60_000 : undefined, cron: e.target.value ? undefined : tr.cron })} />
               <span className="small muted">{t("common.minutes")}</span>
             </div>
           </Field>
@@ -101,9 +102,9 @@ export function FlowSettings({ flow, onChange }: { flow: Flow; onChange: (f: Flo
       {tr.type === "location" && (
         <>
           <div className="grid cols-2">
-            <Field label="lat"><input className="input" type="number" step={0.0001} value={tr.lat} onChange={(e) => setTrigger({ ...tr, lat: Number(e.target.value) })} /></Field>
-            <Field label="lng"><input className="input" type="number" step={0.0001} value={tr.lng} onChange={(e) => setTrigger({ ...tr, lng: Number(e.target.value) })} /></Field>
-            <Field label={t("editor.radius")}><input className="input" type="number" min={50} max={50000} value={tr.radiusM} onChange={(e) => setTrigger({ ...tr, radiusM: Math.max(50, Number(e.target.value)) })} /></Field>
+            <Field label="lat"><input className="input" type="number" step={0.0001} value={tr.lat} onChange={(e) => setTrigger({ ...tr, lat: Math.max(-90, Math.min(90, Number(e.target.value) || 0)) })} /></Field>
+            <Field label="lng"><input className="input" type="number" step={0.0001} value={tr.lng} onChange={(e) => setTrigger({ ...tr, lng: Math.max(-180, Math.min(180, Number(e.target.value) || 0)) })} /></Field>
+            <Field label={t("editor.radius")}><input className="input" type="number" min={50} max={50000} value={tr.radiusM} onChange={(e) => setTrigger({ ...tr, radiusM: Math.max(50, Math.min(50_000, Number(e.target.value) || 50)) })} /></Field>
             <Field label={t("editor.on")}>
               <select className="select" value={tr.on} onChange={(e) => setTrigger({ ...tr, on: e.target.value as "enter" | "exit" })}>
                 <option value="enter">{t("trigger.location.enter", { r: tr.radiusM })}</option>
@@ -134,18 +135,18 @@ export function FlowSettings({ flow, onChange }: { flow: Flow; onChange: (f: Flo
       </Field>
       <Field label={t("editor.maxDuration")} hint={formatDuration(flow.limits.maxDurationMs)}>
         <div className="input-group">
-          <input className="input" type="number" min={1} max={10080} value={Math.round(flow.limits.maxDurationMs / 60_000) || 1} onChange={(e) => setLimits({ maxDurationMs: Math.max(1, Math.min(10080, Number(e.target.value) || 1)) * 60_000 })} />
+          <input className="input" type="number" min={1} max={10080} value={Math.round(flow.limits.maxDurationMs / 60_000) || 1} onChange={(e) => setLimits({ maxDurationMs: Math.max(1, Math.min(10080, Math.round(Number(e.target.value)) || 1)) * 60_000 })} />
           <span className="small muted">{t("common.minutes")}</span>
         </div>
       </Field>
       <div className="grid cols-2">
-        <Field label={t("editor.maxActions")}><input className="input" type="number" min={1} value={flow.limits.maxActions} onChange={(e) => setLimits({ maxActions: Math.max(1, Number(e.target.value) || 1) })} /></Field>
-        <Field label={t("editor.maxIterations")}><input className="input" type="number" min={1} value={flow.limits.maxIterations} onChange={(e) => setLimits({ maxIterations: Math.max(1, Number(e.target.value) || 1) })} /></Field>
+        <Field label={t("editor.maxActions")}><input className="input" type="number" min={1} value={flow.limits.maxActions} onChange={(e) => setLimits({ maxActions: Math.max(1, Math.min(100_000_000, Math.round(Number(e.target.value)) || 1)) })} /></Field>
+        <Field label={t("editor.maxIterations")}><input className="input" type="number" min={1} value={flow.limits.maxIterations} onChange={(e) => setLimits({ maxIterations: Math.max(1, Math.min(100_000_000, Math.round(Number(e.target.value)) || 1)) })} /></Field>
         <Field label={t("editor.countdown")}>
-          <div className="input-group"><input className="input" type="number" min={0} max={60} value={flow.limits.countdownMs / 1000} onChange={(e) => setLimits({ countdownMs: Math.max(0, Math.min(60, Number(e.target.value) || 0)) * 1000 })} /><span className="small muted">s</span></div>
+          <div className="input-group"><input className="input" type="number" min={0} max={60} value={flow.limits.countdownMs / 1000} onChange={(e) => setLimits({ countdownMs: Math.round(Math.max(0, Math.min(60, Number(e.target.value) || 0)) * 1000) })} /><span className="small muted">s</span></div>
         </Field>
         <Field label={t("editor.cooldown")}>
-          <div className="input-group"><input className="input" type="number" min={0} value={flow.limits.cooldownMs / 1000} onChange={(e) => setLimits({ cooldownMs: Math.max(0, Number(e.target.value) || 0) * 1000 })} /><span className="small muted">s</span></div>
+          <div className="input-group"><input className="input" type="number" min={0} value={flow.limits.cooldownMs / 1000} onChange={(e) => setLimits({ cooldownMs: Math.round(Math.max(0, Math.min(86_400, Number(e.target.value) || 0)) * 1000) })} /><span className="small muted">s</span></div>
         </Field>
         {/* Optional watchdog on executed steps of any type; empty = no limit (the field stays unset). */}
         <Field label={t("editor.maxSteps")}>
@@ -205,7 +206,12 @@ export function FlowSettings({ flow, onChange }: { flow: Flow; onChange: (f: Flo
             </select>
             <button className="btn ghost icon sm" onClick={() => setVars(flow.variables.filter((_, j) => j !== i))} aria-label={t("common.remove")}><Icon name="Trash2" size={14} /></button>
           </div>
-          <input className="input" placeholder={t("editor.initial")} value={v.initial === undefined ? "" : String(v.initial)} onChange={(e) => setVars(flow.variables.map((x, j) => (j === i ? { ...x, initial: v.type === "number" ? Number(e.target.value) : e.target.value } : x)))} />
+          {v.type === "number" ? (
+            // "-5" and "1.5" are typed one character at a time: nothing is stored until the text is a number.
+            <DraftInput className="input" inputMode="decimal" placeholder={t("editor.initial")} value={typeof v.initial === "number" ? v.initial : Number(v.initial ?? 0) || 0} show={String} parse={(text) => parseNumberDraft(text, -Number.MAX_VALUE, Number.MAX_VALUE, false)} onChange={(n) => setVars(flow.variables.map((x, j) => (j === i ? { ...x, initial: n } : x)))} />
+          ) : (
+            <input className="input" placeholder={t("editor.initial")} value={v.initial === undefined ? "" : String(v.initial)} onChange={(e) => setVars(flow.variables.map((x, j) => (j === i ? { ...x, initial: e.target.value } : x)))} />
+          )}
           <input className="input" placeholder={t("editor.promptPlaceholder")} value={v.prompt ?? ""} onChange={(e) => setVars(flow.variables.map((x, j) => (j === i ? { ...x, prompt: e.target.value || undefined } : x)))} />
         </div>
       ))}

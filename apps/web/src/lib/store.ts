@@ -264,7 +264,11 @@ export const useStore = create<State>((set, get) => ({
     if (!src) return undefined;
     const now = new Date().toISOString();
     const copy: Flow = { ...structuredClone(src), id: newId("f"), name: `${src.name} (copy)`.slice(0, 120), createdAt: now, updatedAt: now, revision: 0, favorite: false };
-    return get().saveFlow(copy, { snapshot: false });
+    const saved = await get().saveFlow(copy, { snapshot: false });
+    // A copy of a flow whose trigger is switched off starts switched off too (it would fire on the same schedule / hotkey).
+    const paused = get().settings.pausedTriggers;
+    if (paused.includes(id)) await get().updateSettings({ pausedTriggers: [...paused, saved.id] });
+    return saved;
   },
 
   async installTemplate(templateId) {
@@ -317,9 +321,10 @@ export const useStore = create<State>((set, get) => ({
   },
 
   async updateSettings(patch) {
+    // State first: two calls that overlap (a toggle while a sync finishes) must both see each other's change.
     const settings = { ...get().settings, ...patch };
-    await kv.set("settings", settings);
     set({ settings });
+    await kv.set("settings", settings);
   },
 
   toast(kind, text, action, onDismiss) {

@@ -129,7 +129,7 @@ export async function runInCanvas(flow: Flow, opts: CanvasRunOptions = {}): Prom
     screen: opts.screen,
     onEffect: opts.onEffect,
     notify: opts.notify,
-    confirm: (msg) => confirmDialog({ title: t("run.confirmStep"), body: msg, confirmLabel: t("common.yes"), cancelLabel: t("common.no") }),
+    confirm: (msg, signal) => confirmDialog({ title: t("run.confirmStep"), body: msg, confirmLabel: t("common.yes"), cancelLabel: t("common.no") }, signal),
     actionDelayMs: Math.round(60 / (opts.speed ?? 1)),
     world: opts.world,
     displays: opts.displays,
@@ -173,7 +173,9 @@ function attachBridge(): void {
 /** Runs a flow on this device's native executor (Windows / Android app). */
 export async function runNative(flow: Flow, inputs?: Record<string, unknown>, opts: { transient?: boolean } = {}): Promise<string | null> {
   attachBridge();
-  const { risk, blocked } = FlowRun.preflight(flow, platform);
+  // The approval passed to the executor has to cover the flows this one calls ("run flow"), too.
+  const library = useStore.getState().flows;
+  const { risk, blocked } = FlowRun.preflight(flow, platform, (id) => library.find((f) => f.id === id));
   if (blocked.length) {
     useStore.getState().toast("error", t("run.unsupported", { n: blocked.length }));
     return null;
