@@ -204,3 +204,25 @@ fun analyzeRisk(flow: Flow): RiskReport {
     val level = if (score >= 40) "high" else if (score >= 15) "medium" else "low"
     return RiskReport(score, level, findings, findings.any { it.needsConfirm }, perms.toList())
 }
+
+/**
+ * [analyzeRisk] that also covers every flow reached through non-disabled "run flow" steps (`analyzeRiskWithCalls` in
+ * risk.ts): the steps of the called flows are analysed together with the caller's, with the caller's trigger, limits
+ * and stage, so a flow whose only step is `runFlow` cannot run a file or network step without approval. The caller's
+ * own id is never followed, each flow is collected once, unknown ids are skipped and the walk stops [maxDepth] calls deep.
+ */
+fun analyzeRiskWithCalls(flow: Flow, resolveFlow: (String) -> Flow?, maxDepth: Int = 8): RiskReport {
+    val seen = hashSetOf(flow.id)
+    val called = ArrayList<Step>()
+    fun collect(steps: List<Step>, depth: Int) {
+        walkSteps(steps) { s, _, _ ->
+            if (s.meta.disabled || s !is Step.RunFlow || s.flowId in seen || depth >= maxDepth) return@walkSteps
+            seen.add(s.flowId)
+            val target = resolveFlow(s.flowId) ?: return@walkSteps
+            called.addAll(target.steps)
+            collect(target.steps, depth + 1)
+        }
+    }
+    collect(flow.steps, 0)
+    return if (called.isEmpty()) analyzeRisk(flow) else analyzeRisk(flow.copy(steps = flow.steps + called))
+}

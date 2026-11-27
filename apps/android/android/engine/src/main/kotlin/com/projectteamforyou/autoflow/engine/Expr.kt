@@ -463,22 +463,31 @@ fun evaluate(node: Node, env: ExprEnv): Value {
                 }
             }
             is Node.Call -> guard(FUNCTIONS.getValue(n.fn)(n.args.map { ev(it) }, env, budget))
-            is Node.Bin -> binary(n, ::ev, budget)
+            is Node.Bin -> {
+                // A chain "1*1*…*1" parses into a left-deep tree as long as the source allows (~1000 operators), and one
+                // JVM frame pair per operator overflows the stack where TypeScript and Rust do not. The left spine is
+                // walked in a loop instead; evaluation order and the step budget are those of the recursive form
+                // (each operator is charged on the way down, then operands are evaluated left to right).
+                val spine = ArrayList<Node.Bin>()
+                var cur: Node = n
+                while (cur is Node.Bin) {
+                    if (spine.isNotEmpty()) budget.spend()
+                    spine.add(cur)
+                    cur = cur.a
+                }
+                var acc = ev(cur)
+                for (k in spine.indices.reversed()) acc = binary(spine[k], acc, ::ev, budget)
+                acc
+            }
         }
     }
     return ev(node)
 }
 
-private fun binary(n: Node.Bin, ev: (Node) -> Value, budget: Budget): Value {
-    if (n.op == "&&") {
-        val a = ev(n.a)
-        return if (truthy(a)) ev(n.b) else a
-    }
-    if (n.op == "||") {
-        val a = ev(n.a)
-        return if (truthy(a)) a else ev(n.b)
-    }
-    val a = ev(n.a)
+/** One binary operator with its left operand already evaluated to [a]; the right operand is evaluated on demand. */
+private fun binary(n: Node.Bin, a: Value, ev: (Node) -> Value, budget: Budget): Value {
+    if (n.op == "&&") return if (truthy(a)) ev(n.b) else a
+    if (n.op == "||") return if (truthy(a)) a else ev(n.b)
     val b = ev(n.b)
     return when (n.op) {
         "+" -> when {

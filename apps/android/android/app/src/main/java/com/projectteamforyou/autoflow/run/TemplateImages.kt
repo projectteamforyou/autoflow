@@ -5,6 +5,7 @@ import android.graphics.BitmapFactory
 import android.util.Base64
 import java.io.File
 import java.io.IOException
+import java.util.zip.CRC32
 
 /**
  * Template images referenced by flows (`findImage`, image targets): `<externalFilesDir>/AutoFlow/images/<ref>.png`.
@@ -22,6 +23,50 @@ object TemplateImages {
     fun isValidRef(ref: String): Boolean = ref.isNotEmpty() && ref.length <= 200 && !ref.startsWith('.') &&
         ref.all { (it.isLetterOrDigit() && it.code < 128) || it == '_' || it == '-' || it == '.' }
 
+    /**
+     * Windows device names (CON, PRN, AUX, NUL, COM0–9, LPT0–9; any case, with or without an extension) cannot be
+     * file names on the desktop: the same test as `is_windows_device_name` in apps/desktop. Refused at import so an
+     * image name used by a flow works on both platforms; images already stored stay listed, usable and deletable.
+     */
+    fun isWindowsDeviceName(ref: String): Boolean {
+        val stem = ref.substringBefore('.').uppercase(java.util.Locale.ROOT)
+        return stem == "CON" || stem == "PRN" || stem == "AUX" || stem == "NUL" ||
+            (stem.length == 4 && (stem.startsWith("COM") || stem.startsWith("LPT")) && stem[3] in '0'..'9')
+    }
+
+    /**
+     * Whether [bytes] (already known to start with the PNG signature) is a complete PNG stream: IHDR first, at least
+     * one IDAT, every chunk inside the data, and IEND present. Critical chunks must also pass their CRC. A truncated
+     * download fails here; Android's decoder alone would hand back the rows it managed to read.
+     */
+    internal fun isCompletePng(bytes: ByteArray): Boolean {
+        var pos = PNG_SIGNATURE.size
+        var first = true
+        var hasData = false
+        val crc = CRC32()
+        while (true) {
+            if (bytes.size - pos < 12) return false // length + type + CRC
+            val len = ((bytes[pos].toLong() and 0xFF) shl 24) or ((bytes[pos + 1].toLong() and 0xFF) shl 16) or
+                ((bytes[pos + 2].toLong() and 0xFF) shl 8) or (bytes[pos + 3].toLong() and 0xFF)
+            if (len > bytes.size - pos - 12) return false
+            val n = len.toInt()
+            val type = String(bytes, pos + 4, 4, Charsets.ISO_8859_1)
+            if (first && (type != "IHDR" || n != 13)) return false
+            first = false
+            if (type[0] in 'A'..'Z') {
+                crc.reset()
+                crc.update(bytes, pos + 4, 4 + n)
+                val at = pos + 8 + n
+                val stored = ((bytes[at].toLong() and 0xFF) shl 24) or ((bytes[at + 1].toLong() and 0xFF) shl 16) or
+                    ((bytes[at + 2].toLong() and 0xFF) shl 8) or (bytes[at + 3].toLong() and 0xFF)
+                if (stored != crc.value) return false
+            }
+            if (type == "IDAT") hasData = true
+            if (type == "IEND") return hasData
+            pos += 12 + n
+        }
+    }
+
     /** AutoFlow's images folder (Android/data/<app>/files/AutoFlow/images); not created here. */
     fun dir(context: Context): File = File(File(context.getExternalFilesDir(null) ?: context.filesDir, "AutoFlow"), "images")
 
@@ -33,6 +78,9 @@ object TemplateImages {
     /** `image_import`: validates a `data:image/png;base64,…` URL and writes it as `<ref>.png` (replacing any old one). */
     fun save(context: Context, ref: String, dataUrl: String) {
         checkedRef(ref)
+        if (isWindowsDeviceName(ref)) {
+            throw IllegalArgumentException("\"$ref\" is a reserved device name on Windows and cannot be an image name")
+        }
         if (!dataUrl.startsWith(DATA_URL_PREFIX)) throw IllegalArgumentException("dataUrl must be a data:image/png;base64 URL")
         // 4 base64 characters carry 3 bytes: refuse oversized input before decoding it.
         if (dataUrl.length - DATA_URL_PREFIX.length > MAX_BYTES / 3 * 4 + 8) throw IllegalArgumentException("image is larger than 4 MB")
@@ -48,6 +96,7 @@ object TemplateImages {
         if (opts.outWidth > MAX_SIDE || opts.outHeight > MAX_SIDE) {
             throw IllegalArgumentException("image is larger than ${MAX_SIDE}x$MAX_SIDE pixels")
         }
+        if (!isCompletePng(bytes)) throw IllegalArgumentException("image is not a readable PNG (the file is incomplete or damaged)")
         val dir = dir(context)
         dir.mkdirs()
         if (!dir.isDirectory) throw IOException("could not create the images folder")
@@ -56,10 +105,29 @@ object TemplateImages {
         val tmp = File(dir, ".$ref.png.tmp")
         try {
             tmp.writeBytes(bytes)
+            // Decode what was stored, before it replaces any older image: a PNG the matcher cannot read is refused
+            // now, not in the middle of a run.
+            if (!decodes(tmp)) throw IllegalArgumentException("image is not a readable PNG")
             if (!tmp.renameTo(File(dir, "$ref.png"))) throw IOException("could not save the image")
         } finally {
             tmp.delete()
         }
+    }
+
+    /** A full decode of [file], the way ImageMatch.loadTemplate reads it. The size is already capped at [MAX_SIDE]. */
+    private fun decodes(file: File): Boolean {
+        val opts = BitmapFactory.Options()
+        opts.inPreferredConfig = android.graphics.Bitmap.Config.ARGB_8888
+        val bmp: android.graphics.Bitmap? = try {
+            BitmapFactory.decodeFile(file.path, opts)
+        } catch (_: OutOfMemoryError) {
+            // OutOfMemoryError is not an Exception: nothing further up would catch it.
+            throw IllegalArgumentException("image is too large for this device")
+        }
+        if (bmp == null) return false
+        val ok = bmp.width > 0 && bmp.height > 0
+        bmp.recycle()
+        return ok
     }
 
     /** `image_list`: refs (file names without `.png`), sorted. */

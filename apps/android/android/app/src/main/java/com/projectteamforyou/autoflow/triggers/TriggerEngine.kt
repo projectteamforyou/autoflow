@@ -22,6 +22,8 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 
 /**
  * Native trigger registry (`triggers_sync`). Flows are persisted to app-private storage so schedules, device events and
@@ -43,6 +45,8 @@ import java.io.File
 object TriggerEngine {
     private const val TAG = "AutoFlowTriggers"
     private const val FILE = "triggers.json"
+    /** Written first and renamed over [FILE]; a leftover one is an interrupted write and is never read. */
+    private const val TEMP_FILE = "triggers.json.tmp"
     private const val PREFS = "autoflow.triggers"
 
     @Volatile private var flows: Map<String, Flow> = emptyMap()
@@ -55,6 +59,9 @@ object TriggerEngine {
         if (initialized) return
         initialized = true
         val f = File(context.filesDir, FILE)
+        // Left behind when the process died in the middle of a sync: possibly half-written, and FILE still holds the
+        // last complete set.
+        runCatching { File(context.filesDir, TEMP_FILE).delete() }
         if (f.isFile) {
             try {
                 val o = FlowParser.json.parseToJsonElement(f.readText()).jsonObject
@@ -90,8 +97,28 @@ object TriggerEngine {
             put("flows", JsonArray(flows.values.mapNotNull { it.source }))
             emergencyStop?.let { put("emergencyStop", it) }
         }
-        File(context.filesDir, FILE).writeText(store.toString())
+        writeStore(context, store.toString())
         return result
+    }
+
+    /**
+     * Temp file in the same folder, flushed to disk, then renamed over the target (atomic on the app's file system):
+     * a crash in the middle leaves the previous triggers.json intact instead of a truncated one that would drop every
+     * trigger on the next start.
+     */
+    private fun writeStore(context: Context, text: String) {
+        val tmp = File(context.filesDir, TEMP_FILE)
+        try {
+            FileOutputStream(tmp).use { out ->
+                out.write(text.toByteArray(Charsets.UTF_8))
+                out.flush()
+                out.fd.sync()
+            }
+            if (!tmp.renameTo(File(context.filesDir, FILE))) throw IOException("could not save the triggers")
+        } finally {
+            // Gone after a successful rename; removes the partial file after a failure.
+            tmp.delete()
+        }
     }
 
     private fun load(context: Context, flowsJson: JsonArray, emergency: Hotkey?): SyncResult {

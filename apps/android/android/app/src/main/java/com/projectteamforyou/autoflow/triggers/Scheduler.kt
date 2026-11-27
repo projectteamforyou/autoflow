@@ -38,6 +38,12 @@ object Scheduler {
     private const val TAG = "AutoFlowScheduler"
     const val MIN_PERIODIC_MS = 15 * 60_000L
     private const val KEY_FLOW = "flowId"
+    /** Per flow, the time (epoch ms) of the occurrence a one-shot alarm or one-shot work is currently set for. */
+    private const val PREFS = "autoflow.schedule"
+
+    private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+    private fun noteNext(context: Context, flowId: String, at: Long) = prefs(context).edit().putLong(flowId, at).apply()
 
     private fun workName(id: String) = "schedule-$id"
 
@@ -58,6 +64,7 @@ object Scheduler {
     fun cancel(context: Context, flowId: String) {
         WorkManager.getInstance(context).cancelUniqueWork(workName(flowId))
         context.getSystemService(AlarmManager::class.java)?.cancel(alarmIntent(context, flowId))
+        prefs(context).edit().remove(flowId).apply()
     }
 
     private fun alarmIntent(context: Context, flowId: String): PendingIntent = PendingIntent.getBroadcast(
@@ -85,6 +92,7 @@ object Scheduler {
                 val from = ZonedDateTime.now().let { z -> if (start > now) ZonedDateTime.ofInstant(Instant.ofEpochMilli(start - 60_000), z.zone) else z }
                 val at = runCatching { Cron.parse(cron).next(from) }.getOrNull()?.toInstant()?.toEpochMilli() ?: return
                 if (end != null && at > end) return
+                noteNext(context, flow.id, at)
                 if (exact) setAlarm(context, flow.id, at) else oneShot(context, flow.id, at - now)
             }
             everyMs != null && everyMs >= MIN_PERIODIC_MS -> {
@@ -95,7 +103,11 @@ object Scheduler {
                     .build()
                 wm.enqueueUniquePeriodicWork(workName(flow.id), if (replace) ExistingPeriodicWorkPolicy.UPDATE else ExistingPeriodicWorkPolicy.KEEP, req)
             }
-            everyMs != null && exact -> setAlarm(context, flow.id, maxOf(start, now + everyMs))
+            everyMs != null && exact -> {
+                val at = maxOf(start, now + everyMs)
+                noteNext(context, flow.id, at)
+                setAlarm(context, flow.id, at)
+            }
             else -> Log.w(TAG, "${flow.id}: interval under 15 minutes without exact-alarm permission — not scheduled")
         }
     }
@@ -119,6 +131,20 @@ object Scheduler {
         }
     }
 
+    /**
+     * A retried one-shot worker: the flow is not started again, but the following occurrence must exist. If the first
+     * attempt died before it rescheduled, nothing would fire until the next sync or boot. Idempotent: when the first
+     * attempt (or a sync since) already set a later occurrence, that one is kept as it is.
+     */
+    fun ensureNextScheduled(context: Context, flowId: String) {
+        TriggerEngine.init(context)
+        val flow = TriggerEngine.all().firstOrNull { it.id == flowId } ?: return
+        if (flow.trigger !is Trigger.Schedule) return
+        // An alarm or delayed work never runs before its time, so a noted time in the future was set after this firing.
+        if (prefs(context).getLong(flowId, 0L) > System.currentTimeMillis()) return
+        scheduleNext(context, flow)
+    }
+
     /** Fires a scheduled flow and (for one-shot kinds) schedules the following occurrence. */
     suspend fun fireScheduled(context: Context, flowId: String, rescheduleAfter: Boolean) {
         TriggerEngine.init(context)
@@ -140,7 +166,11 @@ object Scheduler {
             val id = inputData.getString(KEY_FLOW) ?: return Result.success()
             // The system may stop this worker while it waits for the run (expedited jobs have a small quota) and
             // WorkManager then runs it again: the flow already started, so a retry must not start it a second time.
-            if (runAttemptCount > 0) return Result.success()
+            // The following occurrence is still made sure of: the first attempt may have died before scheduling it.
+            if (runAttemptCount > 0) {
+                if (inputData.getBoolean("oneShot", false)) ensureNextScheduled(applicationContext, id)
+                return Result.success()
+            }
             fireScheduled(applicationContext, id, rescheduleAfter = inputData.getBoolean("oneShot", false))
             return Result.success()
         }

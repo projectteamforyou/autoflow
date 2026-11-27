@@ -22,6 +22,7 @@ import com.projectteamforyou.autoflow.R
 import com.projectteamforyou.autoflow.run.RunManager
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 
 /**
@@ -167,7 +168,9 @@ class Overlays(private val service: AutoFlowAccessibilityService) {
         try {
             return block()
         } finally {
-            if (hide) withContext(Dispatchers.Main.immediate) { halt?.visibility = View.VISIBLE }
+            // NonCancellable: a step timeout or Stop cancels this coroutine while the gesture is in flight, and a plain
+            // withContext would then throw before running the block and leave the Halt button hidden.
+            if (hide) withContext(NonCancellable + Dispatchers.Main.immediate) { halt?.visibility = View.VISIBLE }
         }
     }
 

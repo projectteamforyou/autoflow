@@ -26,6 +26,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -165,7 +166,11 @@ class AutoFlowAccessibilityService : AccessibilityService() {
 
     /* ----------------------------------------------------------- gestures */
 
+    /** Counts the gestures sent by [dispatch]; tells a stale cancel request from the gesture currently in flight. */
+    private val gestureSeq = AtomicLong()
+
     private suspend fun dispatch(gesture: GestureDescription) = suspendCancellableCoroutine { cont ->
+        val seq = gestureSeq.incrementAndGet()
         val accepted = dispatchGesture(
             gesture,
             object : GestureResultCallback() {
@@ -179,7 +184,15 @@ class AutoFlowAccessibilityService : AccessibilityService() {
             },
             main,
         )
-        if (!accepted && cont.isActive) cont.resumeWithException(BackendException("Android refused the gesture", ErrorCategory.ACTION))
+        if (!accepted) {
+            if (cont.isActive) cont.resumeWithException(BackendException("Android refused the gesture", ErrorCategory.ACTION))
+            return@suspendCancellableCoroutine
+        }
+        // A step timeout (or Stop) cancels the coroutine that waits here, not the gesture: without this a long press
+        // or drag would stay held until its own duration ends. Runs on whichever thread cancels; cancelGestures posts
+        // to the main thread. Skipped when a newer gesture was sent meanwhile (that one already replaced this one, and
+        // cancelling now would interrupt it instead).
+        cont.invokeOnCancellation { cancelGestures(onlyGesture = seq) }
     }
 
     private fun duration(ms: Long): Long = ms.coerceIn(1L, GestureDescription.getMaxGestureDuration())
@@ -202,9 +215,13 @@ class AutoFlowAccessibilityService : AccessibilityService() {
         overlays.withHaltClear(listOf(x1 to y1, x2 to y2)) { dispatch(g) }
     }
 
-    /** Cancels any in-flight gesture (Halt): a new 1 ms touch on our own Halt button supersedes it harmlessly. */
-    fun cancelGestures() {
+    /**
+     * Cancels any in-flight gesture (Halt): a new 1 ms touch on our own Halt button supersedes it harmlessly.
+     * With [onlyGesture] (a [gestureSeq] value) nothing happens unless that gesture is still the latest one sent.
+     */
+    fun cancelGestures(onlyGesture: Long? = null) {
         main.post {
+            if (onlyGesture != null && gestureSeq.get() != onlyGesture) return@post
             if (!::overlays.isInitialized) return@post
             val c = overlays.haltCenter() ?: return@post
             val p = Path().apply { moveTo(c.first, c.second) }
