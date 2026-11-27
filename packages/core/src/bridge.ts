@@ -60,14 +60,15 @@ export interface BridgeCommands {
   permissions_status: [Record<string, never>, PermissionStatus[]];
   permission_request: [{ permission: NativePermission }, PermissionStatus];
   /** Starts a run in the native executor; events arrive as BridgeEvent{kind:"run"}. */
-  run_start: [{ flow: Flow; inputs?: Record<string, unknown>; approvedRisk: boolean; approvedScreenChange: boolean; dryRun?: boolean; /** A temporary variant of a saved flow ("run from here"): the executor must not keep it for triggers or remember its approval. */ transient?: boolean }, { runId: string }];
+  run_start: [{ flow: Flow; inputs?: Record<string, unknown>; approvedRisk: boolean; approvedScreenChange: boolean; dryRun?: boolean; /** A temporary variant of a saved flow ("run from here"): the executor must not keep it for triggers or remember its approval. */ transient?: boolean; /** Flows this one reaches through "run flow" (the executor only knows flows with triggers otherwise). */ library?: Flow[] }, { runId: string }];
   run_pause: [{ runId: string }, void];
   run_resume: [{ runId: string }, void];
   run_stop: [{ runId: string; reason?: string }, void];
   /** Stops every run immediately (Halt). */
   halt_all: [Record<string, never>, void];
   /** Flows with hotkey/schedule/app/device triggers that the native side must watch. */
-  triggers_sync: [{ flows: Flow[]; emergencyStop: Hotkey }, { registered: string[]; failed: { flowId: string; reason: string }[] }];
+  /** `library`: flows that those call through "run flow" and that have no trigger of their own. */
+  triggers_sync: [{ flows: Flow[]; emergencyStop: Hotkey; library?: Flow[] }, { registered: string[]; failed: { flowId: string; reason: string }[] }];
   record_start: [{ maskSensitive: boolean }, void];
   record_stop: [Record<string, never>, { events: RecordedEvent[]; screen: ScreenInfo }];
   /** Shows a full-screen crosshair; resolves with the picked point (also emitted as pointPicked). */

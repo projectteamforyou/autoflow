@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, type ComponentType } from "react";
 import { HashRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { hotkeyToString } from "@autoflow/core";
+import { calledFlows, hotkeyToString } from "@autoflow/core";
 import { useStore } from "../lib/store";
 import { applyTheme, DialogHost, PulseBar, Toasts } from "../components/Shell";
 import { keyFromEvent } from "../components/ui";
@@ -87,7 +87,10 @@ function Effects() {
     // Not before the library has loaded: an empty list would unregister every trigger for a moment.
     if (!hasNativeBridge || !ready) return;
     const id = setTimeout(() => {
-      void invoke("triggers_sync", { flows: armedFlows(flows, paused), emergencyStop: settings.haltHotkey })
+      // Flows the armed ones call ("run flow") go along: a schedule that fires must be able to resolve them.
+      const armed = armedFlows(flows, paused);
+      const called = calledFlows(armed, (id) => flows.find((f) => f.id === id));
+      void invoke("triggers_sync", { flows: armed, emergencyStop: settings.haltHotkey, ...(called.length ? { library: called } : {}) })
         .then((r) => {
           const st = useStore.getState();
           // Toast only what is newly failing (this runs after every library edit); the Library badge shows the reason for as long as it lasts.

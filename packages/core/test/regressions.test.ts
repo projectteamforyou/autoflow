@@ -5,6 +5,7 @@ import {
   SandboxBackend,
   analyzeRisk,
   analyzeRiskWithCalls,
+  calledFlows,
   applyEasy,
   toEasy,
   createFlow,
@@ -310,5 +311,15 @@ describe("2026-11-27 audit", () => {
     expect(await run([])).toEqual({ status: "completed", out: "hi!" });
     // Declared by the caller: its value is kept.
     expect(await run([{ name: "greeting", type: "string", initial: "yo" }] as Flow["variables"])).toEqual({ status: "completed", out: "from input!" });
+  });
+
+  it("calledFlows lists what a native executor needs besides the flow itself", () => {
+    const f = (id: string, calls: string[], disabled = false) => ({ ...createFlow({ name: id, id }), steps: calls.map((c, i) => ({ id: `${id}_${i}`, type: "runFlow", flowId: c, ...(disabled ? { disabled: true } : {}) }) as Step) });
+    const all = [f("f_a", ["f_b", "f_missing"]), f("f_b", ["f_c", "f_a"]), f("f_c", []), f("f_d", ["f_c"], true), f("f_e", [])];
+    const resolve = (id: string) => all.find((x) => x.id === id);
+    expect(calledFlows([all[0]!], resolve).map((x) => x.id)).toEqual(["f_b", "f_c"]); // transitive, cycle-safe, unknown skipped
+    expect(calledFlows([all[3]!], resolve)).toEqual([]); // a disabled call is not followed
+    expect(calledFlows([all[0]!, all[1]!], resolve).map((x) => x.id)).toEqual(["f_c"]); // roots are not repeated
+    expect(calledFlows([all[4]!], resolve)).toEqual([]);
   });
 });

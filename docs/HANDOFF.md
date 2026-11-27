@@ -1,6 +1,6 @@
 # AutoFlow — 인수인계 (새 채팅에서 이어서 작업용)
 
-갱신: 2026-11-25 14:50 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#46 (7-10, 1.2.0)
+갱신: 2026-11-27 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#48 (7-11, 1.2.0 출시 후 감사)
 
 ## 1. 현재 배포 상태 (Windows 1.2.0 · Android 1.2.0 · 웹 1.2.0)
 | 항목 | 값 |
@@ -165,6 +165,21 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
   - **Android**: `android.yml` run 45550497317(version 1.2.0, track production) 성공 — versionCode 20 업로드, 12개 언어 문구·이미지, `track production: completed` → `committed`(14:15 KST). 새 권한 없음. 심사 결과는 Console에서 확인
   - **Windows**: 첫 두 번(run 45550493450)은 러너 `FELIXLEE`에서 `light.exe LGHT0217 … The Windows Installer Service could not be accessed`로 실패 — 회사 러너가 LocalSystem이 아니라 `ghrunner` 계정으로 돌고 있었음. **PR #46**: LocalSystem이 아닐 때만 Tauri의 WiX 폴더(`%LOCALAPPDATA%\tauri\WixTools314`)의 `light.exe`를 `-sval`을 붙여 넘기는 작은 전달 프로그램(csc로 빌드, 원본은 `light-real.exe`)으로 바꿔 ICE 검증을 건너뜀(LocalSystem이면 기존대로 전체 ICE). `setup-node`의 `cache: pnpm` 제거(self-hosted에서 post 단계가 완성된 빌드를 실패 처리). 시험 빌드 run 45553133695(FELIXLEE-2)에서 MSI 2종 서명·검증 확인 → main 1892a22에서 run 45554470570 성공(14:40 KST), GitHub Release v1.2.0에 setup.exe·MSI(en-US, ko-KR)·portable.exe 첨부
   - **R2 미러**: 이 컨테이너에서 `publish-r2.mjs`는 GitHub API 단계에서 막힘(저장소 이름 변경 리다이렉트가 숫자 ID 경로라 프록시가 거부). 저장소가 public이라 `https://github.com/projectteamforyou/autoflow/releases/download/v1.2.0/<파일>`을 curl로 받아(8개, `SHA256SUMS*.txt`와 일치 확인) 같은 규칙으로 `wrangler@3 r2 object put` → `releases/v1.2.0/*`, 고정 주소 4개, `latest.json`(1.2.0). 실제 주소에서 내려받은 4개 파일의 SHA-256이 릴리스와 일치(setup 976feaea…, msi d250ea7e…, portable b93287c7…, apk db0efd43…)
+
+## 7-11. 1.2.0 출시 후 A–Z 감사 (PR #48, 2026-11-27)
+- 방식: 운영 확인(API 60시간 63,089건 중 5xx 0건, 4xx는 스캐너 404·클라이언트 종료 499) → 세 갈래 읽기 전용 감사(웹+코어 / Rust+데스크톱+Android / API+사이트+릴리스 자동화)에서 **재현된 것만** 수정 → 영역별 회귀 테스트. 기준선: core 153 · web 139(22파일) · API 124 · Rust 93 · Kotlin 엔진 60, 브라우저 E2E 22구간
+- **차단급 — "다른 플로우 실행"으로 부른 플로우가 위험 승인 없이 실행됨**(세 엔진 공통): A(runFlow→B)를 예약·단축키로 돌리면 B의 `http POST {{secret:}}`·파일 쓰기가 승인 없이 실행됐음. 세 엔진 모두 호출 가능한 플로우의 단계를 합쳐 위험을 판정(`analyzeRiskWithCalls` / `analyze_risk_with_calls`, 방문 집합·깊이 8·모르는 id 건너뜀). 데스크톱 승인 해시(`approvals::steps_hash(flow, library)`)는 호출되는 플로우까지 포함 → B를 고치면 다시 물음(호출이 없는 플로우의 기존 승인은 그대로)
+- **네이티브가 호출 대상 플로우를 모르던 문제**: 웹은 트리거가 걸린 플로우만 `triggers_sync`로 보냈기 때문에, 예약 A → 수동 B는 B를 네이티브에서 한 번도 실행한 적이 없으면 `flow "B" not found`. 브리지에 `library?: Flow[]`(run_start·triggers_sync) 추가, 웹이 `calledFlows()`로 호출 대상을 함께 보냄. Android는 triggers.json에 `library`를 같이 저장(프로세스 재시작 후에도 해석)
+- **runFlow 변수**: 호출된 플로우가 선언한 변수 중 아직 없는 것만 실행 시작 때와 같은 규칙으로 초기화(호출자 값 우선, 입력값은 호출자에만 적용) — 세 엔진 동일
+- **동기화 데이터 손실 3건**(웹): 일괄 삭제→되돌리기→동기화 시 다시 삭제(DELETE 경쟁 → 큐로 직렬화), 잠금 상태에서 한 삭제가 서버에 안 감(다음 동기화가 전송; 읽지 못한 저장 플로우는 삭제로 보지 않음), 내려받기가 이 기기의 폴더·즐겨찾기를 덮어씀. 서버 쪽은 이미 삭제된 항목의 DELETE가 If-Match와 무관하게 200
+- **웹 편집기**: 대화상자 뒤에서 Ctrl+Enter/Ctrl+S 동작(데스크톱에선 실제 매크로 시작), 단축키 캡처가 글자·숫자의 Shift를 버림(Ctrl+Shift+K→Ctrl+K), 입력이 안 되던 필드(HTTP 헤더·태그·실행 인자·숫자 변수·음수; `components/DraftInput.tsx`), 숫자 필드 스키마 범위 보정, 감싸기 후 "단계로 이동" 대상 보정, 꺼 둔 트리거 플로우의 복제·충돌 사본이 켜진 채 생김, Easy 모드가 Pro 데이터(라벨·시간 제한·오류 정책·중단점·비활성 단계)를 말없이 버림 → 그런 플로우는 Pro로만 열림, 드롭 영역 밖에 파일을 놓으면 앱이 그 파일로 바뀜(창 단위 가드), 라이브러리 로드 전 빈 `triggers_sync`
+- **API**: `PUBLIC_APP_URL` 기본값이 `/app` 없는 도메인이라 인증·재설정·공유 링크가 404(실서버에서 확인) → 기본값 `https://autoflowmacro.com/app` + 사이트 `_redirects`에 `/verify-email`·`/reset-password`·`/s/*` 302(이미 보낸 링크도 열림; **Railway에 `PUBLIC_APP_URL`을 따로 넣어 두었다면 `/app` 포함인지 확인**). NUL·짝 없는 서러게이트 입력이 500 → 400, 계정별 로그인 제한이 동시 요청으로 우회됨, 관리자가 내린 템플릿을 작성자가 지우고 같은 내용 재게시, 비밀번호 변경 후에도 예전 재설정 링크 유효, ADMIN_EMAILS 운영자가 검수 대상 템플릿을 못 엶, Atlas 검색 끝 페이지 total 0
+- **공유**: 장면 썸네일(작성자 화면 조각)을 공유·내보내기에서 제거(32개면 공유/Atlas 크기 한도 초과이기도 했음)
+- **데스크톱**: 모니터 식별이 동기 명령에서 창 생성(Windows 교착 가능) → async, 종료 시 실행 스레드를 최대 1초 기다려 눌린 키·버튼 해제, 중지 직후 질문 창이 남는 경쟁
+- **Android**: 단계 시간 제한이 진행 중 제스처를 취소, 실행 알림이 첫 단계·일시정지를 놓치던 스로틀, 재시작된 예약 워커가 다음 회차를 보장, triggers.json 원자적 쓰기, 참조 이미지 Windows 장치명 거부·잘린 PNG 거부, 긴 연산자 사슬 StackOverflow(Kotlin 평가기 반복화). 새 권한·의존성 없음
+- **릴리스 자동화**: `publish-r2.mjs --from-public`(GitHub 토큰·API 없이 릴리스의 SHA256SUMS로 목록·체크섬 검증; 이 컨테이너에선 `NODE_USE_ENV_PROXY=1` 필요), `--dry-run`, 별칭당 파일 1개(en-US MSI는 `windows/AutoFlow-x64-en-US.msi`, 겹치면 오류), 기본 저장소명 projectteamforyou/autoflow. `windows.yml` light.exe 전달 프로그램: 모든 WiX 폴더 처리·자기 식별(제품명)·재귀 방지·원본 누락 시 폴더 제거(다음 Windows 빌드에서 실검증 필요). PowerShell `throw \"…\"` 오타, Play 버전 코드는 환경 변수(`PLAY_VERSION_CODE`)
+- **검증 한계**: Windows 전용 코드(질문 창 경쟁·종료 대기·async 명령)와 Android 앱 모듈은 컴파일·정적 검사까지만. 워크플로 변경은 다음 실행에서 확인
+- **남긴 것(결정 필요/후속)**: ① Android는 트리거 실행에 항상 `approvedRisk = true`(`RunManager.startFromTrigger`; "트리거를 켠 것이 승인"이라는 기존 설계) — 데스크톱처럼 플로우별 저장 승인을 둘지 결정 필요 ② 일시정지 시간이 단계 시간 제한·최대 실행 시간에 포함됨(세 엔진 동일 동작) ③ 데스크톱 라이브러리는 삭제된 플로우를 재시작 전까지 기억 ④ Atlas: 검수 대기·숨김 상태 템플릿도 작성자 삭제 후 재게시 가능 ⑤ 가입 409 `email_taken`(주소 존재 노출) ⑥ Rust 정규식·서러게이트 등 표현식 방언 차이 몇 건 ⑦ Cloudflare 이메일 난독화가 약관·방침의 mailto를 가림(대시보드에서 끄기) ⑧ Site PR의 OG 렌더 비용(verify-seo가 이미지를 요구해 그대로 둠)
 
 ## 8. 러너 메모
 - 회사 PC 러너(FELIXLEE*)는 2026-11-25 현재 **`ghrunner` 계정**으로 동작(예전엔 LocalSystem). WiX ICE 검사는 LocalSystem에서만 되므로 `windows.yml`이 그 외 계정에서는 `-sval`로 MSI를 만듦(7-10). 전체 ICE 검사를 되살리려면 러너 서비스를 LocalSystem으로 바꾸면 됨. Rust는 `CARGO_HOME=C:\Rust\cargo`

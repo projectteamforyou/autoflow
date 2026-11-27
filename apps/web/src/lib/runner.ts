@@ -10,6 +10,7 @@ import {
   SandboxBackend,
   type DisplayInfo,
   type PracticeWorld,
+  calledFlows,
   type Flow,
   type Platform,
   type RiskReport,
@@ -198,7 +199,9 @@ export async function runNative(flow: Flow, inputs?: Record<string, unknown>, op
   }
   // `transient` (run from here / only this step): the temporary flow keeps the real flow's id, so the executor
   // must not store it as the copy that hotkeys and schedules start, nor remember its approval.
-  const { runId } = await invoke("run_start", { flow, inputs, approvedRisk, approvedScreenChange, ...(opts.transient ? { transient: true } : {}) });
+  // The executor only knows flows with triggers: the flows this one calls travel with it.
+  const called = calledFlows([flow], (id) => library.find((f) => f.id === id));
+  const { runId } = await invoke("run_start", { flow, inputs, approvedRisk, approvedScreenChange, ...(opts.transient ? { transient: true } : {}), ...(called.length ? { library: called } : {}) });
   begin(flow, "native", runId, platform, opts.transient);
   return runId;
 }

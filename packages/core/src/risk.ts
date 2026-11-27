@@ -219,3 +219,25 @@ export function analyzeRiskWithCalls(
   collect(flow.steps, 0);
   return called.length ? analyzeRisk({ ...flow, steps: [...flow.steps, ...called] }) : analyzeRisk(flow);
 }
+
+/**
+ * The flows that `roots` reach through enabled "run flow" steps, directly or through other flows,
+ * without the roots themselves. This is what a native executor has to be given along with a flow so
+ * that it can resolve the calls (and include them in its own risk check).
+ */
+export function calledFlows<F extends Pick<Flow, "id" | "steps">>(roots: readonly F[], resolveFlow: (id: string) => F | undefined, maxDepth = 8): F[] {
+  const rootIds = new Set(roots.map((f) => f.id));
+  const found = new Map<string, F>();
+  const collect = (steps: Flow["steps"], depth: number): void => {
+    walkSteps(steps, (s) => {
+      if (s.disabled || s.type !== "runFlow" || found.has(s.flowId) || depth >= maxDepth) return;
+      const target = resolveFlow(s.flowId);
+      if (!target) return;
+      if (!rootIds.has(target.id)) found.set(target.id, target);
+      else if (depth > 0) return; // a root is walked from the top anyway
+      collect(target.steps, depth + 1);
+    });
+  };
+  for (const f of roots) collect(f.steps, 0);
+  return [...found.values()];
+}

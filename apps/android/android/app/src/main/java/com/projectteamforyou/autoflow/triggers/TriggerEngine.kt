@@ -65,6 +65,7 @@ object TriggerEngine {
         if (f.isFile) {
             try {
                 val o = FlowParser.json.parseToJsonElement(f.readText()).jsonObject
+                (o["library"] as? JsonArray)?.let { rememberLibrary(it) }
                 load(context, o["flows"] as? JsonArray ?: JsonArray(emptyList()), o["emergencyStop"]?.let { hotkeyOf(it) })
             } catch (e: Exception) {
                 Log.w(TAG, "stored triggers unreadable: ${e.message}")
@@ -89,13 +90,23 @@ object TriggerEngine {
         }
     }
 
-    /** `triggers_sync`: replaces the registered set. */
+    /**
+     * Flows that the registered ones call through "run flow" but that have no trigger of their own. They are kept
+     * (and stored) so a schedule or hotkey that fires after the process was restarted can still resolve them.
+     */
+    private fun rememberLibrary(library: JsonArray) {
+        RunManager.rememberFlows(library.mapNotNull { runCatching { FlowParser.parse(it) }.getOrNull() })
+    }
+
+    /** `triggers_sync`: replaces the registered set. `library`: the flows those call (see [rememberLibrary]). */
     @Synchronized
-    fun sync(context: Context, flowsJson: JsonArray, emergencyStop: JsonElement?): SyncResult {
+    fun sync(context: Context, flowsJson: JsonArray, emergencyStop: JsonElement?, library: JsonArray? = null): SyncResult {
+        library?.let { rememberLibrary(it) }
         val result = load(context, flowsJson, emergencyStop?.let { hotkeyOf(it) })
         val store = buildJsonObject {
             put("flows", JsonArray(flows.values.mapNotNull { it.source }))
             emergencyStop?.let { put("emergencyStop", it) }
+            library?.let { put("library", it) }
         }
         writeStore(context, store.toString())
         return result
