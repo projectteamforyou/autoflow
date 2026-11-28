@@ -219,7 +219,7 @@ class AutoFlowNativePlugin : Plugin() {
         val inputs = (a["inputs"] as? JsonObject)?.mapValues { (_, v) -> Value.fromJson(v) } ?: emptyMap()
         val runId = RunManager.start(
             context,
-            RunManager.StartRequest(flow, inputs, a.bool("approvedRisk"), a.bool("approvedScreenChange"), a.bool("dryRun")),
+            RunManager.StartRequest(flow, inputs, a.bool("approvedRisk"), a.bool("approvedScreenChange"), a.bool("dryRun"), transient = a.bool("transient")),
         )
         buildJsonObject { put("runId", runId) }
     }

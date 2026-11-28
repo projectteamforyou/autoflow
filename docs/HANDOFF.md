@@ -1,6 +1,6 @@
 # AutoFlow — 인수인계 (새 채팅에서 이어서 작업용)
 
-갱신: 2026-11-27 13:25 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#48 (7-11, 감사 수정 + 1.2.1 릴리스)
+갱신: 2026-11-28 KST · 저장소 `projectteamforyou/autoflow`(구 `work517/autoflow`) · 기본 브랜치 `main` · 작업 브랜치 `claude/charming-bell-7loc6o` · 마지막 PR projectteamforyou/autoflow#48 (7-11, 감사 수정 + 1.2.1 릴리스)
 
 ## 1. 현재 배포 상태 (Windows 1.2.1 · Android 1.2.1 · 웹 1.2.1)
 | 항목 | 값 |
@@ -183,7 +183,15 @@ scripts/        release/publish-r2.mjs, play/publish.mjs, play/demo-video.mjs, w
   - Android: `android.yml` run 45936982272(version 1.2.1, production) 성공 — `track production: completed` → `committed`(13:12 KST). 심사 결과는 Console에서 확인
   - R2: `NODE_USE_ENV_PROXY=1 node scripts/release/publish-r2.mjs v1.2.1 --from-public --published-at 2026-11-27T04:13:06Z`(먼저 `--dry-run`) → `latest.json` 1.2.1, 고정 주소 5개(en-US MSI 별칭 추가)를 실제로 내려받아 SHA-256 일치 확인(setup c1e7164f…, msi-ko 84d1a869…, msi-en a42b583a…, portable 1fafcbab…, apk 3ea43ab4…)
 - **검증 한계**: Windows 전용 코드(질문 창 경쟁·종료 대기·async 명령)와 Android 앱 모듈은 컴파일·정적 검사까지만. 워크플로 변경은 다음 실행에서 확인
-- **남긴 것(결정 필요/후속)**: ① Android는 트리거 실행에 항상 `approvedRisk = true`(`RunManager.startFromTrigger`; "트리거를 켠 것이 승인"이라는 기존 설계) — 데스크톱처럼 플로우별 저장 승인을 둘지 결정 필요 ② 일시정지 시간이 단계 시간 제한·최대 실행 시간에 포함됨(세 엔진 동일 동작) ③ 데스크톱 라이브러리는 삭제된 플로우를 재시작 전까지 기억 ④ Atlas: 검수 대기·숨김 상태 템플릿도 작성자 삭제 후 재게시 가능 ⑤ 가입 409 `email_taken`(주소 존재 노출) ⑥ Rust 정규식·서러게이트 등 표현식 방언 차이 몇 건 ⑦ Cloudflare 이메일 난독화가 약관·방침의 mailto를 가림(대시보드에서 끄기) ⑧ Site PR의 OG 렌더 비용(verify-seo가 이미지를 요구해 그대로 둠)
+- **남긴 것(결정 필요/후속)**: ① ~~Android 트리거 실행 항상 승인~~ → 7-12에서 플로우별 저장 승인으로 변경 ② 일시정지 시간이 단계 시간 제한·최대 실행 시간에 포함됨(세 엔진 동일 동작) ③ 데스크톱 라이브러리는 삭제된 플로우를 재시작 전까지 기억 ④ Atlas: 검수 대기·숨김 상태 템플릿도 작성자 삭제 후 재게시 가능 ⑤ 가입 409 `email_taken`(주소 존재 노출) ⑥ Rust 정규식·서러게이트 등 표현식 방언 차이 몇 건 ⑦ Cloudflare 이메일 난독화가 약관·방침의 mailto를 가림(대시보드에서 끄기) ⑧ Site PR의 OG 렌더 비용(verify-seo가 이미지를 요구해 그대로 둠)
+
+## 7-12. Android 플로우별 위험 승인 저장 (2026-11-28, 다음 릴리스에 포함)
+- 사용자 결정(2026-11-28): Android도 Windows처럼 플로우별 승인을 저장. 이전에는 `RunManager.startFromTrigger`가 모든 트리거 실행에 `approvedRisk = true`(트리거를 켠 것이 곧 승인)
+- 엔진 `Approvals.kt`(순수): `stepsHash(flow, resolveFlow)` = 플로우의 원본 JSON에서 steps·variables + "다른 플로우 실행"으로 닿는 플로우들(id 순, 비활성 호출 제외, 순환 안전)의 steps·variables를 **키 정렬한 JSON**으로 SHA-256. 이름·트리거 변경은 승인 유지, 단계·변수·호출되는 플로우 변경은 재승인. 원본 JSON이 없으면 승인 없음. 테스트 `ApprovalsTest` 5건(엔진 65건)
+- 앱 `run/ApprovalStore.kt`: SharedPreferences `autoflow.approvals`(flow id → hash). 앱에서 실행해 사전 확인에서 승인하면 저장(드라이런·`transient` 실행 제외). 트리거 실행은 저장된 해시가 지금 해시와 같을 때만 위험 단계 진행, 아니면 엔진이 "risky steps were not approved — run this flow once from the app…"로 실패 → 실패 알림
+- `run_start`의 `transient`를 Android도 읽음(그동안 무시됨): 임시 변형은 트리거용 라이브러리 사본을 바꾸지 않고 승인도 저장하지 않음. 앱에서 시작한 일반 실행은 라이브러리 사본을 갱신(데스크톱과 동일)
+- **배포 시 영향**: 기존 Android 사용자의 위험 단계가 있는 예약·단축키 플로우는 업데이트 후 첫 트리거 실행이 실패 알림을 띄움 → 앱에서 한 번 실행·승인하면 이후 자동 실행. 위험 단계가 없는 플로우는 영향 없음. 릴리스 노트에 안내 필요
+- 앱 모듈은 이 환경에서 컴파일 불가 → `android.yml`(track none)으로 확인
 
 ## 8. 러너 메모
 - 회사 PC 러너(FELIXLEE*)는 2026-11-25 현재 **`ghrunner` 계정**으로 동작(예전엔 LocalSystem). WiX ICE 검사는 LocalSystem에서만 되므로 `windows.yml`이 그 외 계정에서는 `-sval`로 MSI를 만듦(7-10). 전체 ICE 검사를 되살리려면 러너 서비스를 LocalSystem으로 바꾸면 됨. Rust는 `CARGO_HOME=C:\Rust\cargo`

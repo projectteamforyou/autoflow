@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.projectteamforyou.autoflow.a11y.AutoFlowAccessibilityService
 import com.projectteamforyou.autoflow.bridge.BridgeEvents
+import com.projectteamforyou.autoflow.engine.Approvals
 import com.projectteamforyou.autoflow.engine.Backend
 import com.projectteamforyou.autoflow.engine.ErrorCategory
 import com.projectteamforyou.autoflow.engine.Flow
@@ -62,6 +63,11 @@ object RunManager {
         val dryRun: Boolean = false,
         /** "manual" (from the app) or the trigger type that started it. */
         val origin: String = "manual",
+        /**
+         * A temporary variant of a saved flow ("run from here", "only this step"): it keeps the real flow's id, so it
+         * must not replace the library copy that triggers start, nor have its approval remembered for the real flow.
+         */
+        val transient: Boolean = false,
     )
 
     /** Starts a run and returns its id; events arrive on [BridgeEvents]. */
@@ -69,15 +75,32 @@ object RunManager {
         val app = context.applicationContext
         val backend: Backend = if (req.dryRun) DryRunBackend(app) else AndroidBackend(app)
         val secrets = SecretStore.get(app)
+        // The library this run resolves "run flow" against; a transient variant sees itself but does not replace the
+        // saved copy that triggers start.
+        val resolve: (String) -> Flow? = if (req.transient) {
+            { id -> if (id == req.flow.id) req.flow else library[id] }
+        } else {
+            library[req.flow.id] = req.flow
+            { id -> library[id] }
+        }
+        // An approval given in the app's pre-run sheet is remembered for trigger-started runs of exactly these steps
+        // (and those of the flows they call). A dry run performs nothing and a transient run is not the saved flow,
+        // so neither counts.
+        val hash = Approvals.stepsHash(req.flow, resolve)
+        val remember = req.origin == "manual" && req.approvedRisk && !req.dryRun && !req.transient
         var active: Active? = null
         val run = FlowRun(
             req.flow, backend,
             RunOptions(
                 inputs = req.inputs,
                 secret = { secrets.get(it) },
-                confirmRisk = { req.approvedRisk },
+                // Asked only when the flow (with the flows it calls) has steps that need approval.
+                confirmRisk = {
+                    if (remember && hash != null) ApprovalStore.remember(app, req.flow.id, hash)
+                    req.approvedRisk
+                },
                 confirmScreenChange = { _, _ -> req.approvedScreenChange },
-                resolveFlow = { id -> library[id] },
+                resolveFlow = resolve,
                 onEvent = { e -> active?.let { onEvent(app, it, e) } },
             ),
         )
@@ -106,9 +129,9 @@ object RunManager {
     }
 
     /**
-     * Trigger-initiated start, honouring limits.preventOverlap and limits.cooldownMs. Risk is treated as approved:
-     * enabling a trigger in the app is the user's approval (the web UI shows the risk report before it syncs).
-     * A recorded-screen mismatch is never auto-approved.
+     * Trigger-initiated start, honouring limits.preventOverlap and limits.cooldownMs. Risky steps run only when the
+     * user approved exactly these steps (and those of the flows they call) in the app before ([ApprovalStore]); a flow
+     * without risky steps is never asked. A recorded-screen mismatch is never auto-approved.
      */
     fun startFromTrigger(context: Context, flow: Flow, origin: String): String? {
         if (flow.limits.preventOverlap && isRunning(flow.id)) {
@@ -122,7 +145,8 @@ object RunManager {
             return null
         }
         lastTriggerStart[flow.id] = now
-        return start(context, StartRequest(flow, approvedRisk = true, approvedScreenChange = false, origin = origin))
+        val approved = Approvals.isApproved(ApprovalStore.all(context), flow.id, Approvals.stepsHash(flow) { id -> if (id == flow.id) flow else library[id] })
+        return start(context, StartRequest(flow, approvedRisk = approved, approvedScreenChange = false, origin = origin))
     }
 
     private fun onEvent(context: Context, a: Active, e: RunEvent) {

@@ -1,7 +1,4 @@
-AutoFlow 1.2.1
-• Fluxos que executam outros fluxos: etapas de risco do fluxo chamado agora pedem aprovação
-• Fluxos agendados podem executar fluxos sem gatilho próprio
-• O limite de tempo de uma etapa interrompe um toque longo em andamento
-• A notificação mostra a primeira etapa e a pausa
-• A sincronização mantém fluxos restaurados, pastas e favoritos
-• Cabeçalhos HTTP, tags e números negativos podem ser digitados
+AutoFlow 1.2.2
+• Fluxos agendados, por evento ou atalho com etapas de risco (envio de dados, gravação de arquivos) precisam da sua aprovação uma vez: execute pelo app e aprove
+• Editar o fluxo ou um fluxo que ele executa pede de novo
+• Até lá a execução automática para e uma notificação avisa
