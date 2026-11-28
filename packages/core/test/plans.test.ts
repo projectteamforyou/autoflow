@@ -114,10 +114,24 @@ describe("license keys", () => {
         if (ch === body[i]) continue;
         expect(normalizeLicenseKey(body.slice(0, i) + ch + body.slice(i + 1))).toBeNull();
       }
-      if (i < body.length - 1 && body[i] !== body[i + 1]) {
+      // Every adjacent swap is caught except "0Z" <-> "Z0" (Luhn mod 32 keeps the sum for values 0 and 31;
+      // documented on licenseCheckSymbol, and the algorithm is frozen). A random key has such a pair now
+      // and then, which made this test fail about once in a few dozen runs.
+      const pair = body.slice(i, i + 2);
+      if (i < body.length - 1 && body[i] !== body[i + 1] && pair !== "0Z" && pair !== "Z0") {
         expect(normalizeLicenseKey(body.slice(0, i) + body[i + 1] + body[i] + body.slice(i + 2))).toBeNull();
       }
     }
+  });
+
+  it("the one swap the check symbol cannot see is 0Z <-> Z0 (documented, frozen)", () => {
+    const payload = "Z0" + "0".repeat(17);
+    const check = licenseCheckSymbol(payload);
+    expect(normalizeLicenseKey(payload + check)).not.toBeNull();
+    expect(normalizeLicenseKey("0Z" + payload.slice(2) + check)).not.toBeNull();
+    // Any other adjacent swap of different symbols is caught, e.g. "A0" <-> "0A".
+    const other = "A0" + "0".repeat(17);
+    expect(normalizeLicenseKey("0A" + other.slice(2) + licenseCheckSymbol(other))).toBeNull();
   });
 
   it("rejects garbage and masks keys for lists", () => {
