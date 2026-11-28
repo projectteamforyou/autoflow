@@ -192,35 +192,49 @@ jobs:
           }
           # The folder name follows the bundled WiX version (WixTools314, WixTools-3.14.1, ...); after a Tauri
           # CLI update there can be two, and Tauri uses the new one, so every folder is handled.
-          $lights = @(Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA 'tauri') -Filter 'light.exe' -Recurse -Depth 1 -ErrorAction SilentlyContinue)
+          # The folder is shared by every repository built under this account, and another one may have put
+          # its own forwarder there. So nothing is trusted by name: a file is WiX's real linker only when its
+          # version info says so, and a folder without one gets WiX again from the official release (the
+          # same zip and SHA-256 Tauri uses).
+          $tauriDir = Join-Path $env:LOCALAPPDATA 'tauri'
+          $lights = @(Get-ChildItem -Path $tauriDir -Filter 'light.exe' -Recurse -Depth 1 -ErrorAction SilentlyContinue)
           Write-Host "LOCALAPPDATA: $env:LOCALAPPDATA; light.exe: $($lights.FullName -join ', ')"
           if ($lights.Count -eq 0) {
             Write-Host "::warning::WiX tools are not downloaded yet on this runner; the MSI step may fail once on ICE validation. Run the workflow again."
             exit 0
           }
-          $marker = 'AutoFlow light forwarder'
+          function Test-WixLinker([string]$path) {
+            if (-not (Test-Path $path)) { return $false }
+            $vi = (Get-Item $path).VersionInfo
+            return ("$($vi.ProductName) $($vi.FileDescription)" -match 'Windows Installer XML')
+          }
+          $wixZipUrl = 'https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip'
+          $wixZipSha = '6ac824e1642d6f7277d0ed7ea09411a508f6116ba6fae0aa5f2c7daa2ff43d31'
           $todo = @()
-          $upgrade = @()
           foreach ($light in $lights) {
             $wix = $light.DirectoryName
             $real = Join-Path $wix 'light-real.exe'
-            # The first version of this step built the forwarder without a product name: a tiny light.exe
-            # with no version info is that one (WiX's own light.exe is several times larger and has one).
-            $legacy = (-not $light.VersionInfo.ProductName) -and ($light.Length -lt 16000)
-            if ($legacy -and (Test-Path $real)) { $upgrade += $wix; continue }
-            $isForwarder = $legacy -or ($light.VersionInfo.ProductName -eq $marker)
-            if ($isForwarder -and (Test-Path $real)) { Write-Host "forwarder already in place: $wix"; continue }
-            if ($isForwarder) {
-              # Forwarder without the real linker (deleted or quarantined): let Tauri download WiX again.
-              Write-Host "::warning::$wix has the forwarder but no light-real.exe; the folder is removed so Tauri downloads WiX again. Run the workflow again if the MSI step fails."
-              Remove-Item -Recurse -Force $wix
-              continue
+            if (Test-WixLinker $light.FullName) {
+              # WiX's own linker as light.exe: first run here, or Tauri extracted WiX again.
+              if (Test-Path $real) { Remove-Item -Force $real }
+              Move-Item $light.FullName $real
+            } elseif (-not (Test-WixLinker $real)) {
+              # Neither file is WiX's linker (a forwarder calling a forwarder, or the linker was removed).
+              Write-Host "::warning::$wix has no WiX linker; restoring it from the WiX 3.14.1 release."
+              $zip = Join-Path $env:RUNNER_TEMP 'wix314-binaries.zip'
+              Invoke-WebRequest -UseBasicParsing -Uri $wixZipUrl -OutFile $zip
+              $sha = (Get-FileHash -Algorithm SHA256 $zip).Hash.ToLowerInvariant()
+              if ($sha -ne $wixZipSha) { throw "WiX zip checksum mismatch: $sha" }
+              $unpacked = Join-Path $env:RUNNER_TEMP 'wix314'
+              if (Test-Path $unpacked) { Remove-Item -Recurse -Force $unpacked }
+              Expand-Archive -Path $zip -DestinationPath $unpacked
+              Copy-Item (Join-Path $unpacked '*') $wix -Recurse -Force
+              if (Test-Path $real) { Remove-Item -Force $real }
+              Move-Item (Join-Path $wix 'light.exe') $real
+              if (-not (Test-WixLinker $real)) { throw "restored light.exe in $wix is not WiX's linker" }
             }
-            # WiX's own light.exe (first run, or Tauri extracted WiX again): a leftover light-real.exe is stale.
-            if (Test-Path $real) { Remove-Item -Force $real }
             $todo += $wix
           }
-          if (($todo.Count + $upgrade.Count) -eq 0) { exit 0 }
           $src = Join-Path $env:RUNNER_TEMP 'light-forwarder.cs'
           $code = @'
           using System;
@@ -265,11 +279,10 @@ jobs:
           $out = Join-Path $env:RUNNER_TEMP 'light.exe'
           & $csc /nologo /target:exe /platform:anycpu "/out:$out" $src
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          foreach ($wix in $upgrade) { Copy-Item $out (Join-Path $wix 'light.exe') -Force }
+          # Every folder now has WiX's linker as light-real.exe; light.exe becomes (or stays) this forwarder.
           foreach ($wix in $todo) {
-            Move-Item (Join-Path $wix 'light.exe') (Join-Path $wix 'light-real.exe')
-            Copy-Item (Join-Path $wix 'light.exe.config') (Join-Path $wix 'light-real.exe.config') -Force
-            Copy-Item $out (Join-Path $wix 'light.exe')
+            Copy-Item (Join-Path $wix 'light.exe.config') (Join-Path $wix 'light-real.exe.config') -Force -ErrorAction SilentlyContinue
+            Copy-Item $out (Join-Path $wix 'light.exe') -Force
           }
           Write-Host "::notice::MSI is linked with -sval (ICE validation skipped): this runner is not LocalSystem."
 
