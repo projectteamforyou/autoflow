@@ -1,7 +1,4 @@
-AutoFlow 1.2.1
-• Luồng chạy luồng khác: bước rủi ro trong luồng được gọi giờ cũng yêu cầu phê duyệt
-• Luồng theo lịch có thể chạy luồng không có trình kích hoạt
-• Giới hạn thời gian của bước dừng thao tác nhấn giữ hoặc vuốt
-• Thông báo hiển thị bước đầu tiên và trạng thái tạm dừng
-• Đồng bộ giữ lại luồng đã khôi phục, thư mục và mục yêu thích
-• Có thể nhập tiêu đề HTTP, thẻ và số âm
+AutoFlow 1.2.2
+• Luồng theo lịch, sự kiện hoặc phím tắt có bước rủi ro (gửi dữ liệu, ghi tệp) cần bạn phê duyệt một lần: chạy luồng trong ứng dụng và phê duyệt
+• Sửa luồng đó hoặc luồng mà nó gọi sẽ được hỏi lại
+• Trước đó lần chạy tự động sẽ dừng và có thông báo

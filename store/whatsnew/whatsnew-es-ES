@@ -1,7 +1,4 @@
-AutoFlow 1.2.1
-• Flujos que ejecutan otros flujos: los pasos de riesgo del flujo llamado ahora piden aprobación
-• Los flujos programados pueden ejecutar flujos sin activador propio
-• El límite de tiempo de un paso detiene una pulsación larga en curso
-• La notificación muestra el primer paso y la pausa
-• La sincronización conserva flujos restaurados, carpetas y favoritos
-• Se pueden escribir cabeceras HTTP, etiquetas y números negativos
+AutoFlow 1.2.2
+• Los flujos programados, por evento o atajo con pasos de riesgo (envío de datos, escritura de archivos) necesitan tu aprobación una vez: ejecútalo desde la app y apruébalo
+• Si editas el flujo o uno que ejecuta, se vuelve a pedir
+• Hasta entonces la ejecución automática se detiene y te avisa

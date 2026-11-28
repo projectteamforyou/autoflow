@@ -1,8 +1,4 @@
-AutoFlow 1.2.1
-• Flows that run other flows: risky steps in the called flow now ask for approval
-• Scheduled flows can run flows that have no trigger of their own
-• A step's time limit now stops a long press or swipe in progress
-• Run notification shows the first step and the paused state
-• Sync keeps restored flows, folders and favourites
-• HTTP headers, tags and negative numbers can be typed in the editor
-• Hotkeys keep Shift (Ctrl+Shift+K)
+AutoFlow 1.2.2
+• Scheduled, event and hotkey flows with risky steps (sending data, writing files) now need your approval once: run the flow from the app and approve it, and later automatic runs go ahead
+• Editing such a flow, or a flow it runs, asks again
+• Until then an automatic run stops and a notification tells you

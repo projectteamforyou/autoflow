@@ -1,7 +1,4 @@
-AutoFlow 1.2.1
-• Alur yang menjalankan alur lain: langkah berisiko di alur yang dipanggil kini meminta persetujuan
-• Alur terjadwal dapat menjalankan alur tanpa pemicu
-• Batas waktu langkah menghentikan tekan lama atau usap
-• Notifikasi menampilkan langkah pertama dan status jeda
-• Sinkronisasi mempertahankan alur yang dipulihkan, folder, dan favorit
-• Header HTTP, tag, dan angka negatif dapat diketik
+AutoFlow 1.2.2
+• Alur terjadwal, peristiwa, atau pintasan dengan langkah berisiko (mengirim data, menulis file) perlu persetujuan sekali: jalankan dari aplikasi dan setujui
+• Mengedit alur itu atau alur yang dipanggilnya akan meminta lagi
+• Sampai saat itu proses otomatis berhenti dan notifikasi memberi tahu

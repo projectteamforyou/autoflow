@@ -1,7 +1,4 @@
-AutoFlow 1.2.1
-• Flows, die andere Flows starten: riskante Schritte im aufgerufenen Flow fragen nach Freigabe
-• Geplante Flows können Flows ohne eigenen Auslöser starten
-• Das Zeitlimit eines Schritts stoppt langes Drücken oder Wischen
-• Die Benachrichtigung zeigt den ersten Schritt und die Pause
-• Sync behält wiederhergestellte Flows, Ordner und Favoriten
-• HTTP-Header, Tags und negative Zahlen lassen sich eingeben
+AutoFlow 1.2.2
+• Geplante, ereignis- oder tastenkürzelgesteuerte Flows mit riskanten Schritten (Daten senden, Dateien schreiben) brauchen einmal Ihre Freigabe: in der App starten und freigeben
+• Bearbeiten Sie den Flow oder einen aufgerufenen Flow, wird erneut gefragt
+• Bis dahin stoppt der automatische Lauf und eine Benachrichtigung informiert Sie

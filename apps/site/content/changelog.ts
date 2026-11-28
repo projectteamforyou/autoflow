@@ -14,6 +14,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.2.2",
+    date: "2026-11-28",
+    platforms: ["android"],
+    items: [
+      "Android: scheduled, device-event and hotkey flows with risky steps (sending data, writing files, a secret leaving the keystore) now need your approval once, as on Windows. Run the flow from the app and approve it; later automatic runs go ahead. Until then an automatic run stops and a notification says so.",
+      "Editing such a flow, or a flow it runs, asks for approval again. Renaming it or changing its trigger does not.",
+      "“Run from here” and “Run only this step” on Android no longer replace the copy that schedules and hotkeys start.",
+    ],
+  },
+  {
     version: "1.2.1",
     date: "2026-11-27",
     platforms: ["windows", "android", "web"],

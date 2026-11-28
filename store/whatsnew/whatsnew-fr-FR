@@ -1,7 +1,4 @@
-AutoFlow 1.2.1
-• Flux qui lancent d'autres flux : les étapes à risque du flux appelé demandent une approbation
-• Les flux planifiés peuvent lancer des flux sans déclencheur
-• La limite de temps d'une étape arrête un appui long en cours
-• La notification affiche la première étape et la pause
-• La synchronisation conserve flux restaurés, dossiers et favoris
-• En-têtes HTTP, étiquettes et nombres négatifs peuvent être saisis
+AutoFlow 1.2.2
+• Les flux planifiés, sur événement ou raccourci avec des étapes à risque (envoi de données, écriture de fichiers) demandent une approbation unique : lancez-le depuis l'app et approuvez
+• Modifier ce flux ou un flux qu'il lance la redemande
+• D'ici là l'exécution automatique s'arrête et une notification vous prévient
